@@ -3,3 +3,4 @@ snippets.bak
 workspace
 org
 *.bak
+*.elc
