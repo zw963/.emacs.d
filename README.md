@@ -1,8 +1,15 @@
-# My .emacs.d
+# How to use it?
+
+Following is steps to use those packages.
+
+1. Clone this project into a folder in your's $HOME, e.g. ~/Dropbox/common/.emacs.d
+
+```sh
+$: git clone https://github.com/zw963/.emacs.d ~/Dropbox/common/.emacs.d
+```
 
 The entry is `.emacs` in this project root folder, but where all the magic begins should be `~/.emacs`.
-
-You need add following content to ~/.emacs to let all packages start to work.
+You need add following code into `~/.emacs` to let all packages start to work.
 
 ```el
 ;;; .emacs --- Where all the magic begins
