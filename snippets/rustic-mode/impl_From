@@ -1,0 +1,10 @@
+# -*- mode: snippet -*-
+# name: impl From
+# key: impl_From
+# contributor: Billy.Zheng vil963@gmail.com
+# --
+impl From<${2:type}> for $1 {
+  fn from(src: $2) -> Self {
+    $0
+  }
+}

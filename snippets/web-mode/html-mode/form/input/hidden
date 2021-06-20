@@ -1,0 +1,5 @@
+# -*- mode: snippet -*-
+# name: <input type="hidden" ... /> <隐藏>
+# key: input
+# --
+<input type="hidden"`(string-field "1" "name" " name=")``(string-field "2" "value" " value=")`$0 />

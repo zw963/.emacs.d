@@ -1,0 +1,8 @@
+# -*- mode: snippet -*-
+# name: define a method
+# key: d
+# contributor: Billy.Zheng vil963@gmail.com
+# --
+fn ${1:name}(${2:&}self`(yas-field "3" "args" ", ")`)`(yas-field "4" "String" " -> ")` {
+  $0
+}

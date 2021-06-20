@@ -1,0 +1,7 @@
+# -*- mode: snippet -*-
+# name: times { ... }
+# key: times
+# binding: t
+# condition: (yas-use-region-p)
+# --
+`(if-binding "${1:10}.")`times `(ruby-block "2" "i")`

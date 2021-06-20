@@ -1,0 +1,16 @@
+# -*- mode: snippet -*-
+# name: retry
+# key: retry
+# --
+tries = 0
+begin
+  tries += 1
+  $0
+rescue Ferrum::TimeoutError
+  if (tries < 4)
+    seconds = 2**tries
+    puts "Retrying in #{seconds}"
+    sleep(seconds)
+    retry
+  end
+end

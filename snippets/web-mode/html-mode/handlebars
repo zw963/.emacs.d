@@ -1,0 +1,5 @@
+# -*- mode: snippet -*-
+# name: <script type="text/x-handlebars"></script>
+# key: handlebars
+# --
+<script type="text/x-handlebars"`(string-field "1" "javascript" " data-template-name=")`>$0</script>

@@ -1,0 +1,19 @@
+#!/bin/bash
+
+ROOT=$(dirname `readlink -e $0`)/..
+
+[ -e /usr/local/bin/epdfinfo ] || sudo ln -sf $ROOT/bin/epdfinfo /usr/local/bin
+
+export LD_LIBRARY_PATH=$ROOT:$LD_LIBRARY_PATH
+export LIBPATH=$LD_LIBRARY_PATH
+
+CHECK=$(ldd $ROOT/epdfinfo | grep "not found" | wc -l)
+
+if [ "$CHECK" -ne  "0" ]; then
+    echo Some Shared Libraries were not found
+    ldd $ROOT/epdfinfo |grep "not found"
+    exit 1
+fi
+
+exec -a epdfinfo $ROOT/epdfinfo "$@"
+

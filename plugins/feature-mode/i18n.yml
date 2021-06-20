@@ -1,0 +1,42 @@
+# encoding: UTF-8
+#
+# We use ISO 639-1 (language) and ISO 3166 alpha-2 (region - if appliccable):
+# http://en.wikipedia.org/wiki/List_of_ISO_639-1_codes
+# http://en.wikipedia.org/wiki/ISO_3166-1
+#
+# If you want several aliases for a keyword, just separate them
+# with a | character. Make sure there are no ambiguities in the
+# keywords.
+#
+# If you do *not* want a trailing space after a keyword, end it with a < character.
+# (See Chinese for examples).
+#
+"en":
+  name: English
+  native: English
+  feature: Feature
+  background: Background
+  scenario: Scenario
+  scenario_outline: Scenario Outline
+  examples: Examples|Scenarios
+  given: "*|Given"
+  when: "*|When"
+  then: "*|Then"
+  and: "*|And"
+  but: "*|But"
+
+# Please keep the grammars in alphabetical order by name from here and down.
+
+"zh-CN":
+  name: Chinese simplified
+  native: 简体中文
+  feature: 功能
+  background: 背景
+  scenario: 场景|剧本
+  scenario_outline: 场景大纲|剧本大纲
+  examples: 例子
+  given: "*|假如|假设|假定<"
+  when: "*|当<"
+  then: "*|那么<"
+  and: "*|而且|并且|同时<"
+  but: "*|但是<"

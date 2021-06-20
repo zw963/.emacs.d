@@ -1,0 +1,5 @@
+# -*- mode: snippet -*-
+# name: <ul>...</ul>
+# key: ul
+# --
+<ul>$0</ul>

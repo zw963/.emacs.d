@@ -1,0 +1,5 @@
+# -*- mode: snippet -*-
+# name: HTML label
+# key: label
+# --
+<label`(string-field "1" "id" " for=")`>${2:${1:$(yas-camelize)}}</label>

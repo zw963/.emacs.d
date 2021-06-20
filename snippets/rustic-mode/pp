@@ -1,0 +1,6 @@
+# -*- mode: snippet -*-
+# name: pretty println!
+# key: pp
+# contributor: Billy.Zheng vil963@gmail.com
+# --
+println!("`(yas-field "1" "pp" "" ": ")`{:#?}", $0)

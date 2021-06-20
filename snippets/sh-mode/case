@@ -1,0 +1,8 @@
+# -*- mode: snippet -*-
+# name: case ... esac
+# key: case
+# expand-env: ((yas-indent-line 'fixed))
+# --
+case ${1:word} in`(def-begin)`    ${2:pattern})
+        $0
+        ;;`(def-end "esac")`

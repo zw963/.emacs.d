@@ -1,0 +1,5 @@
+# -*- mode: snippet -*-
+# name: <base>...</base>
+# key: base
+# --
+<base`(string-field "1" "href" " href=")``(string-field "2" "_blank" " target=")`>$0</base>

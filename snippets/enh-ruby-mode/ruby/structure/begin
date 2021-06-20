@@ -1,0 +1,11 @@
+# -*- mode: snippet -*-
+# name: begin ... rescue ... end
+# key: begin
+# binding: b
+# condition: (yas-use-region-p)
+# --
+begin
+  `(yas-stripped-selected-text "" "" "")`
+rescue ${1:RuntimeError}
+  $0
+`(end)`

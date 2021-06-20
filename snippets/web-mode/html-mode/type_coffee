@@ -1,0 +1,5 @@
+# -*- mode: snippet -*-
+# name: type="text/coffeescript"
+# key: type
+# --
+type="text/coffeescript"

@@ -1,0 +1,7 @@
+# -*- mode: snippet -*-
+# name: sh-mode ${var+}
+# key: sh-mode ${var+}
+# binding: $
+# condition: (yas-use-region-p)
+# --
+\${${1:var}${2:+}`(yas-selected-text)`}

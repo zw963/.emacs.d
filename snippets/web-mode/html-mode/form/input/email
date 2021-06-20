@@ -1,0 +1,5 @@
+# -*- mode: snippet -*-
+# name: <input type="email" ... /> <邮件>
+# key: input
+# --
+<input type="email"`(string-field "1" "name" " name=")``(string-field "2" "value" " value=")`$0 />

@@ -1,0 +1,5 @@
+# -*- mode: snippet -*-
+# name: <input type="submit" ... /> <按钮>
+# key: submit
+# --
+<input type="submit"`(string-field "1" "Submit" " value=")` />

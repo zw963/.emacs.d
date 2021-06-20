@@ -1,0 +1,7 @@
+# -*- mode: snippet -*-
+# name: bash []
+# key: [
+# binding: [
+# condition: (yas-use-region-p)
+# --
+[[`(unless (in-string-p) " ")``yas-selected-text`$0`(unless (in-string-p) " ")``(if-binding "]")`]

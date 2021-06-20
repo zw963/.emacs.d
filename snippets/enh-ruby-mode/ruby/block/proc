@@ -1,0 +1,7 @@
+# -*- mode: snippet -*-
+# name: proc {|x| block }
+# key: proc
+# binding: p
+# condition: (yas-use-region-p)
+# --
+proc `(ruby-block "1" "x")`

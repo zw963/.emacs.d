@@ -1,0 +1,6 @@
+# -*- mode: snippet -*-
+# name: assert!
+# key: as
+# contributor: Billy.Zheng vil963@gmail.com
+# --
+assert!($0)

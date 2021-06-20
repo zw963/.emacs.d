@@ -1,0 +1,6 @@
+# -*- mode: snippet -*-
+# name: closure one line
+# key: b1
+# contributor: Billy.Zheng vil963@gmail.com
+# --
+|${1:arg}| $0

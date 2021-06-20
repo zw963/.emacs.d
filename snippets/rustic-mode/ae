@@ -1,0 +1,6 @@
+# -*- mode: snippet -*-
+# name: assert_eq!
+# key: ae
+# contributor: Billy.Zheng vil963@gmail.com
+# --
+assert_eq!(${1:exp}, ${2:expected_value})

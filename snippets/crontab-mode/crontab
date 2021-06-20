@@ -1,0 +1,7 @@
+# -*- mode: snippet -*-
+# name: crontab
+# key: crontab
+# contributor: Billy/zw963 zw963@163.com
+# --
+# 分(0-59) 时(0-23) 日(1-31) 月(1-12) 周(0/sunday-6) 命令(完整路径) 参数(完整路径)
+$0

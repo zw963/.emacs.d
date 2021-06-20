@@ -1,0 +1,10 @@
+# -*- mode: snippet -*-
+# name: impl Clone
+# key: impl_Clone
+# contributor: Billy.Zheng vil963@gmail.com
+# --
+impl Clone for $1 {
+  fn clone(&self) -> $1 {
+    $0
+  }
+}

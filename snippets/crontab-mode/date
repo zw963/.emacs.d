@@ -1,0 +1,6 @@
+# -*- mode: snippet -*-
+# name: crontab test
+# key: date
+# contributor: Billy.Zheng vil963@gmail.com
+# --
+*/1 * * * * /usr/bin/date "+\%Y-\%m-\%d \%H:\%M:\%S" >> /tmp/current_time 2>&1

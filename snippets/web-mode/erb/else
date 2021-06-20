@@ -1,0 +1,5 @@
+# -*- mode: snippet -*-
+# name: elsif or else
+# key: el
+# --
+<% els${1:$(if-any "if " "e")}${1:cond} %>

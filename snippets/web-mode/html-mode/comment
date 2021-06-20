@@ -1,0 +1,5 @@
+# -*- mode: snippet -*-
+# name: html comment
+# key: --
+# --
+<!-- ... ${1:additional lines truncated for brevity} ... -->

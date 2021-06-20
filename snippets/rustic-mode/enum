@@ -1,0 +1,8 @@
+# -*- mode: snippet -*-
+# name: enum
+# key: enum
+# contributor: Billy.Zheng vil963@gmail.com
+# --
+enum ${1:Name} {
+  $0
+}

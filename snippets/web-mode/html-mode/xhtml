@@ -1,0 +1,7 @@
+# -*- mode: snippet -*-
+# name: <html xmlns="...">...</html>
+# key: xhtml
+# --
+<html xmlns="http://www.w3.org/1999/xhtml"`(string-field "1" "en" " xml:lang=")``(string-field "2" "en" " lang=")`>
+  $0
+</html>

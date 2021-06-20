@@ -1,0 +1,5 @@
+# -*- mode: snippet -*-
+# name: ruby binary
+# key: rubybinary
+# --
+#{RbConfig::CONFIG['ruby_version']}.#{RbConfig::CONFIG['DLEXT']}

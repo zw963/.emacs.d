@@ -1,0 +1,5 @@
+#!/usr/bin/emacs --script
+
+;; (setq default-directory "/home/zw963/Dropbox/common/.emacs.d")
+(normal-top-level-add-subdirs-to-load-path)
+(byte-recompile-directory "~/Dropbox/common/.emacs.d/plugins" 0 nil)

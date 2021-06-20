@@ -1,0 +1,6 @@
+# -*- mode: snippet -*-
+# name: Option<>
+# key: op
+# contributor: Billy.Zheng vil963@gmail.com
+# --
+Option<$0`(yas-stripped-selected-text)`>

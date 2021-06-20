@@ -1,0 +1,5 @@
+# -*- mode: snippet -*-
+# name: <th>...</th>
+# key: th
+# --
+<th>$0</th>

@@ -1,0 +1,7 @@
+# -*- mode: snippet -*-
+# name: <style type="text/css" media="...">...</style>
+# key: style
+# --
+<style type="text/css"`(string-field "1" "screen" " media=")`>
+  $0
+</style>

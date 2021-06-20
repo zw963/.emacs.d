@@ -1,0 +1,5 @@
+# -*- mode: snippet -*-
+# name: <dd> ... </dd>
+# key: dd
+# --
+<dd>$0</dd>

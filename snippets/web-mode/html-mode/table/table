@@ -1,0 +1,5 @@
+# -*- mode: snippet -*-
+# name: <table ...>...</table>
+# key: table
+# --
+<table`(string-field "1" "0" " border=")``(string-field "2" "5" " cellspacing=")``(string-field "3" "5" " cellpadding=")`>`(def "" "</table>")`

@@ -1,0 +1,8 @@
+# -*- mode: snippet -*-
+# name: time span
+# key: timespan
+# --
+puts "\033[0;33m#{task}\033[0m is started"
+start_time = Time.now
+$0
+puts "Finished, it spend time: \033[0;33m#{"%d mintue %d seconds" % (Time.now - start_time).divmod(60)}\033[0m.\n"

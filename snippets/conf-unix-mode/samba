@@ -1,0 +1,84 @@
+# -*- mode: snippet -*-
+# name: samba
+# key: samba
+# contributor: Billy/zw963 zw963@163.com
+# expand-env: ((yas-indent-line 'fixed))
+# --
+# 全局选项,如果细则未指定,使用这里的值.
+[global]
+    netbios name = ${1:hostname}
+    server string = $1 (Linux)
+    smb passwd file = /etc/samba/smbpasswd
+    # hosts allow 默认值为空, 允许所有的主机访问
+    hosts allow = 192.168.1. 192.168.0. 127.
+    log file = /var/log/samba.%m
+    dns proxy = no
+
+    # 允许不存在的用户名匿名访问, 等价于以前的 share 模式, 默认值 Never
+    # map to guest = Bad User
+
+    # 下面都是一些默认值
+    # workgroup = WORKGROUP
+    # security = user
+    # encrypt passwords = yes
+    # load printers = yes
+    # max log size = 5000
+    # hosts deny =
+
+    #============================ share access ==============================
+
+[printers]
+    comment = All Printers
+    path = /var/spool/samba
+    public = yes
+    printable = yes
+
+[Public]
+    comment = Public Directory
+    path = /home/zw963/Public
+
+    # 针对所有用户开放匿名访问 (nobody), 如果 nobody 针对相应目录具有写权限, 则是可写的.
+    # 常配合 writable 参数一起使用.
+    # 当 security = share 时, public = yes 表示可以只读访问共享的目录.
+    # 当 security = user 时, public = yes 表示所有用户可以作为访客 guest 匿名访问其他用户的目录.
+    # 在 printer 下面, public = yes, 特指允许 guest 帐号使用打印机.
+    # 默认值为 no
+    public = yes
+
+    # 设定登陆后的用户的读写权限. (如果采用 share 的方式,默认的登陆用户为 nobody)
+    # samba 的权限并无法凌驾于系统本身的权限之上. 即他受到系统本身限制.
+    # writable = yes ,表示必须用户名针对该目录拥有写权限, 则使用该用户名登陆后才是可写的.
+    # writable = no 表示一直是不可写的.
+    # 如果使用 user 的方式,则必须和 vaild usr 或vaild group 一起使用.
+    # 默认值为 no
+    # writable = no
+
+    # 表示通过 windows 下网上邻居或者 linux 下的 smbclient -L 是否被他人共享可见的.
+    # 如果放在 [homes] 关键字下面,自然是指自己的家目录是否对别人可见的.
+    # 注意: 个人的home目录,总是对个人可见的.
+    # 注意: 共享即使是不可见的,仍旧可以直接通过 `\\192.168.1.88\共享名' 的方式打开.
+    # 默认值为 yes
+    # browseable = yes
+
+    # 默认的 umask 为 002, 即: 666-2 777-2.
+    create mask = 0664
+    directory mask = 0775
+
+    # ============================== user access ==============================
+[zw963]
+    # 允许公共访问, 但是默认是只读访问的.
+    # user 模式
+    # 注意: 用户名不分大小写的.
+    # 并且在 samba 服务器的/etc/passwd, /etc/samba/smbpasswd 内必须有该用户的信息.
+    # 并且通过 smbpasswd 命令指定特定的登陆密码 (可以和 shell 密码不同) 才有效
+    comment = zw963
+    path = /home/zw963
+    public = yes
+    writable = yes
+    vaild users = zw963
+
+    # 仅用户组 zw963 可写访问.
+    # write list = @zw963
+
+# read only = no        等价于writable.老式的写法.
+# guest ok = yes        等价于 public 老式的写法.

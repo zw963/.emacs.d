@@ -1,0 +1,5 @@
+# -*- mode: snippet -*-
+# name: exports
+# key: exports
+# --
+/${1:shared_path} ${2:ip_address/*}(${3:ro},no_subtree_check,no_root_squash) 127.0.0.1(rw,no_subtree_check,no_root_squash)

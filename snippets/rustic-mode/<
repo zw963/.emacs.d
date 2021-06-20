@@ -1,0 +1,7 @@
+# -*- mode: snippet -*-
+# name: <>
+# binding: <
+# condition: (yas-use-region-p)
+# contributor: Billy.Zheng vil963@gmail.com
+# --
+${1:Box}<`(yas-stripped-selected-text)`>

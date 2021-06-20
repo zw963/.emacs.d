@@ -1,0 +1,8 @@
+# -*- mode: snippet -*-
+# name: if
+# key: if
+# contributor: Billy.Zheng vil963@gmail.com
+# --
+if ${1:cond} {
+  $0
+}

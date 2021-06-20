@@ -1,0 +1,8 @@
+# -*- mode: snippet -*-
+# name: main
+# key: main
+# contributor: Billy.Zheng vil963@gmail.com
+# --
+fn main() {
+  $0
+}

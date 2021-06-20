@@ -1,0 +1,7 @@
+# -*- mode: snippet -*-
+# name: def method_missing 1
+# key: dmm
+# --
+def method_missing(name, *args)
+    $0
+end

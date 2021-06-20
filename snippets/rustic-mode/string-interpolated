@@ -1,0 +1,7 @@
+# -*- mode: snippet -*-
+# name: rust string interpolated
+# key: ?
+# condition: (and (yas-in-interpolated-string-p) (yas-not-escaped-p))
+# expand-env: ((yas-indent-line 'fixed))
+# --
+`(key-field "1" "?" "{:" "}")`

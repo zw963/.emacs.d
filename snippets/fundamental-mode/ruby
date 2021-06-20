@@ -1,0 +1,6 @@
+# -*- mode: snippet -*-
+# name: ruby shebang!
+# key: ruby
+# --
+`(enh-ruby-mode)`#!/usr/bin/env ruby
+# -*- coding: utf-8; mode: enh-ruby; -*-

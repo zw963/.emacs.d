@@ -1,0 +1,10 @@
+# -*- mode: snippet -*-
+# name: snippet pattern
+# key: yas
+# contributor: Billy.Zheng (vil963@gmail.com)
+# --
+`(snippet-mode)`# -*- mode: snippet -*-
+# name: ${1:name}
+# key: ${2:key}
+${3:$(if-any "# binding: ")}${3:binding}${3:$(if-any "\n")}${4:$(if-any "# contributor: ")}${4:Billy.Zheng vil963@gmail.com}${4:$(if-any "\n")}# --
+$0

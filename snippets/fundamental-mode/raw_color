@@ -1,0 +1,6 @@
+# -*- mode: snippet -*-
+# name: color (raw format)
+# binding: M-c i
+# condition: (and (yas-use-region-p) (yas-in-string-p))
+# --
+[0m[33m`yas-selected-text`[0m

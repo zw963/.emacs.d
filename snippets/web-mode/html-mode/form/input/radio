@@ -1,0 +1,5 @@
+# -*- mode: snippet -*-
+# name: <input type="radio" ... /> <单选框>
+# key: input
+# --
+<input type="radio"`(string-field "1" "name" " name=")``(string-field "2" "value" " value=")`$0 />

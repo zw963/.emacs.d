@@ -1,0 +1,10 @@
+# -*- mode: snippet -*-
+# name: init
+# key: init
+# contributor: Billy/zw963 zw963@163.com
+# --
+(require '$1)
+$0
+(provide '${1:name}_init)
+
+;;; $1_init.el ends here

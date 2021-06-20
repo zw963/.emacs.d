@@ -1,0 +1,9 @@
+# -*- mode: snippet -*-
+# name: add those string if field is not empty.
+# key: if-any
+# binding: a
+# expand-env: ((yas-indent-line 'fixed))
+# condition: (yas-use-region-p)
+# contributor: Billy.Zheng/zw963 (zw963@163.com)
+# --
+\${${1:1}:$(if-any `(yas-key-field "2" "str" "\"" "\"")``(yas-field "3" "str" " \"" "\"")`)}

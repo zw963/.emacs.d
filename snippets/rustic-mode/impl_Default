@@ -1,0 +1,10 @@
+# -*- mode: snippet -*-
+# name: impl Default
+# key: impl_Default
+# contributor: Billy.Zheng vil963@gmail.com
+# --
+impl Default for $1 {
+  fn default()`(yas-field "2" "Self" " -> ")` {
+    $0
+  }
+}

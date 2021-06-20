@@ -1,0 +1,8 @@
+# -*- mode: snippet -*-
+# name: define here document.
+# key: here
+# binding: M-c h
+# --
+<<${1:'}${2:HEREDOC}$1
+`(yas-stripped-selected-text "" "")`$0
+$2

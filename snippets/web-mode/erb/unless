@@ -1,0 +1,6 @@
+# -*- mode: snippet -*-
+# name: unless
+# key: unless
+# binding: M-c u
+# --
+<% unless ${1:cond} %>`(def-begin)``(key-field "2" "otherwize...")`$0`(def-end)`

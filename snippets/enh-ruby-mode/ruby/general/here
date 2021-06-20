@@ -1,0 +1,7 @@
+# -*- mode: snippet -*-
+# name: here docs
+# key: here
+# --
+<<-${1:'}${2:HEREDOC}$1
+$0
+$2

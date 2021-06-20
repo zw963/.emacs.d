@@ -1,0 +1,7 @@
+# -*- mode: snippet -*-
+# name: ruby def
+# key: d
+# binding: d
+# condition: (yas-use-region-p)
+# --
+def ${1:meth}`(def)`

@@ -1,0 +1,11 @@
+# -*- mode: snippet -*-
+# name: def []
+# key: def
+# --
+def []=(arg)
+  $3
+end
+
+def [](arg)
+  $2
+`(end)`

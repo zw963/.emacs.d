@@ -1,0 +1,7 @@
+# -*- mode: snippet -*-
+# name: Rust some
+# binding: S
+# condition: (yas-use-region-p)
+# contributor: Billy.Zheng vil963@gmail.com
+# --
+Some(`(yas-stripped-selected-text)`)

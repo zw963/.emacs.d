@@ -1,0 +1,4 @@
+numericality
+great_than_or_equal_to
+uniqueness
+update_attribute

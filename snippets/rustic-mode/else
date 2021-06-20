@@ -1,0 +1,8 @@
+# -*- mode: snippet -*-
+# name: el
+# key: el
+# contributor: Billy.Zheng vil963@gmail.com
+# --
+else {
+  $0
+}

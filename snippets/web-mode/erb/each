@@ -1,0 +1,6 @@
+# -*- mode: snippet -*-
+# name: each
+# key: each
+# binding: M-c e
+# --
+<% ${1:set}.each do`(field "2" "e" " |" "|")` %>`(def)`

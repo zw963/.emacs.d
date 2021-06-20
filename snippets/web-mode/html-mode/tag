@@ -1,0 +1,7 @@
+# -*- mode: snippet -*-
+# name: Wrap Selection in Open/Close Tag binding
+# key: tag
+# binding: i
+# condition: (yas-use-region-p)
+# --
+<${1:tag}>`(yas-stripped-selected-text)`$0</$1>`(end "")`

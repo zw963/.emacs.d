@@ -1,0 +1,12 @@
+# -*- mode: snippet -*-
+# name: desktop
+# key: desktop
+# --
+[Desktop Entry]
+Name=${1:$(yas-camelize yas-text)}
+Exec=${1:knotes}$0
+Icon=$1
+Type=Application
+Terminal=false
+Hidden=false
+StartupNotify=false

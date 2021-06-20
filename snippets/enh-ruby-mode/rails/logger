@@ -1,0 +1,6 @@
+# -*- mode: snippet -*-
+# name: Add logger output when run rake task
+# key: logger
+# --
+Rails.logger.level = :debug
+Rails.logger.extend(ActiveSupport::Logger.broadcast(ActiveSupport::Logger.new(STDOUT)))

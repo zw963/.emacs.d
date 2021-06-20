@@ -1,0 +1,6 @@
+# -*- mode: snippet -*-
+# name: debug
+# key: debug
+# contributor: Billy.Zheng vil963@gmail.com
+# --
+#[derive(Debug, PartialEq)]

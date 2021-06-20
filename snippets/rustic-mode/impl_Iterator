@@ -1,0 +1,11 @@
+# -*- mode: snippet -*-
+# name: impl Iterator
+# key: impl_Iterator
+# contributor: Billy.Zheng vil963@gmail.com
+# --
+impl<I> Iterator for $1<I> where I: Iterator {
+  type Item = I::Item;
+  fn next(&mut self) -> Option<Self::Item> {
+     $0
+  }
+}

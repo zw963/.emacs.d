@@ -1,0 +1,8 @@
+# -*- mode: snippet -*-
+# name: fn
+# key: fn
+# contributor: Billy.Zheng vil963@gmail.com
+# --
+fn ${1:name}(${2:arg}`(yas-field "3" "arg_type" ": ")`)`(yas-field "4" "String" " -> ")``(yas-field "5" "..." " where ")` {
+  $0
+}

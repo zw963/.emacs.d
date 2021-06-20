@@ -1,0 +1,5 @@
+# -*- mode: snippet -*-
+# name: insert comment line 1
+# key: comm1
+# --
+`(call-interactively 'insert-comment)`------------------------------ `(yas-stripped-selected-text)`$0 ------------------------------

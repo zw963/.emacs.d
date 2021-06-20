@@ -1,0 +1,5 @@
+# -*- mode: snippet -*-
+# name: <dl>...</dl>
+# key: dl
+# --
+<dl>$0</dl>

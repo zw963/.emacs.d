@@ -1,0 +1,5 @@
+# -*- mode: snippet -*-
+# name: <script type="text/coffeescript" src="..."></script>
+# key: coffee
+# --
+<script type="text/coffeescript"`(field "1" "coffee-script" " src=\"" ".coffee\"")`>`(def "" "</script>")`

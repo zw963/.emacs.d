@@ -1,0 +1,6 @@
+# -*- mode: snippet -*-
+# name: snippet-mode
+# key: yas1
+# contributor: zw963 (zw963@163.com)
+# --
+`(snippet-mode)`# -*- mode: snippet -*-

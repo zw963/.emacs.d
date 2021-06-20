@@ -1,0 +1,7 @@
+# -*- mode: snippet -*-
+# name: do |x| structure
+# key: do
+# --
+do${1:$(if-any " |")}${1:arg}${1:$(if-any "|")}
+  $0
+end

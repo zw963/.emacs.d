@@ -1,0 +1,5 @@
+# -*- mode: snippet -*-
+# name: <meta equiv="..." />
+# key: meta
+# --
+<meta http-equiv="${1:$$(yas-choose-value '("content-type" "expires" "refresh" "set-cookie"))}" content="${2:}" />

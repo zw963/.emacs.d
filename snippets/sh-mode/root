@@ -1,0 +1,5 @@
+# -*- mode: snippet -*-
+# name: root=${0%/*}
+# key: root
+# --
+ROOT=\${0%/*}

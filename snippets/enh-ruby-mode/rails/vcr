@@ -1,0 +1,6 @@
+# -*- mode: snippet -*-
+# name: vcr
+# key: vcr
+# binding: M-c v
+# --
+VCR.use_cassette('${1:cassette_name}', record: :all) `(ruby-block)`

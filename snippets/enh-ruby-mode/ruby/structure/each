@@ -1,0 +1,5 @@
+# -*- mode: snippet -*-
+# name: each
+# key: each
+# --
+each `(ruby-block "1" "e")`

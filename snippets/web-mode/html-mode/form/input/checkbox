@@ -1,0 +1,5 @@
+# -*- mode: snippet -*-
+# name: <input type="checkbox" ... /> <复选框>
+# key: input
+# --
+<input type="checkbox"`(string-field "1" "name" " name=")``(string-field "2" "value" " value=")`$0 />

@@ -1,0 +1,7 @@
+# -*- mode: snippet -*-
+# name: loop { ... }
+# key: loop
+# binding: l
+# condition: (yas-use-region-p)
+# --
+loop `(ruby-block)`

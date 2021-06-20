@@ -1,0 +1,8 @@
+# -*- mode: snippet -*-
+# name: closure
+# key: b
+# contributor: Billy.Zheng vil963@gmail.com
+# --
+|${1:arg}| {
+  $0
+}

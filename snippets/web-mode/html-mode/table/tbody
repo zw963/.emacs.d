@@ -1,0 +1,5 @@
+# -*- mode: snippet -*-
+# name: <tbody>...</tbody>
+# key: tbody
+# --
+<tbody>`(yas-stripped-selected-text)`$0`(def "" "</tbody>")`

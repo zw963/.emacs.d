@@ -1,0 +1,12 @@
+# -*- mode: snippet -*-
+# name: impl TryFrom
+# key: impl_TryFrom
+# contributor: Billy.Zheng vil963@gmail.com
+# --
+impl TryFrom<${2:type}> for $1 {
+  type Error = ();
+
+  fn try_from(value: $2) -> Result<Self, Self::Error> {
+    $0
+  }
+}

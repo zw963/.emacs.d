@@ -1,0 +1,7 @@
+# -*- mode: snippet -*-
+# name: ruby class
+# key: c
+# binding: c
+# condition: (yas-use-region-p)
+# --
+class `(ruby-module-name-field "1")``(def)`

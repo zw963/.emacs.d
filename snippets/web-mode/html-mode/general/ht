@@ -1,0 +1,5 @@
+# -*- mode: snippet -*-
+# name: http://...
+# key: ht
+# --
+http://$0

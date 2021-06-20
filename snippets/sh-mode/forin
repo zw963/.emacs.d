@@ -1,0 +1,5 @@
+# -*- mode: snippet -*-
+# name: for ... in ... done
+# key: forin
+# --
+for i in ${2:words}; do`(def "" nil ";")`

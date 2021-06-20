@@ -1,0 +1,7 @@
+# -*- mode: snippet -*-
+# name: function name { ... }
+# key: function
+# binding: f
+# condition: (yas-use-region-p)
+# --
+function ${1:func} ()`(def " {" "}")`

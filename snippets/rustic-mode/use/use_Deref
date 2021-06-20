@@ -1,0 +1,6 @@
+# -*- mode: snippet -*-
+# name: use_Deref
+# key: use
+# contributor: Billy.Zheng vil963@gmail.com
+# --
+use std::ops::Deref;

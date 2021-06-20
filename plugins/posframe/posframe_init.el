@@ -1,0 +1,25 @@
+(require 'posframe)
+
+;; (with-eval-after-load 'helm
+;;   (require 'helm-posframe)
+;;   (setq helm-posframe-poshandler
+;;         #'posframe-poshandler-window-center)
+;;   (setq helm-posframe-width 100)
+;;   (helm-posframe-enable)
+;;   )
+
+(with-eval-after-load 'ivy
+  (require 'ivy-posframe)
+  ;; display at `ivy-posframe-style'
+  (setq ivy-posframe-display-functions-alist '((t . ivy-posframe-display)))
+  (ivy-posframe-mode 1)
+  )
+
+;; (with-eval-after-load 'flycheck
+;;   (require 'flycheck-posframe)
+;;   (add-hook 'flycheck-mode-hook #'flycheck-posframe-mode)
+;;   )
+
+(provide 'posframe_init)
+
+;;; posframe_init.el ends here

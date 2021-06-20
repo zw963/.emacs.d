@@ -1,0 +1,7 @@
+# -*- mode: snippet -*-
+# name: ->(x) { block }
+# key: ->
+# binding: -
+# condition: (yas-use-region-p)
+# --
+->`(field "1" "x" "(" ")")` `(ruby-block)`
