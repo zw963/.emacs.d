@@ -134,7 +134,7 @@
 ;; (require 'mode-compile_init)
 ;; (require 'fluentd-mode)
 ;; (require 'disable-mouse_init)
-;; (require 'telega_init)
+(require 'telega_init)
 
 ;; 加载 dotfiles 时，阻止 gc.
 ;; (when (file-exists-p (expand-file-name ".emacs" config))
