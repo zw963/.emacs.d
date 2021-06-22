@@ -26,3 +26,5 @@
 ;; graphql-mode
 (autoload 'graphql-mode "graphql-mode" nil t)
 (add-to-list 'auto-mode-alist '("\\.graphql\\'" . graphql-mode))
+
+(add-to-list 'auto-mode-alist '("\\.service\\'"  . systemd-mode))
