@@ -89,7 +89,7 @@
 ;; (require 'workgroups_init)
 ;; (require 'pdf-tools_init)
 ;; (require 'neotree_init)
-;; (require 'valign_init)
+(require 'valign_init)
 ;; (require 'ivy_init)
 ;; (require 'fuz_init)
 ;; (require 'auto-complete_init)
