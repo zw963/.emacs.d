@@ -179,7 +179,10 @@
                  ;; 当以 daemon 启动时， 光标使用系统光标黑色， 这里改为浅白色。
                  ;; (cursor-color . "AntiqueWhite3")
                  ;; (fullscreen . nil)
-                 (font . "yaheiInconsolata-15")
+
+                 ;; 暂时注释掉这个字体。
+                 ;; (font . "yaheiInconsolata-15")
+
                  ;; (font . "Rec Mono Linear:style=Regular-15")
                  ;; (font . "SHS Monaco Adjusted Medium-12")
                  ;; (font . "Input Mono Narrow-12")
@@ -197,20 +200,31 @@
 (put 'set-goal-column 'disabled nil)
 (fset 'yes-or-no-p 'y-or-n-p) ;用 y/n 方式代替 yes/no
 
-;; 有关设置字体的一些参考代码
-;; (defun +my/better-font()
-;;   (interactive)
-;;   ;; english font
-;;   (if (display-graphic-p)
-;;       (progn
-;;         (set-face-attribute 'default nil :font (format   "%s:pixelsize=%d" "Inconsolata" 18)) ;; 11 13 17 19 23
-;;         ;; chinese font
-;;         (dolist (charset '(kana han symbol cjk-misc bopomofo))
-;;           (set-fontset-font (frame-parameter nil 'font)
-;;                             charset
-;;                             (font-spec :family "Sarasa Mono SC")))) ;; 14 16 20 22 28
-;;     ))
+(setq my-english-font "Fira Code")
+(setq my-english-font-height (* 15 10))
 
+(setq my-chinese-font "PingFang SC")
+(setq my-chinese-font-size 15)
+
+;; 有关设置字体的一些参考代码
+(defun my-better-font()
+  (interactive)
+  ;; english font
+  ;; 设置英文字体
+  (set-face-attribute 'default nil :height my-english-font-height :weight 'regular :family my-english-font)
+  (if (display-graphic-p)
+      (progn
+        ;; 设置中文字体
+        (dolist (charset '(kana han symbol cjk-misc bopomofo))
+          (set-fontset-font (frame-parameter nil 'font)
+                            charset
+                            (font-spec :family my-chinese-font :size my-chinese-font-size)))
+        ;; instruct Emacs to use emoji fonts,
+        (set-fontset-font t 'symbol (font-spec :family "Noto Color Emoji") nil 'prepend)
+        )
+    ))
+
+(my-better-font)
 
 ;; ------------------------------ 启动最大化 ------------------------------
 ;; 可以通过运行 fc-list 来查看字体的名称.
@@ -232,9 +246,6 @@
   ;; (set-fontset-font "fontset-default" '(#x20a0 . #x2a3b)
   ;;                   (font-spec :family "等距更纱黑体 SC"
   ;;                              :size 24) nil 'prepend)
-
-  ;; instruct Emacs to use emoji fonts,
-  (set-fontset-font t 'symbol (font-spec :family "Noto Color Emoji") nil 'prepend)
 
   (unless (or
            (eq this-command 'make-frame-command)
@@ -294,7 +305,7 @@
       ;; create-lockfiles nil                      ; 禁用锁定文件, #开头的文件。
       mouse-yank-at-point t                     ;而是使用鼠标中键在光标处 yank.
       browse-url-browser-function 'browse-url-generic
-      browse-url-generic-program "Firefox"
+      browse-url-generic-program "firefox"
       ;; browse-url-generic-args nil
       )
 
@@ -464,7 +475,7 @@
 (minibuffer-depth-indicate-mode t)
 ;; 开启minibuffer递归调用.
 (setq enable-recursive-minibuffers t)
-
+(setq toggle-truncate-lines nil)
 (setq comment-auto-fill-only-comments t)
 
 (provide 'base_init)
