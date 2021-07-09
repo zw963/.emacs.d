@@ -29,12 +29,12 @@
     (helm-run-after-exit (lambda () (helm-do-ag default-directory)))
     ))
 
-;; Ctrl + l, will up one level
 (global-set-key [(control r)] 'helm-do-ag-this-file)
 (define-key helm-ag-map [(control r)] 'helm-quit-and-helm-do-ag-current-directory)
 
-(define-key helm-ag-map [(super l)] 'helm-ag--up-one-level)
-(define-key helm-do-ag-map [(super l)] 'helm-ag--do-ag-up-one-level)
+;; Ctrl + l, will up one level, 我为什么要换成 super l? 先撤回。
+;; (define-key helm-ag-map [(super l)] 'helm-ag--up-one-level)
+;; (define-key helm-do-ag-map [(super l)] 'helm-ag--do-ag-up-one-level)
 
 ;; helm-grep-ag-command 设置成 rg 后，用 helm-do-grep-ag
 

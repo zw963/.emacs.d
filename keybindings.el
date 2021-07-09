@@ -40,6 +40,9 @@
 (global-set-key [(?\,)] 'input-comma-with-space)
 (global-set-key '[(backtab)] 'backtab-space)
 
+(global-set-key [(control x) (j)] 'previous-buffer)
+(global-set-key [(control x) (l)] 'next-buffer)
+
 (global-set-key [(meta c) (\.)] 'input-comment-with-rocket)
 (global-set-key [(meta c) (=)] 'input-add-equal)
 
@@ -47,7 +50,7 @@
 
 (define-key key-translation-map [(meta n)] [(super n)])
 (define-key key-translation-map [(meta p)] [(super p)])
-(define-key key-translation-map [(control l)] [(super l)])
+;; (define-key key-translation-map [(control l)] [(super l)])
 
 (add-hook 'compilation-mode-hook
           '(lambda ()
@@ -57,9 +60,6 @@
              (define-key compilation-mode-map [(p)] 'compilation-previous-error)
              (define-key compilation-mode-map [(control \8)] 'quit-window)
              ))
-
-;; (define-key key-translation-map [(control j)] [(super j)])
-;; (define-key key-translation-map [(control l)] [(super l)])
 
 ;;  在命令行下, 貌似 C-2 默认等价于: C-@，这里使用同样的绑定。
 (define-key key-translation-map [(control \2)] [(control \@)])
