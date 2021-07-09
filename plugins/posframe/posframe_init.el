@@ -15,6 +15,13 @@
   (ivy-posframe-mode 1)
   )
 
+(with-eval-after-load 'company
+  (require 'company-posframe)
+  (require 'desktop) ;this line is needed.
+  (push '(company-posframe-mode . nil)
+        desktop-minor-mode-table)
+  )
+
 ;; (with-eval-after-load 'flycheck
 ;;   (require 'flycheck-posframe)
 ;;   (add-hook 'flycheck-mode-hook #'flycheck-posframe-mode)
