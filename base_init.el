@@ -180,6 +180,8 @@
                  ;; (cursor-color . "AntiqueWhite3")
                  ;; (fullscreen . nil)
 
+                 ;; (font . "yaheiInconsolata-15")
+
                  ;; 暂时注释掉这个字体。
                  (font . "Sarasa Mono SC Nerd-15")
 

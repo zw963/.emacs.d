@@ -6,7 +6,7 @@
 ;;         Naoya Yamashita <conao3@gmail.com>
 ;; Maintainer: Feng Shu <tumashu@163.com>
 ;; URL: https://github.com/tumashu/ivy-posframe
-;; Version: 0.6.0
+;; Version: 0.6.1
 ;; Keywords: abbrev, convenience, matching, ivy
 ;; Package-Requires: ((emacs "26.0") (posframe "1.0.0") (ivy "0.13.0"))
 
@@ -284,10 +284,15 @@ This variable is useful for `ivy-posframe-read-action' .")
              :internal-border-color (face-attribute 'ivy-posframe-border :background nil t)
              :override-parameters ivy-posframe-parameters
              :refposhandler ivy-posframe-refposhandler
+             :hidehandler #'ivy-posframe-hidehandler
              (funcall ivy-posframe-size-function))
       (ivy-posframe--add-prompt 'ignore)))
   (with-current-buffer ivy-posframe-buffer
     (setq-local truncate-lines ivy-truncate-lines)))
+
+(defun ivy-posframe-hidehandler (_)
+  "Hidehandler used by ivy-posframe."
+  (not (minibufferp)))
 
 (defun ivy-posframe-get-size ()
   "The default functon used by `ivy-posframe-size-function'."
