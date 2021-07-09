@@ -181,7 +181,7 @@
                  ;; (fullscreen . nil)
 
                  ;; 暂时注释掉这个字体。
-                 ;; (font . "yaheiInconsolata-15")
+                 (font . "Sarasa Mono SC Nerd-15")
 
                  ;; (font . "Rec Mono Linear:style=Regular-15")
                  ;; (font . "SHS Monaco Adjusted Medium-12")
@@ -204,6 +204,7 @@
 (setq my-english-font-height (* 15 10))
 
 (setq my-chinese-font "PingFang SC")
+;; (setq my-chinese-font "Sarasa Mono SC Nerd")
 (setq my-chinese-font-size 15)
 
 ;; 有关设置字体的一些参考代码
@@ -224,7 +225,7 @@
         )
     ))
 
-(my-better-font)
+;; (my-better-font)
 
 ;; ------------------------------ 启动最大化 ------------------------------
 ;; 可以通过运行 fc-list 来查看字体的名称.
@@ -477,6 +478,7 @@
 (setq enable-recursive-minibuffers t)
 (setq toggle-truncate-lines nil)
 (setq comment-auto-fill-only-comments t)
+(setq x-gtk-use-system-tooltips nil)
 
 (provide 'base_init)
 
