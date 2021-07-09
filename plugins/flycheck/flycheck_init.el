@@ -14,5 +14,15 @@
 ;; (require 'flycheck-inline)
 ;; (add-hook 'flycheck-mode-hook #'flycheck-inline-mode)
 
+(with-eval-after-load 'rust-mode
+  (require 'flycheck-rust)
+  (add-hook 'rust-mode-hook #'flycheck-rust-setup)
+  )
+
+(with-eval-after-load 'haskell-mode
+  (require 'flycheck-haskell)
+  (add-hook 'haskell-mode-hook #'flycheck-haskell-setup)
+  )
+
 (provide 'flycheck_init)
 ;;; flycheck_init.el ends here

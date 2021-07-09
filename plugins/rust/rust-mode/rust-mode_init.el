@@ -109,10 +109,5 @@ CHAR-FUNCTION
     )
   )
 
-;; (with-eval-after-load 'flycheck
-;;   (require 'flycheck-rust)
-;;   (add-hook 'flycheck-mode-hook #'flycheck-rust-setup)
-;;   )
-
 (provide 'rust-mode_init)
 ;;; rust-mode_init.el ends here
