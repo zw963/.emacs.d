@@ -22,6 +22,7 @@
            lambda ()
            (local-set-key [(return)] 'org-return-indent)
            (local-set-key (kbd "RET") 'org-return-indent)
+           (outline-minor-mode 1)
            ))
 
 

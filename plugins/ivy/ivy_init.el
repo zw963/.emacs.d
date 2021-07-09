@@ -4,6 +4,28 @@
 
 ;; ivy-ignore-buffers
 
+;; ;; 使用rg 替代 grep, 使用counsel-grep-or-swiper的时候
+;; (setq counsel-grep-base-command
+;;       "rg -i -M 120 --no-heading --line-number --color never '%s' %s")
+
+(setq counsel-find-file-ignore-regexp
+      (concat
+       ;; filename begins with #
+       "\\(?:\\`[#.]\\)"
+       ;; filename ends with # or ~
+       "\\|\\(?:\\`.+?[#~]\\'\\)"
+       "\\|\\.elc\\'"
+       "\\|\\.pyc\\'"
+       "\\|\\.meta\\'"
+       ))
+
+(custom-set-faces
+ '(ivy-current-match
+   ((((class color) (background light))
+     :background "red" :foreground "white")
+    (((class color) (background dark))
+     :background "blue" :foreground "black"))))
+
 (ivy-mode 1)
 
 (setq ivy-use-virtual-buffers t) ;; Enable bookmarks and recentf

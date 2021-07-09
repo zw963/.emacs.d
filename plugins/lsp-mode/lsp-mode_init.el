@@ -8,6 +8,8 @@
 ;; (setq lsp-enable-file-watchers nil)
 (setq lsp-file-watch-threshold 3000)
 
+(setq lsp-ui-doc-position 'at-point)
+
 (with-eval-after-load 'which-key
   (add-hook 'lsp-after-open-hook 'lsp-enable-which-key-integration))
 
