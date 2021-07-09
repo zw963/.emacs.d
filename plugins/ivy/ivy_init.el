@@ -19,13 +19,6 @@
        "\\|\\.meta\\'"
        ))
 
-(custom-set-faces
- '(ivy-current-match
-   ((((class color) (background light))
-     :background "red" :foreground "white")
-    (((class color) (background dark))
-     :background "blue" :foreground "black"))))
-
 (ivy-mode 1)
 
 (setq ivy-use-virtual-buffers t) ;; Enable bookmarks and recentf
@@ -40,12 +33,13 @@
 
 ;; 下面是 counsel 下面的一些绑定, 仅供了解
 ;; (global-set-key [remap switch-to-buffer] 'ivy-switch-buffer)
+
+
 (global-set-key [remap dired] 'counsel-dired)
 (global-set-key [remap set-variable] 'counsel-set-variable)
 (global-set-key [remap insert-char] 'counsel-unicode-char)
 (global-set-key [remap recentf-open-files] 'counsel-recentf)
 (global-set-key [remap command-history] 'counsel-command-history)
-
 (global-set-key [remap apropos-command] 'counsel-apropos)
 (global-set-key [remap bookmark-jump] 'counsel-bookmark)
 (global-set-key [remap describe-bindings] 'counsel-descbinds)
@@ -53,8 +47,8 @@
 (global-set-key [remap describe-function] 'counsel-describe-function)
 (global-set-key [remap describe-symbol] 'counsel-describe-symbol)
 (global-set-key [remap describe-variable] 'counsel-describe-variable)
-(global-set-key [remap execute-extended-command] 'counsel-M-x)
-(global-set-key [remap find-file] 'counsel-find-file)
+;; (global-set-key [remap execute-extended-command] 'counsel-M-x)
+;; (global-set-key [remap find-file] 'counsel-find-file)
 (global-set-key [remap find-library] 'counsel-find-library)
 (global-set-key [remap geiser-doc-look-up-manual] 'counsel-geiser-doc-look-up-manual)
 (global-set-key [remap imenu] 'counsel-imenu)
