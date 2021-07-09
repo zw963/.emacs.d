@@ -12,10 +12,6 @@
       (previous-buffer)
     (vterm)))
 
-;; 使用 Ctrl+x j, Ctrl+x l 来切换 buffer 和 vterm.
-(global-set-key [(control return)] 'switch-vterm-and-back)
-
-
 (setq vterm-clear-scrollback t)
 
 (add-hook 'vterm-mode-hook '(lambda ()
@@ -36,6 +32,12 @@
     (apply orig-fun args)))
 
 (advice-add 'counsel-yank-pop-action :around #'vterm-counsel-yank-pop-action)
+
+(require 'multi-vterm)
+(setq multi-vterm-dedicated-window-height 20)
+
+;; 可以使用 Ctrl+x j, Ctrl+x l 来切换 buffer 和 vterm.
+(global-set-key [(control return)] 'multi-vterm-dedicated-toggle)
 
 (provide 'vterm_init)
 
