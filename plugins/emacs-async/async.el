@@ -1,10 +1,11 @@
 ;;; async.el --- Asynchronous processing in Emacs -*- lexical-binding: t -*-
 
-;; Copyright (C) 2012-2016 Free Software Foundation, Inc.
+;; Copyright (C) 2012-2019 Free Software Foundation, Inc.
 
 ;; Author: John Wiegley <jwiegley@gmail.com>
 ;; Created: 18 Jun 2012
-;; Version: 1.9.3
+;; Version: 1.9.5
+;; Package-Requires: ((emacs "24.4"))
 
 ;; Keywords: async
 ;; X-URL: https://github.com/jwiegley/emacs-async
@@ -37,9 +38,8 @@
   "Simple asynchronous processing in Emacs"
   :group 'emacs)
 
-(defcustom async-variables-noprops-function #'async-variables-noprops
+(defcustom async-variables-noprops-function #'async--purecopy
   "Default function to remove text properties in variables."
-  :group 'async
   :type 'function)
 
 (defvar async-debug nil)
@@ -52,31 +52,47 @@
 (defvar async-current-process nil)
 (defvar async--procvar nil)
 
-(defun async-variables-noprops (sequence)
-  "Remove text properties in SEQUENCE.
+(defun async--purecopy (object)
+  "Remove text properties in OBJECT.
 
-Argument SEQUENCE may be a list or a string, if anything else it
-is returned unmodified.
-
-Note that this is a naive function that doesn't remove text properties
-in SEQUENCE recursively, only at the first level which suffice in most
-cases."
-  (cond ((stringp sequence)
-         (substring-no-properties sequence))
-        ((listp sequence)
-         (cl-loop for elm in sequence
+Argument OBJECT may be a list or a string, if anything else it
+is returned unmodified."
+  (cond ((stringp object)
+         (substring-no-properties object))
+        ((consp object)
+         (cl-loop for elm in object
+                  ;; A string.
                   if (stringp elm)
                   collect (substring-no-properties elm)
-                  else collect elm))
-        (t sequence)))
+                  else
+                  ;; Proper lists.
+                  if (and (consp elm) (null (cdr (last elm))))
+                  collect (async--purecopy elm)
+                  else
+                  ;; Dotted lists.
+                  ;; We handle here only dotted list where car and cdr
+                  ;; are atoms i.e. (x . y) and not (x . (x . y)) or
+                  ;; (x . (x y)) which should fit most cases.
+                  if (and (consp elm) (cdr (last elm)))
+                  collect (let ((key (car elm))
+                                (val (cdr elm)))
+                            (cons (if (stringp key)
+                                      (substring-no-properties key)
+                                    key)
+                                  (if (stringp val)
+                                      (substring-no-properties val)
+                                    val)))
+                  else
+                  collect elm))
+        (t object)))
 
 (defun async-inject-variables
-  (include-regexp &optional predicate exclude-regexp noprops)
+    (include-regexp &optional predicate exclude-regexp noprops)
   "Return a `setq' form that replicates part of the calling environment.
 
 It sets the value for every variable matching INCLUDE-REGEXP and
 also PREDICATE.  It will not perform injection for any variable
-matching EXCLUDE-REGEXP (if present) or representing a syntax-table
+matching EXCLUDE-REGEXP (if present) or representing a `syntax-table'
 i.e. ending by \"-syntax-table\".
 When NOPROPS is non nil it tries to strip out text properties of each
 variable's value with `async-variables-noprops-function'.
@@ -84,14 +100,14 @@ variable's value with `async-variables-noprops-function'.
 It is intended to be used as follows:
 
     (async-start
-       `(lambda ()
-          (require 'smtpmail)
+       \\=`(lambda ()
+          (require \\='smtpmail)
           (with-temp-buffer
             (insert ,(buffer-substring-no-properties (point-min) (point-max)))
             ;; Pass in the variable environment for smtpmail
-            ,(async-inject-variables \"\\`\\(smtpmail\\|\\(user-\\)?mail\\)-\")
+            ,(async-inject-variables \"\\\\=`\\(smtpmail\\|\\(user-\\)?mail\\)-\")
             (smtpmail-send-it)))
-       'ignore)"
+       \\='ignore)"
   `(setq
     ,@(let (bindings)
         (mapatoms
@@ -159,22 +175,25 @@ It is intended to be used as follows:
           (set (make-local-variable 'async-callback-value-set) t))))))
 
 (defun async--receive-sexp (&optional stream)
-  (let ((sexp (decode-coding-string (base64-decode-string
-                                     (read stream)) 'utf-8-auto))
-	;; Parent expects UTF-8 encoded text.
-	(coding-system-for-write 'utf-8-auto))
+  ;; FIXME: Why use `utf-8-auto' instead of `utf-8-unix'?  This is
+  ;; a communication channel over which we have complete control,
+  ;; so we get to choose exactly which encoding and EOL we use, isn't it?
+  (let ((sexp (decode-coding-string (base64-decode-string (read stream))
+                                    'utf-8-auto))
+        ;; Parent expects UTF-8 encoded text.
+        (coding-system-for-write 'utf-8-auto))
     (if async-debug
         (message "Received sexp {{{%s}}}" (pp-to-string sexp)))
     (setq sexp (read sexp))
     (if async-debug
         (message "Read sexp {{{%s}}}" (pp-to-string sexp)))
-    (eval sexp)))
+    (eval sexp t)))
 
 (defun async--insert-sexp (sexp)
   (let (print-level
-	print-length
-	(print-escape-nonascii t)
-	(print-circle t))
+        print-length
+        (print-escape-nonascii t)
+        (print-circle t))
     (prin1 sexp (current-buffer))
     ;; Just in case the string we're sending might contain EOF
     (encode-coding-region (point-min) (point-max) 'utf-8-auto)
@@ -190,34 +209,33 @@ It is intended to be used as follows:
     (process-send-region process (point-min) (point-max))))
 
 (defun async-batch-invoke ()
-  "Called from the child Emacs process' command-line."
+  "Called from the child Emacs process' command line."
   ;; Make sure 'message' and 'prin1' encode stuff in UTF-8, as parent
   ;; process expects.
   (let ((coding-system-for-write 'utf-8-auto))
     (setq async-in-child-emacs t
-	  debug-on-error async-debug)
+          debug-on-error async-debug)
     (if debug-on-error
-	(prin1 (funcall
-		(async--receive-sexp (unless async-send-over-pipe
-				       command-line-args-left))))
+        (prin1 (funcall
+                (async--receive-sexp (unless async-send-over-pipe
+                                       command-line-args-left))))
       (condition-case err
-	  (prin1 (funcall
-		  (async--receive-sexp (unless async-send-over-pipe
-					 command-line-args-left))))
-	(error
-	 (prin1 (list 'async-signal err)))))))
+          (prin1 (funcall
+                  (async--receive-sexp (unless async-send-over-pipe
+                                         command-line-args-left))))
+        (error
+         (prin1 (list 'async-signal err)))))))
 
 (defun async-ready (future)
   "Query a FUTURE to see if it is ready.
 
-I.e., if no blocking
-would result from a call to `async-get' on that FUTURE."
+I.e., if no blocking would result from a call to `async-get' on that FUTURE."
   (and (memq (process-status future) '(exit signal))
        (let ((buf (process-buffer future)))
          (if (buffer-live-p buf)
              (with-current-buffer buf
                async-callback-value-set)
-             t))))
+           t))))
 
 (defun async-wait (future)
   "Wait for FUTURE to become ready."
@@ -236,7 +254,7 @@ its FINISH-FUNC is nil."
          #'identity async-callback-value (current-buffer))))))
 
 (defun async-message-p (value)
-  "Return true of VALUE is an async.el message packet."
+  "Return non-nil of VALUE is an async.el message packet."
   (and (listp value)
        (plist-get value :async-message)))
 
@@ -254,7 +272,7 @@ its FINISH-FUNC is nil."
 
 ;;;###autoload
 (defun async-start-process (name program finish-func &rest program-args)
-  "Start the executable PROGRAM asynchronously.  See `async-start'.
+  "Start the executable PROGRAM asynchronously named NAME.  See `async-start'.
 PROGRAM is passed PROGRAM-ARGS, calling FINISH-FUNC with the
 process object when done.  If FINISH-FUNC is nil, the future
 object will return the process object when the program is
@@ -317,7 +335,7 @@ will leave *emacs* process buffers hanging around):
     (async-start
      (lambda ()
        (delete-file \"a remote file on a slow link\" nil))
-     'ignore)
+     \\='ignore)
 
 Note: Even when FINISH-FUNC is present, a future is still
 returned except that it yields no value (since the value is
@@ -325,8 +343,8 @@ passed to FINISH-FUNC).  Call `async-get' on such a future always
 returns nil.  It can still be useful, however, as an argument to
 `async-ready' or `async-wait'."
   (let ((sexp start-func)
-	;; Subordinate Emacs will send text encoded in UTF-8.
-	(coding-system-for-read 'utf-8-auto))
+        ;; Subordinate Emacs will send text encoded in UTF-8.
+        (coding-system-for-read 'utf-8-auto))
     (setq async--procvar
           (async-start-process
            "emacs" (file-truename
@@ -340,9 +358,9 @@ returns nil.  It can still be useful, however, as an argument to
            "-batch" "-f" "async-batch-invoke"
            (if async-send-over-pipe
                "<none>"
-               (with-temp-buffer
-                 (async--insert-sexp (list 'quote sexp))
-                 (buffer-string)))))
+             (with-temp-buffer
+               (async--insert-sexp (list 'quote sexp))
+               (buffer-string)))))
     (if async-send-over-pipe
         (async--transmit-sexp async--procvar (list 'quote sexp)))
     async--procvar))
@@ -357,7 +375,7 @@ returns nil.  It can still be useful, however, as an argument to
       (setq res (funcall fn res
                          (if (listp binding)
                              binding
-                             (list binding)))))
+                           (list binding)))))
     res))
 
 (defmacro async-let (bindings &rest forms)

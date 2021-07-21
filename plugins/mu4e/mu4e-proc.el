@@ -7,18 +7,18 @@
 
 ;; This file is not part of GNU Emacs.
 
-;; GNU Emacs is free software: you can redistribute it and/or modify
+;; mu4e is free software: you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
 ;; the Free Software Foundation, either version 3 of the License, or
 ;; (at your option) any later version.
 
-;; GNU Emacs is distributed in the hope that it will be useful,
+;; mu4e is distributed in the hope that it will be useful,
 ;; but WITHOUT ANY WARRANTY; without even the implied warranty of
 ;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 ;; GNU General Public License for more details.
 
 ;; You should have received a copy of the GNU General Public License
-;; along with GNU Emacs.  If not, see <http://www.gnu.org/licenses/>.
+;; along with mu4e.  If not, see <http://www.gnu.org/licenses/>.
 
 ;;; Commentary:
 
@@ -236,11 +236,22 @@ backslashes and double-quotes."
 
 (defun mu4e~proc-start ()
   "Start the mu server process."
+
+  ;; sanity-check 1
   (unless (and mu4e-mu-binary (file-executable-p mu4e-mu-binary))
     (mu4e-error
-     (format
-      "`mu4e-mu-binary' (%S) not found; please set to the mu executable path"
-      mu4e-mu-binary)))
+     "Cannot find mu, please set `mu4e-mu-binary' to the mu executable path"))
+
+  ;; sanity-check 2
+  (let ((version (let ((s (shell-command-to-string (concat mu4e-mu-binary " --version"))))
+                   (and (string-match "version \\([.0-9]+\\)" s)
+                        (match-string 1 s)))))
+    (unless (string= version mu4e-mu-version)
+      (mu4e-error
+       (concat
+        "Found mu version %s, but mu4e needs version %s; please set `mu4e-mu-binary' "
+        "accordingly") version mu4e-mu-version)))
+
   (let* ((process-connection-type nil) ;; use a pipe
          (args (when mu4e-mu-home `(,(format"--muhome=%s" mu4e-mu-home))))
          (args (if mu4e-mu-debug (cons "--debug" args) args))
@@ -343,10 +354,10 @@ value)."
                                  &optional path what param)
   "Perform ACTION  on part with DOCID INDEX DECRYPT PATH WHAT PARAM.
 Use a message with DOCID and perform ACTION on it (as symbol,
-either `save', `open', `temp') which mean: * save: save the part
-to PATH (a path) (non-optional for save)$ * open: open the part
-with the default application registered for doing so * temp: save
-to a temporary file, then respond with
+either `save', `open', `temp') which mean:
+* save: save the part to PATH (a path) (non-optional for save)
+* open: open the part with the default application registered for doing so
+* temp: save to a temporary file, then respond with
        (:temp <path> :what <what> :param <param>)."
   (mu4e~call-mu `(extract
                   :action ,action

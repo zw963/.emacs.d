@@ -7,18 +7,18 @@
 
 ;; This file is not part of GNU Emacs.
 
-;; GNU Emacs is free software: you can redistribute it and/or modify
+;; mu4e is free software: you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
 ;; the Free Software Foundation, either version 3 of the License, or
 ;; (at your option) any later version.
 
-;; GNU Emacs is distributed in the hope that it will be useful,
+;; mu4e is distributed in the hope that it will be useful,
 ;; but WITHOUT ANY WARRANTY; without even the implied warranty of
 ;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 ;; GNU General Public License for more details.
 
 ;; You should have received a copy of the GNU General Public License
-;; along with GNU Emacs.  If not, see <http://www.gnu.org/licenses/>.
+;; along with mu4e.  If not, see <http://www.gnu.org/licenses/>.
 
 ;;; Commentary:
 
@@ -32,12 +32,18 @@
 
 ;;; Mode
 
-(defvar mu4e-main-buffer-hide-personal-addresses nil
+(define-obsolete-variable-alias
+  'mu4e-main-buffer-hide-personal-addresses
+  'mu4e-main-hide-personal-addresses "1.5.7")
+
+(defvar mu4e-main-hide-personal-addresses nil
   "Whether to hide the personal address in the main view. This
   can be useful to avoid the noise when there are many.
 
   This also hides the warning if your `user-mail-address' is not
 part of the personal addresses.")
+
+
 
 (defvar mu4e-main-hide-fully-read nil
   "When set to t, do not hide bookmarks or maildirs that have
@@ -117,16 +123,16 @@ clicked."
                        'mouse-face 'highlight newstr)
     newstr))
 
-
 (defun mu4e~main-bookmarks ()
   ;; TODO: it's a bit uncool to hard-code the "b" shortcut...
   (cl-loop with bmks = (mu4e-bookmarks)
            with longest = (mu4e~longest-of-maildirs-and-bookmarks)
-           with queries = (plist-get mu4e~server-props :queries)
+           with queries = (mu4e-last-query-results)
            for bm in bmks
            for key = (string (plist-get bm :key))
            for name = (plist-get bm :name)
-           for query = (plist-get bm :query)
+           for query = (funcall (or mu4e-query-rewrite-function #'identity)
+                                (plist-get bm :query))
            for qcounts = (and (stringp query)
                               (cl-loop for q in queries
                                        when (string=
@@ -233,7 +239,7 @@ When REFRESH is non nil refresh infos from server."
        (propertize "mu4e" 'face 'mu4e-header-key-face)
        (propertize " - mu for emacs version " 'face 'mu4e-title-face)
        (propertize  mu4e-mu-version 'face 'mu4e-header-key-face)
-       "\n\n"
+        "\n\n"
        (propertize "  Basics\n\n" 'face 'mu4e-title-face)
        (mu4e~main-action-str
         "\t* [j]ump to some maildir\n" 'mu4e-jump-to-maildir)
@@ -271,15 +277,15 @@ When REFRESH is non nil refresh infos from server."
        (mu4e~key-val "maildir" (mu4e-root-maildir))
        (mu4e~key-val "in store"
                      (format "%d" (plist-get mu4e~server-props :doccount)) "messages")
-       (if mu4e-main-buffer-hide-personal-addresses ""
+       (if mu4e-main-hide-personal-addresses ""
          (mu4e~key-val "personal addresses" (if addrs (mapconcat #'identity addrs ", "  ) "none"))))
 
-      (if mu4e-main-buffer-hide-personal-addresses ""
-        (when (and user-mail-address (not (member user-mail-address addrs)))
+      (if mu4e-main-hide-personal-addresses ""
+        (unless (mu4e-personal-address-p user-mail-address)
           (mu4e-message (concat
-                         "Note: `user-mail-address' ('%s') is not part "
-                         "of mu's addresses; add it with 'mu init --my-address='")
-                        user-mail-address)))
+                         "Tip: `user-mail-address' ('%s') is not part "
+                         "of mu's addresses; add it with 'mu init
+                        --my-address='") user-mail-address)))
       (mu4e-main-mode)
       (goto-char pos))))
 
@@ -318,8 +324,8 @@ When REFRESH is non nil refresh infos from server."
   (let ((buf (get-buffer-create mu4e-main-buffer-name)))
     (if (eq mu4e-split-view 'single-window)
         (if (buffer-live-p (mu4e-get-headers-buffer))
-	    (switch-to-buffer (mu4e-get-headers-buffer))
-	  (mu4e~main-menu))
+            (switch-to-buffer (mu4e-get-headers-buffer))
+          (mu4e~main-menu))
       ;; `mu4e~main-view' is called from `mu4e~start', so don't call it
       ;; a second time here i.e. do not refresh unless specified
       ;; explicitly with REFRESH arg.

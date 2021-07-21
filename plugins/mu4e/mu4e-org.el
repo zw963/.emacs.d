@@ -1,26 +1,25 @@
 ;;; mu4e-org -- Org-links to mu4e messages/queries -*- lexical-binding: t -*-
 
-;; Copyright (C) 2012-2020 Dirk-Jan C. Binnema
+;; Copyright (C) 2012-2021 Dirk-Jan C. Binnema
 
 ;; Author: Dirk-Jan C. Binnema <djcb@djcbsoftware.nl>
 ;; Maintainer: Dirk-Jan C. Binnema <djcb@djcbsoftware.nl>
 ;; Keywords: outlines, hypermedia, calendar, mail
-;; Version: 0.0
 
 ;; This file is not part of GNU Emacs.
 
-;; GNU Emacs is free software: you can redistribute it and/or modify
+;; mu4e is free software: you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
 ;; the Free Software Foundation, either version 3 of 1the License, or
 ;; (at your option) any later version.
 
-;; GNU Emacs is distributed in the hope that it will be useful,
+;; mu4e is distributed in the hope that it will be useful,
 ;; but WITHOUT ANY WARRANTY; without even the implied warranty of
 ;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 ;; GNU General Public License for more details.
 
 ;; You should have received a copy of the GNU General Public License
-;; along with GNU Emacs.  If not, see <http://www.gnu.org/licenses/>.
+;; along with mu4e.  If not, see <http://www.gnu.org/licenses/>.
 
 ;;; Commentary:
 
@@ -29,6 +28,8 @@
 ;;; Code:
 
 (require 'org)
+(require 'mu4e-view)
+(require 'mu4e-utils)
 
 (defgroup mu4e-org nil
   "Settings for the org-mode related functionality in mu4e."
@@ -59,8 +60,6 @@ the current query; otherwise, it links to the message at point.")
 
 (defun mu4e~org-store-link-message ()
   "Store a link to a mu4e message."
-  (unless (fboundp 'mu4e-message-at-point)
-    (error "Please load mu4e before mu4e-org"))
   (setq org-store-link-plist nil)
   (let* ((msg      (mu4e-message-at-point))
          (from     (car-safe (plist-get msg :from)))
@@ -88,14 +87,13 @@ It links to the last known query when in `mu4e-headers-mode' with
 `mu4e-org-link-query-in-headers-mode' set; otherwise it links to
 a specific message, based on its message-id, so that links stay
 valid even after moving the message around."
-  (unless (fboundp 'mu4e-message-at-point)
-    (error "Please load mu4e before mu4e-org"))
-  (if (and (eq major-mode 'mu4e-headers-mode)
-           mu4e-org-link-query-in-headers-mode)
-      (mu4e~org-store-link-query)
-    (when (mu4e-message-at-point t)
-      (mu4e~org-store-link-message))))
-                                        ;
+  (when (derived-mode-p 'mu4e-view-mode 'mu4e-headers-mode)
+    (if (and (derived-mode-p 'mu4e-headers-mode)
+             mu4e-org-link-query-in-headers-mode)
+        (mu4e~org-store-link-query)
+      (when (mu4e-message-at-point)
+        (mu4e~org-store-link-message)))))
+                                         ;
 (defun mu4e-org-open (link)
   "Open the org LINK.
 Open the mu4e message (for links starting with 'msgid:') or run
@@ -118,6 +116,8 @@ it with org)."
   (call-interactively 'org-store-link)
   (org-capture))
 
+(make-obsolete 'org-mu4e-store-and-capture
+               'mu4e-org-store-and-capture "1.3.6")
 
 ;; install mu4e-link support.
 (org-link-set-parameters "mu4e"

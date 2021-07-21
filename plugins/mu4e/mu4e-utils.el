@@ -7,18 +7,18 @@
 
 ;; This file is not part of GNU Emacs.
 
-;; GNU Emacs is free software: you can redistribute it and/or modify
+;; mu4e is free software: you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
 ;; the Free Software Foundation, either version 3 of the License, or
 ;; (at your option) any later version.
 
-;; GNU Emacs is distributed in the hope that it will be useful,
+;; mu4e is distributed in the hope that it will be useful,
 ;; but WITHOUT ANY WARRANTY; without even the implied warranty of
 ;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 ;; GNU General Public License for more details.
 
 ;; You should have received a copy of the GNU General Public License
-;; along with GNU Emacs.  If not, see <http://www.gnu.org/licenses/>.
+;; along with mu4e.  If not, see <http://www.gnu.org/licenses/>.
 
 ;;; Commentary:
 
@@ -48,10 +48,13 @@
 (declare-function mu4e-message-field-at-point     "mu4e-proc")
 (declare-function mu4e~proc-running-p "mu4e-proc")
 
+(declare-function mu4e~main-view          "mu4e-main")
 
 (declare-function mu4e~context-autoswitch "mu4e-context")
 (declare-function mu4e-context-determine  "mu4e-context")
 (declare-function mu4e-context-vars       "mu4e-context")
+(declare-function mu4e-context-current    "mu4e-context")
+
 (declare-function show-all "org")
 
 ;;; Various
@@ -63,15 +66,23 @@
     (kill-new path)
     (mu4e-message "Saved '%s' to kill-ring" path)))
 
-(defun mu4e-user-mail-address-p (addr)
-  "If ADDR is one of user's e-mail addresses return t, nil otherwise.
-User's addresses are set in `(mu4e-personal-addresses)'.  Case
-insensitive comparison is used."
-  (when (and addr (mu4e-personal-addresses)
-             (cl-find addr (mu4e-personal-addresses)
-                      :test (lambda (s1 s2)
-                              (eq t (compare-strings s1 nil nil s2 nil nil t)))))
-    t))
+(defun mu4e-personal-address-p (addr)
+  "Is ADDR a personal address?
+Evaluate to nil if ADDR matches any of the personal addresses.
+Uses (mu4e-personal-addresses) for the addresses with both the plain
+addresses and /regular expressions/."
+  (when addr
+    (seq-find
+     (lambda (m)
+       (if (string-match "/\\(.*\\)/" m)
+           (let ((rx (match-string 1 m))
+                 (case-fold-search t))
+             (if (string-match rx addr) t nil))
+         (eq t (compare-strings addr nil nil m nil nil 'case-insensitive))))
+     (mu4e-personal-addresses))))
+
+(define-obsolete-function-alias 'mu4e-user-mail-address-p
+  'mu4e-personal-address-p "1.5.5")
 
 (defmacro with~mu4e-context-vars (context &rest body)
   "Evaluate BODY, with variables let-bound for CONTEXT (if any).
@@ -529,8 +540,13 @@ Or go to the top level if there is none."
     (with-current-buffer  (mu4e-get-headers-buffer)
       mu4e~headers-last-query)))
 
+(defvar gnus-article-buffer) ;; Fix byte-compiler warning.
 (defun mu4e-get-view-buffer ()
-  (get-buffer mu4e~view-buffer-name))
+  "Get the view buffer, if any."
+  (get-buffer
+   (if mu4e-view-use-old
+       mu4e~view-buffer-name
+     gnus-article-buffer)))
 
 (defun mu4e-get-headers-buffer ()
   (get-buffer mu4e~headers-buffer-name))
@@ -656,9 +672,8 @@ process."
 (defun mu4e~update-contacts (contacts &optional tstamp)
   "Receive a sorted list of CONTACTS.
 Each of the contacts has the form
-  (FULL_EMAIL_ADDRESS . RANK) and fill the hash
-`mu4e~contacts' with it, with each contact mapped to an integer
-for their ranking.
+  (FULL_EMAIL_ADDRESS . RANK) and fill `mu4e~contacts-hash' with
+it, with each contact mapped to an integer for their ranking.
 
 This is used by the completion function in mu4e-compose."
   ;; We have our nicely sorted list, map them to a list
@@ -666,8 +681,8 @@ This is used by the completion function in mu4e-compose."
   ;; to sort them there. It would have been so much easier if emacs
   ;; allowed us to use the sorted-list as-is, but no such luck.
   (let ((n 0))
-    (unless mu4e~contacts
-      (setq mu4e~contacts (make-hash-table :test 'equal :weakness nil
+    (unless mu4e~contacts-hash
+      (setq mu4e~contacts-hash (make-hash-table :test 'equal :weakness nil
                                            :size (length contacts))))
     (dolist (contact contacts)
       (cl-incf n)
@@ -679,13 +694,13 @@ This is used by the completion function in mu4e-compose."
         (when address ;; note the explicit deccode; the strings we get are  utf-8,
           ;; but emacs doesn't know yet.
           (puthash (decode-coding-string address 'utf-8)
-                   (plist-get contact :rank) mu4e~contacts))))
+                   (plist-get contact :rank) mu4e~contacts-hash))))
 
     (setq mu4e~contacts-tstamp (or tstamp "0"))
 
     (unless (zerop n)
       (mu4e-index-message "Contacts updated: %d; total %d"
-                          n (hash-table-count mu4e~contacts)))))
+                          n (hash-table-count mu4e~contacts-hash)))))
 
 (defun mu4e-contacts-info ()
   "Display information about the cache used for contacts
@@ -700,12 +715,19 @@ completion; for testing/debugging."
     (insert (format "only addresses seen after: %s\n"
                     (or mu4e-compose-complete-only-after "no restrictions")))
 
-    (when mu4e~contacts
+    (when mu4e~contacts-hash
       (insert (format "number of contacts cached: %d\n\n"
-                      (hash-table-count mu4e~contacts)))
-      (maphash (lambda(key _val)
-                 (insert (format "%S\n" key))) mu4e~contacts)))
-  (pop-to-buffer "*mu4e-contacts-info*"))
+                      (hash-table-count mu4e~contacts-hash)))
+      (let ((contacts))
+        (maphash (lambda (addr rank)
+                   (setq contacts (cons (cons rank addr) contacts)))
+                 mu4e~contacts-hash)
+        (setq contacts (sort contacts
+                             (lambda(cell1 cell2) (< (car cell1) (car cell2)))))
+        (dolist (contact contacts)
+          (insert (format "%s\n" (cdr contact))))))
+
+    (pop-to-buffer "*mu4e-contacts-info*")))
 
 (defun mu4e~check-requirements ()
   "Check for the settings required for running mu4e."
@@ -775,6 +797,28 @@ nothing."
                          (lambda () (mu4e-update-mail-and-index
                                      mu4e-index-update-in-background)))))))
 
+(defun mu4e-last-query-results ()
+  "Get the results (counts) of the last cached queries.
+
+The cached queries are the bookmark / maildir queries that are
+used to populated the read/unread counts in the main view. They
+are refreshed when calling `(mu4e)', i.e., when going to the main
+view.
+
+The results are a list of elements of the form
+   (:query \"query string\"
+            :count  <total number matching count>
+            :unread <number of unread messages in count>)"
+  (plist-get mu4e~server-props :queries))
+
+
+(defun mu4e-last-query-result (query)
+  "Get the last result for some cached query, as per
+  `mu4e-bookmark-query-results' or nil if not found."
+  (cl-find-if
+   (lambda (elm) (string= (plist-get elm :query) query))
+   (mu4e-last-query-results)))
+
 
 (defun mu4e~start (&optional func)
   "If `mu4e-contexts' have been defined, but we don't have a
@@ -787,7 +831,9 @@ When successful, call FUNC (if non-nil) afterwards."
   (setq mu4e-pong-func (lambda (info) (mu4e~pong-handler info func)))
   (mu4e~proc-ping
    (mapcar ;; send it a list of queries we'd like to see read/unread info for
-    (lambda (bm) (plist-get bm :query))
+    (lambda (bm)
+      (funcall (or mu4e-query-rewrite-function #'identity)
+               (plist-get bm :query)))
     ;; exclude bookmarks that are not strings, and with certain flags
     (seq-filter (lambda (bm)
                   (and (stringp (plist-get bm :query))
@@ -796,13 +842,13 @@ When successful, call FUNC (if non-nil) afterwards."
                         (mu4e~maildirs-with-query)))))
   ;; maybe request the list of contacts, automatically refreshed after
   ;; reindexing
-  (unless mu4e~contacts (mu4e~request-contacts-maybe)))
+  (unless mu4e~contacts-hash (mu4e~request-contacts-maybe)))
 
 (defun mu4e-clear-caches ()
   "Clear any cached resources."
   (setq
    mu4e-maildir-list nil
-   mu4e~contacts nil
+   mu4e~contacts-hash nil
    mu4e~contacts-tstamp "0"))
 
 (defun mu4e~stop ()
@@ -815,10 +861,16 @@ When successful, call FUNC (if non-nil) afterwards."
   ;; kill all mu4e buffers
   (mapc
    (lambda (buf)
-     (with-current-buffer buf
-       (when (member major-mode
-                     '(mu4e-headers-mode mu4e-view-mode mu4e-main-mode))
-         (kill-buffer))))
+     ;; When using the Gnus-based viewer, the view buffer has the
+     ;; kill-buffer-hook function mu4e~view-kill-buffer-hook-fn which kills the
+     ;; mm-* buffers created by Gnus' article mode.  Those have been returned by
+     ;; `buffer-list' but might already be deleted in case the view buffer has
+     ;; been killed first.  So we need a `buffer-live-p' check here.
+     (when (buffer-live-p buf)
+       (with-current-buffer buf
+         (when (member major-mode
+                       '(mu4e-headers-mode mu4e-view-mode mu4e-main-mode))
+           (kill-buffer)))))
    (buffer-list)))
 
 (defun mu4e~maildirs-with-query ()
@@ -991,7 +1043,7 @@ in the background; otherwise, pop up a window."
       (kill-process proc t))))
 
 (define-obsolete-function-alias 'mu4e-interrupt-update-mail
-  'mu4e-kill-update-mail)
+  'mu4e-kill-update-mail "1.0-alpha0")
 
 
 ;;; Logging / debugging
@@ -1290,6 +1342,38 @@ string will be shortened to fit if its length exceeds
     (erase-buffer)
     (insert (propertize "Loading message..."
                         'face 'mu4e-system-face 'intangible t))))
+
+;;
+;; Bug Reference mode support
+;;
+
+;; This is Emacs 28 stuff but there is no need to guard it with some (f)boundp
+;; checks (which would return nil if bug-reference.el is not loaded before
+;; mu4e) since the function definition doesn't hurt and `add-hook' works fine
+;; for not yet defined variables (by creating them).
+(declare-function bug-reference-maybe-setup-from-mail "ext:bug-reference")
+(defun mu4e-view--try-setup-bug-reference-mode ()
+  "Try to guess bug-reference setup from the current mu4e mail.
+Looks at the maildir and the mail headers List, List-Id, Maildir,
+To, From, Cc, and Subject and tries to guess suitable values for
+`bug-reference-bug-regexp' and `bug-reference-url-format' by
+matching the maildir name against GROUP-REGEXP and each header
+value against HEADER-REGEXP in
+`bug-reference-setup-from-mail-alist'."
+  (when (derived-mode-p 'mu4e-view-mode)
+    (let (header-values)
+      (save-excursion
+        (goto-char (point-min))
+        (dolist (field '("list" "list-id" "to" "from" "cc" "subject"))
+          (let ((val (mail-fetch-field field)))
+            (when val
+              (push val header-values)))))
+      (bug-reference-maybe-setup-from-mail
+       (mail-fetch-field "maildir")
+       header-values))))
+
+(add-hook 'bug-reference-auto-setup-functions
+          #'mu4e-view--try-setup-bug-reference-mode)
 
 ;;; _
 (provide 'mu4e-utils)

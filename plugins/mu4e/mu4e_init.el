@@ -1,5 +1,3 @@
-(require 'smtpmail-async)
-
 ;; 下面是 gmail 设置。(不确定是否和 163 设定正好相反？)
 ;; 注意：默认使用 .netrc 获取信息。
 
@@ -11,13 +9,13 @@
  user-full-name "Billy.Zheng"           ;发件人姓名, $NAME 环境变量指定
  user-mail-address "vil963@gmail.com"      ;发件人默认邮件地址, 可以通过 $EMAIL 来指定.
  smtpmail-smtp-user "vil963@gmail.com"
+ smtpmail-queue-mail t  ;; start in queuing mode
+ smtpmail-queue-dir   "~/Maildir/queue/cur"
  starttls-use-gnutls t
  smtpmail-starttls-credentials '(("smtp.gmail.com" 587 nil nil))
- send-mail-function 'async-smtpmail-send-it      ;使用通过 SMTP 指定的服务器发送邮件.
- message-send-mail-function 'async-smtpmail-send-it
+ send-mail-function 'smtpmail-send-it
  message-confirm-send t                 ;当发送一个 message 时, 会有确认提示.
  smtpmail-debug-info t
- message-kill-buffer-on-exit t        ;; 发送完成后, buffer 将会自动关闭
  auth-source-save-behavior nil     ;不提示保存密码到 ~/.authinfo
  ;; auth-sources '("~/.netrc.gpg" "~/.authinfo.gpg" "~/.netrc" "~/.authinfo")
  ;; mail-archive-file-name "~/.mailbak"       ;指定发送邮件时，密抄一份到某个文件，作为备份。
@@ -37,10 +35,10 @@
 ;; ============================== mu4e 设置 ==============================
 (require 'mu4e)
 (require 'mu4e-contrib)                 ; Need by mu4e-html2text-command
-
 (require 'mu4e-alert)
+(mu4e-alert-set-default-style 'libnotify)
 (add-hook 'after-init-hook #'mu4e-alert-enable-notifications)
-;; (add-hook 'after-init-hook #'mu4e-alert-enable-mode-line-display)
+(add-hook 'after-init-hook #'mu4e-alert-enable-mode-line-display)
 
 ;; 所有未读邮件, 不含邮件列表, 及其他特殊分类。
 (setq mu4e-bookmarks '(("flag:unread" "Unread mail" ?u)))
@@ -88,13 +86,10 @@
                          ;; "Geek, Nerd, Rubyist\n"
                          ;; "程序员中的牛逼运维， 运维中的牛逼程序员。"
                          )
- mu4e-attachment-dir "~/Download"   ;; attachment save to ~/Download
-
- mu4e-maildir "~/Maildir/gmail"
- ;; 下面的目录相对于上面的 mu4e-maildir
- mu4e-drafts-folder "/[Gmail].Drafts"
- mu4e-sent-folder   "/[Gmail].Sent Mail"
- mu4e-trash-folder  "/[Gmail].Trash"
+ mu4e-attachment-dir "~/Downloads"   ;; attachment save to ~/Download
+ mu4e-drafts-folder "/gmail/[Gmail].Drafts"
+ mu4e-sent-folder   "/gmail/[Gmail].Sent Mail"
+ mu4e-trash-folder  "/gmail/[Gmail].Trash"
 
  ;; 默认值, 不使用 mu4e 手动获取 mail, 我们使用 crontab.
  ;; mu4e-get-mail-command "true"
@@ -104,6 +99,20 @@
  mu4e-headers-auto-update nil           ;; 我自己手动刷新 headers
  ;; mu4e-confirm-quit            nil      ;; 退出是无需确认。
  )
+
+(add-hook 'mu4e-compose-mode-hook 'auto-fill-mode)
+
+;; (require 'mu4e-views)
+
+(require 'NetworkManager)
+
+(NetworkManager-add-listener
+ (lambda (state)
+   (setq smtpmail-queue-mail (not state))
+   (when (eq major-mode 'mu4e-main-mode)
+     (let ((pos (point)))
+       (mu4e~main-view-real nil nil)
+       (goto-char pos)))))
 
 (provide 'mu4e_init)
 ;;; mu4e_init.el ends here
