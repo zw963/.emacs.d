@@ -49,6 +49,7 @@
             (local-set-key [(control meta b)] 'rhtml-mode-backward-sexp)
             (local-set-key [(control meta ?\s)] 'rhtml-mark-sexp-tag)
             (local-set-key [(control tab)] 'web-mode-element-children-fold-or-unfold)
+            (lobal-set-key [(meta return)] 'html-mode-newline-and-indent)
             ))
 
 (defun save-buffer-and-browse-url ()
@@ -108,6 +109,14 @@
    ;;    (web-mode-mark-and-expand)))
    (t (web-mode-mark (point))))
   )
+
+(defun html-mode-newline-and-indent ()
+  (interactive)
+  (if (or
+       (and (looking-back "<[^/]*.*[^%]*>" (point-min)) (looking-at " *</"))
+       (and (looking-back "<.*" (point-min)) (looking-at ">")))
+      (save-excursion (newline-and-indent)))
+  (newline-and-indent))
 
 (add-to-list 'web-mode-commands-like-expand-region 'rhtml-mark-sexp-tag)
 
