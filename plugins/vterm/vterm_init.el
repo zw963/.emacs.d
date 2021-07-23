@@ -37,7 +37,8 @@
 (setq multi-vterm-dedicated-window-height 20)
 
 ;; 可以使用 Ctrl+x j, Ctrl+x l 来切换 buffer 和 vterm.
-(global-set-key [(control return)] 'multi-vterm-dedicated-toggle)
+(global-set-key [(shift control t)] 'multi-vterm-dedicated-toggle)
+(define-key vterm-mode-map [(shift control t)] 'multi-vterm-dedicated-toggle)
 
 (provide 'vterm_init)
 
