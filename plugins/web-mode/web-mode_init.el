@@ -49,7 +49,7 @@
             (local-set-key [(control meta b)] 'rhtml-mode-backward-sexp)
             (local-set-key [(control meta ?\s)] 'rhtml-mark-sexp-tag)
             (local-set-key [(control tab)] 'web-mode-element-children-fold-or-unfold)
-            (lobal-set-key [(meta return)] 'html-mode-newline-and-indent)
+            (local-set-key [(meta return)] 'html-mode-newline-and-indent)
             ))
 
 (defun save-buffer-and-browse-url ()
