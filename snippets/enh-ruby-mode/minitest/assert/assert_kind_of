@@ -1,0 +1,6 @@
+# -*- mode: snippet -*-
+# name: assert_kind_of
+# key: assert
+# condition: (yas-ruby-test-p)
+# --
+assert_kind_of ${1:ExpectedKind}, $0

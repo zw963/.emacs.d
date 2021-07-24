@@ -1,0 +1,6 @@
+# -*- mode: snippet -*-
+# name: assert_respond_to
+# key: assert
+# condition: (yas-ruby-test-p)
+# --
+assert_respond_to ${1:obj}, :${2:meth}

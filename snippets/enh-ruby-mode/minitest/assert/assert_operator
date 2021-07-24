@@ -1,0 +1,6 @@
+# -*- mode: snippet -*-
+# name: assert_operator
+# key: assert
+# condition: (yas-ruby-test-p)
+# --
+assert_operator`(field "1" "obj" " ")``(field "2" "op" ", " ":")``(field "3" "obj" ", ")`

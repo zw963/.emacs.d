@@ -1,0 +1,6 @@
+# -*- mode: snippet -*-
+# name: assert_throws
+# key: assert
+# condition: (yas-ruby-test-p)
+# --
+assert_throws`(field "1" "sym" "(" ")")` `(ruby-block)`

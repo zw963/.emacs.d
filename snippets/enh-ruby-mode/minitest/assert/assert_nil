@@ -1,0 +1,6 @@
+# -*- mode: snippet -*-
+# name: assert_nil
+# key: an
+# condition: (yas-ruby-test-p)
+# --
+assert_nil $0

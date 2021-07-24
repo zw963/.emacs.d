@@ -1,0 +1,6 @@
+# -*- mode: snippet -*-
+# name: assert_empty
+# key: assert
+# condition: (yas-ruby-test-p)
+# --
+assert_empty $0

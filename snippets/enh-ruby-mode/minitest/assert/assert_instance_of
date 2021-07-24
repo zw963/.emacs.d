@@ -1,0 +1,6 @@
+# -*- mode: snippet -*-
+# name: assert_instance_of
+# key: assert
+# condition: (yas-ruby-test-p)
+# --
+assert_instance_of ${1:ExpectedClass}, $0
