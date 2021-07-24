@@ -89,7 +89,7 @@
                     (local-set-key [(control c) (control c)] 'format-buffer)
                     (local-set-key [(?\,)] 'input-comma-with-space)
                     ;; (local-set-key [(?\;)] 'input-semicolon-with-space)
-                    (local-set-key [(meta return)] 'textmate-next-line)
+                    (local-set-key [(control return)] 'textmate-next-line)
                     )))
 
 (defun format-buffer ()
@@ -137,7 +137,11 @@
   (cond
    ((member major-mode '(rust-mode rustic-mode)) (insert ";")
     ))
-  (electric-newline-and-maybe-indent))
+  ;; (electric-newline-and-maybe-indent)
+  ;; (newline-and-indent)
+  ;; 记住: 总可以通过Ctrl+Alt+j 执行下面的功能.(注释中新行自动注释)
+  (default-indent-new-line)
+  )
 
 (defun input-comma-with-space ()
   (interactive)

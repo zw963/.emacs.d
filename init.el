@@ -60,6 +60,7 @@
 (require 'edit-server_init)
 (require 'markdown-mode_init)
 (require 'iedit_init)
+(require 'multiple-cursors_init)
 (require 'undo-tree_init)
 (require 'toggle-quotes_init)
 (require 'shackle_init)
@@ -95,7 +96,8 @@
 (require 'vterm_init)
 ;; (require 'auto-complete_init)
 ;; (require 'english-teacher_init)
-;; (require 'mu4e_init)
+(require 'async_init)
+(require 'mu4e_init)
 
 ;; ============================== 编程相关 ==============================
 
