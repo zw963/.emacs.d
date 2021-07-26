@@ -12,5 +12,6 @@
 
 (setq mc/cmds-to-run-once
       '(
+        help-for-help
         iedit-switch-to-mc-mode
         ))
