@@ -21,16 +21,6 @@
                                    (local-unset-key (kbd "C-@"))
                                    ))
 
-
-;; (require 'region-bindings-mode)
-
-;; (define-key region-bindings-mode-map (kbd"C-x h") 'mc/mark-all-like-this)
-;; (define-key region-bindings-mode-map (kbd "C-p") 'mc/mark-previous-like-this)
-;; (define-key region-bindings-mode-map (kbd "C-n") 'mc/mark-next-like-this)
-;; (define-key region-bindings-mode-map (kbd "C-m") 'mc/mark-more-like-this-extended)
-
-;; (region-bindings-mode-enable)
-
 (provide 'multiple-cursors_init)
 
 

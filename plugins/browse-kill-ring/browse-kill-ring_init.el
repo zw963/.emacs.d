@@ -68,18 +68,17 @@
   (delete-overlay mouse-secondary-overlay)
   (deactivate-mark))
 
-(defadvice kill-ring-save (around secondary-ring activate)
-  "Let 'kill-ring-save support secondary ring."
-  (when (use-region-p)
-      (progn
-        (convert-to-secondary-region)
-        ad-do-it
-        )
-    ;; (progn
-    ;;   (call-interactively 'copy-line)
-    ;;   (message "line copyed.")
-    ;;   )
-    ))
+;; 这个功能会造成 meta + w 复制内容之后, 不会自动的 deactivate mark
+;; 因此 deactivate-mark-hook 中的代码不会运行.
+
+;; (defadvice kill-ring-save (around secondary-ring activate)
+;;   "Let 'kill-ring-save support secondary ring."
+;;   (when (use-region-p)
+;;       (progn
+;;         (convert-to-secondary-region)
+;;         ad-do-it
+;;         )
+;;     ))
 
 ;; (defadvice kill-region (around secondary-ring activate)
 ;;   "Let 'kill-region support secondary ring."
