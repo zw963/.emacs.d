@@ -102,7 +102,10 @@
 
 (add-hook 'mu4e-compose-mode-hook 'auto-fill-mode)
 
+(define-key mu4e-headers-mode-map (kbd "v") #'mu4e-views-mu4e-select-view-msg-method)
+
 ;; (require 'mu4e-views)
+;; (setq mu4e-views-next-previous-message-behaviour 'always-switch-to-view)
 
 (require 'NetworkManager)
 
