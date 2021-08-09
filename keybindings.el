@@ -139,9 +139,11 @@
     ))
   ;; (electric-newline-and-maybe-indent)
   ;; (newline-and-indent)
-  ;; 记住: 总可以通过Ctrl+Alt+j 执行下面的功能.(注释中新行自动注释)
-  (default-indent-new-line)
-  )
+
+  (if (fifth (syntax-ppss))
+      ;; 记住: 总可以通过Ctrl+Alt+j 执行下面的功能.(注释中新行自动注释)
+      (default-indent-new-line)
+    (reindent-then-newline-and-indent)))
 
 (defun input-comma-with-space ()
   (interactive)
