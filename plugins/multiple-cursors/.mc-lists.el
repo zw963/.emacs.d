@@ -6,6 +6,7 @@
         describe-key
         helm-confirm-and-exit-minibuffer
         iedit-mode
+        input-comma-with-space
         kill-region
         undo-tree-or-undo-pp
         ))
@@ -14,4 +15,5 @@
       '(
         help-for-help
         iedit-switch-to-mc-mode
+        yas-expand-from-keymap
         ))

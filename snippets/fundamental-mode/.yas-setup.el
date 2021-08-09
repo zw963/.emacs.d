@@ -447,7 +447,7 @@ after-field-delimiter: 字段之后的标识符。例如： 结束双引号
 ;;   "transform to a normally variable."
 ;;   (replace-regexp-in-string "&\\|\*" "" yas-text t nil))
 
-(yas-define-condition-cache yas-use-region-p (or (expand-from-key-p) (region-active-p)))
+(yas-define-condition-cache yas-use-region-p (or (expand-from-key-p) (use-region-p)))
 (yas-define-condition-cache yas-in-interpolated-string-p (member (fourth (syntax-ppss)) (list ?\" ?\` ?/)))
 (yas-define-condition-cache yas-in-string-p (fourth (syntax-ppss)))
 (yas-define-condition-cache yas-in-comment-p (fifth (syntax-ppss)))

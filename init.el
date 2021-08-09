@@ -119,6 +119,7 @@
 (require 'coffee-mode_init)
 (require 'ctags-update_init)
 (require 'web-mode_init)
+(require 'rainbow-mode_init)
 ;; (require 'smart-jump_init)
 (require 'scss-css-mode_init)
 (require 'js2-mode_init)
