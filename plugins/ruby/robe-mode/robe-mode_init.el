@@ -33,7 +33,7 @@
 
 ;; M-. robe-jump, 查找指定的方法. (替代了 helm-ctags+)
 ;; M-, pop-tag-mark 返回查找前的点.
-;; (run-ruby-mode-hook '(robe-mode))
+(run-ruby-mode-hook '(robe-mode))
 
 (provide 'robe-mode_init)
 ;;; robe-mode_init.el ends here
