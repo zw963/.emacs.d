@@ -1,3 +1,4 @@
+(require 'async-bytecomp)
 (require 'dired-async)
 (require 'auth-source)
 ;; (setq auth-sources '("~/.netrc")
