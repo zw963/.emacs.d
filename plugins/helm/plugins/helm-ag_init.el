@@ -3,20 +3,28 @@
 ;; helm-ag-ignore-buffer-patterns
 (require 'helm-ag)
 
+;; Hack for ignore pattern works with rg
+(defun helm-ag--construct-ignore-option (pattern)
+  "Not documented, PATTERN."
+  (concat "--glob=" pattern))
+
 (custom-set-variables
  ;; 必须开启 follow 模式, 才能有跟随 buffer 的 follow 效果.
  '(helm-follow-mode-persistent t)
  ;; helm-ag-base-command "ag --nocolor --nogroup --ignore-case"
  ;; '(helm-ag-base-command "rg --hidden --with-filename --no-heading --smart-case")
- '(helm-ag-base-command "rg --no-config --hidden --no-heading --smart-case")
+ '(helm-ag-base-command "rg --no-config --no-heading --hidden --smart-case" )
+ ;; '(helm-ag-base-command "rg --no-config --no-heading --hidden --smart-case" )
  '(helm-ag-insert-at-point 'symbol)
  '(helm-ag-fuzzy-match t)
- '(helm-ag-ignore-patterns '(
-                             "*.min.js" "*.js" "*.less"
-                             "*.json" "*.log" "TAGS"
-                             "tags" "test-reports"
-                             "\\#*\\#" ".\\#*" "*~"
-                             ))
+ ;; 下面的选项只是适合于 ag, rg 使用
+ ;; '(helm-ag-ignore-patterns '(
+ ;;                             "*.min.js" "*.js" "*.less"
+ ;;                             "*.json" "*.log" "TAGS"
+ ;;                             "tags" "test-reports"
+ ;;                             "\\#*\\#" ".\\#*" "*~"
+ ;;                             ))
+ '(helm-ag-ignore-patterns '("!*~" "!#*#" "!*.min.*" "!TAGS" "!tags"))
  )
 
 ;; 下面两个一起修改, C-r 搜索 project-root,  因此设为 nil
