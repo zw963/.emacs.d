@@ -1,3 +1,4 @@
+(require 'cfrs)
 (require 'treemacs)
 
 (treemacs-git-mode 'deferred)
