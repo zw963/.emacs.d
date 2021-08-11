@@ -987,23 +987,29 @@ Should not be used among other sources.")
 
 Define the directory where you want to start navigating for the
 target directory when copying, renaming, etc..  You can use the
-`default-directory' of `next-window', the current
-`default-directory' or have completion on all the directories
-belonging to each window."
+`default-directory' of `next-window', the visited directory, the
+current `default-directory' or have completion on all the
+directories belonging to each visible windows."
   :group 'helm-files
   :type '(radio :tag "Define default target directory for file actions."
-          (const :tag "Directory belonging to next window" next-window)
-          (const :tag "Completion on directories belonging to each window" completion)
-          (const :tag "Use initial directory or `default-directory'" nil)))
+          (const :tag "Directory belonging to next window"
+                 next-window)
+          (const :tag "Completion on directories belonging to each window"
+                 completion)
+          (const :tag "Use initial directory or `default-directory'"
+                 default-directory)
+          (const :tag "Use visited directory"
+                 nil)))
 
 (defun helm-dwim-target-directory ()
   "Try to return a suitable directory according to `helm-dwim-target'."
-  (with-helm-current-buffer
-    (let* ((wins (remove (get-buffer-window helm-marked-buffer-name)
-                         (window-list)))
-           (num-windows (length wins)))
+  (with-selected-window (get-buffer-window helm-current-buffer)
+    (let ((wins (remove (get-buffer-window helm-marked-buffer-name)
+                        (window-list))))
       (expand-file-name
-       (cond ((and (> num-windows 1)
+       (cond (;; Provide completion on all the directory belonging to
+              ;; visible windows if some.
+              (and (cdr wins)
                    (eq helm-dwim-target 'completion))
               (helm-comp-read "Browse target starting from: "
                               (append (list (or (car-safe helm-ff-history)
@@ -1012,11 +1018,17 @@ belonging to each window."
                                       (cl-loop for w in wins collect
                                                (with-selected-window w
                                                  default-directory)))))
-             ((and (> num-windows 1)
+             ;; Use default-directory of next-window.
+             ((and (cdr wins)
                    (eq helm-dwim-target 'next-window))
               (with-selected-window (next-window)
                 default-directory))
-             ((or (= num-windows 1)
+             ;; Always use default-directory when only one window.
+             ((and (null (cdr wins))
+                   (eq helm-dwim-target 'default-directory))
+              default-directory)
+             ;; Use the visited directory.
+             ((or (null (cdr wins))
                   (null helm-dwim-target))
               ;; Using the car of *ff-history allow
               ;; staying in the directory visited instead of
@@ -1039,7 +1051,7 @@ belonging to each window."
                                    else
                                    collect k)))
 
-(defun helm-find-files-do-action (action)
+(defun helm-find-files-do-action (action &optional target)
   "Generic function for creating actions from `helm-source-find-files'.
 ACTION can be `rsync' or any action supported by `helm-dired-action'."
   (require 'dired-async)
@@ -1077,20 +1089,21 @@ ACTION can be `rsync' or any action supported by `helm-dired-action'."
          ;; If HFF is using a frame use a frame as well.
          (helm-actions-inherit-frame-settings t)
          helm-use-frame-when-more-than-two-windows
-         (dest   (with-helm-display-marked-candidates
-                   helm-marked-buffer-name
-                   (helm-ff--count-and-collect-dups ifiles)
-                   (with-helm-current-buffer
-                     (helm-read-file-name
-                      prompt
-                      :preselect (unless (cdr ifiles)
-                                   (concat
-                                    "^"
-                                    (regexp-quote
-                                     (if helm-ff-transformer-show-only-basename
-                                         (helm-basename cand) cand))))
-                      :initial-input (helm-dwim-target-directory)
-                      :history (helm-find-files-history nil :comp-read nil)))))
+         (dest (or target
+                   (with-helm-display-marked-candidates
+                     helm-marked-buffer-name
+                     (helm-ff--count-and-collect-dups ifiles)
+                     (with-helm-current-buffer
+                       (helm-read-file-name
+                        prompt
+                        :preselect (unless (cdr ifiles)
+                                     (concat
+                                      "^"
+                                      (regexp-quote
+                                       (if helm-ff-transformer-show-only-basename
+                                           (helm-basename cand) cand))))
+                        :initial-input (helm-dwim-target-directory)
+                        :history (helm-find-files-history nil :comp-read nil))))))
          (dest-dir-p (file-directory-p dest))
          (dest-dir   (helm-basedir dest)))
     (unless (or dest-dir-p (file-directory-p dest-dir))
@@ -1520,7 +1533,8 @@ this working."
                        for fcmd = (replace-regexp-in-string
                                    "\\\\@" (regexp-quote (file-name-sans-extension file))
                                    (replace-regexp-in-string
-                                    "\\\\#" (format "%03d" n) command))
+                                    "\\\\#" (format "%03d" n) command t t)
+                                   t t)
                        for com = (if (string-match "%s" fcmd)
                                      ;; [1] This allow to enter other args AFTER filename
                                      ;; i.e <command %s some_more_args>
@@ -3945,7 +3959,17 @@ ARGS are other arguments to be passed to FN."
         errors aborted)
     (with-helm-display-marked-candidates
         helm-marked-buffer-name
-        (helm-ff--count-and-collect-dups (mapcar 'helm-basename mkd))
+        (if (and args (string= (car names) "restore"))
+            (cl-loop for f in mkd
+                     for bd = (helm-basename f)
+                     for assoc = (assoc bd (car args))
+                     when assoc
+                     collect (concat (truncate-string-to-width
+                                      (car assoc) 40 nil nil t)
+                                     " -> "
+                                     (truncate-string-to-width
+                                      (helm-basedir (cdr assoc)) 40 nil nil t)))
+          (helm-ff--count-and-collect-dups (mapcar 'helm-basename mkd)))
         (if (y-or-n-p (format "%s %s files from trash? "
                               (capitalize (car names))
                               (length mkd)))
@@ -4589,6 +4613,40 @@ Show the first `helm-ff-history-max-length' elements of
         helm-ff-history))))
 (put 'helm-find-files-history 'helm-only t)
 
+(defvar helm-ff-drag-mouse-1-default-action 'copy
+  "Default action when dragging files.
+Possible values are `copy', `rsync' or `rename'.")
+
+(defun helm-ff-drag-mouse-1-fn (event)
+  (interactive "e")
+  (cl-assert (memq helm-ff-drag-mouse-1-default-action
+                   '(copy rsync rename)))
+  (let* ((win-or-frame (posn-window (event-end event)))
+         (target-frame (when (framep win-or-frame)
+                         helm-initial-frame))
+         (target (with-selected-window
+                     (if target-frame
+                         (frame-selected-window target-frame)
+                       win-or-frame)
+                   default-directory))
+         win-list
+         (ask (and target-frame
+                   (cdr (setq win-list (window-list target-frame 1))))))
+    (when ask
+      (setq target (x-popup-menu
+                    t (list "Choose target"
+                            (cons ""
+                                  (cl-loop for win in win-list
+                                           for dir = (with-selected-window
+                                                         win default-directory)
+                                           collect (cons  dir dir)))))))
+    (if (memq helm-ff-drag-mouse-1-default-action '(copy rsync))
+        (helm-find-files-do-action
+         helm-ff-drag-mouse-1-default-action target)
+      (helm-run-after-exit
+       #'helm-find-files-do-action
+       helm-ff-drag-mouse-1-default-action target))))
+
 (defun helm-find-files-1 (fname &optional preselect)
   "Find FNAME filename with PRESELECT filename preselected.
 
@@ -4612,7 +4670,8 @@ Use it for non-interactive calls of `helm-find-files'."
          (tap (thing-at-point 'filename))
          (def (and tap (or (file-remote-p tap)
                            (expand-file-name tap)))))
-    (helm-set-local-variable 'helm-follow-mode-persistent nil)
+    (helm-set-local-variable 'helm-follow-mode-persistent nil
+                             'helm-drag-mouse-1-fn 'helm-ff-drag-mouse-1-fn)
     (unless helm-source-find-files
       (setq helm-source-find-files (helm-make-source
                                     "Find Files" 'helm-source-ffiles)))

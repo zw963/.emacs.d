@@ -887,6 +887,12 @@ You can toggle later `truncate-lines' with
 \\<helm-map>\\[helm-toggle-truncate-line]."
   :group 'helm
   :type 'boolean)
+
+(defcustom helm-visible-mark-prefix "*"
+  "Prefix used in margin for marked candidates.
+Set this to an empty string if you don't want prefix in margin when marking."
+  :group 'helm
+  :type 'string)
 
 ;;; Faces
 ;;
@@ -1018,6 +1024,11 @@ You can toggle later `truncate-lines' with
        :inherit default))
   "Face for empty line at end of sources in the Helm buffer.
 Allow specifying the height of this line."
+  :group 'helm-faces)
+
+(defface helm-mark-prefix
+  `((t :inherit default))
+  "Face for string `helm-visible-mark-prefix'."
   :group 'helm-faces)
 
 ;;; Variables.
@@ -1241,9 +1252,12 @@ match everything but this.
 
 *** Completion-styles
 
-UPDATE: After version 3.7.1 Helm default is to NOT use
-`completion-styles' by default i.e. now `helm-completion-style'
-default to 'helm and no more to 'emacs.
+UPDATE: At version 3.8.0 Helm default is now to NOT use
+`completion-styles' i.e. now `helm-completion-style' default to
+'helm and no more to 'emacs.
+
+If you want to use `completion-styles' in Helm customize
+`helm-completion-style' to 'emacs.
 
 Helm generally fetches its candidates with the :candidates
 function up to `helm-candidate-number-limit' and then applies
@@ -1254,11 +1268,12 @@ Helm provides 'helm completion style but also 'helm-flex
 completion style for Emacs<27 that don't have 'flex completion
 style, otherwise (emacs-27) 'flex completion style is used to
 provide fuzzy aka flex completion.
-By default, like in Emacs vanilla, all completion commands \(e.g.,
-`completion-at-point') using `completion-in-region' or
-`completing-read' use `completion-styles'.
-Some Helm native commands like `helm-M-x' do use
-`completion-styles'.  Any Helm sources can use `completion-styles'
+
+When using helm-fuzzy as `helm-completion-style' helm use its own
+fuzzy implementation which have nothing to do with emacs `flex'
+style.
+
+Any Helm sources can use `completion-styles'
 by using :match-dynamic slot and building their :candidates
 function with `helm-dynamic-completion'.
 
@@ -2791,7 +2806,8 @@ in the source.
   ;; Should fix bug#2393 and bug#2394.  `while-no-input-ignore-events'
   ;; is also let-bounded in `helm--maybe-use-while-no-input'.
   (let ((while-no-input-ignore-events
-         (cons 'dbus-event while-no-input-ignore-events)))
+         (and (boundp 'while-no-input-ignore-events)
+              (cons 'dbus-event while-no-input-ignore-events))))
     (unless helm--tramp-archive-maybe-loaded
       ;; This for Emacs-27 not requiring tramp-archive.
       (and (boundp 'tramp-archive-enabled)
@@ -2865,7 +2881,11 @@ HISTORY args see `helm'."
               ;; helm-read-from-minibuffer).
               (unless helm-execute-action-at-once-if-one
                 (helm-display-buffer helm-buffer resume)
-                (select-window (helm-window)))
+                (select-window (helm-window))
+                (when (and resume helm-visible-mark-overlays)
+                  (set-window-margins (selected-window)
+                                      (+ (string-width helm-visible-mark-prefix)
+                                         helm-left-margin-width))))
               ;; We are now in helm-buffer.
               (unless helm-allow-mouse
                 (helm--remap-mouse-mode 1)) ; Disable mouse bindings.
@@ -3641,7 +3661,10 @@ Unuseful when used outside Helm, don't use it.")
       (set (make-local-variable 'buffer-read-only) nil)
       (buffer-disable-undo)
       (erase-buffer)
-      (set (make-local-variable 'helm-map) helm-map)
+      ;; Use this instead of setting helm-map local ensure we have all
+      ;; our keys when helm loose minibuffer focus.  And the map is
+      ;; made local as well AFAIU.
+      (use-local-map helm-map)
       (set (make-local-variable 'helm-source-filter) nil)
       (make-local-variable 'helm-sources)
       (set (make-local-variable 'helm-display-function) nil)
@@ -3700,7 +3723,17 @@ For PRESELECT RESUME KEYMAP DEFAULT HISTORY, see `helm'."
                                      resize-mini-windows))
            (first-src (car helm-sources))
            (source-process-p (or (assq 'candidates-process src)
-                                 (assq 'candidates-process first-src))))
+                                 (assq 'candidates-process first-src)))
+           ;; As we are using `helm-keyboard-quit' for `C-g' we have
+           ;; to prevent emacs command loop redefining `C-g' during
+           ;; helm-session. This happen only on async source with
+           ;; large output after a certain delay. The effect is that
+           ;; the minibuffer is exited but the helm async process
+           ;; continue running, and because minibuffer is lost `C-g'
+           ;; have no more effect. By binding `inhibit-quit' here we
+           ;; prevent this and allow `C-g' (the helm one aka
+           ;; `helm-keyboard-quit') to quit immediately.
+           (inhibit-quit source-process-p))
       (helm-log "helm-get-candidate-number => %S"
                 (helm-get-candidate-number))
       (helm-log "helm-execute-action-at-once-if-one = %S"
@@ -3905,7 +3938,7 @@ WARNING: Do not use this mode yourself, it is internal to Helm."
       (or (get-buffer-window helm-buffer)
           (selected-window))
     (let ((frame (selected-frame)))
-      (setq cursor-type t)
+      (setq cursor-type (default-value 'cursor-type))
       ;; Ensure restoring default-value of mode-line to allow user
       ;; using the mouse when helm is inactive (Bug#1517,Bug#2377).
       (setq mode-line-format (default-value 'mode-line-format))
@@ -4652,7 +4685,8 @@ Unlike `while-no-input' this macro ensure to not returns `t'."
        ;; Ignoring the dbus-event work on emacs28+; for emacs27 or older
        ;; version, require tramp-archive can workaround the issue.
        (let ((while-no-input-ignore-events
-              (cons 'dbus-event while-no-input-ignore-events)))
+              (and (boundp 'while-no-input-ignore-events)
+                   (cons 'dbus-event while-no-input-ignore-events))))
          (helm-while-no-input ,@body)))))
 
 (defun helm--collect-matches (src-list)
@@ -4912,6 +4946,7 @@ your candidates from `helm-async-outer-limit-hook'."
   "Remove SOURCE from `helm-candidate-cache'."
   (remhash (assoc-default 'name source) helm-candidate-cache))
 
+(defvar helm-drag-mouse-1-fn 'ignore)
 (defun helm-insert-match (match insert-function &optional num source)
   "Insert MATCH into `helm-buffer' with INSERT-FUNCTION.
 If MATCH is a cons cell then insert the car as display with the
@@ -4938,6 +4973,7 @@ specified as respectively `helm-cand-num' and `helm-cur-source'."
              (put-text-property start end
                                 'helm-realvalue realvalue)))
       (when map
+        (define-key map [drag-mouse-1] 'ignore)
         (define-key map [mouse-1] 'helm-mouse-select-candidate)
         (define-key map [mouse-2] 'ignore)
         (define-key map [mouse-3] 'helm-menu-select-action)
@@ -4971,6 +5007,7 @@ specified as respectively `helm-cand-num' and `helm-cur-source'."
   (let ((inhibit-read-only t)
         (map (get-text-property pos 'keymap)))
     (when map
+      (define-key map [drag-mouse-1] helm-drag-mouse-1-fn)
       (define-key map [mouse-2] 'helm-maybe-exit-minibuffer)
       (put-text-property
        helm-selection-point
@@ -5056,9 +5093,11 @@ This will work only in Emacs-26+, i.e. Emacs versions that have
   (with-helm-alive-p
     (cl-assert (boundp 'display-line-numbers) nil
                "`display-line-numbers' not available")
-    (with-helm-buffer
-      (setq display-line-numbers
-            (and helm-display-line-numbers-mode 'relative)))))
+    (if helm-display-line-numbers-mode
+        (with-helm-buffer
+          (setq display-line-numbers 'relative))
+      (with-helm-buffer
+        (setq display-line-numbers nil)))))
 (put 'helm-display-line-numbers-mode 'helm-only t)
 
 
@@ -5669,7 +5708,8 @@ Key arg DIRECTION can be one of:
                                                   helm-selection-overlay))
                                       (helm-end-of-source-p t)))
                  (helm-end-of-source-p t)))
-    (helm-move--beginning-of-source)))
+    (helm-move--beginning-of-source)
+    (helm-display-source-at-screen-top-maybe 'source)))
 
 (defun helm-move--previous-page-fn ()
   (condition-case nil
@@ -6957,10 +6997,16 @@ Meaning of prefix ARG is the same as in `reposition-window'."
          (o (make-overlay (point-at-bol) selection-end)))
     (overlay-put o 'priority 0)
     (overlay-put o 'face   'helm-visible-mark)
-    (overlay-put o 'source (assoc-default 'name source))
+    (overlay-put o 'source source)
     (overlay-put o 'string (buffer-substring (overlay-start o) (overlay-end o)))
     (overlay-put o 'real sel)
+    (overlay-put o 'before-string (propertize " " 'display
+                                              `((margin left-margin)
+                                                ,(propertize
+                                                  helm-visible-mark-prefix
+                                                  'face 'helm-mark-prefix))))
     (overlay-put o 'visible-mark t)
+    (overlay-put o 'evaporate t)
     (cl-pushnew o helm-visible-mark-overlays)
     (push (cons source sel) helm-marked-candidates)))
 
@@ -6986,7 +7032,12 @@ If ARG is negative toggle backward."
                          (progn
                            (helm-display-mode-line (helm-get-current-source))
                            (cl-return nil))
-                       (funcall (cdr next-fns))))))))))
+                       (funcall (cdr next-fns)))))
+          (set-window-margins (selected-window)
+                              (if helm-visible-mark-overlays
+                                  (+ (string-width helm-visible-mark-prefix)
+                                     helm-left-margin-width)
+                                helm-left-margin-width)))))))
 (put 'helm-toggle-visible-mark 'helm-only t)
 
 (defun helm-toggle-visible-mark-forward ()
@@ -7012,7 +7063,11 @@ With a prefix arg mark all visible unmarked candidates in all
 sources."
   (interactive "P")
   (with-helm-alive-p
-    (with-helm-window ; Using `with-helm-buffer' for some unknow reasons infloop.
+    (with-helm-window ; Using `with-helm-buffer' for some unknow
+                      ; reasons infloop.
+      (set-window-margins (selected-window)
+                          (+ (string-width helm-visible-mark-prefix)
+                             helm-left-margin-width))
       (if (null all)
           (helm-mark-all-1 t)
         (let ((pos (point)))
@@ -7099,7 +7154,8 @@ starting it is not needed."
         (helm-clear-visible-mark))
       (setq helm-marked-candidates nil)
       (helm-mark-current-line)
-      (helm-display-mode-line (helm-get-current-source)))))
+      (helm-display-mode-line (helm-get-current-source))
+      (set-window-margins (selected-window) helm-left-margin-width))))
 (put 'helm-unmark-all 'helm-only t)
 
 (defun helm-toggle-all-marks (&optional all)
@@ -7185,18 +7241,29 @@ sources."
   (with-current-buffer helm-buffer
     (save-excursion
       (cl-dolist (o helm-visible-mark-overlays)
-        (let ((o-src-str (overlay-get o 'source))
-              (o-str (overlay-get o 'string))
-              beg end)
+        (let* ((source (overlay-get o 'source))
+               (ov-src-name (assoc-default 'name source))
+               (ov-str (overlay-get o 'string))
+               (ov-real (overlay-get o 'real))
+               (ov-ml-str (helm-aif (helm-get-attr 'multiline source)
+                              (if (numberp it)
+                                  ;; Assume display have been computed
+                                  ;; against real e.g. kill-ring.
+                                  (helm--multiline-get-truncated-candidate
+                                   ov-real it)
+                                ov-str)
+                            ov-str))
+               beg end)
           ;; Move point to end of source header line.
           (goto-char (point-min))
-          (search-forward o-src-str nil t)
-          (while (and (search-forward o-str nil t)
+          (search-forward ov-src-name nil t)
+          (while (and (search-forward ov-ml-str nil t)
                       (cl-loop for ov in (overlays-at (point-at-bol 0))
                                never (overlay-get ov 'visible-mark))
-                      (helm-current-source-name= o-src-str))
+                      (helm-current-source-name= ov-src-name))
             (setq beg (match-beginning 0)
-                  end (match-end 0))
+                  end (if (string= ov-ml-str ov-str)
+                          (match-end 0) (1+ (match-end 0))))
             ;; Calculate real value of candidate.
             ;; It can be nil if candidate have only a display value.
             (let ((real (get-text-property (point-at-bol 0) 'helm-realvalue)))
@@ -7206,9 +7273,9 @@ sources."
                   ;; This is needed when some cands have same display names.
                   ;; Using equal allow testing any type of value for real cand.
                   ;; bug#706.
-                  (and (equal (overlay-get o 'real) real)
+                  (and (equal ov-real real)
                        (move-overlay o beg end))
-                (and (equal o-str (buffer-substring beg end))
+                (and (equal ov-str (buffer-substring beg end))
                      (move-overlay o beg end))))))))))
 (add-hook 'helm-after-update-hook 'helm-revive-visible-mark)
 

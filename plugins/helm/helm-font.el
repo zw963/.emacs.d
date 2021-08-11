@@ -38,7 +38,8 @@
     ("Insert character code in hex" . helm-ucs-insert-code)
     ("Kill marked characters"       . helm-ucs-kill-char)
     ("Kill name"                    . helm-ucs-kill-name)
-    ("Kill code"                    . helm-ucs-kill-code))
+    ("Kill code"                    . helm-ucs-kill-code)
+    ("Describe char"                . helm-ucs-describe-char))
   "Actions for `helm-source-ucs'."
   :group 'helm-font
   :type '(alist :key-type string :value-type function))
@@ -238,6 +239,13 @@ name."
   (helm-ucs-save-recentest candidate)
   (kill-new (helm-ucs-match candidate 3)))
 
+;; Describe char
+(defun helm-ucs-describe-char (candidate)
+  "Describe char CANDIDATE."
+  (with-temp-buffer
+    (insert (helm-ucs-match candidate 2))
+    (describe-char (point-min))))
+
 ;; Navigation in current-buffer (persistent)
 
 (defun helm-ucs-forward-char (_candidate)
@@ -285,7 +293,7 @@ name."
 
 (defvar helm-source-ucs-recent
   (helm-build-sync-source "Recent UCS"
-    :action helm-ucs-actions
+    :action 'helm-ucs-actions
     :candidates (lambda () helm-ucs-recent)
     :help-message helm-ucs-help-message
     :keymap helm-ucs-map
@@ -298,7 +306,7 @@ name."
     :help-message 'helm-ucs-help-message
     :filtered-candidate-transformer
     (lambda (candidates _source) (sort candidates #'helm-generic-sort-fn))
-    :action helm-ucs-actions
+    :action 'helm-ucs-actions
     :persistent-action (lambda (candidate)
                          (helm-ucs-insert-char candidate)
                          (helm-force-update))

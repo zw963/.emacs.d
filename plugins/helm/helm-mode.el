@@ -241,7 +241,7 @@ Second call deletes backward char in current-buffer and quits helm completion,
 letting the user start a new completion with a new prefix."
   '(helm-mode-delete-char-backward-1 helm-mode-delete-char-backward-2) 1)
 
-(defcustom helm-completion-style 'emacs
+(defcustom helm-completion-style 'helm
   "Style of completion to use in `completion-in-region'.
 
 This affects only `completion-at-point' and friends, and
@@ -267,11 +267,16 @@ There are three possible values to use:
   is not available (Emacs<27) helm provides `helm-flex' style which is similar to
   `flex' and helm fuzzy matching.
 
-For a better experience, if you don't know what to use, set
+For a better experience with emacs style, if you don't know what to use, set
 `completion-styles' to '(flex) if you are using emacs-27 or to
 \'(helm-flex) if you are using emacs-26 and keep 'emacs as default
 value for `helm-completion-style'.  Advanced users can also have a
 look to `completion-category-overrides' to set styles according to category.
+You can as well use `helm-completion-styles-alist' to override
+`helm-completion-style' in specific modes.
+
+Of course when using `helm' of `helm-fuzzy' as `helm-completion-style'
+emacs `completion-styles' have no effect.
 
 Please use custom interface or `customize-set-variable' to set this,
 NOT `setq'."
@@ -1096,7 +1101,9 @@ Don't use it directly, use instead `helm-comp-read' in your programs.
 
 See documentation of `completing-read' and `all-completions' for details."
   (let* ((current-command (or (helm-this-command) this-command))
-         (str-command     (helm-symbol-name current-command))
+         (str-command     (if current-command
+                              (helm-symbol-name current-command)
+                            "completing-read"))
          (buf-name        (format "*helm-mode-%s*" str-command))
          (entry           (assq current-command
                                 helm-completing-read-handlers-alist))
@@ -1389,7 +1396,9 @@ Keys description:
 Don't use it directly, use instead `helm-read-file-name' in your programs."
   (let* ((init (or initial dir default-directory))
          (current-command (or (helm-this-command) this-command))
-         (str-command (helm-symbol-name current-command))
+         (str-command (if current-command
+                          (helm-symbol-name current-command)
+                        "read-file-name"))
          (helm--file-completion-sources
           (cons str-command
                 (remove str-command helm--file-completion-sources)))

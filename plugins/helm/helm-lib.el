@@ -407,7 +407,7 @@ available APPEND is ignored."
 Like `this-command' but return the real command, and not
 `exit-minibuffer' or other unwanted functions."
   (cl-loop for count from 1 to 50
-           for btf = (backtrace-frame count this-command)
+           for btf = (backtrace-frame count)
            for fn = (cl-second btf)
            if (and
                ;; In some case we may have in the way an
@@ -1449,7 +1449,12 @@ Directories expansion is not supported."
                              :skip-subdirs t)
       (helm-aif (helm-wildcard-to-regexp bn)
           (directory-files (helm-basedir pattern) full it)
-        (file-expand-wildcards pattern full)))))
+        ;; `file-expand-wildcards' fails to expand weird directories
+        ;; like "[ foo.zz ] bar.*.avi", fallback to `directory-files'
+        ;; in such cases.
+        (or (file-expand-wildcards pattern full)
+            (directory-files (helm-basedir pattern)
+                             full (wildcard-to-regexp bn)))))))
 
 (defun helm-wildcard-to-regexp (wc)
   "Transform wilcard WC like \"**.{jpg,jpeg}\" in REGEXP."
