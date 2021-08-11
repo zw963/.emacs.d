@@ -7,10 +7,20 @@
 
 (treemacs-fringe-indicator-mode t)
 (treemacs-filewatch-mode t)
+(setq treemacs-file-event-delay 1000)
 (treemacs-follow-mode t)
+(require 'treemacs-project-follow-mode)
+(treemacs-project-follow-mode t)
 (treemacs-git-mode 'deferred)
 (setq treemacs-is-never-other-window t)
 (setq treemacs-silent-refresh    t)
+
+(defun treemacs-ignore-example (filename absolute-path)
+  (or (string-suffix-p filename ".elc")
+      ;; (string-prefix-p "/x/y/z/" absolute-path)
+      ))
+
+(add-to-list 'treemacs-ignored-file-predicates #'treemacs-ignore-example)
 
 ;; (setq treemacs-width 30)
 
