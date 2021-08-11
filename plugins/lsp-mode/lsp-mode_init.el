@@ -88,9 +88,10 @@
 
 (with-eval-after-load 'treemacs
   (require 'lsp-treemacs)
-  ;; (lsp-treemacs-sync-mode 1)
-  (add-hook 'treemacs-select-hook 'lsp-treemacs-symbols)
-  (add-hook 'treemacs-select-hook 'lsp-ui-imenu)
+  (lsp-treemacs-sync-mode 1)
+  ;; (add-hook 'treemacs-switch-workspace-hook 'lsp-treemacs-symbols)
+  ;; (add-hook 'treemacs-select-hook 'lsp-ui-imenu)
+  ;; (add-hook 'treemacs-switch-workspace-hook 'lsp-ui-imenu)
   )
 
 (provide 'lsp-mode_init)
