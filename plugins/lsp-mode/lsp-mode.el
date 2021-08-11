@@ -716,6 +716,7 @@ Changes take effect only when a new session is started."
                                         (less-css-mode . "less")
                                         (lua-mode . "lua")
                                         (sass-mode . "sass")
+                                        (ssass-mode . "sass")
                                         (scss-mode . "scss")
                                         (xml-mode . "xml")
                                         (c-mode . "c")
@@ -833,8 +834,12 @@ directory")
     ("textDocument/semanticTokensFull"
      :check-command (lambda (workspace)
                       (with-lsp-workspace workspace
-                        (lsp-get (lsp--capability :semanticTokensProvider)
-                                 :full))))
+                        (lsp-get (lsp--capability :semanticTokensProvider) :full))))
+    ("textDocument/semanticTokensFull/Delta"
+     :check-command (lambda (workspace)
+                      (with-lsp-workspace workspace
+                        (let ((capFull (lsp-get (lsp--capability :semanticTokensProvider) :full)))
+                          (and (not (booleanp capFull)) (lsp-get capFull :delta))))))
     ("textDocument/semanticTokensRangeProvider"
      :check-command (lambda (workspace)
                       (with-lsp-workspace workspace
@@ -3341,7 +3346,7 @@ disappearing, unset all the variables related to it."
                    ,@(when lsp-enable-file-watchers '((didChangeWatchedFiles . ((dynamicRegistration . t)))))
                    (workspaceFolders . t)
                    (configuration . t)
-                   ,@(when lsp-semantic-tokens-enable '((semanticTokens . ((refreshSupport . :json-false)))))
+                   ,@(when lsp-semantic-tokens-enable '((semanticTokens . ((refreshSupport . t)))))
                    ,@(when lsp-lens-enable '((codeLens . ((refreshSupport . :json-false)))))
                    (fileOperations . ((didCreate . :json-false)
                                       (willCreate . :json-false)
@@ -5448,40 +5453,43 @@ Request codeAction/resolve for more info if server supports."
 
 (defvar lsp--formatting-indent-alist
   ;; Taken from `dtrt-indent-mode'
-  '((c-mode             . c-basic-offset)            ; C
-    (c++-mode           . c-basic-offset)            ; C++
-    (d-mode             . c-basic-offset)            ; D
-    (java-mode          . c-basic-offset)            ; Java
-    (jde-mode           . c-basic-offset)            ; Java (JDE)
-    (js-mode            . js-indent-level)           ; JavaScript
-    (js2-mode           . js2-basic-offset)          ; JavaScript-IDE
-    (js3-mode           . js3-indent-level)          ; JavaScript-IDE
-    (json-mode          . js-indent-level)           ; JSON
-    (lua-mode           . lua-indent-level)          ; Lua
-    (objc-mode          . c-basic-offset)            ; Objective C
-    (php-mode           . c-basic-offset)            ; PHP
-    (perl-mode          . perl-indent-level)         ; Perl
-    (cperl-mode         . cperl-indent-level)        ; Perl
-    (raku-mode          . raku-indent-offset)        ; Perl6/Raku
-    (erlang-mode        . erlang-indent-level)       ; Erlang
-    (ada-mode           . ada-indent)                ; Ada
-    (sgml-mode          . sgml-basic-offset)         ; SGML
-    (nxml-mode          . nxml-child-indent)         ; XML
-    (pascal-mode        . pascal-indent-level)       ; Pascal
-    (typescript-mode    . typescript-indent-level)   ; Typescript
-    (sh-mode            . sh-basic-offset)           ; Shell Script
-    (ruby-mode          . ruby-indent-level)         ; Ruby
-    (enh-ruby-mode      . enh-ruby-indent-level)     ; Ruby
-    (crystal-mode       . crystal-indent-level)      ; Crystal (Ruby)
-    (css-mode           . css-indent-offset)         ; CSS
-    (rust-mode          . rust-indent-offset)        ; Rust
-    (rustic-mode        . rustic-indent-offset)      ; Rust
-    (scala-mode         . scala-indent:step)         ; Scala
-    (powershell-mode    . powershell-indent)         ; PowerShell
-    (ess-mode           . ess-indent-offset)         ; ESS (R)
-    (yaml-mode          . yaml-indent-offset)        ; YAML
+  '((c-mode                     . c-basic-offset)                   ; C
+    (c++-mode                   . c-basic-offset)                   ; C++
+    (csharp-mode                . c-basic-offset)                   ; C#
+    (csharp-tree-sitter-mode    . csharp-tree-sitter-indent-offset) ; C#
+    (d-mode                     . c-basic-offset)                   ; D
+    (java-mode                  . c-basic-offset)                   ; Java
+    (jde-mode                   . c-basic-offset)                   ; Java (JDE)
+    (js-mode                    . js-indent-level)                  ; JavaScript
+    (js2-mode                   . js2-basic-offset)                 ; JavaScript-IDE
+    (js3-mode                   . js3-indent-level)                 ; JavaScript-IDE
+    (json-mode                  . js-indent-level)                  ; JSON
+    (lua-mode                   . lua-indent-level)                 ; Lua
+    (objc-mode                  . c-basic-offset)                   ; Objective C
+    (php-mode                   . c-basic-offset)                   ; PHP
+    (perl-mode                  . perl-indent-level)                ; Perl
+    (cperl-mode                 . cperl-indent-level)               ; Perl
+    (raku-mode                  . raku-indent-offset)               ; Perl6/Raku
+    (erlang-mode                . erlang-indent-level)              ; Erlang
+    (ada-mode                   . ada-indent)                       ; Ada
+    (sgml-mode                  . sgml-basic-offset)                ; SGML
+    (nxml-mode                  . nxml-child-indent)                ; XML
+    (pascal-mode                . pascal-indent-level)              ; Pascal
+    (typescript-mode            . typescript-indent-level)          ; Typescript
+    (sh-mode                    . sh-basic-offset)                  ; Shell Script
+    (ruby-mode                  . ruby-indent-level)                ; Ruby
+    (enh-ruby-mode              . enh-ruby-indent-level)            ; Ruby
+    (crystal-mode               . crystal-indent-level)             ; Crystal (Ruby)
+    (css-mode                   . css-indent-offset)                ; CSS
+    (rust-mode                  . rust-indent-offset)               ; Rust
+    (rustic-mode                . rustic-indent-offset)             ; Rust
+    (scala-mode                 . scala-indent:step)                ; Scala
+    (powershell-mode            . powershell-indent)                ; PowerShell
+    (ess-mode                   . ess-indent-offset)                ; ESS (R)
+    (yaml-mode                  . yaml-indent-offset)               ; YAML
+    (hack-mode                  . hack-indent-offset)               ; Hack
 
-    (default            . standard-indent))          ; default fallback
+    (default                    . standard-indent))                 ; default fallback
   "A mapping from `major-mode' to its indent variable.")
 
 (defun lsp--get-indent-width (mode)
@@ -6045,7 +6053,6 @@ textDocument/didOpen for the new file."
 (defconst lsp--default-notification-handlers
   (ht ("window/showMessage" #'lsp--window-show-message)
       ("window/logMessage" #'lsp--window-log-message)
-      ("workspace/semanticTokens/refresh" #'ignore)
       ("textDocument/publishDiagnostics" #'lsp--on-diagnostics)
       ("textDocument/diagnosticsEnd" #'ignore)
       ("textDocument/diagnosticsBegin" #'ignore)
@@ -6169,6 +6176,11 @@ WORKSPACE is the active workspace."
                      ((equal method "window/workDoneProgress/create")
                       nil ;; no specific reply, no processing required
                       )
+                     ((equal method "workspace/semanticTokens/refresh")
+                      (when (and lsp-semantic-tokens-enable
+                                 (fboundp 'lsp--semantic-tokens-on-refresh))
+                        (lsp--semantic-tokens-on-refresh workspace))
+                      nil)
                      (t (lsp-warn "Unknown request method: %s" method) nil))))
     ;; Send response to the server.
     (unless (eq response 'delay-response)
@@ -8096,7 +8108,6 @@ Returns nil if the project should not be added to the current SESSION."
 (defun lsp--try-open-in-library-workspace ()
   "Try opening current file as library file in any of the active workspace.
 The library folders are defined by each client for each of the active workspace."
-
   (when-let ((workspace (->> (lsp-session)
                              (lsp--session-workspaces)
                              ;; Sort the last active workspaces first as they are more likely to be
@@ -8104,8 +8115,7 @@ The library folders are defined by each client for each of the active workspace.
                              (-sort (lambda (a _b)
                                       (-contains? lsp--last-active-workspaces a)))
                              (--first
-                              (and (-contains? (-> it lsp--workspace-client lsp--client-major-modes)
-                                               major-mode)
+                              (and (-> it lsp--workspace-client lsp--matching-clients?)
                                    (when-let ((library-folders-fn
                                                (-> it lsp--workspace-client lsp--client-library-folders-fn)))
                                      (-first (lambda (library-folder)
