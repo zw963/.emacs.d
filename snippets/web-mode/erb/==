@@ -1,0 +1,8 @@
+# -*- mode: snippet -*-
+# name: <%== ruby eval %>
+# key: ==
+# binding: ==
+# condition: (yas-use-region-p)
+# expand-env: ((yas-indent-line 'fixed))
+# --
+<%== `(yas-stripped-selected-text "" "")``(if-key "$0")` %>
