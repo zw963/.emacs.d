@@ -5,4 +5,4 @@
 (add-to-list 'auto-mode-alist '("\\.coffee\\.erb\\'" . coffee-mode))
 
 (provide 'coffee-mode_init)
-;;;  neotree_init.el ends here
+;;;  coffee-mode_init.el ends here
