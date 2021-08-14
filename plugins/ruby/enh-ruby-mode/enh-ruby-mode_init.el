@@ -11,8 +11,19 @@
   (modify-syntax-entry ?! "_"  enh-ruby-mode-syntax-table)
   (modify-syntax-entry ?= "_"  enh-ruby-mode-syntax-table)
   (modify-syntax-entry ?? "_"  enh-ruby-mode-syntax-table)
+  (modify-syntax-entry ?$  "'"  enh-ruby-mode-syntax-table)
+  (modify-syntax-entry ?:  "'"  enh-ruby-mode-syntax-table)
+  (modify-syntax-entry ?@  "'"  enh-ruby-mode-syntax-table)
   (set-syntax-table enh-ruby-mode-syntax-table)
   )
+
+;; (setq enh-ruby-mode-syntax-table
+;;       (let ((table enh-ruby-mode-syntax-table))
+;;         (modify-syntax-entry ?$  "'"  table)
+;;         (modify-syntax-entry ?:  "'"  table)
+;;         (modify-syntax-entry ?@  "'"  table)
+
+;;         table))
 
 (defun enh-ruby-end-of-defun-hacked (&optional arg)
   (interactive "^p")
