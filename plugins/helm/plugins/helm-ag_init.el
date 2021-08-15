@@ -27,18 +27,26 @@
  '(helm-ag-ignore-patterns '("!*~" "!#*#" "!*.min.*" "!TAGS" "!tags"))
  )
 
-;; 下面两个一起修改, C-r 搜索 project-root,  因此设为 nil
-(setq helm-do-ag--search-this-file-p nil)
+(setq helm-do-ag-on-current-directory-p nil)
 
-(defun helm-quit-and-helm-do-ag-current-directory ()
-  "Drop into `helm-do-ag-current-directory' from `helm'."
+(defun helm-quit-and-helm-do-ag-on-current-directory ()
+  "Drop into `helm-do-ag' on DEFAULT-DIRECTORY from `helm'."
   (interactive)
+  (setq helm-do-ag-on-current-directory-p t)
   (with-helm-alive-p
-    (helm-run-after-exit (lambda () (helm-do-ag default-directory)))
-    ))
+    (helm-run-after-exit #'helm-do-ag default-directory nil helm-pattern)))
 
+(defun advice-up-on-level-corretly-when-run-helm-do-ag-this-file (orig-fun &rest command)
+  "If start helm-ag with `helm-do-ag-this-file', `helm-ag--do-ag-up-one-level' not work,
+we have to run `helm-do-ag' on DEFAULT-DIRECTORY first, then up one level function start to work."
+  (if helm-do-ag-on-current-directory-p
+      (apply orig-fun command)
+      (helm-quit-and-helm-do-ag-on-current-directory)))
+
+(advice-add #'helm-ag--do-ag-up-one-level :around #'advice-up-on-level-corretly-when-run-helm-do-ag-this-file)
 (global-set-key [(control r)] 'helm-do-ag-this-file)
-(define-key helm-ag-map [(control r)] 'helm-quit-and-helm-do-ag-current-directory)
+(define-key helm-do-ag-map [(control r)] 'helm-ag--do-ag-up-one-level)
+(add-hook 'helm-quit-hook (lambda () (setq helm-do-ag-on-current-directory-p nil)))
 
 ;; Ctrl + l, will up one level, 我为什么要换成 super l? 先撤回。
 ;; (define-key helm-ag-map [(super l)] 'helm-ag--up-one-level)
