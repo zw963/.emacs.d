@@ -59,8 +59,3 @@
   (setq debug-on-error t)              ;需要调试时，开启这个。
   ;;(setq debug-on-signal t)
   )
-
-;; (require 'enh-ruby-mode_init)
-;; (require 'rvm_init)
-;; (require 'inf-ruby_init)
-;; (require 'robe-mode_init)
