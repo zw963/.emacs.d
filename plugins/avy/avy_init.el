@@ -38,8 +38,8 @@
 ;; (setq aw-keys '(?a ?s ?d ?f ?g ?h ?j ?k ?l))
 
 ;; 这个和 treemacs rightclick menu 冲突.
-;; (require 'ace-popup-menu)
-;; (ace-popup-menu-mode 1)
+(require 'ace-popup-menu)
+(ace-popup-menu-mode 1)
 
 (require 'ace-link)
 ;; 进入 help-mode, 测试快捷键 o.
