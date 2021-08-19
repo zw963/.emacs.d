@@ -11,7 +11,7 @@ version="$(curl -sS https://update.tabnine.com/bundles/version)"
 #     x86_64-pc-windows-gnu
 #     x86_64-unknown-linux-musl'
 
-targets='x86_64-unknown-linux-musl'
+targets='x86_64-unknown-linux-gnu'
 
 rm -rf ./binaries
 

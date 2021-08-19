@@ -2,6 +2,8 @@
 
 ;; (setq company-tabnine-binaries-folder (expand-file-name "plugins/company-mode/plugins/company-tabnine/"))
 
+
+;; 注意：在编辑器内，输入 Tabnine::config 使用浏览器打开配置页面。
 (defun add-tabnine-backend ()
   (make-local-variable 'company-backends)
   (setq-local company-idle-delay 0)
