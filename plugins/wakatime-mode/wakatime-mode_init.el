@@ -1,6 +1,8 @@
 (require 'wakatime-mode)
 
-(setq wakatime-cli-path "/home/zw963/utils/bin/wakatime-cli-linux-amd64")
+(setq wakatime-disable-on-error t)
+(setq wakatime-cli-path (expand-file-name "~/utils/bin/wakatime-cli-linux-amd64"))
+
 
 (global-wakatime-mode)
 
