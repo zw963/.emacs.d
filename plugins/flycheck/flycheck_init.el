@@ -6,7 +6,9 @@
 (setq-default flycheck-disabled-checkers '(yaml-yamllint))
 
 (setq flycheck-ruby-rubocop-executable (expand-file-name "~/utils/ruby_tools/bin/rubocop-daemon-wrapper"))
-(setq flycheck-eruby-erubis-executable (expand-file-name "~/utils/ruby_tools/bin/erubis"))
+
+;; eruby 使用 ruumba 来检测语法。
+;; (setq flycheck-eruby-erubis-executable (expand-file-name "~/utils/ruby_tools/bin/erubis"))
 
 (require 'flycheck-color-mode-line)
 (add-hook 'flycheck-mode-hook 'flycheck-color-mode-line-mode)
