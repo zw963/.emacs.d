@@ -110,8 +110,8 @@
 ;; git related packages
 (require 'git-emacs_init)
 (require 'git-timemachine_init)
-;; (require 'diff-hl_init)
-(require 'git-gutter_init)
+(require 'diff-hl_init)
+;; (require 'git-gutter_init)
 (require 'git-messenger_init)
 (require 'gist_init)
 (require 'ruby_init)
