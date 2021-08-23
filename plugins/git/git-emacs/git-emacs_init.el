@@ -12,7 +12,6 @@
 (define-key git-log-view-mode-map [(q)] 'kill-buffer-and-window)
 
 (define-key git--branch-mode-map [(=)] 'bc3-gitdiff-file-at-point) ;; 指定分支和 commit 之间的修改.
-(define-key git--branch-mode-map [(q)] 'kill-buffer-and-window)
 
 (global-set-key [(control x) (v) (=)] 'bc3-gitdiff) ;; 当前 diff 修改.
 (global-set-key [(control x) (v) (h)] 'bc3-gitdiff-head) ;; diff + index 修改
