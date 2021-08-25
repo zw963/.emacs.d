@@ -515,7 +515,10 @@ itself, using $HOME when there is no path at or near point to grab."
   (treemacs--create-file/dir nil))
 
 (defun treemacs-toggle-show-dotfiles ()
-  "Toggle the hiding and displaying of dotfiles."
+  "Toggle the hiding and displaying of dotfiles.
+
+For toggling the display of git-ignored files see
+`treemacs-toggle-show-gitignored-files'."
   (interactive)
   (setq treemacs-show-hidden-files (not treemacs-show-hidden-files))
   (treemacs-run-in-every-buffer
@@ -1165,6 +1168,8 @@ Only works with a single project in the workspace."
           (quit-window)
           (kill-buffer-and-window))
         (run-hooks 'treemacs-workspace-edit-hook)
+        (when treemacs-hide-gitignored-files-mode
+          (treemacs--prefetch-gitignore-cache 'all))
         (treemacs-log "Edit completed successfully."))))))
 
 (defun treemacs-collapse-parent-node (arg)

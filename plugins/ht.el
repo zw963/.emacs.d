@@ -1,10 +1,13 @@
-;;; ht.el --- The missing hash table library for Emacs
+;;; ht.el --- The missing hash table library for Emacs  -*- lexical-binding: t; -*-
 
 ;; Copyright (C) 2013 Wilfred Hughes
 
 ;; Author: Wilfred Hughes <me@wilfred.me.uk>
-;; Version: 2.0
+;; Version: 2.4
+;; Package-Version: 20210119.741
+;; Package-Commit: c4c1be487d6ecb353d07881526db05d7fc90ea87
 ;; Keywords: hash table, hash map, hash
+;; Package-Requires: ((dash "2.12.0"))
 
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -21,13 +24,16 @@
 
 ;;; Commentary:
 
-;; The missing hash table utility library for Emacs.
+;; The missing hash table library for Emacs.
 ;;
-;; See documentation on https://github.com/Wilfred/ht.el
+;; See documentation at https://github.com/Wilfred/ht.el
 
 ;;; Code:
 
-(eval-when-compile (require 'cl)) ;; dolist
+(require 'dash)
+(require 'gv)
+(eval-when-compile
+  (require 'inline))
 
 (defmacro ht (&rest pairs)
   "Create a hash table with the key-value pairs given.
@@ -35,21 +41,30 @@ Keys are compared with `equal'.
 
 \(fn (KEY-1 VALUE-1) (KEY-2 VALUE-2) ...)"
   (let* ((table-symbol (make-symbol "ht-temp"))
-        (assignments
-         (mapcar
-          (lambda (pair) `(ht-set! ,table-symbol ,@pair))
-          pairs)))
+         (assignments
+          (mapcar
+           (lambda (pair) `(ht-set! ,table-symbol ,@pair))
+           pairs)))
     `(let ((,table-symbol (ht-create)))
        ,@assignments
        ,table-symbol)))
 
-(defun ht-create (&optional test)
+(define-inline ht-set! (table key value)
+  "Associate KEY in TABLE with VALUE."
+  (inline-quote
+   (prog1 nil
+     (puthash ,key ,value ,table))))
+
+(defalias 'ht-set 'ht-set!)
+
+(define-inline ht-create (&optional test)
   "Create an empty hash table.
 
 TEST indicates the function used to compare the hash
 keys.  Default is `equal'.  It can be `eq', `eql', `equal' or a
 user-supplied test created via `define-hash-table-test'."
-  (make-hash-table :test (or test 'equal)))
+  (declare (side-effect-free t))
+  (inline-quote (make-hash-table :test (or ,test 'equal))))
 
 (defun ht<-alist (alist &optional test)
   "Create a hash table with initial values according to ALIST.
@@ -57,6 +72,7 @@ user-supplied test created via `define-hash-table-test'."
 TEST indicates the function used to compare the hash
 keys.  Default is `equal'.  It can be `eq', `eql', `equal' or a
 user-supplied test created via `define-hash-table-test'."
+  (declare (side-effect-free t))
   (let ((h (ht-create test)))
     ;; the first key-value pair in an alist gets precedence, so we
     ;; start from the end of the list:
@@ -67,55 +83,47 @@ user-supplied test created via `define-hash-table-test'."
 
 (defalias 'ht-from-alist 'ht<-alist)
 
-;; based on the excellent -partition from dash.el, but we aim to be self-contained
-(defun ht/group-pairs (list)
-  "Return a new list with the items in LIST grouped into pairs.
-Errors if LIST doesn't contain an even number of elements."
-  (let ((result)
-        (sublist)
-        (len 0))
-
-    (while list
-      ;; take the head of LIST and push onto SUBLIST
-      (setq sublist (cons (car list) sublist))
-      (setq list (cdr list))
-      
-      (setq len (1+ len))
-
-      (when (= len 2)
-        ;; push this two-item list onto RESULT
-        (setq result (cons (nreverse sublist) result))
-        (setq sublist nil)
-        (setq len 0)))
-    
-    (when sublist (error "Expected an even number of elements"))
-    (nreverse result)))
-
 (defun ht<-plist (plist &optional test)
   "Create a hash table with initial values according to PLIST.
 
 TEST indicates the function used to compare the hash
 keys.  Default is `equal'.  It can be `eq', `eql', `equal' or a
 user-supplied test created via `define-hash-table-test'."
+  (declare (side-effect-free t))
   (let ((h (ht-create test)))
-    (dolist (pair (ht/group-pairs plist) h)
+    (dolist (pair (nreverse (-partition 2 plist)) h)
       (let ((key (car pair))
             (value (cadr pair)))
         (ht-set! h key value)))))
 
 (defalias 'ht-from-plist 'ht<-plist)
 
-(defun ht-get (table key &optional default)
+(define-inline ht-get (table key &optional default)
   "Look up KEY in TABLE, and return the matching value.
 If KEY isn't present, return DEFAULT (nil if not specified)."
-  (gethash key table default))
+  (declare (side-effect-free t))
+  (inline-quote
+   (gethash ,key ,table ,default)))
 
-(defun ht-set! (table key value)
-  "Associate KEY in TABLE with VALUE."
-  (puthash key value table)
-  nil)
+;; Don't use `ht-set!' here, gv setter was assumed to return the value
+;; to be set.
+(gv-define-setter ht-get (value table key) `(puthash ,key ,value ,table))
 
-(defalias 'ht-set 'ht-set!)
+(define-inline ht-get* (table &rest keys)
+  "Look up KEYS in nested hash tables, starting with TABLE.
+The lookup for each key should return another hash table, except
+for the final key, which may return any value."
+  (declare (side-effect-free t))
+  (inline-letevals (table keys)
+    (inline-quote
+     (progn
+       (while ,keys
+         (setf ,table (ht-get ,table (pop ,keys))))
+       ,table))))
+
+(put 'ht-get* 'compiler-macro
+     (lambda (_ table &rest keys)
+       (--reduce-from `(ht-get ,acc ,it) table keys)))
 
 (defun ht-update! (table from-table)
   "Update TABLE according to every key-value pair in FROM-TABLE."
@@ -134,16 +142,17 @@ table is used."
     (mapc (lambda (table) (ht-update! merged table)) tables)
     merged))
 
-(defun ht-remove! (table key)
+(define-inline ht-remove! (table key)
   "Remove KEY from TABLE."
-  (remhash key table))
+  (inline-quote (remhash ,key ,table)))
 
 (defalias 'ht-remove 'ht-remove!)
 
-(defun ht-clear! (table)
+(define-inline ht-clear! (table)
   "Remove all keys from TABLE."
-  (clrhash table)
-  nil)
+  (inline-quote
+   (prog1 nil
+     (clrhash ,table))))
 
 (defalias 'ht-clear 'ht-clear!)
 
@@ -160,19 +169,23 @@ FUNCTION is called with two arguments, KEY and VALUE."
 (defmacro ht-amap (form table)
   "Anaphoric version of `ht-map'.
 For every key-value pair in TABLE, evaluate FORM with the
-variables KEY and VALUE bound."
+variables KEY and VALUE bound.  If you don't use both of
+these variables, then use `ht-map' to avoid warnings."
   `(ht-map (lambda (key value) ,form) ,table))
 
 (defun ht-keys (table)
   "Return a list of all the keys in TABLE."
-  (ht-amap key table))
+  (declare (side-effect-free t))
+  (ht-map (lambda (key _value) key) table))
 
 (defun ht-values (table)
   "Return a list of all the values in TABLE."
-  (ht-amap value table))
+  (declare (side-effect-free t))
+  (ht-map (lambda (_key value) value) table))
 
 (defun ht-items (table)
   "Return a list of two-element lists '(key value) from TABLE."
+  (declare (side-effect-free t))
   (ht-amap (list key value) table))
 
 (defalias 'ht-each 'maphash
@@ -185,6 +198,15 @@ For every key-value pair in TABLE, evaluate FORM with the
 variables key and value bound."
   `(ht-each (lambda (key value) ,form) ,table))
 
+(defun ht-select-keys (table keys)
+  "Return a copy of TABLE with only the specified KEYS."
+  (declare (side-effect-free t))
+  (let (result)
+    (setq result (make-hash-table :test (hash-table-test table)))
+    (dolist (key keys result)
+      (if (not (equal (gethash key table 'key-not-found) 'key-not-found))
+          (puthash key (gethash key table) result)))))
+
 (defun ht->plist (table)
   "Return a flat list '(key1 value1 key2 value2...) from TABLE.
 
@@ -194,13 +216,15 @@ inverse of `ht<-plist'.  The following is not guaranteed:
 \(let ((data '(a b c d)))
   (equalp data
           (ht->plist (ht<-plist data))))"
+  (declare (side-effect-free t))
   (apply 'append (ht-items table)))
 
 (defalias 'ht-to-plist 'ht->plist)
 
-(defun ht-copy (table)
+(define-inline ht-copy (table)
   "Return a shallow copy of TABLE (keys and values are shared)."
-  (copy-hash-table table))
+  (declare (side-effect-free t))
+  (inline-quote (copy-hash-table ,table)))
 
 (defun ht->alist (table)
   "Return a list of two-element lists '(key . value) from TABLE.
@@ -211,6 +235,7 @@ inverse of `ht<-alist'.  The following is not guaranteed:
 \(let ((data '((a . b) (c . d))))
   (equalp data
           (ht->alist (ht<-alist data))))"
+  (declare (side-effect-free t))
   (ht-amap (cons key value) table))
 
 (defalias 'ht-to-alist 'ht->alist)
@@ -219,19 +244,28 @@ inverse of `ht<-alist'.  The following is not guaranteed:
 
 (defalias 'ht-p 'hash-table-p)
 
-(defun ht-contains? (table key)
+(define-inline ht-contains? (table key)
   "Return 't if TABLE contains KEY."
-  (not (eq (ht-get table key 'ht--not-found) 'ht--not-found)))
+  (declare (side-effect-free t))
+  (inline-quote
+   (let ((not-found-symbol (make-symbol "ht--not-found")))
+     (not (eq (ht-get ,table ,key not-found-symbol) not-found-symbol)))))
 
 (defalias 'ht-contains-p 'ht-contains?)
 
-(defun ht-size (table)
+(define-inline ht-size (table)
   "Return the actual number of entries in TABLE."
-  (hash-table-count table))
+  (declare (side-effect-free t))
+  (inline-quote
+   (hash-table-count ,table)))
 
-(defun ht-empty? (table)
+(define-inline ht-empty? (table)
   "Return true if the actual number of entries in TABLE is zero."
-  (zerop (ht-size table)))
+  (declare (side-effect-free t))
+  (inline-quote
+   (zerop (ht-size ,table))))
+
+(defalias 'ht-empty-p 'ht-empty?)
 
 (defun ht-select (function table)
   "Return a hash table containing all entries in TABLE for which
@@ -283,6 +317,21 @@ FUNCTION is called with two arguments, KEY and VALUE."
        (when (funcall function key value)
          (throw 'break (list key value))))
      table)))
+
+(defun ht-equal? (table1 table2)
+  "Return t if TABLE1 and TABLE2 have the same keys and values.
+Does not compare equality predicates."
+  (declare (side-effect-free t))
+  (let ((keys1 (ht-keys table1))
+        (keys2 (ht-keys table2))
+        (sentinel (make-symbol "ht-sentinel")))
+    (and (equal (length keys1) (length keys2))
+         (--all?
+          (equal (ht-get table1 it)
+                 (ht-get table2 it sentinel))
+          keys1))))
+
+(defalias 'ht-equal-p 'ht-equal?)
 
 (provide 'ht)
 ;;; ht.el ends here

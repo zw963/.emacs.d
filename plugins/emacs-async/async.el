@@ -164,6 +164,19 @@ It is intended to be used as follows:
                         (kill-buffer (current-buffer))))
                   (set (make-local-variable 'async-callback-value) proc)
                   (set (make-local-variable 'async-callback-value-set) t))
+              ;; Maybe strip out unreadable "#"; They are replaced by
+              ;; empty string unless they are prefixing a special
+              ;; object like a marker. See issue #145.
+              (goto-char (point-min))
+              (save-excursion
+                ;; Transform markers in list like
+                ;; (marker (moves after insertion) at 2338 in
+                ;; test\.org) so that remap text properties function
+                ;; can parse it to restitute marker.
+                (while (re-search-forward "#<\\([^>]*\\)>" nil t)
+                  (replace-match (concat "(" (match-string 1) ")") t t)))
+              (while (re-search-forward "#(" nil t)
+                (replace-match "(" t t))
               (goto-char (point-max))
               (backward-sexp)
               (async-handle-result async-callback (read (current-buffer))
@@ -336,6 +349,17 @@ will leave *emacs* process buffers hanging around):
      (lambda ()
        (delete-file \"a remote file on a slow link\" nil))
      \\='ignore)
+
+Special case:
+If the output of START-FUNC is a string with properties
+e.g. (buffer-string) RESULT will be transformed in a list where the
+car is the string itself (without props) and the cdr the rest of
+properties, this allows using in FINISH-FUNC the string without
+properties and then apply the properties in cdr to this string (if
+needed).
+Properties handling special objects like markers are returned as
+list to allow restoring them later.
+See <https://github.com/jwiegley/emacs-async/issues/145> for more infos.
 
 Note: Even when FINISH-FUNC is present, a future is still
 returned except that it yields no value (since the value is

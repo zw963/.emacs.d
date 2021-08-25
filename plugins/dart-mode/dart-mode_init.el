@@ -12,6 +12,8 @@
 (require 'dart-mode)
 (require 'lsp-dart)
 
+(setq lsp-dart-sdk-dir "/home/public/Dropbox/linux/utils/flutter/bin/cache/dart-sdk/")
+
 (setq lsp-signature-auto-activate nil)
 
 (setq dart-format-on-save t)
