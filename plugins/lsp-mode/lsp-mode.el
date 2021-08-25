@@ -3347,7 +3347,7 @@ disappearing, unset all the variables related to it."
                    (workspaceFolders . t)
                    (configuration . t)
                    ,@(when lsp-semantic-tokens-enable '((semanticTokens . ((refreshSupport . t)))))
-                   ,@(when lsp-lens-enable '((codeLens . ((refreshSupport . :json-false)))))
+                   ,@(when lsp-lens-enable '((codeLens . ((refreshSupport . t)))))
                    (fileOperations . ((didCreate . :json-false)
                                       (willCreate . :json-false)
                                       (didRename . :json-false)
@@ -3929,7 +3929,7 @@ yet."
                                    lsp--uri-to-path))
                      (version (lsp:versioned-text-document-identifier-version? text-document)))
                 (with-current-buffer (find-file-noselect filename)
-                  (or (null version) (zerop version)
+                  (or (null version) (zerop version) (= -1 version)
                       (equal version lsp--cur-version))))))
            document-changes)
     (error "Document changes cannot be applied")))
@@ -6181,6 +6181,11 @@ WORKSPACE is the active workspace."
                                  (fboundp 'lsp--semantic-tokens-on-refresh))
                         (lsp--semantic-tokens-on-refresh workspace))
                       nil)
+                     ((equal method "workspace/codeLens/refresh")
+                      (when (and lsp-lens-enable
+                                 (fboundp 'lsp--lens-on-refresh))
+                        (lsp--lens-on-refresh workspace))
+                      nil)
                      (t (lsp-warn "Unknown request method: %s" method) nil))))
     ;; Send response to the server.
     (unless (eq response 'delay-response)
@@ -8320,11 +8325,11 @@ This avoids overloading the server with many files when starting Emacs."
   (let ((buffer (current-buffer)))
     ;; Avoid false positives as desktop-mode restores buffers by deferring
     ;; visibility check until the stack clears.
-    (run-with-timer 0 nil (lambda ()
-                            (when (buffer-live-p buffer)
-                              (with-current-buffer buffer
-                                (unless (lsp--init-if-visible)
-                                  (add-hook 'window-configuration-change-hook #'lsp--init-if-visible nil t))))))))
+    (run-with-idle-timer 0 nil (lambda ()
+                                 (when (buffer-live-p buffer)
+                                   (with-current-buffer buffer
+                                     (unless (lsp--init-if-visible)
+                                       (add-hook 'window-configuration-change-hook #'lsp--init-if-visible nil t))))))))
 
 
 
