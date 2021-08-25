@@ -1,13 +1,10 @@
 (setq read-process-output-max (* 1024 1024)) ;; 1M
 (setq inhibit-compacting-font-caches t)  ; Don’t compact font caches during GC.
 
-;; popular starter kits like Spacemacs/Doom/Prelude set this 100,000,000
-;; we set half of them.
-;; (setq gc-cons-threshold 50000000)
+;; gc-cons-threshold controlled by gcmh.el
+(setq gc-cons-threshold (* 100 1024 1024))
 (require 'gcmh)
 (gcmh-mode)
-;; ;; Increase the amount of data which Emacs reads from the process
-;; ;; which is recommended for lsp-mode.
 
 (require 'auto-compile_init)
 (require 'cl)
@@ -52,10 +49,14 @@
 (global-set-key [(control o)] 'open-line-and-indent) ;标记行 Alt-k
 
 (relative-load "autoloads.el")
-(relative-load "init.el")
+;; (relative-load "init.el")
 
 ;; 打开这两个变量, 查看那些包有错误.
 (unless (string= (getenv "LOAD_INIT") "true")
   (setq debug-on-error t)              ;需要调试时，开启这个。
   ;;(setq debug-on-signal t)
   )
+
+(require 'dap-mode_init)
+(require 'lsp-mode_init)
+(require 'dart-mode_init)

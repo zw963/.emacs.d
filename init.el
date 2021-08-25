@@ -78,7 +78,6 @@
 ;; (require 'ido_init)
 ;; (require 'popwin_init)
 ;; (require 'amx_init)
-;; (require 'dap-mode_init)   -----------
 ;; (require 'eglot_init) ----------
 ;; (require 'solargraph_init) -----------
 ;; (require 'quickrun_init)
@@ -124,7 +123,10 @@
 (require 'js2-mode_init)
 (require 'json-mode_init)
 ;; (require 'tree-sitter_init)
+(require 'dap-mode_init)
 (require 'lsp-mode_init)
+(require 'dart-mode_init)
+(require 'parrot_init)
 (require 'rust-mode_init)
 ;; (require 'rustic_init)
 (require 'haskell-mode_init)
