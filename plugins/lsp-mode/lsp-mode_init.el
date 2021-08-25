@@ -8,6 +8,9 @@
 ;; (setq lsp-enable-file-watchers nil)
 (setq lsp-file-watch-threshold 3000)
 
+;; 尝试 guess root.
+(setq lsp-auto-guess-root t)
+
 (setq lsp-ui-doc-position 'at-point)
 
 (with-eval-after-load 'which-key
