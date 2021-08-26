@@ -11,6 +11,12 @@
 
 (require 'dart-mode)
 (require 'lsp-dart)
+(require 'lsp-dart-commands)
+(require 'lsp-dart-devtools)
+(require 'lsp-dart-outline)
+(require 'lsp-dart-flutter-daemon)
+(lsp-dart-flutter-daemon-mode)
+(require 'lsp-dart-test-support)
 
 (setq lsp-dart-sdk-dir "/home/public/Dropbox/linux/utils/flutter/bin/cache/dart-sdk/")
 

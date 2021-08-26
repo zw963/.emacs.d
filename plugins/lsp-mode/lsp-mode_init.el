@@ -18,9 +18,15 @@
 
 (require 'lsp-modeline)
 ;; 用来在 minibuffer 显示 code actions 信息。
-(lsp-modeline-code-actions-mode nil) ;; 默认开启的
+(setq lsp-modeline-code-actions-enable nil) ;; 默认开启的
 ;; (setq lsp-modeline-code-actions-segments '(count icon name))
 ;; (setq lsp-modeline-workspace-status-enable t)
+
+;; (require 'lsp-dired)
+;; (lsp-dired-mode t)
+
+(require 'lsp-semantic-tokens)
+(setq lsp-semantic-tokens-enable t)
 
 (require 'lsp-diagnostics) ;; 在 mode-line 上显示错误数字图表.
 (setq lsp-modeline-diagnostics-enable nil) ;; 默认开启的

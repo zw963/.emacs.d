@@ -49,14 +49,10 @@
 (global-set-key [(control o)] 'open-line-and-indent) ;标记行 Alt-k
 
 (relative-load "autoloads.el")
-;; (relative-load "init.el")
+(relative-load "init.el")
 
 ;; 打开这两个变量, 查看那些包有错误.
 (unless (string= (getenv "LOAD_INIT") "true")
   (setq debug-on-error t)              ;需要调试时，开启这个。
   ;;(setq debug-on-signal t)
   )
-
-(require 'dap-mode_init)
-(require 'lsp-mode_init)
-(require 'dart-mode_init)
