@@ -1,10 +1,12 @@
-;; (setq dap-utils-extension-path (expand-file-name ".extension" (file-name-directory (or load-file-name buffer-file-name))))
+(setq dap-utils-extension-path (expand-file-name ".extension" (file-name-directory (or load-file-name buffer-file-name))))
 (require 'dap-mode)
+(dap-mode 1)
+
 (require 'dap-ui)
+(dap-ui-mode 1)
+
 (require 'dap-mouse)
 
-(dap-mode 1)
-(dap-ui-mode 1)
 (dap-tooltip-mode 1)
 
 ;; (require 'dap-ruby)
