@@ -3,7 +3,7 @@
 ;; Copyright (C) 2020 Eric Dallo
 
 ;; Version: 1.19.2
-;; Package-Requires: ((emacs "26.1") (lsp-treemacs "0.3") (lsp-mode "7.0.1") (dap-mode "0.6") (f "0.20.0") (dash "2.14.1") (pkg-info "0.4") (dart-mode "1.0.5"))
+;; Package-Requires: ((emacs "26.1") (lsp-treemacs "0.3") (lsp-mode "7.0.1") (dap-mode "0.6") (f "0.20.0") (dash "2.14.1") (dart-mode "1.0.5"))
 ;; Keywords: languages, extensions
 ;; URL: https://emacs-lsp.github.io/lsp-dart
 
@@ -99,6 +99,7 @@ If unspecified, diagnostics will not be generated."
 
 ;;; Internal
 
+(defvar lsp-dart-version-string "1.19.2")
 (declare-function pkg-info-version-info "ext:pkg-info")
 
 (defun lsp-dart--library-folders ()
@@ -119,15 +120,12 @@ If unspecified, diagnostics will not be generated."
 
 (defun lsp-dart--server-command ()
   "Generate LSP startup command."
-  (let ((client-version (when (require 'pkg-info nil t)
-                          (format "--client-version %s"
-                                  (pkg-info-version-info 'lsp-dart)))))
-    (or lsp-dart-server-command
-        `(,(lsp-dart-dart-command)
-          ,(expand-file-name (f-join (lsp-dart-get-sdk-dir) "bin/snapshots/analysis_server.dart.snapshot"))
-          "--lsp"
-          "--client-id emacs.lsp-dart"
-          ,client-version))))
+  (or lsp-dart-server-command
+      (list (lsp-dart-dart-command)
+            (expand-file-name (f-join (lsp-dart-get-sdk-dir) "bin/snapshots/analysis_server.dart.snapshot"))
+            "--lsp"
+            "--client-id emacs.lsp-dart"
+            (format "--client-version %s" lsp-dart-version-string))))
 
 (defun lsp-dart--activate-features ()
   "Activate lsp-dart features if enabled."
@@ -179,10 +177,8 @@ The returned string includes the version from main file header,
 
 If the version number could not be determined, signal an error."
   (interactive)
-  (let* ((version (and (require 'pkg-info nil t)
-                       (pkg-info-version-info 'lsp-dart)))
-         (lsp-dart-string (format "%s at %s @ Emacs %s"
-                                  (or version "unknown")
+  (let* ((lsp-dart-string (format "%s at %s @ Emacs %s"
+                                  lsp-dart-version-string
                                   (format-time-string "%Y.%m.%d" (current-time))
                                   emacs-version))
          (dart-sdk-string (if (lsp-dart-get-sdk-dir)
