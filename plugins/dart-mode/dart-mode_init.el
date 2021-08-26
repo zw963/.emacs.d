@@ -10,6 +10,7 @@
   (list (cdr project)))
 
 (require 'dart-mode)
+(require 'pkg-info) ;; lsp-dart 依赖这个，来让启动 server 正常工作，非常坑。
 (require 'lsp-dart)
 (require 'lsp-dart-commands)
 (require 'lsp-dart-devtools)
@@ -17,8 +18,6 @@
 (require 'lsp-dart-flutter-daemon)
 (lsp-dart-flutter-daemon-mode)
 (require 'lsp-dart-test-support)
-
-(setq lsp-dart-sdk-dir "/home/public/Dropbox/linux/utils/flutter/bin/cache/dart-sdk/")
 
 (setq lsp-signature-auto-activate nil)
 
