@@ -1,0 +1,8 @@
+# -*- mode: snippet -*-
+# name: while
+# key: while
+# contributor: Billy.Zheng vil963@gmail.com
+# --
+while (${1:cond}) {
+  0
+}

@@ -1,0 +1,12 @@
+# -*- mode: snippet -*-
+# name: do
+# key: do
+# contributor: Billy.Zheng vil963@gmail.com
+# --
+switch (${1:command}) {
+  case ${2:case}:
+    $0
+    break;
+  default:
+    executeUnknown();
+}

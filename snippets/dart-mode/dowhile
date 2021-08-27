@@ -1,0 +1,8 @@
+# -*- mode: snippet -*-
+# name: do
+# key: do
+# contributor: Billy.Zheng vil963@gmail.com
+# --
+do {
+  $0
+} while (${1:cond});

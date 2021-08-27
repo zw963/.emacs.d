@@ -1,0 +1,8 @@
+# -*- mode: snippet -*-
+# name: forin
+# key: forin
+# contributor: Billy.Zheng vil963@gmail.com
+# --
+for (var ${1:x} in ${2:collection}) {
+  $0
+}
