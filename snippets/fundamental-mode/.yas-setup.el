@@ -422,11 +422,6 @@ after-field-delimiter: 字段之后的标识符。例如： 结束双引号
 ;;        (quo))
 ;;      string)))
 
-;; (defvar ruby-string-array-literal nil)
-;; (defun ruby-string-array-literal ()
-;;   "use ruby string array literal."
-;; (set (make-local-variable 'ruby-string-array-literal) ""))
-
 ;; (defun instance-variable ()
 ;;   "transform to a instance variable."
 ;;   (replace-regexp-in-string "&\\|\*" "" (replace-regexp-in-string "[a-zA-Z_]+" "@\\\&" yas-text t nil)))
