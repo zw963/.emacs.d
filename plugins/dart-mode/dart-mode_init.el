@@ -10,7 +10,6 @@
   (list (cdr project)))
 
 (require 'dart-mode)
-;; (setq dart-format-on-save t)
 (add-to-list 'auto-mode-alist '("\\.dart\\'" . dart-mode))
 
 (with-eval-after-load 'lsp-mode

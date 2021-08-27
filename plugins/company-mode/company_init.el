@@ -137,6 +137,7 @@ ac-auto-show-menu 为 nil 的情形, 这种模式比较适合在 yasnippet 正�
 ;; (with-eval-after-load 'company-box
 ;;   (add-hook 'company-mode-hook 'company-box-mode))
 
+;; 注意: 这个和 tabnine 冲突.
 ;; (require 'company-tng)
 ;; (add-hook 'after-init-hook 'company-tng-mode)
 
