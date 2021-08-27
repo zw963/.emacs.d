@@ -361,7 +361,7 @@ after-field-delimiter: 字段之后的标识符。例如： 结束双引号
               before-field-delimiter-function
               after-field-delimiter-function
               not-exist-after-field-delimiter)
-  "field-index: 字段的索引
+"field-index: 字段的索引
 field-content: 字段的内容
 before-field-delimiter: 字段之前的标识符，例如： 开始双引号
 after-field-delimiter: 字段之后的标识符。例如： 结束双引号
@@ -399,45 +399,33 @@ after-field-delimiter: 字段之后的标识符。例如： 结束双引号
    "quo-after"
    ))
 
-;; 下面的这一堆函数, 只是为了 quo, 稍后删除它.
 (defun yas-camelize (&optional string)
   "merge underscore-split word into a capitalize form."
   (replace-regexp-in-string "_\\|@\\|\\$" "" (capitalize (or string yas-text))))
 
-(defun yas-quotation-mark ()
-  "Insert quotation mark."
-  (cond
-   ((member major-mode '(emacs-lisp-mode snippet-mode html-mode rhtml-mode web-mode)) "\"")
-   (t "'")))
+;; 下面的这一堆函数, 只是为了 quo, 稍后删除它.
 
-(defun quo ()
-  "add a quote-mark, when press `:' or `,', erased automatic."
-  (or
-   (when ruby-string-array-literal "")
-   (when (string-match "^[{\s:'\"$]" (or yas-text yas-selected-text)) "")
-   (yas-quotation-mark)))
+;; (defun quo-before (&optional string)
+;;   (when (if-any)
+;;     (concat
+;;      string
+;;      (if (and (not (fourth (syntax-ppss))) (string-match "," (or yas-text yas-selected-text)))
+;;          "%w["
+;;        (quo))
+;;      )))
 
-(defun quo-before (&optional string)
-  (when (if-any)
-    (concat
-     string
-     (if (and (not (fourth (syntax-ppss))) (string-match "," (or yas-text yas-selected-text)))
-         "%w["
-       (quo))
-     )))
+;; (defun quo-after (&optional string)
+;;   (when (if-any)
+;;     (concat
+;;      (if (and (not (fourth (syntax-ppss))) (string-match "," (or yas-text yas-selected-text)))
+;;          "]"
+;;        (quo))
+;;      string)))
 
-(defun quo-after (&optional string)
-  (when (if-any)
-    (concat
-     (if (and (not (fourth (syntax-ppss))) (string-match "," (or yas-text yas-selected-text)))
-         "]"
-       (quo))
-     string)))
-
-(defvar ruby-string-array-literal nil)
-(defun ruby-string-array-literal ()
-  "use ruby string array literal."
-(set (make-local-variable 'ruby-string-array-literal) ""))
+;; (defvar ruby-string-array-literal nil)
+;; (defun ruby-string-array-literal ()
+;;   "use ruby string array literal."
+;; (set (make-local-variable 'ruby-string-array-literal) ""))
 
 ;; (defun instance-variable ()
 ;;   "transform to a instance variable."
