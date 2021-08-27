@@ -3,7 +3,7 @@
 # key: yas
 # contributor: Billy.Zheng (vil963@gmail.com)
 # --
-`(snippet-mode)`# -*- mode: snippet -*-
+# -*- mode: snippet -*-
 # name: ${1:name}
 # key: ${2:key}
 `(field "3" "binding" "# binding: " "\n")``(field "4" "Billy.Zheng vil963@gmail.com" "# contributor: " "\n")`# --
