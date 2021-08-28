@@ -39,9 +39,6 @@
  ;;                    "  " mode-line-modes mode-line-misc-info mode-line-end-spaces)
  )
 
-;; use rich-minority package.
-
-;; (*) is beacon-mode, " ," is subword-mode
 ;; (add-list-to-list 'rm-blacklist '
 ;;                   (
 ;;                    " Helm" " Undo-Tree" " AC" " yas" " super-save"
@@ -50,12 +47,32 @@
 ;;                    " Helm-Fuz" " ivy-posframe" " ivy" "Lens"
 ;;                    ))
 
+;; (setq rm-blacklist nil)
+
+;; use rich-minority package.
 (setq rm-blacklist (mapconcat 'identity '(
-                                          " Helm" " Undo-Tree" " AC" " yas" " super-save"
-                                          " ElDoc" " AI" " ctagsU" " GitGutter" " md" " PgLn"
-                                          " YARD" " Abbrev" "\(\*\)" " ," " Anzu" " WK" " company" " WS"
-                                          " Helm-Fuz" " ivy-posframe" " ivy" " LSP.*" "Lens" " =>"
+                                          " ,"              ;; subward
+                                          " Anzu"           ;; Anzu mode
+                                          " yas"            ;; yasnippet
+                                          " company"        ;; company
+                                          " ivy-posframe"   ;; ivy-posframe
+                                          " ivy"            ;; ivy
+                                          " Helm"           ;; Helm mode
+                                          " Undo-Tree"      ;; Undo Tree mode
+                                          " AI"             ;; Auto indent mode
+                                          " md"             ;; Move-Dup mode
+                                          " WK"             ;; Which key mode
+                                          "\(\*\)"          ;; Beacon mode
+                                          " hs"             ;; hide/show mode
+                                          " WS"             ;; White Space mode
+                                          " GCMH"           ;; GCMH mode
+                                          " \\*"            ;; fancy narraw mode
                                           ) "\\|"))
+
+;; " AC"  " super-save"
+;; " ElDoc"  " ctagsU" " GitGutter" " md" " PgLn"
+;; " YARD" " Abbrev"    " WS"
+;; " Helm-Fuz"       "Lens" " =>"
 
 (add-to-list 'sml/replacer-regexp-list '("^~/Airhost/airhost_ror" ":AH:"))
 
