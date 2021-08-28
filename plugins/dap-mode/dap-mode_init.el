@@ -9,10 +9,10 @@
 
 (dap-tooltip-mode 1)
 
-;; (require 'dap-ruby)
-;; (dap-ruby-setup)
+(require 'dap-ruby)
+(dap-ruby-setup)
 
-;; ;; Try to connect to ruby-debug-ide, but still working.
+;; Try to connect to ruby-debug-ide, but still working.
 
 ;; (dap-register-debug-provider
 ;;  "ruby"
