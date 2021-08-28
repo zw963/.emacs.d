@@ -47,8 +47,6 @@
 ;;                    " Helm-Fuz" " ivy-posframe" " ivy" "Lens"
 ;;                    ))
 
-;; (setq rm-blacklist nil)
-
 ;; use rich-minority package.
 (setq rm-blacklist (mapconcat 'identity '(
                                           " ,"              ;; subward
@@ -67,18 +65,17 @@
                                           " WS"             ;; White Space mode
                                           " GCMH"           ;; GCMH mode
                                           " \\*"            ;; fancy narraw mode
+                                          " YARD"           ;; YARD mode
+                                          " ElDoc"          ;; ElDoc mode
                                           ) "\\|"))
-
-;; " AC"  " super-save"
-;; " ElDoc"  " ctagsU" " GitGutter" " md" " PgLn"
-;; " YARD" " Abbrev"    " WS"
-;; " Helm-Fuz"       "Lens" " =>"
 
 (add-to-list 'sml/replacer-regexp-list '("^~/Airhost/airhost_ror" ":AH:"))
 
-(with-eval-after-load 'nyan-mode
-  (add-to-list 'mode-line-format (list '(:eval (list (nyan-create)))))
-    )
+(require 'nyan-mode)
+(add-to-list 'mode-line-format (list '(:eval (list (nyan-create)))))
+
+;; (require 'parrot)
+;; (add-to-list 'mode-line-format (list '(:eval (list (parrot-create)))))
 
 (sml/setup)
 

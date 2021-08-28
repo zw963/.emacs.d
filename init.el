@@ -82,7 +82,6 @@
 ;; (require 'solargraph_init) -----------
 ;; (require 'quickrun_init)
 ;; (require 'spaceline_init)
-;; (require 'nyan-mode_init)
 ;; (require 'awesome-tray_init)
 ;; (require 'awesome-tab_init)
 ;; (require 'awesome-pair_init)
@@ -127,7 +126,6 @@
 (require 'lsp-mode_init)
 (require 'dart-mode_init)
 (require 'reformatter_init)
-(require 'parrot_init)
 (require 'rust-mode_init)
 ;; (require 'rustic_init)
 (require 'haskell-mode_init)
