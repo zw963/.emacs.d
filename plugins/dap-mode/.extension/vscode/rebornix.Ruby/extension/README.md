@@ -10,7 +10,7 @@ This extension provides enhanced Ruby language and debugging support for Visual 
 
 - Automatic Ruby environment detection with support for rvm, rbenv, chruby, and asdf
 - Lint support via RuboCop, Standard, and Reek
-- Format support via RuboCop, Standard, Rufo, and RubyFMT
+- Format support via RuboCop, Standard, Rufo, Prettier and RubyFMT
 - Semantic code folding support
 - Semantic highlighting support
 - Basic Intellisense support
@@ -45,9 +45,13 @@ Legacy functionality will most likely not receive additional improvements and wi
 "ruby.format": "rubocop" // use rubocop for formatting
 ```
 
-Reviewing the [linting](https://github.com/rubyide/vscode-ruby/blob/master/docs/linting.md) and [formatting](https://github.com/rubyide/vscode-ruby/blob/master/docs/formatting.md) docs is recommended
+Reviewing the [linting](https://github.com/rubyide/vscode-ruby/blob/master/docs/linting.md), [formatting](https://github.com/rubyide/vscode-ruby/blob/master/docs/formatting.md), and [environment detection](https://github.com/rubyide/vscode-ruby/blob/master/docs/language-server.md) docs is recommended
 
 For full details on configuration options, please take a look at the `Ruby` section in the VS Code settings UI. Each option is associated with a name and description.
+
+### Debug Configuration
+
+See [docs/debugger.md](https://github.com/rubyide/vscode-ruby/blob/master/docs/debugger.md).
 
 ### Legacy Configuration
 

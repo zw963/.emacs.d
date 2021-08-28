@@ -2,7 +2,7 @@
 	"name": "ruby",
 	"displayName": "Ruby",
 	"publisher": "rebornix",
-	"version": "0.26.0",
+	"version": "0.28.1",
 	"description": "Ruby language support and debugging for Visual Studio Code",
 	"main": "dist/client/ruby.js",
 	"license": "MIT",
@@ -17,7 +17,9 @@
 	"engines": {
 		"vscode": "^1.30.0"
 	},
-	"extensionKind": "workspace",
+	"extensionKind": [
+		"workspace"
+	],
 	"private": true,
 	"scripts": {
 		"build": "webpack -p",
@@ -25,7 +27,7 @@
 		"package": "vsce package --yarn && mv ./*.vsix ../../build/",
 		"test": "echo 'vscode-ruby-client'",
 		"watch": "scripts/link-dist.sh && webpack -w --debug --output-pathinfo --mode development",
-		"vscode:prepublish": "lerna run build && scripts/build-dist.sh"
+		"vscode:prepublish": "scripts/build-dist.sh"
 	},
 	"extensionDependencies": [
 		"wingrunr21.vscode-ruby"
@@ -34,7 +36,7 @@
 		"async": "^2.6.1",
 		"default-shell": "^1.0.1",
 		"execa": "^2.0.3",
-		"language-server-ruby": "^0.26.0",
+		"language-server-ruby": "^0.28.1",
 		"lodash": "^4.17.15",
 		"minimatch": "^3.0.4",
 		"ruby-method-locate": "^0.0.6",
@@ -42,25 +44,25 @@
 	},
 	"devDependencies": {
 		"@types/execa": "^2.0.0",
-		"@types/node": "^12.6.9",
+		"@types/node": "^12.12.11",
 		"@types/vscode": "^1.30.0",
-		"@typescript-eslint/eslint-plugin": "^1.13.0",
-		"@typescript-eslint/parser": "^1.13.0",
+		"@typescript-eslint/eslint-plugin": "^2.8.0",
+		"@typescript-eslint/parser": "^2.8.0",
 		"clean-webpack-plugin": "^3.0.0",
-		"eslint": ">=6.0.1",
-		"eslint-config-prettier": "^6.0.0",
-		"eslint-config-standard": "^13.0.1",
-		"eslint-config-standard-with-typescript": "^8.0.0",
+		"eslint": ">=6.6.0",
+		"eslint-config-prettier": "^6.7.0",
+		"eslint-config-standard": "^14.1.0",
+		"eslint-config-standard-with-typescript": "^11.0.1",
 		"eslint-plugin-import": "^2.18.2",
-		"eslint-plugin-node": "^9.1.0",
+		"eslint-plugin-node": "^10.0.0",
 		"eslint-plugin-promise": "^4.2.1",
-		"eslint-plugin-standard": "^4.0.0",
-		"fork-ts-checker-webpack-plugin": "^1.5.0",
-		"prettier": "^1.18.2",
+		"eslint-plugin-standard": "^4.0.1",
+		"fork-ts-checker-webpack-plugin": "^3.1.0",
+		"prettier": "^1.19.1",
 		"ts-loader": "^6.2.1",
 		"typescript": "^3.7.2",
-		"webpack": "^4.39.1",
-		"webpack-cli": "^3.3.6"
+		"webpack": "^4.41.2",
+		"webpack-cli": "^3.3.10"
 	},
 	"repository": {
 		"type": "git",
@@ -152,6 +154,26 @@
 					"type": "boolean",
 					"default": false,
 					"description": "Use built-in language server"
+				},
+				"ruby.languageServer": {
+					"scope": "machine",
+					"type": "object",
+					"description": "Language server configuration",
+					"properties": {
+						"logLevel": {
+							"type": "string",
+							"default": "info",
+							"description": "Set the language server's log level",
+							"enum": [
+								"trace",
+								"debug",
+								"info",
+								"warn",
+								"error",
+								"silent"
+							]
+						}
+					}
 				},
 				"ruby.codeCompletion": {
 					"type": [
@@ -387,14 +409,16 @@
 				"ruby.format": {
 					"type": [
 						"boolean",
-						"string"
+						"string",
+						"object"
 					],
 					"enum": [
 						false,
 						"rubocop",
 						"standard",
 						"rufo",
-						"rubyfmt"
+						"rubyfmt",
+						"prettier"
 					],
 					"default": false,
 					"description": "Which system to use for formatting. Use `false` to disable or if another extension provides this feature.",
@@ -665,6 +689,10 @@
 								"type": "string",
 								"description": "Port for remote debugging.",
 								"default": "1234"
+							},
+							"localSocketPath": {
+								"type": "string",
+								"description": "Path to UNIX domain socket for remote debugging."
 							},
 							"remoteWorkspaceRoot": {
 								"type": "string",
