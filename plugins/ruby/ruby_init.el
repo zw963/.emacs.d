@@ -22,7 +22,7 @@
                `("\\.\\(rb\\|rake\\|ru\\|gemspec\\|jbuilder\\|rjs\\|xlsx\.axlsx\\)\\'"
                  . ,preferred-ruby-mode))
   (add-to-list 'auto-mode-alist
-               `("\\`\\(Rakefile\\|Gemfile\\|Capfile\\|Appraisals\\|Guardfile\\)\\'"
+               `("\\(Rakefile\\|Gemfile\\|Capfile\\|Appraisals\\|Guardfile\\)\\'"
                  . ,preferred-ruby-mode))
   (add-to-list 'interpreter-mode-alist `("ruby" . ,preferred-ruby-mode)))
 
