@@ -126,6 +126,7 @@
 (require 'dap-mode_init)
 (require 'lsp-mode_init)
 (require 'dart-mode_init)
+(require 'reformatter_init)
 (require 'parrot_init)
 (require 'rust-mode_init)
 ;; (require 'rustic_init)

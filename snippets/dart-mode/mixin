@@ -1,0 +1,10 @@
+# -*- mode: snippet -*-
+# name: mixin
+# key: mixin
+# contributor: Billy.Zheng vil963@gmail.com
+# --
+mixin ${1:Mixin}`(field "2" "SomeClass" " on ")` {
+  void ${3:DoSomething}() {
+    $0
+  }
+}

@@ -56,17 +56,3 @@
   (setq debug-on-error t)              ;需要调试时，开启这个。
   ;;(setq debug-on-signal t)
   )
-
-;; (require 'lsp-mode_init)
-;; (require 'dap-mode_init)
-;; (require 'dart-mode_init)
-
-;; (require 'lsp-mode)
-;; (require 'lsp-modeline)
-;; (require 'lsp-headerline)
-;; (require 'dap-mode)
-;; (require 'dap-ui)
-;; (require 'dap-mouse)
-;; (require 'lsp-dart)
-;; (require 'dart-mode)
-;; (add-to-list 'auto-mode-alist '("\\.dart\\'" . dart-mode))
