@@ -27,6 +27,15 @@
 
 (require 'company)
 (require 'cl-lib)
+(eval-when-compile (require 'make-mode))
+
+(defgroup company-keywords nil
+  "Completion backend for keywords."
+  :group 'company)
+
+(defcustom company-keywords-ignore-case nil
+  "Non-nil to ignore case in completion candidates."
+  :type 'boolean)
 
 (defun company-keywords-upper-lower (&rest lst)
   ;; Upcase order is different for _.
@@ -297,6 +306,27 @@
     (enh-ruby-mode . ruby-mode))
   "Alist mapping major-modes to sorted keywords for `company-keywords'.")
 
+(with-eval-after-load 'make-mode
+  (mapc
+   (lambda (mode-stmnts)
+     (setf (alist-get (car mode-stmnts) company-keywords-alist)
+           (cl-remove-duplicates
+            (sort (append makefile-special-targets-list
+                          (cl-mapcan #'identity
+                                     (mapcar
+                                      #'split-string
+                                      (cl-remove-if-not
+                                       #'stringp
+                                       (symbol-value (cdr mode-stmnts))))))
+                  #'string<)
+            :test #'string=)))
+   '((makefile-automake-mode . makefile-automake-statements)
+     (makefile-gmake-mode    . makefile-gmake-statements)
+     (makefile-makepp-mode   . makefile-makepp-statements)
+     (makefile-bsdmake-mode  . makefile-bsdmake-statements)
+     (makefile-imake-mode    . makefile-statements)
+     (makefile-mode          . makefile-statements))))
+
 ;;;###autoload
 (defun company-keywords (command &optional arg &rest ignored)
   "`company-mode' backend for programming language keywords."
@@ -307,13 +337,14 @@
                  (not (company-in-string-or-comment))
                  (or (company-grab-symbol) 'stop)))
     (candidates
-     (let ((completion-ignore-case nil)
+     (let ((completion-ignore-case company-keywords-ignore-case)
            (symbols (cdr (assq major-mode company-keywords-alist))))
        (all-completions arg (if (consp symbols)
                                 symbols
                               (cdr (assq symbols company-keywords-alist))))))
     (kind 'keyword)
-    (sorted t)))
+    (sorted t)
+    (ignore-case company-keywords-ignore-case)))
 
 (provide 'company-keywords)
 ;;; company-keywords.el ends here

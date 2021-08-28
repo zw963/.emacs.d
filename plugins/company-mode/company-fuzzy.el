@@ -49,7 +49,9 @@
   "Type for sorting/scoring backend."
   :type '(choice (const :tag "none" none)
                  (const :tag "alphabetic" alphabetic)
-                 (const :tag "flx" flx))
+                 (const :tag "flx" flx)
+                 (const :tag "flex" flex)
+                 (const :tag "liquidmetal" liquidmetal))
   :group 'company-fuzzy)
 
 (defcustom company-fuzzy-prefix-on-top t
@@ -121,7 +123,11 @@
 ;; (@* "External" )
 ;;
 
+(declare-function company-files "ext:company-files.el")
+
 (declare-function flx-score "ext:flx.el")
+(declare-function flex-score "ext:flex.el")
+(declare-function liquidmetal-score "ext:liquidmetal.el")
 
 ;;
 ;; (@* "Mode" )
@@ -186,8 +192,7 @@
 
 (defun company-fuzzy--trigger-prefix-p ()
   "Check if current prefix a trigger prefix."
-  (company-fuzzy--contain-list-string company-fuzzy-trigger-symbols
-                                      company-fuzzy--prefix))
+  (member company-fuzzy--prefix company-fuzzy-trigger-symbols))
 
 (defun company-fuzzy--string-match (regexp string &optional start)
   "Safe way to execute function `string-match'.
@@ -206,19 +211,13 @@ See function `string-match-p' for arguments REGEXP, STRING and START."
 See function `string-prefix-p' for arguments PREFIX, STRING and IGNORE-CASE."
   (ignore-errors (string-prefix-p prefix string ignore-case)))
 
-(defun company-fuzzy--contain-list-string (in-list in-str)
-  "Return non-nil if IN-STR is listed in IN-LIST.
-
-The reverse mean the check from regular expression is swapped."
-  (cl-some (lambda (elm) (string= elm in-str)) in-list))
-
 (defun company-fuzzy--contain-list-symbol (in-list in-symbol)
   "Return non-nil if IN-SYMBOL is listed in IN-LIST."
   (cl-some (lambda (elm) (equal elm in-symbol)) in-list))
 
 (defun company-fuzzy--normalize-backend-list (backends)
   "Normalize all BACKENDS as list."
-  (let ((result-lst '()))
+  (let (result-lst)
     (dolist (backend backends)
       (if (listp backend)
           (let ((index 0))
@@ -233,7 +232,7 @@ The reverse mean the check from regular expression is swapped."
 (defun company-fuzzy--get-backend-by-candidate (candidate)
   "Return the backend symbol by using CANDIDATE as search index."
   (let ((match (ht-find (lambda (_backend cands)
-                          (company-fuzzy--contain-list-string cands candidate))
+                          (member candidate cands))
                         company-fuzzy--ht-backends-candidates)))
     (car match)))
 
@@ -314,7 +313,7 @@ The reverse mean the check from regular expression is swapped."
 
 (defun company-fuzzy--sort-prefix-on-top (candidates)
   "Sort CANDIDATES that match prefix on top of all other selection."
-  (let ((prefix-matches '()) prefix)
+  (let (prefix-matches prefix)
     (dolist (cand candidates)
       (setq prefix (company-fuzzy--backend-prefix-candidate cand 'match))
       (when (company-fuzzy--string-prefix-p prefix cand)
@@ -324,33 +323,50 @@ The reverse mean the check from regular expression is swapped."
     (setq candidates (append prefix-matches candidates)))
   candidates)
 
+(defun company-fuzzy--sort-candidates-by-function (candidates fnc)
+  "Sort CANDIDATES with function call FNC."
+  (let ((scoring-table (ht-create)) scoring-keys prefix scoring score)
+    (dolist (cand candidates)
+      (setq prefix (company-fuzzy--backend-prefix-candidate cand 'match)
+            scoring (funcall fnc cand prefix)
+            score (cond ((listp scoring) (nth 0 scoring))
+                        ((numberp scoring) scoring)
+                        (t 0)))
+      (when score
+        (ht-set scoring-table score (push cand (ht-get scoring-table score)))))
+    ;; Get all keys, and turn into a list.
+    (maphash (lambda (score-key _cands) (push score-key scoring-keys)) scoring-table)
+    (setq scoring-keys (sort scoring-keys #'>)  ; Sort keys in order.
+          candidates nil)  ; Clean up, and ready for final output.
+    (dolist (key scoring-keys)
+      (let ((cands (ht-get scoring-table key)))
+        (setq cands (reverse cands))  ; Respect to backend order.
+        (when (functionp company-fuzzy-sorting-score-function)
+          (setq cands (funcall company-fuzzy-sorting-score-function cands)))
+        (setq candidates (append candidates cands)))))
+  candidates)
+
 (defun company-fuzzy--sort-candidates (candidates)
   "Sort all CANDIDATES base on type of sorting backend."
-  (setq candidates (company-fuzzy--ht-all-candidates))  ; Get all candidates here.
+  ;; IMPORTANT: Since the command `candidates' will change by `company-mode',
+  ;; we manually set the candidates here so we get can consistent result.
+  (setq candidates (company-fuzzy--ht-all-candidates))
   (unless company-fuzzy--is-trigger-prefix-p
     (cl-case company-fuzzy-sorting-backend
       (none candidates)
       (alphabetic (setq candidates (sort candidates #'string-lessp)))
       (flx
        (require 'flx)
-       (let ((scoring-table (ht-create)) (scoring-keys '())
-             prefix scoring score)
-         (dolist (cand candidates)
-           (setq prefix (company-fuzzy--backend-prefix-candidate cand 'match)
-                 scoring (flx-score cand prefix)
-                 score (if scoring (nth 0 scoring) 0))
-           (when scoring
-             (ht-set scoring-table score (push cand (ht-get scoring-table score)))))
-         ;; Get all keys, and turn into a list.
-         (maphash (lambda (score-key _cands) (push score-key scoring-keys)) scoring-table)
-         (setq scoring-keys (sort scoring-keys #'>)  ; Sort keys in order.
-               candidates '())  ; Clean up, and ready for final output.
-         (dolist (key scoring-keys)
-           (let ((cands (ht-get scoring-table key)))
-             (setq cands (reverse cands))  ; Respect to backend order.
-             (when (functionp company-fuzzy-sorting-score-function)
-               (setq cands (funcall company-fuzzy-sorting-score-function cands)))
-             (setq candidates (append candidates cands)))))))
+       (setq candidates
+             (company-fuzzy--sort-candidates-by-function candidates #'flx-score)))
+      (flex
+       (require 'flex)
+       (setq candidates
+             (company-fuzzy--sort-candidates-by-function candidates #'flex-score)))
+      (liquidmetal
+       (require 'liquidmetal)
+       (setq candidates
+             (company-fuzzy--sort-candidates-by-function candidates #'liquidmetal-score))))
     (when company-fuzzy-prefix-on-top
       (setq candidates (company-fuzzy--sort-prefix-on-top candidates)))
     (when (functionp company-fuzzy-sorting-function)
@@ -479,7 +495,7 @@ Insert .* between each char."
 (defun company-fuzzy--match-string (prefix candidates)
   "Return new CANDIDATES that match PREFIX."
   (when (stringp prefix)
-    (let ((new-cands '()) (fuz-str (company-fuzzy--regex-fuzzy prefix)))
+    (let ((fuz-str (company-fuzzy--regex-fuzzy prefix)) new-cands)
       (dolist (cand candidates)
         (when (company-fuzzy--string-match-p fuz-str cand)
           (push cand new-cands)))
@@ -491,7 +507,7 @@ Insert .* between each char."
 
 (defun company-fuzzy--ht-all-candidates ()
   "Return all candidates from the data."
-  (let ((all-candidates '()))
+  (let (all-candidates)
     (maphash (lambda (_backend cands)
                (setq all-candidates (append all-candidates cands)))
              company-fuzzy--ht-backends-candidates)
@@ -534,8 +550,16 @@ Insert .* between each char."
       ;; type to this package.
       (when (company-fuzzy--valid-candidates-p temp-candidates)
         (delete-dups temp-candidates)
-        (ht-set company-fuzzy--ht-backends-candidates backend (copy-sequence temp-candidates))))
-    nil))
+        (ht-set company-fuzzy--ht-backends-candidates backend (copy-sequence temp-candidates)))))
+  ;; Since we insert the candidates before sorting event, see function
+  ;; `company-fuzzy--sort-candidates', we return to simply avoid the process
+  ;; from `comany-mode'.
+  ;;
+  ;; This should help us save some performance!
+  (when (eq this-command 'company-diag)
+    ;; We did return candidates here, yet this does not mean `company-diag'
+    ;; will respect this result.
+    (company-fuzzy--ht-all-candidates)))
 
 (defun company-fuzzy--get-prefix ()
   "Set the prefix just right before completion."
