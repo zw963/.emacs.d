@@ -482,6 +482,9 @@
 (setq comment-auto-fill-only-comments t)
 (setq x-gtk-use-system-tooltips nil)
 
+(require 'abbrev)
+(setq abbrev-file-name (expand-file-name "abbrev_defs" default-directory))
+
 (provide 'base_init)
 
 ;;; base_init.el ends here
