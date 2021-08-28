@@ -5,7 +5,7 @@
 (require 'ruby-mode-toggle-block_init)
 (require 'rvm_init)
 ;; (require 'ruby-test-mode_init)
-;; (require 'ruby-mode-lsp_init)
+(require 'ruby-mode-lsp_init)
 (require 'ruby-mode_keyword_highlight_init)
 (require 'rbs-mode)
 
