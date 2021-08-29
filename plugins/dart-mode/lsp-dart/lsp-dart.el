@@ -2,7 +2,7 @@
 
 ;; Copyright (C) 2020 Eric Dallo
 
-;; Version: 1.19.3
+;; Version: 1.20.0
 ;; Package-Requires: ((emacs "26.1") (lsp-treemacs "0.3") (lsp-mode "7.0.1") (dap-mode "0.6") (f "0.20.0") (dash "2.14.1") (dart-mode "1.0.5"))
 ;; Keywords: languages, extensions
 ;; URL: https://emacs-lsp.github.io/lsp-dart
@@ -99,7 +99,7 @@ If unspecified, diagnostics will not be generated."
 
 ;;; Internal
 
-(defvar lsp-dart-version-string "1.19.3")
+(defvar lsp-dart-version-string "1.20.0")
 
 (defun lsp-dart--library-folders ()
   "Return the library folders path to analyze."
@@ -193,6 +193,20 @@ If the version number could not be determined, signal an error."
                                      flutter-project-string
                                      project-entrypoint-string)
                                "\n"))))
+
+;;;###autoload
+(defun lsp-dart-run (&optional args)
+  "Run application without debug mode.
+
+ARGS is an optional space-delimited string of the same flags passed to
+`flutter` when running from CLI.  Call with a prefix to be prompted for
+args."
+  (interactive
+   (list (when current-prefix-arg
+           (split-string (read-string "Args: ") " "))))
+  (if (lsp-dart-flutter-project-p)
+      (lsp-dart-dap-run-flutter nil args)
+    (lsp-dart-dap-run-dart nil args)))
 
 
 ;;;###autoload(with-eval-after-load 'lsp-mode (require 'lsp-dart))
