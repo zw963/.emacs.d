@@ -56,3 +56,20 @@
   (setq debug-on-error t)              ;需要调试时，开启这个。
   ;;(setq debug-on-signal t)
   )
+
+;; (require 'lsp-mode)
+;; (require 'lsp-modeline)
+;; (require 'lsp-headerline)
+;; (require 'dap-mode)
+
+;; (dap-mode 1)
+
+;; (require 'dap-ui)
+;; (dap-ui-mode 1)
+
+;; (require 'dap-mouse)
+
+;; (dap-tooltip-mode 1)
+
+;; (require 'dap-ruby)
+;; (dap-ruby-setup)
