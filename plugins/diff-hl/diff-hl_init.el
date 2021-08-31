@@ -13,12 +13,12 @@
 (require 'diff-hl-flydiff)
 (diff-hl-flydiff-mode 1)
 
-(defun show-first-hunk-on-current-buffer ()
-  (interactive)
-  (beginning-of-buffer)
-  (diff-hl-show-hunk-next)
-  )
-(define-key diff-hl-command-map [(n)] 'show-first-hunk-on-current-buffer)
+;; (defun show-first-hunk-on-current-buffer ()
+;;   (interactive)
+;;   (beginning-of-buffer)
+;;   (diff-hl-show-hunk-next)
+;;   )
+;; (define-key diff-hl-command-map [(n)] 'show-first-hunk-on-current-buffer)
 
 ;; (require 'diff-hl-show-hunk-posframe)
 ;; (setq diff-hl-show-hunk-function 'diff-hl-show-hunk-posframe)
