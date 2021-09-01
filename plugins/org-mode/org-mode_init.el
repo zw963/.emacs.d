@@ -13,6 +13,8 @@
 ;;       org-fontify-whole-heading-line nil
 ;;       org-hide-leading-stars nil)
 
+(setq org-startup-with-inline-images t)
+
 (setq org-completion-use-ido t)
 (setq org-hide-leading-stars t) ;隐藏刚开始的*符号
 (setq org-table-auto-blank-field nil)
