@@ -30,11 +30,17 @@
 ;;                         (lsp--set-configuration
 ;;                          (lsp-configuration-section "solargraph"))))))
 
+(require 'lsp-solargraph)
+;; (add-to-list 'lsp-solargraph-library-directories '("~/utils/ruby_tools/app/gems"))
+
 (dolist (hook (list
                'enh-ruby-mode-hook
                'ruby-mode
                ))
-  (add-hook hook 'lsp-deferred))
+  (add-hook hook '(lambda ()
+                    (rvm-activate-corresponding-ruby)
+                    (lsp-deferred)
+                    )))
 
 (provide 'ruby-mode-lsp_init)
 
