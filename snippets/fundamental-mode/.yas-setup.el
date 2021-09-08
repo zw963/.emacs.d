@@ -399,10 +399,16 @@ after-field-delimiter: 字段之后的标识符。例如： 结束双引号
    "quo-after"
    ))
 
+(defun yas-quotation-mark ()
+  "Insert quotation mark."
+  (cond
+   ((member major-mode '(emacs-lisp-mode snippet-mode html-mode rhtml-mode web-mode)) "\"")
+   (t "'")))
+
 (defun quo ()
   "add a quote-mark, when press `:' or `,', erased automatic."
   (or
-   (when ruby-string-array-literal "")
+   ;; (when ruby-string-array-literal "")
    (when (string-match "^[{\s:'\"$]" (or yas-text yas-selected-text)) "")
    (yas-quotation-mark)))
 

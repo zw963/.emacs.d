@@ -17,7 +17,7 @@
     ;; default
     (string-inflection-ruby-style-cycle))))
 
-(global-set-key [(meta u)] 'my-string-inflection-cycle-auto)
+(global-set-key [(shift meta u)] 'my-string-inflection-cycle-auto)
 
 ;; (require 'sequential-command)
 ;; (defun backward-capitalize-word ()
