@@ -24,8 +24,6 @@
 (global-set-key [(meta D)] '(lambda () (interactive) (dired "./"))) ; 打开 dired buffer.
 (global-set-key [(control right)] 'transpose-current-char) ;光标前所在字母右移
 (global-set-key [(control left)] 'transpose-current-char-backward) ;光标前所在字母左移
-(global-set-key [(meta u)] 'backward-upcase-word) ; 连续标记光标前面的单词大写 Alt-u
-(global-set-key [(meta U)] 'backward-capitalize-word) ;连续标记光标前面单词首字母大写 Alt-U
 (global-set-key [(del)] 'delete-char) ;向后删除字符 Del
 (global-set-key [(control meta c)] 'copy-current-buffer-file-name)
 (global-set-key [(meta g)] 'goto-line)

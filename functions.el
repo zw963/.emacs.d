@@ -100,19 +100,6 @@ Use `font-lock-add-keywords' in case of `ruby-mode' or
           (message "File '%s' successfully renamed to '%s'"
                    name (file-name-nondirectory new-name)))))))
 
-(require 'sequential-command)
-(defun backward-upcase-word ()
-  (interactive)
-  (subword-upcase (- (1+ (seq-count*)))))
-
-(defun backward-downcase-word ()
-  (interactive)
-  (subword-downcase (- (1+ (seq-count*)))))
-
-(defun backward-capitalize-word ()
-  (interactive)
-  (subword-capitalize (- (1+ (seq-count*)))))
-
 (defun transpose-current-char-backward (&optional arg)
   "Move current word left."
   (interactive "p")
