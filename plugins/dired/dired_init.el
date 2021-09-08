@@ -61,11 +61,10 @@
              ;; (define-key dired-mode-map ")" 'dired-git-info-mode)
              ))
 
-(require 'dired-k)
-(setq dired-k-style 'git)
-(define-key dired-mode-map (kbd "K") 'dired-k)
-
-(require 'direx-k)
+;; (require 'dired-k)
+;; (setq dired-k-style 'git)
+;; (define-key dired-mode-map (kbd "K") 'dired-k)
+;; (add-hook 'dired-after-readin-hook #'dired-k-no-revert)
 
 (require 'diredfl)
 (diredfl-global-mode t)
