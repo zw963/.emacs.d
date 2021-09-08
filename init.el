@@ -95,6 +95,7 @@
 ;; (require 'english-teacher_init)
 (require 'async_init)
 (require 'mu4e_init)
+(require 'zoom_init)
 
 ;; ============================== 编程相关 ==============================
 
