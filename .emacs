@@ -1,8 +1,8 @@
-(setq read-process-output-max (* 1024 1024)) ;; 1M
-(setq inhibit-compacting-font-caches t)  ; Don’t compact font caches during GC.
+;; (setq read-process-output-max (* 1024 1024)) ;; 1M
+;; (setq inhibit-compacting-font-caches t)  ; Don’t compact font caches during GC.
 
 ;; gc-cons-threshold controlled by gcmh.el
-(setq gc-cons-threshold (* 100 1024 1024))
+;; 注意，不要随便设置很大的 gc-cons-threshold, 否则会突然很卡。
 (require 'gcmh)
 (gcmh-mode)
 
@@ -57,19 +57,12 @@
   ;;(setq debug-on-signal t)
   )
 
+;; (require 'rvm)
 ;; (require 'lsp-mode)
 ;; (require 'lsp-modeline)
 ;; (require 'lsp-headerline)
 ;; (require 'dap-mode)
-
-;; (dap-mode 1)
-
 ;; (require 'dap-ui)
-;; (dap-ui-mode 1)
-
 ;; (require 'dap-mouse)
-
-;; (dap-tooltip-mode 1)
-
-;; (require 'dap-ruby)
-;; (dap-ruby-setup)
+;; (require 'ruby_init)
+;; (require 'company)
