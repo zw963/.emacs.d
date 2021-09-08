@@ -403,12 +403,12 @@
                              (setq-local indent-tabs-mode nil)      ;禁止 insert \t 字符.
 
                              ;; 注意最后一个参数 t, 这确保了当前 before-save-hook 是 local 的。
-                             (add-hook 'before-save-hook
-                                       (lambda()
-                                         (save-excursion
-                                           ;; (whitespace-cleanup)
-                                           (delete-trailing-whitespace)))
-                                       nil t)
+                             ;; (add-hook 'before-save-hook
+                             ;;           (lambda()
+                             ;;             (save-excursion
+                             ;;               ;; (whitespace-cleanup)
+                             ;;               (delete-trailing-whitespace)))
+                             ;;           nil t)
                              ))
 
 (add-hook 'text-mode-hook 'goto-address-mode)

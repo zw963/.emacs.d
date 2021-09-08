@@ -47,9 +47,9 @@
 (define-key dired-mode-map [down-mouse-1] 'dired-efap-click)
 
 (require 'dired+)
-(require 'dired-git-info)
-(setq dgi-auto-hide-details-p nil)
-;; (add-hook 'dired-after-readin-hook 'dired-git-info-auto-enable)
+;; (require 'dired-git-info)
+;; (setq dgi-auto-hide-details-p nil)
+;; ;; (add-hook 'dired-after-readin-hook 'dired-git-info-auto-enable)
 (add-hook 'dired-mode-hook
           '(lambda ()
              (diredp-toggle-find-file-reuse-dir t)
@@ -58,8 +58,14 @@
              (define-key dired-mode-map  [(meta b)] nil)
              (define-key dired-mode-map  [(control r)] 'diredp-do-grep-recursive)
              (define-key dired-mode-map  [(control c) (+)] 'dired-create-empty-file)
-             (define-key dired-mode-map ")" 'dired-git-info-mode)
+             ;; (define-key dired-mode-map ")" 'dired-git-info-mode)
              ))
+
+(require 'dired-k)
+(setq dired-k-style 'git)
+(define-key dired-mode-map (kbd "K") 'dired-k)
+
+(require 'direx-k)
 
 (require 'diredfl)
 (diredfl-global-mode t)
