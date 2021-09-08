@@ -92,10 +92,5 @@
 ;; (require 'popup-kill-ring)
 ;; (global-set-key [(meta y)] 'popup-kill-ring)
 
-;;------------------------------ 显示分页符。 ------------------------------
-(require 'page-break-lines)
-(add-to-list 'page-break-lines-modes 'browse-kill-ring-mode)
-(global-page-break-lines-mode 1)
-
 (provide 'browse-kill-ring_init)
 ;;; browse-kill-ring_init.el ends here
