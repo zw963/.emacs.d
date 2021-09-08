@@ -11,10 +11,10 @@
 
 (custom-set-variables
  '(zoom-size 'size-callback)
- '(zoom-ignored-major-modes '(dired-mode markdown-mode))
+ '(zoom-ignored-major-modes '(dired-mode markdown-mode minimap-mode))
  )
 
-(zoom-mode)
+;; (zoom-mode)
 
 (provide 'zoom_init)
 
