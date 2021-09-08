@@ -447,11 +447,11 @@
 ;; 这个鬼设置有啥用？ 忘记了。
 ;; (setq electric-pair-inhibit-predicate 'electric-pair-conservative-inhibit)
 
-(electric-pair-mode t)
-;; electric-pair-text-pairs 中的字符，仅仅在 comment/string 中生效。
-(add-to-list 'electric-pair-text-pairs '(?` . ?'))
-(add-to-list 'electric-pair-text-pairs '(?（ . ?）))
-(remove-hook 'sh-mode-hook 'sh-electric-here-document-mode)
+;; (electric-pair-mode t)
+;; ;; electric-pair-text-pairs 中的字符，仅仅在 comment/string 中生效。
+;; (add-to-list 'electric-pair-text-pairs '(?` . ?'))
+;; (add-to-list 'electric-pair-text-pairs '(?（ . ?）))
+;; (remove-hook 'sh-mode-hook 'sh-electric-here-document-mode)
 
 ;; diff-mode
 (add-to-list 'auto-mode-alist '("COMMIT_EDITMSG$" . diff-mode))

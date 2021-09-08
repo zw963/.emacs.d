@@ -67,6 +67,10 @@
                                           " \\*"            ;; fancy narraw mode
                                           " YARD"           ;; YARD mode
                                           " ElDoc"          ;; ElDoc mode
+                                          " wb"             ;; ws butler mode
+                                          " ColorIds"       ;; Color identifiers mode
+                                          " SP"             ;; smartparens mode
+                                          " PgLn"           ;; page-break-lines
                                           ) "\\|"))
 
 (add-to-list 'sml/replacer-regexp-list '("^~/Airhost/airhost_ror" ":AH:"))

@@ -39,6 +39,7 @@
 (require 'flycheck_init)
 (require 'quickrun_init)
 (require 'treemacs_init)
+(require 'page-break-lines_init)
 ;; 下面两个库都针对 kill-ring-save, kill-region 等函数添加了 device.
 ;; 因为判断选区时, 总是首先判断 rect-mark, 因此要确保 rect-mark_init 在
 ;; browse-kill-ring 之后 require, 行为才正确.
@@ -102,6 +103,7 @@
 ;; ============================== 编程相关 ==============================
 
 (require 'color-identifiers-mode_init)
+(require 'smartparens_init)
 (require 'highlight-indentation_init)
 (require 'highlight-escape-sequences_init)
 (require 'rainbow-delimiters_init)
