@@ -132,6 +132,7 @@
 (require 'haskell-mode_init)
 (require 'go-mode_init)
 (require 'dpaste_init)
+(require 'ws-butler_init)
 ;; 这个老是运行失败。
 ;; (require 'wakatime-mode_init)
 
