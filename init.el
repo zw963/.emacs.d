@@ -101,6 +101,7 @@
 
 ;; ============================== 编程相关 ==============================
 
+(require 'color-identifiers-mode_init)
 (require 'highlight-indentation_init)
 (require 'highlight-escape-sequences_init)
 (require 'rainbow-delimiters_init)
