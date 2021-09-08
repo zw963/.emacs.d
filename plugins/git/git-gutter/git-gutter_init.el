@@ -14,7 +14,6 @@
 
 (add-to-list 'git-gutter:update-commands 'ace-window)
 
-;; 这个会有 prefix 的提示, 但是别管它, 按 n, p 可以工作.
 (with-eval-after-load 'hydra
   (defhydra hydra-git-gutter (global-map "C-x v")
     "Git gutter"

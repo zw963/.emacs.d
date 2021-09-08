@@ -22,7 +22,8 @@
   (defadvice ace-window (before super-save activate) (super-save-command) nil))
 
 (require 'avy-zap)
-(global-set-key [(control c) (d)] 'avy-zap-to-char-dwim)
+(global-set-key [remap zap-to-char] 'avy-zap-to-char-dwim)
+
 ;; (setq avy-zap-function 'delete-region)
 
 (require 'goto-char-preview)
