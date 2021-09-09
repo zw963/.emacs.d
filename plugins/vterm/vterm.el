@@ -168,6 +168,14 @@ the executable."
   :type 'string
   :group 'vterm)
 
+(defcustom vterm-tramp-shells '(("docker" "/bin/sh"))
+  "The shell that gets run in the vterm for tramp.
+
+`vterm-tramp-shells' has to be a list of pairs of the format:
+\(TRAMP-METHOD SHELL)"
+  :type '(alist :key-type string :value-type string)
+  :group 'vterm)
+
 (defcustom vterm-buffer-name "*vterm*"
   "The basename used for vterm buffers.
 This is the default name used when running `vterm' or
@@ -382,6 +390,11 @@ to change your shell prompt to print 51;A.
 The second method is using a regular expression. This method does
 not require any shell-side configuration. See
 `term-prompt-regexp', for more information."
+  :type 'boolean
+  :group 'vterm)
+
+(defcustom vterm-bookmark-check-dir t
+  "When set to non-nil, also restore directory when restoring a vterm bookmark."
   :type 'boolean
   :group 'vterm)
 
@@ -659,7 +672,8 @@ Exceptions are defined by `vterm-keymap-exceptions'."
                                        "LINES"
                                        "COLUMNS")
                                      process-environment))
-        (inhibit-eol-conversion t)
+        ;; TODO: Figure out why inhibit is needed for curses to render correctly.
+        (inhibit-eol-conversion nil)
         (coding-system-for-read 'binary)
         (process-adaptive-read-buffering nil)
         (width (max (- (window-body-width) (vterm--get-margin-width))
@@ -701,9 +715,10 @@ Exceptions are defined by `vterm-keymap-exceptions'."
                ;; See: https://bugs.freebsd.org/bugzilla/show_bug.cgi?id=220009
                (if (eq system-type 'berkeley-unix) "" "iutf8")
                (window-body-height)
-               width vterm-shell))
-           :coding 'no-conversion
+               width (vterm--get-shell)))
+           ;; :coding 'no-conversion
            :connection-type 'pty
+           :file-handler t
            :filter #'vterm--filter
            ;; The sentinel is needed if there are exit functions or if
            ;; vterm-kill-buffer-on-exit is set to t.  In this latter case,
@@ -724,7 +739,56 @@ Exceptions are defined by `vterm-keymap-exceptions'."
                #'vterm--window-adjust-process-window-size)
   ;; Support to compilation-shell-minor-mode
   ;; Is this necessary? See vterm--compilation-setup
-  (setq next-error-function 'vterm-next-error-function))
+  (setq next-error-function 'vterm-next-error-function)
+  (setq-local bookmark-make-record-function 'vterm--bookmark-make-record))
+
+(defun vterm--get-shell ()
+  "Get the shell that gets run in the vterm."
+  (if (ignore-errors (file-remote-p default-directory))
+      (with-parsed-tramp-file-name default-directory nil
+        (or (cadr (assoc method vterm-tramp-shells))
+            vterm-shell))
+    vterm-shell))
+
+(defun vterm--bookmark-make-record ()
+  "Create a vterm bookmark.
+
+Notes down the current directory and buffer name."
+  `(nil
+    (handler . vterm--bookmark-handler)
+    (thisdir . ,default-directory)
+    (buf-name . ,(buffer-name))
+    (defaults . nil)))
+
+
+;;;###autoload
+(defun vterm--bookmark-handler (bmk)
+  "Handler to restore a vterm bookmark BMK.
+
+If a vterm buffer of the same name does not exist, the function will create a
+new vterm buffer of the name. It also checks the current directory and sets
+it to the bookmarked directory if needed."
+  (let* ((thisdir (bookmark-prop-get bmk 'thisdir))
+         (buf-name (bookmark-prop-get bmk 'buf-name))
+         (buf (get-buffer buf-name))
+         (thismode (and buf (with-current-buffer buf major-mode))))
+    ;; create if no such vterm buffer exists
+    (when (or (not buf) (not (eq thismode 'vterm-mode)))
+      (setq buf (generate-new-buffer buf-name))
+      (with-current-buffer buf
+        (when vterm-bookmark-check-dir
+          (setq default-directory thisdir))
+        (vterm-mode)))
+    ;; check the current directory
+    (with-current-buffer buf
+      (when (and vterm-bookmark-check-dir
+                 (not (string-equal default-directory thisdir)))
+        (when vterm-copy-mode
+          (vterm-copy-mode-done nil))
+        (vterm-insert (concat "cd " thisdir))
+        (vterm-send-return)))
+    ;; set to this vterm buf
+    (set-buffer buf)))
 
 (defun vterm--compilation-setup ()
   "Function to enable the option `compilation-shell-minor-mode' for vterm.
@@ -1191,10 +1255,11 @@ value of `vterm-buffer-name'."
                    (t
                     (get-buffer-create vterm-buffer-name)))))
     (cl-assert (and buf (buffer-live-p buf)))
+    (funcall pop-to-buf-fun buf)
     (with-current-buffer buf
       (unless (derived-mode-p 'vterm-mode)
         (vterm-mode)))
-    (funcall pop-to-buf-fun buf)))
+    buf))
 
 ;;; Internal
 

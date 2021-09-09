@@ -14,8 +14,19 @@
 
 (setq vterm-clear-scrollback t)
 
+(setq vterm-use-vterm-prompt-detection-method nil)
+(setq term-prompt-regexp "╰─ $ ")
+;; (setq vterm-enable-manipulate-selection-data-by-osc52 t)
+
+;; (add-hook 'shell-mode-hook
+;;           #'(lambda ()
+;;               (dirtrack-mode 1)
+;;               (add-hook 'comint-preoutput-filter-functions
+;;                         'dirtrack-filter-out-pwd-prompt t t)))
+
 (add-hook 'vterm-mode-hook '(lambda ()
                               (define-key vterm-mode-map [(control shift k)] 'vterm-clear)
+                              ;; (dirtrack-mode 1)
                               ))
 
 (setq vterm-module-cmake-args "-DUSE_SYSTEM_LIBVTERM=no")
