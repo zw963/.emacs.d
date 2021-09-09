@@ -787,6 +787,13 @@ If N is positive go forward otherwise go backward."
     (helm-exit-and-execute-action 'helm-grep-save-results)))
 (put 'helm-grep-run-save-buffer 'helm-only t)
 
+(defun helm-grep-quit-an-find-file-fn (source)
+  (let* ((sel (helm-get-selection nil nil source))
+         (grep-line (and (stringp sel)
+                         (helm-grep-split-line sel))))
+    (if (and grep-line (file-exists-p (car grep-line)))
+        (expand-file-name (car grep-line))
+      default-directory)))
 
 ;;; helm-grep-mode
 ;;
@@ -1049,7 +1056,7 @@ of grep."
 (defclass helm-grep-class (helm-source-async)
   ((candidates-process :initform 'helm-grep-collect-candidates)
    (filtered-candidate-transformer :initform #'helm-grep-fc-transformer)
-   (keymap :initform helm-grep-map)
+   (keymap :initform 'helm-grep-map)
    (pcre :initarg :pcre :initform nil
          :documentation
          "  Backend is using pcre regexp engine when non-nil.")
@@ -1071,6 +1078,7 @@ of grep."
    (requires-pattern :initform 2)
    (before-init-hook :initform 'helm-grep-before-init-hook)
    (after-init-hook :initform 'helm-grep-after-init-hook)
+   (find-file-target :initform #'helm-grep-quit-an-find-file-fn)
    (group :initform 'helm-grep)))
 
 (defvar helm-source-grep nil)
@@ -1610,7 +1618,7 @@ returns if available with current AG version."
    (pcre :initarg :pcre :initform t
          :documentation
          "  Backend is using pcre regexp engine when non--nil.")
-   (keymap :initform helm-grep-map)
+   (keymap :initform 'helm-grep-map)
    (history :initform 'helm-grep-ag-history)
    (help-message :initform 'helm-grep-help-message)
    (filtered-candidate-transformer :initform #'helm-grep-fc-transformer)
@@ -1620,6 +1628,7 @@ returns if available with current AG version."
    (requires-pattern :initform 2)
    (nomark :initform t)
    (action :initform 'helm-grep-actions)
+   (find-file-target :initform #'helm-grep-quit-an-find-file-fn)
    (group :initform 'helm-grep)))
 
 (defvar helm-source-grep-ag nil)

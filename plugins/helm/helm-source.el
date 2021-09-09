@@ -148,7 +148,7 @@
 
    (keymap
     :initarg :keymap
-    :initform helm-map
+    :initform 'helm-map
     :custom sexp
     :documentation
     "  Specific keymap for this source.
@@ -683,6 +683,14 @@
   - Any other non nil values e.g. `ignore' allow exiting with
     minibuffer contents as candidate value (in this case helm-buffer
     is empty).")
+
+   (find-file-target
+    :initarg :find-file-target
+    :initform nil
+    :custom function
+    :documentation
+    "  Determine the target file when running `helm-quit-and-find-file'.
+  It is a function called with one arg SOURCE.")
 
    (group
     :initarg :group
