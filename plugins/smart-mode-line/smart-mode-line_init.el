@@ -76,8 +76,8 @@
 
 (add-to-list 'sml/replacer-regexp-list '("^~/Airhost/airhost_ror" ":AH:"))
 
-(require 'nyan-mode)
-(add-to-list 'mode-line-format (list '(:eval (list (nyan-create)))))
+;; (require 'nyan-mode)
+;; (add-to-list 'mode-line-format (list '(:eval (list (nyan-create)))))
 
 ;; (require 'parrot)
 ;; (add-to-list 'mode-line-format (list '(:eval (list (parrot-create)))))
