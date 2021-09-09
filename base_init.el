@@ -254,6 +254,7 @@
            (eq this-command 'make-frame-command)
            (eq this-command 'ace-window)
            (eq this-command 'make-frame)
+           (eq this-command 'snails)
            ;; (eq this-command 'diredc)
            )
     (run-with-idle-timer 0 nil 'toggle-frame-maximized)
