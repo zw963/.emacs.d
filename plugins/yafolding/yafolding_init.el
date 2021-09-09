@@ -27,5 +27,14 @@
                                  (local-set-key [(control tab)] 'hs-toggle-hiding)
                                  ))
 
+;; (require 'vimish-fold)
+
+;; (add-hook 'prog-mode-hook 'vimish-fold-mode)
+
+;; ;; (global-set-key (kbd "<menu> v f") #'vimish-fold)
+;; ;; (global-set-key (kbd "<menu> v v") #'vimish-fold-delete)
+
+;; (global-set-key [(control tab)] 'vimish-fold)
+
 (provide 'yafolding_init)
 ;;; yafolding_init.el ends here
