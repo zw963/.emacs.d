@@ -71,6 +71,7 @@
                                           " ColorIds"       ;; Color identifiers mode
                                           " SP"             ;; smartparens mode
                                           " PgLn"           ;; page-break-lines
+                                          " Ρ"              ;; pangu spacing
                                           ) "\\|"))
 
 (add-to-list 'sml/replacer-regexp-list '("^~/Airhost/airhost_ror" ":AH:"))
