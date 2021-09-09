@@ -15,7 +15,7 @@
 ;;
 ;; Features that might be required by this library:
 ;;
-;; `cl-lib' `color' `which-func'
+;; `cl-lib' `color' `which-func' `subr-x'
 ;;
 
 ;;; This file is NOT part of GNU Emacs
@@ -265,6 +265,7 @@
 ;;; Require
 (require 'cl-lib)
 (require 'color)
+(require 'subr-x)
 
 ;;; Code:
 ;;;;;;;;;;;;;;;;;;;;;;; Awesome-Tab source code ;;;;;;;;;;;;;;;;;;;;;;;
@@ -360,17 +361,22 @@ Set this option with nil if you don't like icon in tab."
           (const :tag "Left" left)
           (const :tag "Right" right)))
 
-(defcustom awesome-tab-height 190
+(defcustom awesome-tab-height 150
   "The height of tab face."
   :group 'awesome-tab
   :type 'int)
 
-(defcustom awesome-tab-icon-v-adjust 0
-  "The v-adjust of tab icon."
+(defcustom awesome-tab-icon-file-v-adjust -0.1
+  "The v-adjust of tab icon for file."
   :group 'awesome-tab
   :type 'float)
 
-(defcustom awesome-tab-icon-height 0.6
+(defcustom awesome-tab-icon-mode-v-adjust 0
+  "The v-adjust of tab icon for mode."
+  :group 'awesome-tab
+  :type 'float)
+
+(defcustom awesome-tab-icon-height 0.8
   "The height of icon.
 It will render top-line on tab when you set this variable bigger than 0.9."
   :group 'awesome-tab
@@ -478,6 +484,20 @@ Lower value means more contrast."
   :group 'awesome-tab
   :type 'integer)
 
+(defcustom awesome-tab-display-line
+  (if (version< emacs-version "27.0")
+      'header-line 'tab-line)
+  "The place to display awesome-tab.
+Either `header-line', or `tab-line' for Emacs 27 or above."
+  :group 'awesome-tab
+  :type '(choice (const header-line)
+                 (const tab-line)))
+
+;; Clear tab-line's color settings.
+(face-spec-set awesome-tab-display-line
+               '((t :inherit 'default))
+               'face-defface-spec)
+
 (defvar-local awesome-tab-ace-state nil
   "Whether current buffer is doing `awesome-tab-ace-jump' or not.")
 
@@ -520,6 +540,16 @@ group.  Notice that it is better that a buffer belongs to one group.")
     (if (fboundp 'force-window-update)
         #'(lambda () (force-window-update (selected-window)))
       'force-mode-line-update)))
+
+(defmacro awesome-tab-kill-buffer-match-rule (match-rule)
+  `(save-excursion
+     (mapc #'(lambda (buffer)
+               (with-current-buffer buffer
+                 (when (string-equal current-group-name (cdr (awesome-tab-selected-tab (awesome-tab-current-tabset t))))
+                   (when (funcall ,match-rule buffer)
+                     (kill-buffer buffer))
+                   )))
+           (buffer-list))))
 
 ;; Copied from s.el
 (defun awesome-tab-truncate-string (len s &optional ellipsis)
@@ -571,6 +601,10 @@ TABSET is the tab set the tab belongs to."
 (defvar awesome-tab-init-hook nil
   "Hook run after tab bar data has been initialized.
 You should use this hook to initialize dependent data.")
+
+(defvar awesome-tab-ace-jump-hook nil
+  "Hook run before ace jump active.
+You should use this hook to change input method state.")
 
 (defvar awesome-tab-active-bar nil)
 
@@ -821,7 +855,7 @@ customize the background will not have any effect."
 ;;
 (defun awesome-tab-make-header-line-mouse-map (mouse function)
   (let ((map (make-sparse-keymap)))
-    (define-key map (vector 'header-line mouse) function)
+    (define-key map (vector awesome-tab-display-line mouse) function)
     map))
 
 (defun awesome-tab-color-blend (c1 c2 alpha)
@@ -847,7 +881,7 @@ influence of C1 on the result."
     (when (display-graphic-p)
       (setq awesome-tab-active-bar (awesome-tab-make-xpm awesome-tab-active-bar-width awesome-tab-active-bar-height)))
 
-    (set-face-attribute 'header-line nil :height awesome-tab-height)
+    (set-face-attribute awesome-tab-display-line nil :height awesome-tab-height)
 
     (set-face-attribute 'awesome-tab-selected-face nil
                         :foreground (awesome-tab-get-select-foreground-color)
@@ -972,7 +1006,7 @@ Inhibit display of the tab bar in current window `awesome-tab-hide-tab-function'
   (cond
    ((awesome-tab-hide-tab-cached (current-buffer))
     ;; Don't show the tab bar.
-    (setq header-line-format nil))
+    (set (awesome-tab-display-line-format) nil))
    ((awesome-tab-current-tabset t)
     ;; When available, use a cached tab bar value, else recompute it.
     (or (awesome-tab-template awesome-tab-current-tabset)
@@ -1083,7 +1117,7 @@ Depend on the setting of the option `awesome-tab-cycle-scope'."
 ;;
 (defsubst awesome-tab-mode-on-p ()
   "Return non-nil if Awesome-Tab mode is on."
-  (eq (default-value 'header-line-format)
+  (eq (default-value (awesome-tab-display-line-format))
       awesome-tab-header-line-format))
 
 ;;; Awesome-Tab mode
@@ -1110,13 +1144,13 @@ Returns non-nil if the new state is enabled.
 ;;; ON
       (unless (awesome-tab-mode-on-p)
         ;; Save current default value of `header-line-format'.
-        (setq awesome-tab--global-hlf (default-value 'header-line-format))
+        (setq awesome-tab--global-hlf (default-value (awesome-tab-display-line-format)))
         (awesome-tab-init-tabsets-store)
-        (setq-default header-line-format awesome-tab-header-line-format))
+        (set-default (awesome-tab-display-line-format) awesome-tab-header-line-format))
 ;;; OFF
     (when (awesome-tab-mode-on-p)
       ;; Restore previous `header-line-format'.
-      (setq-default header-line-format awesome-tab--global-hlf)
+      (set-default (awesome-tab-display-line-format) awesome-tab--global-hlf)
       (awesome-tab-free-tabsets-store))
     ))
 
@@ -1343,13 +1377,13 @@ Otherwise use `all-the-icons-icon-for-buffer' to fetch icon for buffer."
              ((and
                tab-file
                (file-exists-p tab-file))
-              (all-the-icons-icon-for-file tab-file :v-adjust awesome-tab-icon-v-adjust :height awesome-tab-icon-height))
+              (all-the-icons-icon-for-file tab-file :v-adjust awesome-tab-icon-file-v-adjust :height awesome-tab-icon-height))
              ;; Use `all-the-icons-icon-for-mode' for current tab buffer at last.
              (t
               (with-current-buffer tab-buffer
                 (if (derived-mode-p tab-buffer 'eaf-mode)
-                    (all-the-icons-faicon "html5"  :v-adjust awesome-tab-icon-v-adjust :height awesome-tab-icon-height)
-                  (all-the-icons-icon-for-mode major-mode :v-adjust awesome-tab-icon-v-adjust :height awesome-tab-icon-height))
+                    (all-the-icons-faicon "html5"  :v-adjust awesome-tab-icon-mode-v-adjust :height awesome-tab-icon-height)
+                  (all-the-icons-icon-for-mode major-mode :v-adjust awesome-tab-icon-mode-v-adjust :height awesome-tab-icon-height))
                 )))))
       (when (and icon
                  ;; `get-text-property' need icon is string type.
@@ -1393,7 +1427,7 @@ Currently, this function is only use for option `awesome-tab-display-sticky-func
               ))))
       (setq awesome-tab-last-scroll-y scroll-y))))
 
-(add-hook 'post-command-hook 'awesome-tab-monitor-window-scroll)
+(add-hook 'post-command-hook #'awesome-tab-monitor-window-scroll)
 
 (defun awesome-tab-buffer-select-tab (tab)
   "Select tab."
@@ -1410,7 +1444,7 @@ after the current buffer has been killed.  Try first the buffer in tab
 after the current one, then the buffer in tab before.  On success, put
 the sibling buffer in front of the buffer list, so it will be selected
 first."
-  (and (eq header-line-format awesome-tab-header-line-format)
+  (and (eq (eval (awesome-tab-display-line-format)) awesome-tab-header-line-format)
        (eq awesome-tab-current-tabset-function 'awesome-tab-buffer-tabs)
        (eq (current-buffer) (window-buffer (selected-window)))
        (let ((bl (awesome-tab-tab-values (awesome-tab-current-tabset)))
@@ -1437,7 +1471,7 @@ Run as `awesome-tab-init-hook'."
         awesome-tab-current-tabset-function 'awesome-tab-buffer-tabs
         awesome-tab-select-tab-function 'awesome-tab-buffer-select-tab
         )
-  (add-hook 'kill-buffer-hook 'awesome-tab-buffer-track-killed))
+  (add-hook 'kill-buffer-hook #'awesome-tab-buffer-track-killed))
 
 (defun awesome-tab-buffer-quit ()
   "Quit tab bar buffer.
@@ -1447,10 +1481,10 @@ Run as `awesome-tab-quit-hook'."
         awesome-tab-current-tabset-function nil
         awesome-tab-select-tab-function nil
         )
-  (remove-hook 'kill-buffer-hook 'awesome-tab-buffer-track-killed))
+  (remove-hook 'kill-buffer-hook #'awesome-tab-buffer-track-killed))
 
-(add-hook 'awesome-tab-init-hook 'awesome-tab-buffer-init)
-(add-hook 'awesome-tab-quit-hook 'awesome-tab-buffer-quit)
+(add-hook 'awesome-tab-init-hook #'awesome-tab-buffer-init)
+(add-hook 'awesome-tab-quit-hook #'awesome-tab-buffer-quit)
 
 ;;;;;;;;;;;;;;;;;;;;;;; Interactive functions ;;;;;;;;;;;;;;;;;;;;;;;
 (defun awesome-tab-switch-group (&optional groupname)
@@ -1722,6 +1756,7 @@ tabs. NKEYS should be 1 or 2."
            (ace-strs (awesome-tab-build-ace-strs visible-tabs-length key-number visible-seqs)))
       (setq awesome-tab-ace-state t)
       (awesome-tab-refresh-display)
+      (run-hooks 'awesome-tab-ace-jump-hook)
       (dotimes (i key-number)
         (while (not done-flag)
           (let ((char (with-local-quit (read-key (format "Awesome Tab Ace Jump (%d):" (1+ i))))))
@@ -1752,6 +1787,14 @@ tabs. NKEYS should be 1 or 2."
       (awesome-tab-buffer-select-tab (nth lower-bound visible-tabs)))))
 
 ;;;;;;;;;;;;;;;;;;;;;;; Utils functions ;;;;;;;;;;;;;;;;;;;;;;;
+(defun awesome-tab-display-line-format ()
+  "Return the line-format to be used.
+This is based on `awesome-tab-display-line'."
+  (pcase awesome-tab-display-line
+    ('header-line 'header-line-format)
+    ('tab-line 'tab-line-format)
+    (_ (error "Invalid value of `awesome-tab-display-line'."))))
+
 (defun awesome-tab-get-groups ()
   ;; Refresh groups.
   (set awesome-tab-tabsets-tabset (awesome-tab-map-tabsets 'awesome-tab-selected-tab))
@@ -1772,16 +1815,6 @@ tabs. NKEYS should be 1 or 2."
           (buffer-list))
     extension-names))
 
-(defmacro awesome-tab-kill-buffer-match-rule (match-rule)
-  `(save-excursion
-     (mapc #'(lambda (buffer)
-               (with-current-buffer buffer
-                 (when (string-equal current-group-name (cdr (awesome-tab-selected-tab (awesome-tab-current-tabset t))))
-                   (when (funcall ,match-rule buffer)
-                     (kill-buffer buffer))
-                   )))
-           (buffer-list))))
-
 ;;;;;;;;;;;;;;;;;;;;;;; Default configurations ;;;;;;;;;;;;;;;;;;;;;;;
 
 ;; Uniquify tab name when open multiple buffers with same filename.
@@ -1790,7 +1823,7 @@ tabs. NKEYS should be 1 or 2."
 (setq uniquify-after-kill-buffer-p t)
 
 (dolist (hook awesometab-hide-tabs-hooks)
-  (add-hook hook '(lambda () (setq-local header-line-format nil))))
+  (add-hook hook #'(lambda () (setq-local header-line-format nil))))
 
 ;; Rules to control buffer's group rules.
 (defvar awesome-tab-groups-hash (make-hash-table :test 'equal))
@@ -1870,19 +1903,22 @@ Other buffer group by `awesome-tab-get-group-name' with project name."
 (defun awesome-tab-hide-tab (x)
   (let ((name (format "%s" x)))
     (or
-     ;; Current window is not dedicated window.
+     ;; Hide tab if current window is not dedicated window.
      (window-dedicated-p (selected-window))
 
-     ;; Buffer name not match below blacklist.
-     (string-prefix-p "*epc" name)
+     ;; Hide sdcv tab.
+     (string-prefix-p "*sdcv" name)
+
+     ;; Hide tab if current buffer is helm buffer.
      (string-prefix-p "*helm" name)
-     (string-prefix-p "*Compile-Log*" name)
-     (string-prefix-p "*lsp" name)
+
+     ;; Hide tab if current buffer is flycheck buffer.
      (string-prefix-p "*flycheck" name)
 
-     ;; Is not magit buffer.
-     (and (string-prefix-p "magit" name)
-          (not (file-name-extension name)))
+     ;; Hide blacklist if emacs version < 27 (use header-line).
+     (and (eq awesome-tab-display-line 'header-line)
+          (or (string-prefix-p "*Compile-Log*" name)
+              (string-prefix-p "*Flycheck" name)))
      )))
 
 (defun awesome-tab-hide-tab-cached (buf)

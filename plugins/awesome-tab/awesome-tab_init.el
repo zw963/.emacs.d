@@ -87,14 +87,14 @@ Other buffer group by `awesome-tab-get-group-name' with project name."
 ;; (setq awesome-tab-index-format-str '')
 
 ;; 这些数字是 visible 数字，不是所有 tab 的实际索引。
-(global-set-key [(meta \1)] 'awesome-tab-select-visible-tab)
-(global-set-key [(meta \2)] 'awesome-tab-select-visible-tab)
-(global-set-key [(meta \3)] 'awesome-tab-select-visible-tab)
-(global-set-key [(meta \4)] 'awesome-tab-select-visible-tab)
-(global-set-key [(meta \5)] 'awesome-tab-select-visible-tab)
-(global-set-key [(meta \6)] 'awesome-tab-select-visible-tab)
-(global-set-key [(meta \7)] 'awesome-tab-select-visible-tab)
-(global-set-key [(meta \8)] 'awesome-tab-select-visible-tab)
+;; (global-set-key [(meta \1)] 'awesome-tab-select-visible-tab)
+;; (global-set-key [(meta \2)] 'awesome-tab-select-visible-tab)
+;; (global-set-key [(meta \3)] 'awesome-tab-select-visible-tab)
+;; (global-set-key [(meta \4)] 'awesome-tab-select-visible-tab)
+;; (global-set-key [(meta \5)] 'awesome-tab-select-visible-tab)
+;; (global-set-key [(meta \6)] 'awesome-tab-select-visible-tab)
+;; (global-set-key [(meta \7)] 'awesome-tab-select-visible-tab)
+;; (global-set-key [(meta \8)] 'awesome-tab-select-visible-tab)
 
 (with-eval-after-load 'helm
   (awesome-tab-build-helm-source))
