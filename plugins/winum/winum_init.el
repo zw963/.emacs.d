@@ -25,6 +25,13 @@
 (global-set-key (kbd "M-7") 'winum-select-window-7)
 (global-set-key (kbd "M-8") 'winum-select-window-8)
 
+(defun winum-assign-1-to-neotree ()
+  (when (string-match-p (buffer-name) ".*\\*NeoTree\\*.*") 1))
+(add-to-list 'winum-assign-functions #'winum-assign-1-to-neotree)
+
+(set-face-attribute 'winum-face nil :weight 'bold)
+
+(setq winum-format " wm[%s] ")
 (setq winum-scope 'frame-local)
 (add-hook 'winum-mode-hook (lambda ()
                              (setq winum-ignored-buffers-regexp '())
