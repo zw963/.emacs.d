@@ -52,6 +52,7 @@
 (require 'which-key_init)
 (require 'zoom-frm_init)
 (require 'smart-mode-line_init)
+(require 'minimap_init)
 ;; (require 'eyebrowse_init)
 (require 'winum_init)
 (require 'hydra_init);; depend by treemacs
@@ -78,6 +79,8 @@
 ;; (require 'anzu_init)
 (require 'visual-regexp_init)
 (require 'pangu-spacing_init)
+(require 'back-button_init)
+(require 'bm_init)
 
 ;; (require 'ido_init)
 ;; (require 'popwin_init)
@@ -99,7 +102,6 @@
 ;; (require 'english-teacher_init)
 (require 'async_init)
 (require 'mu4e_init)
-;; (require 'minimap_init)
 (require 'zoom_init)
 
 ;; ============================== 编程相关 ==============================

@@ -13,7 +13,6 @@
     ("n" back-button-global-forward "global next mark")
     ("p" back-button-global-backward "global previous hunk")))
 
-
 (provide 'back-button_init)
 
 ;;; back-button_init.el ends here
