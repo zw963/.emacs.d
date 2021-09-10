@@ -8,6 +8,12 @@
 (define-prefix-command 'meta-c-map)
 (global-set-key [(meta c)] 'meta-c-map)
 
+(require 'windmove)
+(global-set-key [(super h)] 'windmove-left)
+(global-set-key [(super l)] 'windmove-right)
+(global-set-key [(super k)] 'windmove-up)
+(global-set-key [(super j)] 'windmove-down)
+
 (global-set-key [(control c) (j)] 'imenu)
 (global-set-key [(super n)] 'window-move-up) ;光标位置不变，窗口向上移动四行
 (global-set-key [(super p)] 'window-move-down) ;光标位置不变，窗口向下移动两行

@@ -258,8 +258,7 @@
            ;; (eq this-command 'diredc)
            )
     (run-with-idle-timer 0 nil 'toggle-frame-maximized)
-    )
-  )
+    ))
 
 (add-hook 'window-setup-hook 'toggle-frame-maximized t)
 ;; NOTICE: 传送给aftar-make-frame-function的函数必须有且只能有一个参数用来表示新建立的frame.
