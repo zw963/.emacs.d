@@ -116,6 +116,9 @@ is similar to `prefix', but allows for less typing.
 Value can also be a list of any of the above methods, in which
 case each method will be applied in order until one matches.
 
+Value can also be a function which returns any of the allowable
+values documented above.
+
 For backwards compatibility, the value of this variable can also
 be `literal+initialism', which equivalent to the list (`literal'
 `initialism')."
@@ -251,6 +254,20 @@ when `prescient--load' is called.")
 This is used to determine which set of changes to the save file
 should \"win\" when two concurrent Emacs sessions want to modify
 it.")
+
+(defun prescient-forget (candidate)
+  "Remove CANDIDATE from recency and frequency records."
+  (interactive
+   (list (completing-read "Forget candidate: "
+                          ;; Since candidates are shared, select from
+                          ;; the table with the most candidates.
+                          (if (> (hash-table-size prescient--frequency)
+                                 (hash-table-size prescient--history))
+                              prescient--frequency
+                            prescient--history)
+                          nil t)))
+  (remhash candidate prescient--history)
+  (remhash candidate prescient--frequency))
 
 ;;;; Persistence
 
@@ -547,7 +564,10 @@ enclose literal substrings with capture groups."
                      (message
                       "No function in `prescient-filter-alist' for method: %s"
                       method)))
-                 (pcase prescient-filter-method
+                 (pcase
+                     (if (functionp prescient-filter-method)
+                         (funcall prescient-filter-method)
+                       prescient-filter-method)
                    ;; We support `literal+initialism' for backwards
                    ;; compatibility.
                    (`literal+initialism '(literal initialism))
@@ -691,7 +711,7 @@ Return the sorted list. The original is modified destructively."
   (cl-incf prescient--serial-number)
   ;; Save the cache data.
   (when (and prescient-persist-mode
-	     prescient-aggressive-file-save)
+             prescient-aggressive-file-save)
     (prescient--save)))
 
 ;;;; Closing remarks
