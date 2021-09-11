@@ -45,8 +45,8 @@
   (indent-according-to-mode)
   )
 
-(global-set-key [(meta k)] 'mark-next-line) ;标记行 Alt-k
-(global-set-key [(control o)] 'open-line-and-indent) ;标记行 Alt-k
+(global-set-key [(shift return)] 'mark-next-line)
+(global-set-key [(control o)] 'open-line-and-indent)
 
 (relative-load "autoloads.el")
 (relative-load "init.el")
