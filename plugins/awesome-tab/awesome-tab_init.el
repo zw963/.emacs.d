@@ -76,8 +76,9 @@ Other buffer group by `awesome-tab-get-group-name' with project name."
 (awesome-tab-mode t)
 
 (global-set-key [(meta \0)] 'awesome-tab-forward-tab)
-(global-set-key [(control tab)] 'awesome-tab-forward-tab)
 (global-set-key [(meta \9)] 'awesome-tab-backward-tab)
+
+(global-set-key [(control tab)] 'awesome-tab-forward-tab)
 (global-set-key (kbd "<C-iso-lefttab>") 'awesome-tab-backward-tab)
 
 (global-set-key [(control meta \9)] 'awesome-tab-move-current-tab-to-left)

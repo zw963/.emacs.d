@@ -14,12 +14,6 @@
 
 (add-to-list 'git-gutter:update-commands 'ace-window)
 
-(with-eval-after-load 'hydra
-  (defhydra hydra-git-gutter (global-map "C-x v")
-    "Git gutter"
-    ("n" git-gutter:next-hunk "next-hunk")
-    ("p" git-gutter:previous-hunk "previous-hunk")))
-
 (global-set-key [(control x) (v) (u)] 'git-gutter:stage-hunk)
 (global-set-key [(control x) (v) (R)] 'git-gutter:revert-hunk)
 (global-set-key [(control x) (v) (r)] 'git-gutter:update-all-windows)
