@@ -108,6 +108,7 @@
 
 (require 'color-identifiers-mode_init)
 (require 'smartparens_init)
+(require 'string-inflection_init)
 (require 'highlight-indentation_init)
 (require 'highlight-escape-sequences_init)
 (require 'rainbow-delimiters_init)
@@ -151,6 +152,7 @@
 ;; (require 'fluentd-mode)
 ;; (require 'disable-mouse_init)
 (require 'telega_init)
+(require 'eaf_init)
 
 ;; 加载 dotfiles 时，阻止 gc.
 ;; (when (file-exists-p (expand-file-name ".emacs" config))

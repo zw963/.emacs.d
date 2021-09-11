@@ -31,6 +31,6 @@
 ;; (global-set-key [(meta u)] 'backward-upcase-word) ; 连续标记光标前面的单词大写 Alt-u
 ;; (global-set-key [(meta U)] 'backward-capitalize-word) ;连续标记光标前面单词首字母大写 Alt-U
 
-(provide 'string-inflection-init)
+(provide 'string-inflection_init)
 
 ;;; string-inflection_init.el ends here
