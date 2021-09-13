@@ -8,6 +8,11 @@
 (define-prefix-command 'meta-c-map)
 (global-set-key [(meta c)] 'meta-c-map)
 
+(define-key key-translation-map [(meta h)] [(super h)])
+(define-key key-translation-map [(meta l)] [(super l)])
+(define-key key-translation-map [(meta k)] [(super k)])
+(define-key key-translation-map [(meta j)] [(super j)])
+
 (require 'windmove)
 (global-set-key [(super h)] 'windmove-left)
 (global-set-key [(super l)] 'windmove-right)

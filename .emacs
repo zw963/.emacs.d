@@ -45,7 +45,7 @@
   (indent-according-to-mode)
   )
 
-(global-set-key [(shift return)] 'mark-next-line)
+(global-set-key [(meta m)] 'mark-next-line)
 (global-set-key [(control o)] 'open-line-and-indent)
 
 (relative-load "autoloads.el")
