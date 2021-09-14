@@ -57,6 +57,8 @@
   ;;(setq debug-on-signal t)
   )
 
+;; ============================== 编程相关 ==============================
+
 ;; (require 'rvm)
 ;; (require 'lsp-mode)
 ;; (require 'lsp-modeline)

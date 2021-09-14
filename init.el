@@ -90,7 +90,7 @@
 ;; (require 'quickrun_init)
 ;; (require 'spaceline_init)
 ;; (require 'awesome-tray_init)
-(require 'awesome-tab_init)
+;; (require 'awesome-tab_init)
 ;; (require 'awesome-pair_init)
 ;; (require 'super-save_init)
 ;; (require 'workgroups_init)
