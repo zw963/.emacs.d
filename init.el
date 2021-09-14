@@ -143,6 +143,7 @@
 (require 'go-mode_init)
 (require 'dpaste_init)
 (require 'ws-butler_init)
+(require 'mwim_init)
 ;; 这个老是运行失败。
 ;; (require 'wakatime-mode_init)
 
