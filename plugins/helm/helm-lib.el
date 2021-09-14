@@ -1222,17 +1222,73 @@ See `helm-elisp-show-help'."
             (helm-set-attr 'help-running-p t)))
     (helm-set-attr 'help-current-symbol candidate)))
 
+(defcustom helm-find-function-default-project nil
+  "Default directories to search symbols definitions from `helm-apropos'.
+A list of directories or a single directory name.
+Helm will allow you selecting one of those directories with `M-n' when
+using a prefix arg with the `find-function' action in `helm-apropos'.
+This is a good idea to add the directory names of the projects you are
+working on to quickly jump to the definitions in the project source
+files instead of jumping to the loaded files located in `load-path'."
+  :type '(choice (repeat string)
+                 string)
+  :group 'helm-elisp)
+
+(defun helm-find-function-noselect (func &optional root-dir type)
+  "Find FUNC definition without selecting buffer.
+FUNC can be a symbol or a string.
+Instead of looking in LOAD-PATH to find library, this function
+search in all subdirs of ROOT-DIR, if ROOT-DIR is unspecified ask for
+it with completion.
+TYPE when nil specify function, for other values see `find-function-regexp-alist'."
+  (let* ((sym (helm-symbolify func))
+         (dir (or root-dir (helm-read-file-name
+                            "Project directory: "
+                            :test 'file-directory-p
+                            :default (helm-mklist helm-find-function-default-project)
+                            :must-match t)))
+         (find-function-source-path
+          (cons dir (helm-walk-directory dir
+                                         :directories 'only
+                                         :path 'full)))
+         (symbol-lib (helm-acase type
+                       ((defvar defface)
+                        (or (symbol-file sym it)
+                            (help-C-file-name sym 'var)))
+                       (t (cdr (find-function-library sym)))))
+         (library (find-library-name
+                   (helm-basename symbol-lib t))))
+    (find-function-search-for-symbol sym type library)))
+
 (defun helm-find-function (func)
-  "FUNC is symbol or string."
-  (find-function (helm-symbolify func)))
+  "Try to jump to FUNC definition.
+With a prefix arg ask for the project directory to search in instead of
+using LOAD-PATH."
+  (if (not helm-current-prefix-arg)
+      (find-function (helm-symbolify func))
+    (let ((place (helm-find-function-noselect func)))
+      (when place
+        (switch-to-buffer (car place)) (goto-char (cdr place))))))
 
 (defun helm-find-variable (var)
-  "VAR is symbol or string."
-  (find-variable (helm-symbolify var)))
+  "Try to jump to VAR definition.
+With a prefix arg ask for the project directory to search in instead of
+using LOAD-PATH."
+  (if (not helm-current-prefix-arg)
+      (find-variable (helm-symbolify var))
+    (let ((place (helm-find-function-noselect var nil 'defvar)))
+      (when place
+        (switch-to-buffer (car place)) (goto-char (cdr place))))))
 
 (defun helm-find-face-definition (face)
-  "FACE is symbol or string."
-  (find-face-definition (helm-symbolify face)))
+  "Try to jump to FACE definition.
+With a prefix arg ask for the project directory to search in instead of
+using LOAD-PATH."
+  (if (not helm-current-prefix-arg)
+      (find-face-definition (helm-symbolify face))
+    (let ((place (helm-find-function-noselect face nil 'defface)))
+      (when place
+        (switch-to-buffer (car place)) (goto-char (cdr place))))))
 
 (defun helm-kill-new (candidate &optional replace)
   "CANDIDATE is symbol or string.
@@ -1291,6 +1347,13 @@ Argument ALIST is an alist of associated major modes."
       (if (string-match "\\." (helm-basename it) 1)
           (helm-file-name-sans-extension it)
           it)))
+
+(defsubst helm-file-name-extension (file)
+  "Returns FILE extension if it is not a number."
+  (helm-aif (file-name-extension file)
+      (and (not (string-match "\\`0+\\'" it))
+           (zerop (string-to-number it))
+           it)))
 
 (defun helm-basename (fname &optional ext)
   "Print FNAME with any leading directory components removed.
