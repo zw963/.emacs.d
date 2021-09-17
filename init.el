@@ -81,6 +81,7 @@
 (require 'pangu-spacing_init)
 (require 'back-button_init)
 (require 'bm_init)
+(require 'helpful_init)
 
 ;; (require 'ido_init)
 ;; (require 'popwin_init)
@@ -106,7 +107,7 @@
 
 ;; ============================== 编程相关 ==============================
 
-(require 'color-identifiers-mode_init)
+;; (require 'color-identifiers-mode_init)
 (require 'smartparens_init)
 (require 'string-inflection_init)
 (require 'highlight-indentation_init)
@@ -143,7 +144,6 @@
 (require 'go-mode_init)
 (require 'dpaste_init)
 (require 'ws-butler_init)
-(require 'mwim_init)
 ;; 这个老是运行失败。
 ;; (require 'wakatime-mode_init)
 

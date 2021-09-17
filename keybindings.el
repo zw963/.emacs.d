@@ -8,16 +8,16 @@
 (define-prefix-command 'meta-c-map)
 (global-set-key [(meta c)] 'meta-c-map)
 
-(define-key key-translation-map [(meta h)] [(super h)])
-(define-key key-translation-map [(meta l)] [(super l)])
-(define-key key-translation-map [(meta k)] [(super k)])
-(define-key key-translation-map [(meta j)] [(super j)])
+;; (define-key key-translation-map [(meta h)] [(super h)])
+;; (define-key key-translation-map [(meta l)] [(super l)])
+;; (define-key key-translation-map [(meta k)] [(super k)])
+;; (define-key key-translation-map [(meta j)] [(super j)])
 
-(require 'windmove)
-(global-set-key [(super h)] 'windmove-left)
-(global-set-key [(super l)] 'windmove-right)
-(global-set-key [(super k)] 'windmove-up)
-(global-set-key [(super j)] 'windmove-down)
+;; (require 'windmove)
+;; (global-set-key [(super h)] 'windmove-left)
+;; (global-set-key [(super l)] 'windmove-right)
+;; (global-set-key [(super k)] 'windmove-up)
+;; (global-set-key [(super j)] 'windmove-down)
 
 (global-set-key [(control c) (j)] 'imenu)
 (global-set-key [(super n)] 'window-move-up) ;光标位置不变，窗口向上移动四行
