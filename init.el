@@ -104,6 +104,8 @@
 (require 'async_init)
 (require 'mu4e_init)
 (require 'zoom_init)
+(require 'volatile-highlights_init)
+(require 'buffer-move_init)
 
 ;; ============================== 编程相关 ==============================
 
