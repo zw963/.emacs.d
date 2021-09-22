@@ -162,4 +162,7 @@
 ;;   (let ((gc-cons-threshold 20000000))
 ;;    (load ".emacs")))
 
+;; 这个似乎要放到最后面？
+(require 'workgroups_init)
+
 (setenv "LOAD_INIT" "true")
