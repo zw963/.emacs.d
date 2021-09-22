@@ -20,5 +20,7 @@
                                (wg-create-workgroup "wg0")
                                ))
 
+(global-set-key [(f6)] 'wg-open-workgroup)
+
 (provide 'workgroups_init)
 ;;; workgroups_init.el ends here
