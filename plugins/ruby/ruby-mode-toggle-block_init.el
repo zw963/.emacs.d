@@ -1,4 +1,4 @@
-(defun ruby-do-end-to-brace (orig end)
+(defun ruby-do-end-to-brace-fixed (orig end)
   (let (beg-marker end-marker beg-pos end-pos)
     (goto-char (- end 3))
     (when (looking-at ruby-block-end-re)
@@ -27,10 +27,9 @@
         (just-one-space -1)
         (goto-char end-marker)
         (just-one-space -1))
-      (goto-char beg-marker)
-      t)))
+      (goto-char beg-marker))))
 
-(defun ruby-toggle-block1 ()
+(defun ruby-toggle-block-fixed ()
   "Toggle block type from do-end to braces or back.
 The block must begin on the current line or above it and end after the point.
 If the result is do-end block, it will always be multiline."
@@ -42,29 +41,33 @@ If the result is do-end block, it will always be multiline."
                  (progn
                    (goto-char (or (match-beginning 1) (match-beginning 2)))
                    (setq beg (point))
-                   (save-match-data (ruby-forward-sexp))
+                   (save-match-data
+                     (if (eql major-mode 'enh-ruby-mode)
+                         (enh-ruby-forward-sexp)
+                       (ruby-forward-sexp)))
                    (setq end (point))
                    (> end start)))
             (if (match-beginning 1)
                 (progn
-                  (ruby-brace-to-do-end beg end)
+                  (if (eql major-mode 'enh-ruby-mode)
+                      (enh-ruby-brace-to-do-end beg end)
+                    (ruby-brace-to-do-end beg end)
+                    )
                   (end-of-line)
-                  (if (next-line-empty-p) (progn (forward-line) (indent-for-tab-command)) (newline-and-indent)))
-              (progn
-                (ruby-do-end-to-brace beg end)
-                )
-              ))
-      )))
+                  (if (next-line-empty-p) (progn (forward-line) (indent-for-tab-command)) (newline-and-indent))
+                  )
+                (ruby-do-end-to-brace-fixed beg end)
+              )))))
 
 (defun ruby-toggle-block-init()
   (interactive)
-  (local-set-key [(meta return)] 'ruby-toggle-block1)
-  (local-set-key [(meta ?\r)] 'ruby-toggle-block1)
+  (local-set-key [(meta return)] 'ruby-toggle-block-fixed)
+  (local-set-key [(meta ?\r)] 'ruby-toggle-block-fixed)
   )
 
-;; (local-set-key (kbd "C-c {")   'ruby-toggle-block)
-(run-ruby-mode-hook '(ruby-toggle-block-init))
+(add-hook 'ruby-mode-hook 'ruby-toggle-block-init)
+(add-hook 'enh-ruby-mode-hook 'ruby-toggle-block-init)
 
 (provide 'ruby-mode-toggle-block_init)
 
-;;; ruby-mode-toggle-block_init.el ends here
+;;; ruby-mode-toggle-block_init.el ends here.
