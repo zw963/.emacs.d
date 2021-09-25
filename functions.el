@@ -40,7 +40,7 @@ Use `font-lock-add-keywords' in case of `ruby-mode' or
 (defun translate-this-word-or-region ()
   (interactive)
   (if (use-region-p)
-      (run-process "trans1" (buffer-substring (region-beginning) (region-end)))
+      (run-process "trans" "-b" "en:zh-CN" (buffer-substring (region-beginning) (region-end)))
     (run-process "dict1" (current-word t t))
     ))
 
