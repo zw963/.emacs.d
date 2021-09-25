@@ -2,7 +2,7 @@
 ;; (require 'ruby-mode_init)
 (require 'ruby-ffap)
 (require 'yard-mode_init)
-(require 'ruby-mode-toggle-block_init)
+(require 'ruby-meta-return_init)
 (require 'rvm_init)
 ;; (require 'ruby-test-mode_init)
 (require 'ruby-mode-lsp_init)
