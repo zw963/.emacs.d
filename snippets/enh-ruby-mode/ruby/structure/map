@@ -1,0 +1,5 @@
+# -*- mode: snippet -*-
+# name: map
+# key: map
+# --
+map`(ruby-block "1" "e")`

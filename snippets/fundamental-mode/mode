@@ -1,0 +1,5 @@
+# -*- mode: snippet -*-
+# name: add mode shebang for emacs
+# key: mode
+# --
+# -*- mode: ${1:ruby}; -*-
