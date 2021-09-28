@@ -2,6 +2,6 @@
 # name: do |x| structure
 # key: do
 # --
-do${1:$(if-any " |")}${1:arg}${1:$(if-any "|")}
-  $0
+do`(yas-field "1" "arg" " |" "|")`
+  `(yas-stripped-selected-text "")`$0
 end

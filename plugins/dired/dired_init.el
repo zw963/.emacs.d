@@ -46,17 +46,17 @@
 ;;; Only if you want to control rename with the mouse...
 (define-key dired-mode-map [down-mouse-1] 'dired-efap-click)
 
-(require 'dired+)
-;; (require 'dired-git-info)
-;; (setq dgi-auto-hide-details-p nil)
-;; ;; (add-hook 'dired-after-readin-hook 'dired-git-info-auto-enable)
+(require 'ripgrep-dired)
+(concat "hello" "world")
+(setq ripgrep-dired-rg-basic-args "-nH --no-heading --smart-case \
+-g '!*~' -g '!#*#' -g '!.#*'")
+
 (add-hook 'dired-mode-hook
           '(lambda ()
-             (diredp-toggle-find-file-reuse-dir t)
              (dired-hide-details-mode -1)
              ;; 这行代码在 hook 里面是必须的, 因为 dired-efap 改写了 meta b 参数.
              (define-key dired-mode-map  [(meta b)] nil)
-             (define-key dired-mode-map  [(control r)] 'diredp-do-grep-recursive)
+             (define-key dired-mode-map  [(control r)] 'rg-grep)
              (define-key dired-mode-map  [(control c) (+)] 'dired-create-empty-file)
              ;; (define-key dired-mode-map ")" 'dired-git-info-mode)
              ))
@@ -86,7 +86,6 @@
 ;; t, dired-toggle-marks, 可以用来 mark 所有文件.
 ;; /, dired-narrow-fuzzy, 用来动态的 narrow 匹配的文件, g 会恢复.
 ;; 在标记的文件中搜索,  diredp-do-grep
-
 
 (provide 'dired_init)
 ;;;  dired_init.el ends here
