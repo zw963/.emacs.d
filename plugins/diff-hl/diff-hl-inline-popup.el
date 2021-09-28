@@ -52,10 +52,6 @@
    (nthcdr offset list)
    (- (length list) length offset)))
 
-(defun diff-hl-inline-popup--first-visible-line-in-window ()
-  "Return first visible line in current window."
-  (line-number-at-pos (window-start)))
-
 (defun diff-hl-inline-popup--ensure-enough-lines (pos content-height)
   "Ensure there is enough lines below POS to show the inline popup with CONTENT-HEIGHT height."
   (let* ((line (line-number-at-pos pos))
@@ -105,7 +101,7 @@ Default for CONTENT-SIZE is the size of the current lines"
          (blank-line (if (display-graphic-p)
                          ""
                        (concat "\n" (propertize (diff-hl-inline-popup--separator width)
-                                   'face '(:underline t)))))
+                                                'face '(:underline t)))))
          (line (propertize (concat (diff-hl-inline-popup--separator new-width)
                                    footer scroll-indicator)
                            'face '(:overline t))))
@@ -268,7 +264,7 @@ is closed."
     (setq diff-hl-inline-popup--height (diff-hl-inline-popup--compute-content-height height))
     (setq diff-hl-inline-popup--height (min diff-hl-inline-popup--height
                                             (length diff-hl-inline-popup--current-lines)))
-    (diff-hl-inline-popup--ensure-enough-lines point diff-hl-inline-popup--height)
+    ;; (diff-hl-inline-popup--ensure-enough-lines point diff-hl-inline-popup--height)
     (diff-hl-inline-popup-transient-mode 1)
     (diff-hl-inline-popup-scroll-to 0)
     overlay))
