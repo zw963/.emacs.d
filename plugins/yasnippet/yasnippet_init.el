@@ -70,24 +70,31 @@
 
 (defun current-git-file-path ()
   (interactive)
-  (replace-regexp-in-string
-   (concat "^" (regexp-quote
-                (expand-file-name
-                 (locate-dominating-file
-                  default-directory ".git"))))
-   ""
-   (buffer-file-name)))
+  (let ((git-folder (locate-dominating-file
+                     default-directory ".git")))
+    (when git-folder
+      (replace-regexp-in-string
+       (concat "^" (regexp-quote
+                    (expand-file-name
+                     git-folder)))
+       ""
+       (buffer-file-name)))))
 
 (defun class-from-file ()
   "Return corresponding class/module name for given FILE."
   (let ((file (current-git-file-path)))
-    (let ((path (find-if (lambda (path) (string-match (concat "^" (regexp-quote path)) file))
-                         '("app/models/" "app/controllers/" "app/helpers/" "lib/"
-                           "test/controllers/" "test/models/" "test/helpers/" "test/jobs" "test/integration"
-                           "spec/models/" "spec/controllers/" "spec/helpers/ spec/lib/"))))
-      (when path
-        (rails-refactoring:camelize
-         (replace-regexp-in-string path "" (replace-regexp-in-string "\\(_spec\\)?\\.rb$" "" file)))))))
+    (if file
+        (let ((path (find-if (lambda (path) (string-match (concat "^" (regexp-quote path)) file))
+                             '("app/models/" "app/controllers/" "app/helpers/" "lib/"
+                               "test/controllers/" "test/models/" "test/helpers/" "test/jobs" "test/integration"
+                               "spec/models/" "spec/controllers/" "spec/helpers/ spec/lib/"))))
+          (when path
+            (rails-refactoring:camelize
+             (replace-regexp-in-string path "" (replace-regexp-in-string "\\(_spec\\)?\\.rb$" "" file)))
+            )
+          )
+      (rails-refactoring:camelize
+       (file-name-sans-extension (file-name-nondirectory buffer-file-name))))))
 
 ;; 下面的代码因为 company 中的那个 hack, 已经不再需要了。
 ;; (with-eval-after-load 'company
