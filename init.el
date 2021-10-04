@@ -76,8 +76,8 @@
 (require 'company_init)
 (require 'yasnippet_init)
 (require 'prescient_init) ;; 这个必须放在 ivy_init 后面.
-;; (require 'anzu_init)
-(require 'visual-regexp_init)
+(require 'anzu_init)
+;; (require 'visual-regexp_init)
 (require 'pangu-spacing_init)
 (require 'back-button_init)
 (require 'bm_init)
