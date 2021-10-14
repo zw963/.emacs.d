@@ -110,12 +110,14 @@ find the key a command is bound to it will show a blank instead."
              (key-open-ace-v     (treemacs--find-keybind #'treemacs-visit-node-ace-vertical-split))
              (key-open-ext       (treemacs--find-keybind #'treemacs-visit-node-in-external-application))
              (key-open-mru       (treemacs--find-keybind #'treemacs-visit-node-in-most-recently-used-window))
+             (key-open-close     (treemacs--find-keybind #'treemacs-visit-node-close-treemacs))
              (key-close-above    (treemacs--find-keybind #'treemacs-collapse-parent-node))
              (key-follow-mode    (treemacs--find-keybind #'treemacs-follow-mode))
              (key-fringe-mode    (treemacs--find-keybind #'treemacs-fringe-indicator-mode))
              (key-fwatch-mode    (treemacs--find-keybind #'treemacs-filewatch-mode))
              (key-git-mode       (treemacs--find-keybind #'treemacs-git-mode))
              (key-show-dotfiles  (treemacs--find-keybind #'treemacs-toggle-show-dotfiles))
+             (key-indent-guide   (treemacs--find-keybind #'treemacs-indent-guide-mode))
              (key-show-gitignore (treemacs--find-keybind #'treemacs-hide-gitignored-files-mode))
              (key-toggle-width   (treemacs--find-keybind #'treemacs-toggle-fixed-width))
              (key-add-project    (treemacs--find-keybind #'treemacs-add-project-to-workspace 12))
@@ -136,9 +138,10 @@ find the key a command is bound to it will show a blank instead."
 %s goto parent      ^^^^│ %s open vertical       ^^^^│ %s show gitignored files ^^^^│
 %s down next window ^^^^│ %s open ace            ^^^^│ %s resizability          ^^^^│
 %s up next window   ^^^^│ %s open ace horizontal ^^^^│ %s fringe indicator      ^^^^│
-%s root up          ^^^^│ %s open ace vertical   ^^^^│                              │
+%s root up          ^^^^│ %s open ace vertical   ^^^^│ %s indent guide          ^^^^│
 %s root down        ^^^^│ %s open mru window     ^^^^│                              │
                         │ %s open externally     ^^^^│                              │
+                        │ %s open close treemacs ^^^^│                              │
                         │ %s close parent        ^^^^│                              │
 "
                title
@@ -151,9 +154,10 @@ find the key a command is bound to it will show a blank instead."
                (car key-goto-parent)    (car key-open-vert)   (car key-show-gitignore)
                (car key-down-next-w)    (car key-open-ace)    (car key-toggle-width)
                (car key-up-next-w)      (car key-open-ace-h)  (car key-fringe-mode)
-               (car key-root-up)        (car key-open-ace-v)
+               (car key-root-up)        (car key-open-ace-v)  (car key-indent-guide)
                (car key-root-down)      (car key-open-mru)
                                         (car key-open-ext)
+                                        (car key-open-close)
                                         (car key-close-above))))
           (eval
            `(defhydra treemacs--common-helpful-hydra (:exit nil :hint nil :columns 4)
@@ -178,18 +182,20 @@ find the key a command is bound to it will show a blank instead."
               (,(cdr key-open-ace-v)     #'treemacs-visit-node-ace-vertical-split)
               (,(cdr key-open-mru)       #'treemacs-visit-node-in-most-recently-used-window)
               (,(cdr key-open-ext)       #'treemacs-visit-node-in-external-application)
+              (,(cdr key-open-close)     #'treemacs-visit-node-close-treemacs)
               (,(cdr key-close-above)    #'treemacs-collapse-parent-node)
               (,(cdr key-follow-mode)    #'treemacs-follow-mode)
               (,(cdr key-show-dotfiles)  #'treemacs-toggle-show-dotfiles)
-              (,(cdr key-show-gitignore) #'treemacs-toggle-show-dotfiles)
+              (,(cdr key-show-gitignore) #'treemacs-hide-gitignored-files-mode)
               (,(cdr key-toggle-width)   #'treemacs-toggle-fixed-width)
               (,(cdr key-fringe-mode)    #'treemacs-fringe-indicator-mode)
+              (,(cdr key-indent-guide)   #'treemacs-indent-guide-mode)
               (,(cdr key-git-mode)       #'treemacs-git-mode)
               (,(cdr key-fwatch-mode)    #'treemacs-filewatch-mode)
               (,(cdr key-add-project)    #'treemacs-add-project-to-workspace)
               (,(cdr key-remove-project) #'treemacs-remove-project-from-workspace)
               (,(cdr key-rename-project) #'treemacs-rename-project)
-              ("ESC" nil "Exit"))))
+              ("<escape>" nil "Exit"))))
         (treemacs--common-helpful-hydra/body))
     (treemacs-log-failure "The helpful hydra cannot be summoned without an existing treemacs buffer.")))
 
@@ -286,7 +292,7 @@ find the key a command is bound to it will show a blank instead."
               (,(cdr key-rename-ws)      #'treemacs-rename-workspace)
               (,(cdr key-switch-ws)      #'treemacs-switch-workspace)
               (,(cdr key-fallback-ws)    #'treemacs-set-fallback-workspace)
-              ("ESC" nil "Exit"))))
+              ("<escape>" nil "Exit"))))
         (treemacs--advanced-helpful-hydra/body))
     (treemacs-log-failure "The helpful hydra cannot be summoned without an existing treemacs buffer.")))
 

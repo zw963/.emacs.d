@@ -157,6 +157,16 @@ Requires eldoc mode to be enabled."
   :type 'boolean
   :group 'treemacs)
 
+(defcustom treemacs-indent-guide-style 'line
+  "Determines the appearance of `treemacs-indent-guide-mode'.
+The choices are
+ - `line' for indent guides to use the ' ┃ ' character for every indentation
+   level
+ - `block' to use a thick '██' block interspersed at every second indentation
+   level"
+  :type '(choice (const :tag "Line" 'line) (const :tag "Block" 'block))
+  :group 'treemacs)
+
 (defcustom treemacs-indentation-string " "
   "The string that is for indentation in the file tree.
 Indentation is created by repeating this string `treemacs-indentation' many
@@ -339,7 +349,7 @@ The difference between this and `treemacs-ignored-file-predicates' is that the
 functions in this list will be called on files just before they would be
 rendered, when the files' git status information is now available.  This for
 example allows to make files ignored by git invisible (however this particular
-use-case is already covered by `treemacs-show-gitignored-files').
+use-case is already covered by `treemacs-hide-gitignored-files-mode').
 
 The functions in this list are therefore expected to have a different signature:
 They must take two arguments - a file's absolute path and a hash table that maps

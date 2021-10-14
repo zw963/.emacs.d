@@ -82,6 +82,7 @@ Then call ORIG-FUN with its ARGS and reopen treemacs if it was open before."
 (define-key evil-treemacs-state-map (kbd "tf")  #'treemacs-follow-mode)
 (define-key evil-treemacs-state-map (kbd "ta")  #'treemacs-filewatch-mode)
 (define-key evil-treemacs-state-map (kbd "tg")  #'treemacs-git-mode)
+(define-key evil-treemacs-state-map (kbd "tn")  #'treemacs-indent-guide-mode)
 (define-key evil-treemacs-state-map (kbd "w")   #'treemacs-set-width)
 (define-key evil-treemacs-state-map (kbd "b")   #'treemacs-add-bookmark)
 (define-key evil-treemacs-state-map (kbd "?")   #'treemacs-common-helpful-hydra)
@@ -99,6 +100,7 @@ Then call ORIG-FUN with its ARGS and reopen treemacs if it was open before."
 (evil-define-key 'treemacs treemacs-mode-map [down-mouse-1] #'treemacs-leftclick-action)
 (evil-define-key 'treemacs treemacs-mode-map [drag-mouse-1] #'treemacs-dragleftclick-action)
 (evil-define-key 'treemacs treemacs-mode-map (kbd "h")      #'treemacs-COLLAPSE-action)
+(evil-define-key 'treemacs treemacs-mode-map (kbd "RET")    #'treemacs-RET-action)
 (evil-define-key 'treemacs treemacs-mode-map (kbd "l")      #'treemacs-RET-action)
 
 (provide 'treemacs-evil)
