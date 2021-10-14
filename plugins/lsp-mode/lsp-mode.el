@@ -5,7 +5,7 @@
 ;; Author: Vibhav Pant, Fangrui Song, Ivan Yonchovski
 ;; Keywords: languages
 ;; Package-Requires: ((emacs "26.1") (dash "2.18.0") (f "0.20.0") (ht "2.3") (spinner "1.7.3") (markdown-mode "2.3") (lv "0"))
-;; Version: 7.1.0
+;; Version: 8.0.1
 
 ;; URL: https://github.com/emacs-lsp/lsp-mode
 ;; This program is free software; you can redistribute it and/or modify
@@ -112,6 +112,12 @@
   :group 'lsp-mode
   :type 'boolean)
 
+(defcustom lsp-log-io-allowlist-methods '()
+  "The methods to filter before print to lsp-log-io."
+  :group 'lsp-mode
+  :type '(repeat string)
+  :package-version '(lsp-mode . "8.0.1"))
+
 (defcustom lsp-log-max message-log-max
   "Maximum number of lines to keep in the log buffer.
 If nil, disable message logging.  If t, log messages but don’t truncate
@@ -145,7 +151,7 @@ the buffer when it becomes large."
   :type 'boolean
   :package-version '(lsp-mode . "6.1"))
 
-(define-obsolete-variable-alias 'lsp-enable-semantic-highlighting 'lsp-semantic-tokens-enable "lsp-mode 7.1")
+(define-obsolete-variable-alias 'lsp-enable-semantic-highlighting 'lsp-semantic-tokens-enable "lsp-mode 8.0.0")
 
 (defcustom lsp-semantic-tokens-enable nil
   "Enable/disable support for semantic tokens.
@@ -169,7 +175,7 @@ As defined by the Language Server Protocol 3.16."
 (defcustom lsp-client-packages
   '(ccls lsp-actionscript lsp-ada lsp-angular lsp-bash lsp-beancount lsp-clangd lsp-clojure lsp-cmake
          lsp-crystal lsp-csharp lsp-css lsp-d lsp-dart lsp-dhall lsp-dockerfile lsp-elm
-         lsp-elixir lsp-erlang lsp-eslint lsp-fortran lsp-fsharp lsp-gdscript lsp-go
+         lsp-elixir lsp-erlang lsp-eslint lsp-fortran lsp-fsharp lsp-gdscript lsp-go lsp-graphql
          lsp-hack lsp-grammarly lsp-groovy lsp-haskell lsp-haxe lsp-java lsp-javascript lsp-json
          lsp-kotlin lsp-ltex lsp-lua lsp-markdown lsp-nim lsp-nix lsp-metals lsp-ocaml lsp-perl lsp-php lsp-pwsh
          lsp-pyls lsp-pylsp lsp-python-ms lsp-purescript lsp-r lsp-rf lsp-rust lsp-solargraph lsp-sorbet
@@ -300,7 +306,7 @@ the server has requested that."
   :package-version '(lsp-mode . "6.1"))
 ;;;###autoload(put 'lsp-enable-file-watchers 'safe-local-variable #'booleanp)
 
-(define-obsolete-variable-alias 'lsp-file-watch-ignored 'lsp-file-watch-ignored-directories "7.1.0")
+(define-obsolete-variable-alias 'lsp-file-watch-ignored 'lsp-file-watch-ignored-directories "8.0.0")
 
 (defcustom lsp-file-watch-ignored-directories
   '(; SCM tools
@@ -328,6 +334,7 @@ the server has requested that."
     "[/\\\\]target\\'"
     "[/\\\\]\\.ccls-cache\\'"
     "[/\\\\]\\.vscode\\'"
+    "[/\\\\]\\.venv\\'"
     ;; Autotools output
     "[/\\\\]\\.deps\\'"
     "[/\\\\]build-aux\\'"
@@ -339,6 +346,7 @@ the server has requested that."
     "[/\\\\]\\.shadow-cljs\\'"
     "[/\\\\]\\.babel_cache\\'"
     "[/\\\\]\\.cpcache\\'"
+    "[/\\\\]\\checkouts\\'"
     ;; .Net Core build-output
     "[/\\\\]bin/Debug\\'"
     "[/\\\\]obj\\'"
@@ -352,7 +360,7 @@ creating file watches. Customization of this variable is only honored at
 the global level or at a root of an lsp workspace."
   :group 'lsp-mode
   :type '(repeat string)
-  :package-version '(lsp-mode . "7.1.0"))
+  :package-version '(lsp-mode . "8.0.0"))
 
 (define-obsolete-function-alias 'lsp-file-watch-ignored 'lsp-file-watch-ignored-directories "7.0.1")
 
@@ -383,7 +391,7 @@ Customization of this variable is only honored at the global
 level or at a root of an lsp workspace."
   :group 'lsp-mode
   :type '(repeat string)
-  :package-version '(lsp-mode . "7.1.0"))
+  :package-version '(lsp-mode . "8.0.0"))
 
 ;; Allow lsp-file-watch-ignored-files as a file or directory-local variable
 (put 'lsp-file-watch-ignored-files 'safe-local-variable 'lsp--string-listp)
@@ -505,7 +513,7 @@ before saving a document."
 It contains the operation source."
   :type 'hook
   :group 'lsp-mode
-  :package-version '(lsp-mode . "7.1"))
+  :package-version '(lsp-mode . "8.0.0"))
 
 (defcustom lsp-modeline-code-actions-enable t
   "Whether to show code actions on modeline."
@@ -521,7 +529,7 @@ It contains the operation source."
   "Whether to show workspace status on modeline."
   :type 'boolean
   :group 'lsp-modeline
-  :package-version '(lsp-mode . "7.1"))
+  :package-version '(lsp-mode . "8.0.0"))
 
 (defcustom lsp-headerline-breadcrumb-enable t
   "Whether to enable breadcrumb on headerline."
@@ -676,6 +684,13 @@ Changes take effect only when a new session is started."
   :group 'lsp-mode
   :package-version '(lsp-mode . "6.1"))
 
+(defcustom lsp-auto-touch-files t
+  "If non-nil ensure the files exist before sending
+`textDocument/didOpen' notification."
+  :type 'boolean
+  :group 'lsp-mode
+  :package-version '(lsp-mode . "8.0.1"))
+
 (defvar lsp-language-id-configuration '((".*\\.vue$" . "vue")
                                         (".*\\.tsx$" . "typescriptreact")
                                         (".*\\.ts$" . "typescript")
@@ -727,6 +742,7 @@ Changes take effect only when a new session is started."
                                         (mhtml-mode . "html")
                                         (go-dot-mod-mode . "go.mod")
                                         (go-mode . "go")
+                                        (graphql-mode . "graphql")
                                         (haskell-mode . "haskell")
                                         (hack-mode . "hack")
                                         (php-mode . "php")
@@ -1026,7 +1042,7 @@ every element of it is of type string, else nil."
    (vectorp candidate)
    (seq-every-p #'stringp candidate)))
 
-(make-obsolete 'lsp--string-vector-p nil "lsp-mode 7.1")
+(make-obsolete 'lsp--string-vector-p nil "lsp-mode 8.0.0")
 
 (defun lsp--editable-vector-match (widget value)
   "Function for `lsp-editable-vector' :match."
@@ -1084,7 +1100,7 @@ Deprecated. Use `lsp-repeatable-vector' instead. "
   :tag "Vector"
   :type '(lsp-repeatable-vector string))
 
-(make-obsolete 'lsp-string-vector nil "lsp-mode 7.1")
+(make-obsolete 'lsp-string-vector nil "lsp-mode 8.0.0")
 
 (defvar lsp--show-message t
   "If non-nil, show debug message from `lsp-mode'.")
@@ -1811,7 +1827,7 @@ regex in IGNORED-FILES."
     lsp-actionscript lsp-ada lsp-angular lsp-bash lsp-beancount lsp-clangd
     lsp-clojure lsp-cmake lsp-crystal lsp-csharp lsp-css lsp-d lsp-dhall
     lsp-dockerfile lsp-elixir lsp-elm lsp-erlang lsp-eslint lsp-fortran lsp-fsharp lsp-gdscript
-    lsp-go lsp-groovy lsp-hack lsp-haxe lsp-html lsp-javascript lsp-json lsp-kotlin lsp-lua
+    lsp-go lsp-graphql lsp-groovy lsp-hack lsp-haxe lsp-html lsp-javascript lsp-json lsp-kotlin lsp-lua
     lsp-markdown lsp-nim lsp-nix lsp-ocaml lsp-perl lsp-php lsp-prolog lsp-purescript lsp-pwsh
     lsp-pyls lsp-pylsp lsp-racket lsp-r lsp-rf lsp-rust lsp-solargraph lsp-sorbet lsp-sqls
     lsp-steep lsp-svelte lsp-terraform lsp-tex lsp-v lsp-vala lsp-verilog lsp-vetur lsp-vhdl
@@ -1910,7 +1926,7 @@ PARAMS - the data sent from WORKSPACE."
   "Progress prefix."
   :group 'lsp-mode
   :type 'string
-  :package-version '(lsp-mode . "7.1.0"))
+  :package-version '(lsp-mode . "8.0.0"))
 
 (defcustom lsp-progress-function #'lsp-on-progress-modeline
   "Function for handling the progress notifications."
@@ -1921,7 +1937,7 @@ PARAMS - the data sent from WORKSPACE."
                  lsp-on-progress-legacy)
           (const ignore :tag "Ignore")
           (function :tag "Other function"))
-  :package-version '(lsp-mode . "7.1.0"))
+  :package-version '(lsp-mode . "8.0.0"))
 
 (defun lsp--progress-status ()
   "Returns the status of the progress for the current workspaces."
@@ -1935,7 +1951,9 @@ PARAMS - the data sent from WORKSPACE."
                   (mapconcat
                    (-lambda ((&WorkDoneProgressBegin :message? :title :percentage?))
                      (concat (if percentage?
-                                 (format "%s%%%% " percentage?)
+                                 (if (numberp percentage?)
+                                     (format "%.0f%%%% " percentage?)
+                                   (format "%s%%%% " percentage?))
                                "")
                              (or message? title)))
                    (ht-values tokens)
@@ -2276,14 +2294,20 @@ WORKSPACE is the workspace that contains the diagnostics."
 (put 'lsp--range 'bounds-of-thing-at-point
      #'lsp--range-at-point-bounds)
 
+(defun lsp--log-io-p (method)
+  "Return non nil if should log for METHOD."
+  (and lsp-log-io
+       (or (not lsp-log-io-allowlist-methods)
+           (member method lsp-log-io-allowlist-methods))))
+
 
 ;; toggles
 
 (defun lsp-toggle-trace-io ()
   "Toggle client-server protocol logging."
   (interactive)
-  (setq lsp-print-io (not lsp-print-io))
-  (lsp--info "Server logging %s." (if lsp-print-io "enabled" "disabled")))
+  (setq lsp-log-io (not lsp-log-io))
+  (lsp--info "Server logging %s." (if lsp-log-io "enabled" "disabled")))
 
 (defun lsp-toggle-signature-auto-activate ()
   "Toggle signature auto activate."
@@ -2998,7 +3022,7 @@ TYPE can either be 'incoming or 'outgoing"
 (defun lsp--send-notification (body)
   "Send BODY as a notification to the language server."
   (lsp-foreach-workspace
-   (when lsp-print-io
+   (when (lsp--log-io-p (plist-get body :method))
      (lsp--log-entry-new (lsp--make-log-entry
                           (plist-get body :method)
                           nil (plist-get body :params) 'outgoing-notif)
@@ -3155,12 +3179,22 @@ ID is the request id. "
                      results
                    (lsp--merge-results (-map #'cl-rest results) method)))))))
 
+(defcustom lsp-default-create-error-handler-fn nil
+  "Default error handler customization.
+Handler should give METHOD as argument and return function of one argument
+ERROR."
+  :type 'function
+  :group 'lsp-mode
+  :package-version '(lsp-mode . "8.0.1"))
+
 (defun lsp--create-default-error-handler (method)
   "Default error handler.
 METHOD is the executed method."
-  (lambda (error)
-    (lsp--warn "%s" (or (lsp--error-string error)
-                        (format "%s Request has failed" method)))))
+  (if lsp-default-create-error-handler-fn
+      (funcall lsp-default-create-error-handler-fn method)
+    (lambda (error)
+      (lsp--warn "%s" (or (lsp--error-string error)
+                          (format "%s Request has failed" method))))))
 
 (defvar lsp--request-cleanup-hooks (ht))
 
@@ -3279,7 +3313,7 @@ CANCEL-TOKEN is the token that can be used to cancel request."
           (puthash cancel-token (cons id target-workspaces) lsp--cancelable-requests))
 
         (seq-doseq (workspace target-workspaces)
-          (when lsp-log-io
+          (when (lsp--log-io-p method)
             (lsp--log-entry-new (lsp--make-log-entry method id
                                                      (plist-get body :params)
                                                      'outgoing-req)
@@ -3346,7 +3380,10 @@ disappearing, unset all the variables related to it."
                    ,@(when lsp-enable-file-watchers '((didChangeWatchedFiles . ((dynamicRegistration . t)))))
                    (workspaceFolders . t)
                    (configuration . t)
-                   ,@(when lsp-semantic-tokens-enable '((semanticTokens . ((refreshSupport . t)))))
+                   ,@(when lsp-semantic-tokens-enable
+                       `((semanticTokens . ((refreshSupport . ,(or (and (boundp 'lsp-semantic-tokens-honor-refresh-requests)
+                                                                        lsp-semantic-tokens-honor-refresh-requests)
+                                                                   :json-false))))))
                    ,@(when lsp-lens-enable '((codeLens . ((refreshSupport . t)))))
                    (fileOperations . ((didCreate . :json-false)
                                       (willCreate . :json-false)
@@ -3458,10 +3495,13 @@ disappearing, unset all the variables related to it."
                            lsp--registered-capability-options
                            (lsp:did-change-watched-files-registration-options-watchers)
                            (seq-find
-                            (-lambda ((&FileSystemWatcher :glob-pattern :kind?))
+                            (-lambda ((fs-watcher &as &FileSystemWatcher :glob-pattern :kind? :_cachedRegexp cached-regexp))
                               (when (or (null kind?)
                                         (> (logand kind? watch-bit) 0))
-                                (-let [regexes (lsp-glob-to-regexps glob-pattern)]
+                                (-let [regexes (or cached-regexp
+                                                   (let ((regexp (lsp-glob-to-regexps glob-pattern)))
+                                                     (lsp-put fs-watcher :_cachedRegexp regexp)
+                                                     regexp))]
                                   (-any? (lambda (re)
                                            (or (string-match re changed-file)
                                                (string-match re rel-changed-file)))
@@ -3606,7 +3646,7 @@ yet."
   (let ((print-length nil)
         (print-level nil))
     ;; Create all parent directories:
-    (apply #'f-mkdir (f-split (f-parent file-name)))
+    (make-directory (f-parent file-name) t)
     (f-write-text (prin1-to-string to-persist) 'utf-8 file-name)))
 
 (defun lsp-workspace-folders-add (project-root)
@@ -3858,6 +3898,11 @@ yet."
 (defun lsp--text-document-did-open ()
   "'document/didOpen' event."
   (run-hooks 'lsp-before-open-hook)
+  (when (and lsp-auto-touch-files
+             (not (f-exists? (lsp--uri-to-path (lsp--buffer-uri)))))
+    (lsp--info "Saving file '%s' because it is not present on the disk." (lsp--buffer-uri))
+    (save-buffer))
+
   (setq lsp--cur-version (or lsp--cur-version 0))
   (cl-pushnew (lsp-current-buffer) (lsp--workspace-buffers lsp--cur-workspace))
   (lsp-notify
@@ -4368,7 +4413,10 @@ Added to `after-change-functions'."
   ;; So (47 54 0) means add    7 chars starting at pos 47
   ;; So (47 47 7) means delete 7 chars starting at pos 47
   (save-match-data
-    (let ((inhibit-quit t))
+    (let ((inhibit-quit t)
+          ;; make sure that `lsp-on-change' is called in multi-workspace context
+          ;; see #2901
+          lsp--cur-workspace)
       ;; A (revert-buffer) call with the 'preserve-modes parameter (eg, as done
       ;; by auto-revert-mode) will cause this handler to get called with a nil
       ;; buffer-file-name. We need the buffer-file-name to send notifications;
@@ -4798,20 +4846,21 @@ If INCLUDE-DECLARATION is non-nil, request the server to include declarations."
   most recently requested highlights.")
 
 (defun lsp--document-highlight ()
-  (let ((curr-sym-bounds (bounds-of-thing-at-point 'symbol)))
-    (unless (or (looking-at "[[:space:]\n]")
-                (not lsp-enable-symbol-highlighting)
-                (and lsp--have-document-highlights
-                     curr-sym-bounds
-                     (equal curr-sym-bounds
-                            lsp--symbol-bounds-of-last-highlight-invocation)))
-      (setq lsp--symbol-bounds-of-last-highlight-invocation
-            curr-sym-bounds)
-      (lsp-request-async "textDocument/documentHighlight"
-                         (lsp--text-document-position-params)
-                         #'lsp--document-highlight-callback
-                         :mode 'tick
-                         :cancel-token :highlights))))
+  (when (lsp-feature? "textDocument/documentHighlight")
+    (let ((curr-sym-bounds (bounds-of-thing-at-point 'symbol)))
+      (unless (or (looking-at "[[:space:]\n]")
+                  (not lsp-enable-symbol-highlighting)
+                  (and lsp--have-document-highlights
+                       curr-sym-bounds
+                       (equal curr-sym-bounds
+                              lsp--symbol-bounds-of-last-highlight-invocation)))
+        (setq lsp--symbol-bounds-of-last-highlight-invocation
+              curr-sym-bounds)
+        (lsp-request-async "textDocument/documentHighlight"
+                           (lsp--text-document-position-params)
+                           #'lsp--document-highlight-callback
+                           :mode 'tick
+                           :cancel-token :highlights)))))
 
 (defun lsp-describe-thing-at-point ()
   "Display the type signature and documentation of the thing at
@@ -5105,13 +5154,24 @@ RENDER-ALL - nil if only the signature should be rendered."
   (funcall lsp-signature-function nil)
   (lsp-signature-mode -1))
 
+(declare-function page-break-lines--update-display-tables "ext:page-break-lines")
+
+(defun lsp--setup-page-break-mode-if-present ()
+  "Enable `page-break-lines-mode' in current buffer."
+  (when (fboundp 'page-break-lines-mode)
+    (page-break-lines-mode)
+    ;; force page-break-lines-mode to update the display tables.
+    (page-break-lines--update-display-tables)))
+
 (defun lsp-lv-message (message)
+  (add-hook 'lv-window-hook #'lsp--setup-page-break-mode-if-present)
   (if message
       (progn
         (setq lsp--signature-last-buffer (current-buffer))
         (let ((lv-force-update t))
           (lv-message "%s" message)))
-    (lv-delete-window)))
+    (lv-delete-window)
+    (remove-hook 'lv-window-hook #'lsp--setup-page-break-mode-if-present)))
 
 (declare-function posframe-show "ext:posframe")
 (declare-function posframe-hide "ext:posframe")
@@ -5124,9 +5184,9 @@ RENDER-ALL - nil if only the signature should be rendered."
 
 (defvar lsp-signature-posframe-params
   (list :poshandler #'posframe-poshandler-point-bottom-left-corner-upward
-        :height 6
+        :height 10
         :width 60
-        :border-width 10
+        :border-width 1
         :min-width 60)
   "Params for signature and `posframe-show'.")
 
@@ -5134,18 +5194,19 @@ RENDER-ALL - nil if only the signature should be rendered."
   "Use posframe to show the STR signatureHelp string."
   (if str
       (apply #'posframe-show
-             (with-current-buffer (get-buffer-create "*lsp-signature*")
+             (with-current-buffer (get-buffer-create " *lsp-signature*")
                (erase-buffer)
                (insert str)
                (visual-line-mode 1)
+               (lsp--setup-page-break-mode-if-present)
                (current-buffer))
-             (append lsp-signature-posframe-params
-                     (list
-                      :position (point)
-                      :background-color (face-attribute 'lsp-signature-posframe :background nil t)
-                      :foreground-color (face-attribute 'lsp-signature-posframe :foreground nil t)
-                      :border-color (face-attribute 'lsp-signature-posframe :background nil t))))
-    (posframe-hide "*lsp-signature*")))
+             (append
+              lsp-signature-posframe-params
+              (list :position (point)
+                    :background-color (face-attribute 'lsp-signature-posframe :background nil t)
+                    :foreground-color (face-attribute 'lsp-signature-posframe :foreground nil t)
+                    :border-color (face-attribute 'font-lock-comment-face :foreground nil t))))
+    (posframe-hide " *lsp-signature*")))
 
 (defun lsp--handle-signature-update (signature)
   (let ((message
@@ -5228,6 +5289,9 @@ It will show up only if current point has signature help."
                              (when (s-present? docs)
                                (concat
                                 "\n"
+                                (if (fboundp 'page-break-lines-mode)
+                                    "\n"
+                                  "")
                                 (if (and (numberp lsp-signature-doc-lines)
                                          (> (length (s-lines docs)) lsp-signature-doc-lines))
                                     (concat (s-join "\n" (-take lsp-signature-doc-lines (s-lines docs)))
@@ -5409,7 +5473,7 @@ It will filter by KIND if non nil."
   "Execute code action by COMMAND-KIND."
   (if-let ((action (->> (lsp-get-or-calculate-code-actions command-kind)
                         (-filter (-lambda ((&CodeAction :kind?))
-                                   (and kind? (equal command-kind kind?))))
+                                   (and kind? (s-prefix? command-kind kind?))))
                         lsp--select-action)))
       (lsp-execute-code-action action)
     (signal 'lsp-no-code-actions '(command-kind))))
@@ -6063,7 +6127,7 @@ textDocument/didOpen for the new file."
 (lsp-defun lsp--on-notification (workspace (&JSONNotification :params :method))
   "Call the appropriate handler for NOTIFICATION."
   (-let ((client (lsp--workspace-client workspace)))
-    (when lsp-print-io
+    (when (lsp--log-io-p method)
       (lsp--log-entry-new (lsp--make-log-entry method nil params 'incoming-notif)
                           lsp--cur-workspace))
     (if-let ((handler (or (gethash method (lsp--client-notification-handlers client))
@@ -6098,13 +6162,13 @@ PARAMS are the `workspace/configuration' request params"
   (-let* (((&JSONResponse :params :method :id) request)
           (process (lsp--workspace-proc workspace))
           (response (lsp--make-response id response))
-          (req-entry (and lsp-print-io
+          (req-entry (and lsp-log-io
                           (lsp--make-log-entry method id params 'incoming-req)))
-          (resp-entry (and lsp-print-io
+          (resp-entry (and lsp-log-io
                            (lsp--make-log-entry method id response 'outgoing-resp
                                                 (/ (nth 2 (time-since recv-time)) 1000)))))
     ;; Send response to the server.
-    (when lsp-print-io
+    (when (lsp--log-io-p method)
       (lsp--log-entry-new req-entry workspace)
       (lsp--log-entry-new resp-entry workspace))
     (lsp--send-no-wait (lsp--make-message response) process)))
@@ -6274,25 +6338,25 @@ WORKSPACE is the active workspace."
           ('response
            (cl-assert id)
            (-let [(callback _ method _ before-send) (gethash id (lsp--client-response-handlers client))]
-             (when lsp-print-io
+             (when (lsp--log-io-p method)
                (lsp--log-entry-new
                 (lsp--make-log-entry method id data 'incoming-resp
                                      (/ (nth 2 (time-since before-send)) 1000))
                 workspace))
              (when callback
-               (funcall callback (lsp:json-response-result json-data))
-               (remhash id (lsp--client-response-handlers client)))))
+               (remhash id (lsp--client-response-handlers client))
+               (funcall callback (lsp:json-response-result json-data)))))
           ('response-error
            (cl-assert id)
            (-let [(_ callback method _ before-send) (gethash id (lsp--client-response-handlers client))]
-             (when lsp-print-io
+             (when (lsp--log-io-p method)
                (lsp--log-entry-new
                 (lsp--make-log-entry method id (lsp:json-response-error-error json-data)
                                      'incoming-resp (/ (nth 2 (time-since before-send)) 1000))
                 workspace))
              (when callback
-               (funcall callback (lsp:json-response-error-error json-data))
-               (remhash id (lsp--client-response-handlers client)))))
+               (remhash id (lsp--client-response-handlers client))
+               (funcall callback (lsp:json-response-error-error json-data)))))
           ('notification
            (lsp--on-notification workspace json-data))
           ('request (lsp--on-request workspace json-data)))))))
@@ -7209,7 +7273,7 @@ SESSION is the active session."
 (defcustom lsp-verify-signature t
   "Whether to check GPG signatures of downloaded files."
   :type 'boolean
-  :package-version '(lsp-mode . "7.1")
+  :package-version '(lsp-mode . "8.0.0")
   :group 'lsp-mode)
 
 (defvar lsp--dependencies (ht))
@@ -7590,7 +7654,7 @@ archieve(e. g. when the archieve has multiple files)"
   "The script to unzip."
   :group 'lsp-mode
   :type 'string
-  :package-version '(lsp-mode . "7.1"))
+  :package-version '(lsp-mode . "8.0.0"))
 
 (defun lsp-unzip (zip-file dest)
   "Unzip ZIP-FILE to DEST."
@@ -7610,7 +7674,7 @@ Should be a format string with one argument for the file to be decompressed
 in place."
   :group 'lsp-mode
   :type 'string
-  :package-version '(lsp-mode . "7.1"))
+  :package-version '(lsp-mode . "8.0.0"))
 
 (defun lsp-gunzip (gz-file)
   "Decompress GZ-FILE in place."
@@ -7625,7 +7689,7 @@ in place."
   "Vscode extension template url."
   :group 'lsp-mode
   :type 'string
-  :package-version '(lsp-mode . "7.1"))
+  :package-version '(lsp-mode . "8.0.0"))
 
 (defun lsp-vscode-extension-url (publisher name &optional version)
   "Return the URL to vscode extension.
@@ -7826,7 +7890,7 @@ SESSION is the active session."
 (defun lsp-workspace-show-log (workspace)
   "Display the log buffer of WORKSPACE."
   (interactive
-   (list (if lsp-print-io
+   (list (if lsp-log-io
              (if (eq (length (lsp-workspaces)) 1)
                  (cl-first (lsp-workspaces))
                (lsp--completing-read "Workspace: " (lsp-workspaces)
@@ -8028,6 +8092,7 @@ Returns nil if the project should not be added to the current SESSION."
 
 %s==>Import project root %s.
 %s==>Import project by selecting root directory interactively.
+%s==>Import project at current directory %s.
 %s==>Do not ask again for the current project by adding %s to lsp-session-folders-blacklist.
 %s==>Do not ask again for the current project by selecting ignore path interactively.
 %s==>Do nothing: ask again when opening other files from the current project."
@@ -8035,6 +8100,8 @@ Returns nil if the project should not be added to the current SESSION."
                                 (propertize "i" 'face 'success)
                                 (propertize project-root-suggestion 'face 'bold)
                                 (propertize "I" 'face 'success)
+                                (propertize "." 'face 'success)
+                                (propertize default-directory 'face 'bold)
                                 (propertize "d" 'face 'warning)
                                 (propertize project-root-suggestion 'face 'bold)
                                 (propertize "D" 'face 'warning)
@@ -8046,6 +8113,7 @@ Returns nil if the project should not be added to the current SESSION."
                                    (or project-root-suggestion default-directory)
                                    nil
                                    t))
+          (?. default-directory)
           (?d (push project-root-suggestion (lsp-session-folders-blacklist session))
               (lsp--persist-session session)
               nil)
@@ -8306,10 +8374,14 @@ This issue might be caused by:
 5. You have disabled the `lsp-mode' clients for that file. (Check `lsp-enabled-clients' and `lsp-disabled-clients')."
                     major-mode major-mode major-mode))))))
 
+(defun lsp--buffer-visible-p ()
+  "Return non nil if current buffer is visible."
+  (or (buffer-modified-p) (get-buffer-window nil t)))
+
 (defun lsp--init-if-visible ()
   "Run `lsp' for the current buffer if the buffer is visible.
-Returns `t' if `lsp' was run for the buffer."
-  (when (or (buffer-modified-p) (get-buffer-window nil t))
+Returns non nil if `lsp' was run for the buffer."
+  (when (lsp--buffer-visible-p)
     (remove-hook 'window-configuration-change-hook #'lsp--init-if-visible t)
     (lsp)
     t))
@@ -8382,7 +8454,7 @@ This avoids overloading the server with many files when starting Emacs."
                  (-partition 2 checks))))))
 
 (define-obsolete-function-alias 'lsp-diagnose
-  'lsp-doctor "lsp-mode 7.1")
+  'lsp-doctor "lsp-mode 8.0.0")
 
 (defun lsp-doctor ()
   "Validate performance settings."

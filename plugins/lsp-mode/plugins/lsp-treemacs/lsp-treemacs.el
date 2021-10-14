@@ -6,7 +6,7 @@
 ;; Keywords: languages
 ;; Package-Requires: ((emacs "26.1") (dash "2.18.0") (f "0.20.0") (ht "2.0") (treemacs "2.5") (lsp-mode "6.0"))
 ;; Homepage: https://github.com/emacs-lsp/lsp-treemacs
-;; Version: 0.3
+;; Version: 0.4
 
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -929,6 +929,8 @@ will be rendered an empty line between them."
       (setq-local treemacs-space-between-root-nodes nil)
       (lsp-treemacs--set-mode-line-format search-buffer title)
       (lsp-treemacs-generic-refresh)
+      (when treemacs-text-scale
+        (text-scale-set treemacs-text-scale))
       (when expand-depth (lsp-treemacs--expand 'LSP-Generic expand-depth))
       (current-buffer))))
 

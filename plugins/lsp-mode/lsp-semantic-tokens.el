@@ -30,7 +30,7 @@
   :group 'lsp-mode
   :tag "LSP Semantic tokens")
 
-(define-obsolete-variable-alias 'lsp-semantic-highlighting-warn-on-missing-face 'lsp-semantic-tokens-warn-on-missing-face "lsp-mode 7.1")
+(define-obsolete-variable-alias 'lsp-semantic-highlighting-warn-on-missing-face 'lsp-semantic-tokens-warn-on-missing-face "lsp-mode 8.0.0")
 
 (defcustom lsp-semantic-tokens-warn-on-missing-face nil
   "Warning on missing face for token type/modifier.
@@ -306,9 +306,9 @@ If FONTIFY-IMMEDIATELY is non-nil, fontification will be performed immediately
          (substrings))
     (cl-loop
      for edit across edits
-     when (< old-token-index (lsp-get edit :start))
      do
-     (push (substring old-data old-token-index (lsp-get edit :start)) substrings)
+     (when (< old-token-index (lsp-get edit :start))
+       (push (substring old-data old-token-index (lsp-get edit :start)) substrings))
      (push (lsp-get edit :data) substrings)
      (setq old-token-index (+ (lsp-get edit :start) (lsp-get edit :deleteCount)))
      finally do (push (substring old-data old-token-index old-token-count) substrings))
