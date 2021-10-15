@@ -13,6 +13,12 @@
 ;;     ("=" zoom-frm-in "zoom frame in"))
 ;;   )
 
+(with-eval-after-load 'dap-mode
+  (require 'dap-hydra)
+  (add-hook 'dap-stopped-hook
+            (lambda (arg) (call-interactively #'dap-hydra)))
+  )
+
 (with-eval-after-load 'hydra
   (defhydra hydra-block-nav
     (

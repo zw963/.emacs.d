@@ -12,6 +12,9 @@
 (require 'dap-ruby)
 (dap-ruby-setup)
 
+(require 'dap-go)
+(dap-go-setup)
+
 ;; Try to connect to ruby-debug-ide, but still working.
 
 ;; (dap-register-debug-provider
