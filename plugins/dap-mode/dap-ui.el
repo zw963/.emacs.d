@@ -151,6 +151,11 @@ number - expand N levels."
   "Face for enabled breakpoint icon in fringe."
   :group 'dap-ui)
 
+(defface dap-ui-controls-fringe
+  '((t :inherit fringe))
+  "Face used for the background of debugger icons in fringe."
+  :group 'dap-ui)
+
 (defcustom  dap-ui-default-fetch-count 30
   "Default number of variables to load in inspect variables view for
 array variables."
@@ -218,7 +223,7 @@ VISUALS and MSG will be used for the overlay."
 
 (defun dap-ui--clear-breakpoint-overlays ()
   "Remove all overlays that ensime-debug has created."
-  (mapc #'delete-overlay dap-ui--breakpoint-overlays)
+  (mapc #'delete-overlay (-filter #'identity dap-ui--breakpoint-overlays))
   (setq dap-ui--breakpoint-overlays '()))
 
 (defun dap-ui--breakpoint-visuals (breakpoint breakpoint-dap)
@@ -494,7 +499,7 @@ DEBUG-SESSION is the debug session triggering the event."
               'display `(image :type png
                                :file ,(f-join dap-ui--control-images-root-dir image)
                                :ascent center
-                               :background ,(face-attribute 'fringe :background nil t))
+                               :background ,(face-attribute 'dap-ui-controls-fringe :background nil 'default))
               'local-map (--doto (make-sparse-keymap)
                            (define-key it [mouse-1] command))
               'pointer 'hand
@@ -693,7 +698,7 @@ DEBUG-SESSION is the debug session triggering the event."
                             (funcall
                              callback
                              (-map
-                              (-lambda ((stack-frame &as &hash "name" "line" "source"))
+                              (-lambda ((stack-frame &as &hash "name" "line" "source" "instructionPointerReference"))
                                 (let* ((current-session (dap--cur-session))
                                        (icon (if (and
                                                   (equal session current-session)
@@ -726,6 +731,9 @@ DEBUG-SESSION is the debug session triggering the event."
                                                                                     (gethash "name"))))
                                                                  'dap-ui-sessions-thread-active-face
                                                                'dap-ui-sessions-thread-face))
+                                                      (if instructionPointerReference
+                                                          (propertize (format " [%s]" instructionPointerReference) 'face 'dap-ui-sessions-thread-face)
+                                                        "")
                                                       (propertize (format " (%s:%s)" (or (gethash "name" source)
                                                                                          (gethash "path" source))
                                                                           line)
