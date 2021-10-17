@@ -25,9 +25,9 @@
 (global-set-key (kbd "M-7") 'winum-select-window-7)
 (global-set-key (kbd "M-8") 'winum-select-window-8)
 
-(defun winum-assign-1-to-neotree ()
-  (when (string-match-p (buffer-name) ".*\\*NeoTree\\*.*") 1))
-(add-to-list 'winum-assign-functions #'winum-assign-1-to-neotree)
+(defun winum-assign-1-to-treemacs ()
+  (when (string-match-p " \\*Treemacs-Scoped-Buffer.*\\*" (buffer-name)) 1))
+(add-to-list 'winum-assign-functions #'winum-assign-1-to-treemacs)
 
 (set-face-attribute 'winum-face nil :weight 'bold)
 

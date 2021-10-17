@@ -164,6 +164,8 @@
   ;; empty indentation
   ;; newline newline-mark
   ))
+(setq whitespace-global-modes '(not makefile-mode))
+(global-whitespace-mode 1)
 
 ;; Title 上不显示当前文件名，因为当使用多窗口时，实在是效果不太好。
 (setq frame-title-format
@@ -386,9 +388,6 @@
 ;; (add-hook 'org-mode-hook '(lambda ()
 ;;                             (remove-hook 'before-save-hook 'delete-trailing-whitespace)
 ;;                             ))
-
-(setq whitespace-global-modes '(not makefile-mode))
-(global-whitespace-mode 1)
 
 ;; 这个到底是否需要？ 不确定，先注释看看效果。
 ;; (turn-on-eldoc-mode)

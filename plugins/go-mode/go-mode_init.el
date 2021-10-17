@@ -1,17 +1,16 @@
 (require 'go-mode)
 (add-to-list 'auto-mode-alist '("\\.go\\'" . go-mode))
-(setq gofmt-command "goimports")
+;; (setq gofmt-command "goimports")
 ;; (add-hook 'before-save-hook 'gofmt-before-save)
 
 ;; ;; Set up before-save hooks to format buffer and add/delete imports.
 ;; ;; Make sure you don't have other gofmt/goimports hooks enabled.
 (defun lsp-go-install-save-hooks ()
   (add-hook 'before-save-hook #'lsp-format-buffer t t)
-  (add-hook 'before-save-hook #'lsp-organize-imports t t))
+  (add-hook 'before-save-hook #'lsp-organize-imports t t)
+  )
 
 (defun my-go-mode-hook ()
-  (local-set-key (kbd "M-.") 'godef-jump)
-  (local-set-key (kbd "M-*") 'pop-tag-mark)
   (lsp-deferred)
   (lsp-go-install-save-hooks)
   )

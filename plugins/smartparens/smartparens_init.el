@@ -13,6 +13,10 @@
               '(:add ("||\n[i]" "RET"))))
    pairs))
 
+;; https://github.com/rdallasgray/graphene/blob/master/lib/graphene-smartparens-config.el
+(sp-local-pair
+ '(markdown-mode gfm-mode) "*" "*" :unless '(sp-in-string-p) :actions '(insert wrap))
+
 (add-hook 'prog-mode-hook 'smartparens-global-mode)
 
 (provide 'smartparens_init)
