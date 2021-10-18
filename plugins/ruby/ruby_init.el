@@ -14,6 +14,7 @@
 (require 'robe-mode_init)
 
 (require 'rbtagger_init)
+;; (require 'ctags-update_init)
 (require 'rspec-mode_init)
 (require 'yari_init)
 

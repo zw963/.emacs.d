@@ -128,7 +128,6 @@
 (require 'gist_init)
 (require 'ruby_init)
 (require 'coffee-mode_init)
-(require 'ctags-update_init)
 (require 'web-mode_init)
 (require 'rainbow-mode_init)
 ;; (require 'smart-jump_init)
