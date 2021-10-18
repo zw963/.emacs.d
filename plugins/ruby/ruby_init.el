@@ -13,7 +13,7 @@
 (require 'inf-ruby_init)
 (require 'robe-mode_init)
 
-;; (require 'rbtagger_init)
+(require 'rbtagger_init)
 (require 'rspec-mode_init)
 (require 'yari_init)
 
