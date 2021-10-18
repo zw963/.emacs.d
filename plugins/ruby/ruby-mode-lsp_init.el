@@ -38,7 +38,8 @@
                'ruby-mode
                ))
   (add-hook hook '(lambda ()
-                    (rvm-activate-corresponding-ruby)
+                    (unless (and rvm--current-ruby rvm--current-gemset)
+                      (rvm-activate-corresponding-ruby))
                     (lsp-deferred)
                     )))
 

@@ -18,7 +18,8 @@
 
 (defadvice goto-gem (before switch-ruby-version activate)
   "Switch rvm before goto gem directory."
-  (rvm-activate-corresponding-ruby))
+  (unless (and rvm--current-ruby rvm--current-gemset)
+        (rvm-activate-corresponding-ruby)))
 
 (provide 'rvm_init)
 ;;; rvm_init.el ends here
