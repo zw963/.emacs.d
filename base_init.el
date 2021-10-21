@@ -412,12 +412,15 @@
 
 (add-hook 'text-mode-hook 'goto-address-mode)
 
-(add-hook 'prog-mode-hook 'display-line-numbers-mode)
-(add-hook 'sgml-mode-hook 'display-line-numbers-mode)
-(add-hook 'feature-mode-hook 'display-line-numbers-mode)
-(add-hook 'yaml-mode-hook 'display-line-numbers-mode)
+(defun enable-display-line-numbers ()
+  (display-line-numbers-mode 1)
+  ;; (setq display-line-numbers 'relative)
+  )
 
-(setq display-line-numbers 'relative)
+(add-hook 'prog-mode-hook 'enable-display-line-numbers)
+(add-hook 'sgml-mode-hook 'enable-display-line-numbers)
+(add-hook 'feature-mode-hook 'enable-display-line-numbers)
+(add-hook 'yaml-mode-hook 'enable-display-line-numbers)
 
 (delete-selection-mode t)                       ;选区替换模式.
 
