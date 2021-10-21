@@ -5,7 +5,7 @@
 (require 'ruby-meta-return_init)
 (require 'rvm_init)
 ;; (require 'ruby-test-mode_init)
-(require 'ruby-mode-lsp_init)
+;; (require 'ruby-mode-lsp_init)
 (require 'ruby-mode_keyword_highlight_init)
 (require 'rbs-mode)
 
@@ -13,8 +13,8 @@
 (require 'inf-ruby_init)
 (require 'robe-mode_init)
 
-;; (require 'rbtagger_init)
-(require 'ctags-update_init)
+(require 'rbtagger_init)
+;; (require 'ctags-update_init)
 (require 'rspec-mode_init)
 (require 'yari_init)
 

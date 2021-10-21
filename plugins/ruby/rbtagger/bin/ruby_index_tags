@@ -6,7 +6,6 @@ function current_timestamp {
 }
 
 project_dir=${1:-$(pwd)}
-project_name=$(basename $project_dir)
 lock_file="${project_dir}/.rbtagger-lock"
 gemfile="${project_dir}/Gemfile"
 temp_tags_file="${project_dir}/TAGS.temp"
@@ -82,7 +81,7 @@ function index_main_project {
 }
 
 function ripper_tags_wrapper {
-    if ! ripper-tags --extra=q --recursive --emacs \
+    if ! ripper-tags --extra=q --force --recursive --emacs \
          --exclude=.git "$@" > /dev/null; then
         abort "Ripper tags failed"
     fi
@@ -90,16 +89,23 @@ function ripper_tags_wrapper {
 
 function index_project_gems {
     local temp_tags_file=$1
+    local project_name=$(basename $project_dir)
     local gem_dir="$(gem environment gemdir)"
     local gem_list
     local gem_list_cache_file="${gem_dir}/gems/gems.${project_name}"
-    local gem_tags_file="${gem_dir}/gems/TAGS"
+    local gem_tags_file="${gem_dir}/gems/TAGS.${project_name}"
 
     if ! gem_list=$(bundle list --paths | grep -e "^/"); then
-        abort "Command to list gems failed. Bundler returned an error."
+        warn "Command to list gems failed. Bundler returned an error."
+
+        if [[ -f "$gem_tags_file" ]]; then
+            gem_list=$(cat $gem_list_cache_file)
+        else
+            abort "Tags generation failed!"
+        fi
     fi
 
-    if [[ -f "$gem_list_cache_file" ]]; then
+    if [[ -f "$gem_tags_file" ]] && [[ -f "$gem_list_cache_file" ]]; then
         if cmp <(echo "$gem_list") $gem_list_cache_file > /dev/null 2>&1; then
             echo "Gems did not change, skipping..."
             cat "$gem_tags_file" >> "$temp_tags_file"
@@ -107,14 +113,16 @@ function index_project_gems {
         fi
     fi
 
-    echo "$gem_list" > "$gem_list_cache_file"
-    rm -f "$gem_tags_file" > /dev/null 2>&1
+    if [[ -n "$gem_list" ]]; then
+        echo "$gem_list" > "$gem_list_cache_file"
+        rm -f "$gem_tags_file" > /dev/null 2>&1
 
-    for gem_dir in $gem_list; do
-        index_dir "$gem_dir" "$gem_tags_file"
-    done
+        for gem_dir in $gem_list; do
+            index_dir "$gem_dir" "$gem_tags_file"
+        done
 
-    cat "$gem_tags_file" >> "$temp_tags_file"
+        cat "$gem_tags_file" >> "$temp_tags_file"
+    fi
 }
 
 function index_stdlib {
@@ -207,4 +215,4 @@ index_project_gems "$temp_tags_file"
 mv "$temp_tags_file" "$final_tags_file"
 
 echo
-echo "Tags generation complete! File: ${final_tags_file}"
+echo "Tags generation finished! File: ${final_tags_file}"

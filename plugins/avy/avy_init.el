@@ -33,7 +33,9 @@
 (setq aw-scope 'visible)
 ;; (setq aw-minibuffer-flag t)
 (setq aw-ignore-current t)
-;; (setq aw-dispatch-always t)
+(setq aw-dispatch-always t)
+
+;; ace-window 激活后，有一个有用的快捷键 m, 用来交换当前 window 和指定的 window.
 (global-set-key [remap other-window] 'ace-window)
 
 ;; (setq aw-keys '(?a ?s ?d ?f ?g ?h ?j ?k ?l))

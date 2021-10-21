@@ -307,7 +307,7 @@
       tab-stop-list '(4 8 12 16 20 24 28 32 36 40 44 48 52 56 60 64 68 72 76 80 84 88 92 96 100 104 108 112 116 120)
       colon-double-space t                      ;重排文本时, 在冒号后面新加入两个空格.
       truncate-partial-width-windows t          ;不能在一行显示时，自动截断。
-      ;; create-lockfiles nil                      ; 禁用锁定文件, #开头的文件。
+      ;; create-lockfiles nil                      ; 禁用锁定文件, .# 开头的文件, 例如：.#ruby.rb
       mouse-yank-at-point t                     ;而是使用鼠标中键在光标处 yank.
       browse-url-browser-function 'browse-url-generic
       browse-url-generic-program "firefox"
@@ -416,6 +416,8 @@
 (add-hook 'sgml-mode-hook 'display-line-numbers-mode)
 (add-hook 'feature-mode-hook 'display-line-numbers-mode)
 (add-hook 'yaml-mode-hook 'display-line-numbers-mode)
+
+(setq display-line-numbers 'relative)
 
 (delete-selection-mode t)                       ;选区替换模式.
 
