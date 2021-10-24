@@ -8,8 +8,10 @@
 (auto-compile-on-load-mode)
 (auto-compile-on-save-mode)
 
+(setq auto-compile-native-compile t)
 (setq auto-compile-display-buffer nil)
-;; (setq auto-compile-mode-line-counter t)
+(setq auto-compile-mode-line-counter t)
+(setq comp-deferred-compilation t)
 
 (provide 'auto-compile_init)
 
