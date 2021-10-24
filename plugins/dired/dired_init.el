@@ -52,14 +52,14 @@
 -g '!*~' -g '!#*#' -g '!.#*'")
 
 (add-hook 'dired-mode-hook
-          '(lambda ()
-             (dired-hide-details-mode -1)
-             ;; 这行代码在 hook 里面是必须的, 因为 dired-efap 改写了 meta b 参数.
-             (define-key dired-mode-map  [(meta b)] nil)
-             (define-key dired-mode-map  [(control r)] 'rg-grep)
-             (define-key dired-mode-map  [(control c) (+)] 'dired-create-empty-file)
-             ;; (define-key dired-mode-map ")" 'dired-git-info-mode)
-             ))
+          (lambda ()
+            (dired-hide-details-mode -1)
+            ;; 这行代码在 hook 里面是必须的, 因为 dired-efap 改写了 meta b 参数.
+            (define-key dired-mode-map  [(meta b)] nil)
+            (define-key dired-mode-map  [(control r)] 'rg-grep)
+            (define-key dired-mode-map  [(control c) (+)] 'dired-create-empty-file)
+            ;; (define-key dired-mode-map ")" 'dired-git-info-mode)
+            ))
 
 ;; (require 'dired-k)
 ;; (setq dired-k-style 'git)

@@ -878,3 +878,4 @@ If the other ring is also displayed, then its displayed is updated."
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; browse-kill-ring+.el ends here
+

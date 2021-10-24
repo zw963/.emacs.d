@@ -14,12 +14,12 @@
 ;; 这个是用鼠标左键点一下, 就新增加一个 cursor.
 (global-set-key (kbd "C-S-<mouse-1>") 'mc/add-cursor-on-click)
 
-(add-hook 'activate-mark-hook '(lambda ()
-                                 (local-set-key (kbd "C-@") 'set-rectangular-region-anchor)
-                                 ))
-(add-hook 'deactivate-mark-hook '(lambda ()
-                                   (local-unset-key (kbd "C-@"))
-                                   ))
+(add-hook 'activate-mark-hook (lambda ()
+                                (local-set-key (kbd "C-@") 'set-rectangular-region-anchor)
+                                ))
+(add-hook 'deactivate-mark-hook (lambda ()
+                                  (local-unset-key (kbd "C-@"))
+                                  ))
 
 (provide 'multiple-cursors_init)
 

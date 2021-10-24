@@ -336,13 +336,13 @@
   (set-face-attribute 'diff-changed nil
                       :foreground "white" :background "purple"))
 (add-hook 'diff-mode-hook
-          '(lambda ()
-             (define-key diff-mode-map [(meta backspace)] 'backward-kill-word)
-             (define-key diff-mode-map [(meta ?\d)] 'backward-kill-word)
-             (define-key diff-mode-map [(super n)] 'diff-hunk-next)
-             (define-key diff-mode-map [(super p)] 'diff-hunk-prev)
-             (update-diff-colors)
-             ))
+          (lambda ()
+            (define-key diff-mode-map [(meta backspace)] 'backward-kill-word)
+            (define-key diff-mode-map [(meta ?\d)] 'backward-kill-word)
+            (define-key diff-mode-map [(super n)] 'diff-hunk-next)
+            (define-key diff-mode-map [(super p)] 'diff-hunk-prev)
+            (update-diff-colors)
+            ))
 
 
 ;; ediff 最重要的两个命令，a, b 分别表示左右两个 buffer 的 diff.
@@ -382,33 +382,33 @@
 (setq uniquify-separator "/"               ;; The separator in buffer names.
       uniquify-buffer-name-style 'forward) ;; names/in/this/style
 
-;; (add-hook 'prog-mode-hook '(lambda ()
-;;                              (add-hook 'before-save-hook 'delete-trailing-whitespace)
-;;                              ))
-;; (add-hook 'org-mode-hook '(lambda ()
-;;                             (remove-hook 'before-save-hook 'delete-trailing-whitespace)
+;; (add-hook 'prog-mode-hook (lambda ()
+;;                             (add-hook 'before-save-hook 'delete-trailing-whitespace)
 ;;                             ))
+;; (add-hook 'org-mode-hook (lambda ()
+;;                            (remove-hook 'before-save-hook 'delete-trailing-whitespace)
+;;                            ))
 
 ;; 这个到底是否需要？ 不确定，先注释看看效果。
 ;; (turn-on-eldoc-mode)
 
-(add-hook 'prog-mode-hook '(lambda ()
-                             (font-lock-add-keywords
-                              nil '(("\\<\\(FIX\\|TODO\\|FIXME\\|HACK\\|REFACTOR\\|NOTICE\\|WARN\\):"
-                                     1 font-lock-warning-face t)))
-                             (subword-mode)           ; 不要全局开启 subword-mode，对 ido 有影响。
-                             (goto-address-prog-mode)
-                             (display-fill-column-indicator-mode) ;; 全局开启会造成 helm 也显示.
-                             (setq-local indent-tabs-mode nil)      ;禁止 insert \t 字符.
+(add-hook 'prog-mode-hook (lambda ()
+                            (font-lock-add-keywords
+                             nil '(("\\<\\(FIX\\|TODO\\|FIXME\\|HACK\\|REFACTOR\\|NOTICE\\|WARN\\):"
+                                    1 font-lock-warning-face t)))
+                            (subword-mode)           ; 不要全局开启 subword-mode，对 ido 有影响。
+                            (goto-address-prog-mode)
+                            (display-fill-column-indicator-mode) ;; 全局开启会造成 helm 也显示.
+                            (setq-local indent-tabs-mode nil)      ;禁止 insert \t 字符.
 
-                             ;; 注意最后一个参数 t, 这确保了当前 before-save-hook 是 local 的。
-                             ;; (add-hook 'before-save-hook
-                             ;;           (lambda()
-                             ;;             (save-excursion
-                             ;;               ;; (whitespace-cleanup)
-                             ;;               (delete-trailing-whitespace)))
-                             ;;           nil t)
-                             ))
+                            ;; 注意最后一个参数 t, 这确保了当前 before-save-hook 是 local 的。
+                            ;; (add-hook 'before-save-hook
+                            ;;           (lambda()
+                            ;;             (save-excursion
+                            ;;               ;; (whitespace-cleanup)
+                            ;;               (delete-trailing-whitespace)))
+                            ;;           nil t)
+                            ))
 
 (add-hook 'text-mode-hook 'goto-address-mode)
 

@@ -1,9 +1,10 @@
-;;; ruby-hash-syntax.el --- Toggle ruby hash syntax between classic and 1.9 styles
+;;; ruby-hash-syntax.el --- Toggle ruby hash syntax between => and 1.9+ styles  -*- lexical-binding: t -*-
 
-;; Copyright (C) 2013-2017  Steve Purcell
+;; Copyright (C) 2013-2020  Steve Purcell
 
 ;; Author: Steve Purcell <steve@sanityinc.com>
 ;; Package-Version: 0
+;; Package-Requires: ((emacs "24.1"))
 ;; URL: https://github.com/purcell/ruby-hash-syntax
 ;; Keywords: languages
 
@@ -46,8 +47,6 @@
        ((ruby-hash-syntax--code-has-pattern "\\w+:" limit)
         (ruby-hash-syntax--replace "\\([a-zA-Z0-9_]+\\):\\( *\\(?:\"\\(?:\\\"\\|[^\"]\\)*\"\\|'\\(?:\\'\\|[^']\\)*'\\|[a-zA-Z0-9_]+([^)]*)\\|[^,]+\\)\\)" ":\\1 =>\\2" limit))))))
 
-;;;###autoload
-(define-obsolete-function-alias 'ruby-toggle-hash-syntax 'ruby-hash-syntax-toggle)
 
 (defun ruby-hash-syntax--code-has-pattern (pat limit)
   "A version of `search-forward' which skips over string literals.

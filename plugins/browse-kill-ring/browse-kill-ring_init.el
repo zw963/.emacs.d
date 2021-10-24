@@ -24,22 +24,22 @@
 
 (global-set-key [remap yank-pop] 'yank-pop-commands)
 (global-set-key [(control meta y)] 'yank-secondary) ; C-M-y 粘贴 secondary ring.
-(global-set-key "\C-cy" '(lambda ()
-                           (interactive)
-                           (popup-menu 'yank-menu)))
+(global-set-key "\C-cy" (lambda ()
+                          (interactive)
+                          (popup-menu 'yank-menu)))
 (define-key isearch-mode-map (kbd "C-M-y")  'isearch-yank-secondary)
 (add-hook 'browse-kill-ring-mode-hook
-          '(lambda ()
-             (define-key browse-kill-ring-mode-map [(control \8)] 'kill-buffer-and-window)
-             (define-key browse-kill-ring-mode-map [(O)] 'browse-kill-ring-occur)
-             (define-key browse-kill-ring-mode-map (kbd "RET") 'browse-kill-ring-insert-move-and-quit)
-             (define-key browse-kill-ring-mode-map [(control g)] 'browse-kill-ring-quit)
-             ;; 为了让 M-y 和 global-hl-line-mode 一起工作,
-             ;; 必须在 browse-king-ring-mode 中关闭 hl-line-mode
-             ;; 否则 n, p 快捷键不工作.
-             (make-local-variable 'global-hl-line-mode)
-             (setq global-hl-line-mode nil)
-             ))
+          (lambda ()
+            (define-key browse-kill-ring-mode-map [(control \8)] 'kill-buffer-and-window)
+            (define-key browse-kill-ring-mode-map [(O)] 'browse-kill-ring-occur)
+            (define-key browse-kill-ring-mode-map (kbd "RET") 'browse-kill-ring-insert-move-and-quit)
+            (define-key browse-kill-ring-mode-map [(control g)] 'browse-kill-ring-quit)
+            ;; 为了让 M-y 和 global-hl-line-mode 一起工作,
+            ;; 必须在 browse-king-ring-mode 中关闭 hl-line-mode
+            ;; 否则 n, p 快捷键不工作.
+            (make-local-variable 'global-hl-line-mode)
+            (setq global-hl-line-mode nil)
+            ))
 
 (defun copy-line (arg)
   "Copy lines (as many as prefix argument) in the kill ring.

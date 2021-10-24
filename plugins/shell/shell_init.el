@@ -9,11 +9,11 @@
                                         ; line above the current prompt
  )
 
-(add-hook 'shell-mode-hook '(lambda ()
-                              (define-key shell-mode-map [(control n)] 'comint-next-input)
-                              (define-key shell-mode-map [(control p)] 'comint-previous-input)
-                              (define-key shell-mode-map [(control r)] 'comint-previous-matching-input-from-input)
-                              ))
+(add-hook 'shell-mode-hook (lambda ()
+                             (define-key shell-mode-map [(control n)] 'comint-next-input)
+                             (define-key shell-mode-map [(control p)] 'comint-previous-input)
+                             (define-key shell-mode-map [(control r)] 'comint-previous-matching-input-from-input)
+                             ))
 
 (provide 'shell_init)
 

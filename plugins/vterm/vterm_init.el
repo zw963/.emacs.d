@@ -24,7 +24,7 @@
 ;;               (add-hook 'comint-preoutput-filter-functions
 ;;                         'dirtrack-filter-out-pwd-prompt t t)))
 
-(add-hook 'vterm-mode-hook '(lambda ()
+(add-hook 'vterm-mode-hook (lambda ()
                               (define-key vterm-mode-map [(control shift k)] 'vterm-clear)
                               ;; (dirtrack-mode 1)
                               ))

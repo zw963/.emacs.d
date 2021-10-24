@@ -1,13 +1,13 @@
 (require 'pangu-spacing)
 
 (add-hook 'org-mode-hook
-          '(lambda ()
+          (lambda ()
              (set (make-local-variable 'pangu-spacing-real-insert-separtor) t)
              (pangu-spacing-mode 1)
              ))
 
 (add-hook 'markdown-mode-hook
-          '(lambda ()
+          (lambda ()
              (set (make-local-variable 'pangu-spacing-real-insert-separtor) t)
              (pangu-spacing-mode 1)
              ))

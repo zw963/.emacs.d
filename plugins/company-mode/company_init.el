@@ -45,13 +45,13 @@
         company-preview-frontend
         company-echo-metadata-frontend))
 
-(add-hook 'company-mode-hook '(lambda ()
-                                (setq company-backends
-                                      (delete 'company-oddmuse
-                                              (delete 'company-bbdb
-                                                      (delete 'company-cmake
-                                                              (delete 'company-clang company-backends)))))
-                                ))
+(add-hook 'company-mode-hook (lambda ()
+                               (setq company-backends
+                                     (delete 'company-oddmuse
+                                             (delete 'company-bbdb
+                                                     (delete 'company-cmake
+                                                             (delete 'company-clang company-backends)))))
+                               ))
 
 ;; C-n, C-s 如果可以自动打断 tooltip, 其实效果不错。
 ;; (define-key company-active-map (kbd "C-n") 'company-select-next)

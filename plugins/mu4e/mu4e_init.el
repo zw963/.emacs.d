@@ -23,14 +23,14 @@
  )
 
 (add-hook 'message-mode-hook
-          '(lambda ()
-             (define-key message-mode-map [(control c) (control K)] 'message-kill-buffer)
-             (define-key message-mode-map [(control c) (control c)] 'message-fill-paragraph)
-             (define-key message-mode-map [(control x) (control s)] 'message-send-and-exit)
-             (turn-on-flyspell)
-             (set (make-local-variable 'ac-auto-show-menu) t)
-             (set (make-local-variable 'ac-use-menu-map) t)
-             ))
+          (lambda ()
+            (define-key message-mode-map [(control c) (control K)] 'message-kill-buffer)
+            (define-key message-mode-map [(control c) (control c)] 'message-fill-paragraph)
+            (define-key message-mode-map [(control x) (control s)] 'message-send-and-exit)
+            (turn-on-flyspell)
+            (set (make-local-variable 'ac-auto-show-menu) t)
+            (set (make-local-variable 'ac-use-menu-map) t)
+            ))
 
 ;; ============================== mu4e 设置 ==============================
 (require 'mu4e)

@@ -1,4 +1,5 @@
-#!/usr/bin/emacs --script
+#!/usr/local/bin/emacs --script
 
 (normal-top-level-add-subdirs-to-load-path)
-(byte-recompile-directory "~/Dropbox/common/.emacs.d/plugins" 0 nil)
+;; (byte-recompile-directory "~/Dropbox/common/.emacs.d/plugins" 0 nil)
+(native-compile-async "~/Dropbox/common/.emacs.d/plugins" 'recursively)

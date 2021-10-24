@@ -1,7 +1,7 @@
 (require 'inf-ruby)
 
 ;; ;; 启动 console 之前, 初始化 rvm.
-(advice-add 'inf-ruby-console-auto :before '(lambda ()
+(advice-add 'inf-ruby-console-auto :before (lambda ()
                                               (unless (and rvm--current-ruby rvm--current-gemset)
                                                 (rvm-activate-corresponding-ruby))
                                               ))
@@ -11,7 +11,7 @@
 (run-ruby-mode-hook '(inf-ruby-minor-mode))
 
 (add-hook 'inf-ruby-mode-hook
-          '(lambda ()
+          (lambda ()
              (define-key inf-ruby-mode-map [(control n)] 'comint-next-input)
              (define-key inf-ruby-mode-map [(control p)] 'comint-previous-input)
              ))

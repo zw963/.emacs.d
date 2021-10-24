@@ -29,7 +29,7 @@
 
 ;; 运行 js-commit-repl
 (require 'js-comint)
-(add-hook 'js2-mode-hook '
+(add-hook 'js2-mode-hook
           (lambda ()
             (local-set-key "\C-x\C-e" 'js-send-last-sexp)
             (local-set-key "\C-cb" 'js-send-buffer)

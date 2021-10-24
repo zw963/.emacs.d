@@ -21,11 +21,11 @@
 
 (add-hook 'prog-mode-hook 'hs-minor-mode)
 
-(add-hook 'hs-minor-mode-hook '(lambda ()
-                                 (local-set-key [(control c) (/)] 'hs-hide-all)
-                                 (local-set-key [(control c) (\\)] 'hs-show-all)
-                                 (local-set-key [(control tab)] 'hs-toggle-hiding)
-                                 ))
+(add-hook 'hs-minor-mode-hook (lambda ()
+                                (local-set-key [(control c) (/)] 'hs-hide-all)
+                                (local-set-key [(control c) (\\)] 'hs-show-all)
+                                (local-set-key [(control tab)] 'hs-toggle-hiding)
+                                ))
 
 ;; (require 'vimish-fold)
 
