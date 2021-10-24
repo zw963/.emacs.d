@@ -72,6 +72,7 @@
                                           " SP"             ;; smartparens mode
                                           " PgLn"           ;; page-break-lines
                                           " Ρ"              ;; pangu spacing
+                                          "VHl"
                                           ) "\\|"))
 
 (add-to-list 'sml/replacer-regexp-list '("^~/Airhost/airhost_ror" ":AH:"))
