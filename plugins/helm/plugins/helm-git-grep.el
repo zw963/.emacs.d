@@ -323,7 +323,7 @@ newline return an empty string."
         new-buf)
     (when (get-buffer buf)
       (setq new-buf (read-string prompt buf))
-      (loop for b in (helm-buffer-list)
+      (cl-loop for b in (helm-buffer-list)
             when (and (string= new-buf b)
                       (not (y-or-n-p
                             (format "Buffer `%s' already exists overwrite? "
@@ -358,7 +358,7 @@ if MARK is t, Set mark."
          (fname (or (with-current-buffer helm-buffer
                       (get-text-property (point-at-bol) 'help-echo))
                     (nth 2 candidate))))
-    (case where
+    (cl-case where
           (other-window (find-file-other-window fname))
           (other-frame  (find-file-other-frame fname))
           (grep         (helm-git-grep-save-results-1))
@@ -667,11 +667,14 @@ You can save your results in a helm-git-grep-mode buffer, see below.
 
 (defvar helm-git-grep-source
   (helm-make-source "Git Grep" 'helm-git-grep-class
-    :candidates-process 'helm-git-grep-process))
+    :candidates-process 'helm-git-grep-process
+    :follow (and helm-follow-mode-persistent 1)))
 
 (defvar helm-git-grep-submodule-source
   (helm-make-source "Git Submodule Grep" 'helm-git-grep-class
-    :candidates-process 'helm-git-grep-submodule-grep-process))
+    :candidates-process 'helm-git-grep-submodule-grep-process
+    :follow (and helm-follow-mode-persistent 1)))
+
 
 (defun helm-git-grep-1 (&optional input)
   "Execute helm git grep.
