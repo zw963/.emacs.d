@@ -31,7 +31,7 @@
 (declare-function helm-describe-face "helm-lib")
 (declare-function helm-read-file-name "helm-mode")
 (declare-function helm-comp-read "helm-mode")
-
+(declare-function helm-M-x-transformer-no-sort "helm-command")
 
 ;;; Customizable values
 
@@ -619,12 +619,15 @@ double quote."
                                     (customize-face (helm-symbolify candidate)))))))
 
 (defun helm-def-source--emacs-commands (&optional default)
+  (require 'helm-command)
   (helm-build-in-buffer-source "Commands"
     :init (lambda ()
             (helm-apropos-init 'commandp default))
     :fuzzy-match helm-apropos-fuzzy-match
-    :filtered-candidate-transformer (and (null helm-apropos-fuzzy-match)
-                                         'helm-apropos-default-sort-fn)
+    :filtered-candidate-transformer
+    (append (list #'helm-M-x-transformer-no-sort)
+            (and (null helm-apropos-fuzzy-match)
+                 '(helm-apropos-default-sort-fn)))
     :display-to-real 'helm-symbolify
     :nomark t
     :persistent-action (lambda (candidate)
@@ -735,14 +738,15 @@ double quote."
   "Preconfigured Helm to describe commands, functions, variables and faces.
 In non interactives calls DEFAULT argument should be provided as
 a string, i.e. the `symbol-name' of any existing symbol."
-  (interactive (list (thing-at-point 'symbol)))
-    (helm :sources
-          (mapcar (lambda (func)
-                    (funcall func default))
-                  helm-apropos-function-list)
-          :history 'helm-apropos-history
-          :buffer "*helm apropos*"
-          :preselect (and default (concat "\\_<" (regexp-quote default) "\\_>"))))
+  (interactive (list (with-syntax-table emacs-lisp-mode-syntax-table
+                       (thing-at-point 'symbol))))
+  (helm :sources
+        (mapcar (lambda (func)
+                  (funcall func default))
+                helm-apropos-function-list)
+        :history 'helm-apropos-history
+        :buffer "*helm apropos*"
+        :preselect (and default (concat "\\_<" (regexp-quote default) "\\_>"))))
 
 
 ;;; Advices

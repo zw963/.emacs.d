@@ -608,7 +608,7 @@ Also when non-nil it overrides the effect of
 
 (defcustom helm-default-display-buffer-functions nil
   "Action functions to pass to `display-buffer'.
-See (info \"(elisp) Action Functions for Buffer Display\").
+See (info \"(elisp) Buffer Display Action Functions\").
 
 It has no effect when `helm-always-two-windows' is non-nil and
 may override other settings like `helm-split-window-inside-p'."
@@ -879,10 +879,16 @@ Fallback to 100 when nil."
   :group 'helm
   :type 'boolean)
 
-(defcustom helm-use-frame-when-dedicated-window nil
+(defvaralias 'helm-use-frame-when-dedicated-window
+    'helm-use-frame-when-no-suitable-window)
+
+(defcustom helm-use-frame-when-no-suitable-window nil
   "Display Helm buffer in frame when Helm is started from a dedicated window."
   :group 'helm
   :type 'boolean)
+(make-obsolete-variable 'helm-use-frame-when-dedicated-window
+                        'helm-use-frame-when-no-suitable-window
+                        "3.8.1")
 
 (defcustom helm-default-prompt-display-function
   #'helm-set-default-prompt-display
@@ -1781,8 +1787,6 @@ Other sources won't appear in the search results.
 If nil, no filtering is done.
 Don't set this directly, use `helm-set-source-filter' during a
 Helm session to modify it.")
-(defvar helm-current-prefix-arg nil
-  "Record `current-prefix-arg' when exiting minibuffer.")
 (defvar helm-saved-action nil
   "Saved value of the currently selected action by key.")
 (defvar helm-saved-current-source nil
@@ -1914,6 +1918,8 @@ It is generally `helm-current-buffer', but when this one is displayed
 in a dedicated buffer, helm can't start in this window and use another
 window handling a buffer, it is this one we store.")
 (defvar helm--tramp-archive-maybe-loaded nil)
+(defvar helm--original-dedicated-windows-alist nil
+  "[INTERNAL] Store all dedicated windows with their dedicated state on startup")
 
 ;; Utility: logging
 (defun helm-log (format-string &rest args)
@@ -2050,15 +2056,12 @@ End:")
 (defmacro with-helm-temp-hook (hook &rest body)
   "Execute temporarily BODY as a function for HOOK."
   (declare (indent 1) (debug t))
-  (helm-with-gensyms (helm--hook)
-    `(progn
-       (defun ,helm--hook ()
-         (unwind-protect
-             (progn ,@body)
-           (remove-hook ,hook (quote ,helm--hook))
-           (fmakunbound (quote ,helm--hook))))
-       (push (cons ',helm--hook ,hook) helm--temp-hooks)
-       (add-hook ,hook (quote ,helm--hook)))))
+  `(letrec ((helm--hook (lambda ()
+                          (unwind-protect
+                               (progn ,@body)
+                            (remove-hook ,hook helm--hook)))))
+     (push (cons helm--hook ,hook) helm--temp-hooks)
+     (add-hook ,hook helm--hook)))
 
 (defmacro with-helm-after-update-hook (&rest body)
   "Execute BODY at end of `helm-update'."
@@ -2836,6 +2839,13 @@ HISTORY args see `helm'."
                  (null input))
              nil "Error in %S buffer: Initial input should be a string or nil"
              buffer)
+  ;; Set all windows NON dedicated to avoid headaches with PA and
+  ;; helm-window (bug#2443)
+  (cl-loop for win in (window-list nil 1)
+           for state = (window-dedicated-p win)
+           when state
+           do (progn (set-window-dedicated-p win nil)
+                     (push `(,win . ,state) helm--original-dedicated-windows-alist)))
   (unless helm--nested (setq helm-initial-frame (selected-frame)))
   ;; Launch tramp-archive with dbus-event in `while-no-input-ignore-events'.
   (helm--maybe-load-tramp-archive)
@@ -3191,6 +3201,12 @@ frame configuration as per `helm-save-configuration-functions'."
                      (funcall (cdr helm-save-configuration-functions))))
       (restore (funcall (car helm-save-configuration-functions)
                         helm-last-frame-or-window-configuration)
+               ;; Restore dedicated windows (bug#2443).
+               (when helm--original-dedicated-windows-alist
+                 (cl-loop for (win . state) in helm--original-dedicated-windows-alist
+                          when (window-live-p win)
+                          do (set-window-dedicated-p win state))
+                 (setq helm--original-dedicated-windows-alist nil))
                ;; Restore frame focus.
                ;; This is needed for minibuffer own-frame config
                ;; when recursive minibuffers are in use.
@@ -3291,17 +3307,19 @@ If `helm-initial-frame' has no minibuffer, use
 Fallback to global value of `helm-display-function' when no local
 value found and current command is not in
 `helm-commands-using-frame'."
-  (or (with-helm-buffer helm-display-function)
-      (and (or (memq com helm-commands-using-frame)
-               (and helm-use-frame-when-dedicated-window
-                    (window-dedicated-p (get-buffer-window helm-current-buffer)))
-               (and helm-use-frame-when-more-than-two-windows
-                    (null helm--nested)
-                    (> (length (window-list)) 2))
-               ;; Frame parameter is unreliable for minibuffer on emacs-26.
-               (null (member helm-initial-frame (minibuffer-frame-list))))
-           #'helm-display-buffer-in-own-frame)
-      (default-value 'helm-display-function)))
+  (let ((win (get-buffer-window helm-current-buffer)))
+    (or (with-helm-buffer helm-display-function)
+        (and (or (memq com helm-commands-using-frame)
+                 (and helm-use-frame-when-no-suitable-window
+                      (or (window-dedicated-p win)
+                          (window-parameter win 'window-side)))
+                 (and helm-use-frame-when-more-than-two-windows
+                      (null helm--nested)
+                      (> (length (window-list)) 2))
+                 ;; Frame parameter is unreliable for minibuffer on emacs-26.
+                 (null (member helm-initial-frame (minibuffer-frame-list))))
+             #'helm-display-buffer-in-own-frame)
+        (default-value 'helm-display-function))))
 
 (defun helm-display-buffer (buffer &optional resume)
   "Display BUFFER.
@@ -3349,22 +3367,23 @@ It is the default value of `helm-display-function'.
 It uses `switch-to-buffer' or `display-buffer' depending on the
 value of `helm-full-frame' or `helm-split-window-default-side'."
   (let (pop-up-frames
-        (dedicated-p (window-dedicated-p
-                      (get-buffer-window helm-current-buffer))))
-    (if (and (null (eq dedicated-p t))
-             (or (buffer-local-value 'helm-full-frame (get-buffer buffer))
-                 (and (eq helm-split-window-default-side 'same)
-                      (one-window-p t))))
+        (curwin (get-buffer-window helm-current-buffer)))
+    (if (or (buffer-local-value 'helm-full-frame (get-buffer buffer))
+            (and (eq helm-split-window-default-side 'same)
+                 (one-window-p t)))
         (progn (and (not (minibufferp helm-current-buffer))
+                    ;; side-windows can't be the only window in frame,
+                    ;; emacs refuse to delete other windows when
+                    ;; current is a side-window [1].
+                    (not (window-parameter curwin 'window-side))
                     (delete-other-windows))
                (switch-to-buffer buffer))
       (when (and (or helm-always-two-windows helm-autoresize-mode)
                  (not (eq helm-split-window-default-side 'same))
                  (not (minibufferp helm-current-buffer))
                  (not helm-split-window-inside-p)
-                 ;; Prevent deleting OW only when helm-current-buffer
-                 ;; is "strongly" dedicated.
-                 (null (eq dedicated-p t)))
+                 ;; Same comment as in [1].
+                 (not (window-parameter curwin 'window-side)))
         (delete-other-windows))
       (display-buffer
        buffer `(,helm-default-display-buffer-functions
@@ -3974,7 +3993,8 @@ WARNING: Do not use this mode yourself, it is internal to Helm."
   ;; may not have been consumed.
   (when helm--temp-hooks
     (cl-loop for (fn . hook) in helm--temp-hooks
-             do (set hook (delete fn (symbol-value hook)))))
+             do (remove-hook hook fn))
+    (setq helm--temp-hooks nil))
   ;; When running helm from a dedicated frame
   ;; with no minibuffer, helm will run in the main frame
   ;; which have a minibuffer, so be sure to disable
@@ -6886,35 +6906,19 @@ splitting inconditionally, it is unused actually."
 (cl-defun helm-persistent-action-display-window (&key split)
   "Return the window that will be used for persistent action.
 If SPLIT is t window is split in persistent action, if it has the
-special symbol `never' don't split, if it is nil normally don't
-split but this may happen in case of dedicated-windows or
-unsuitable window to display persistent action buffer."
+special symbol `never' don't split, if it is nil don't split either.
+The symbol `never' is kept for backward compatibility."
   (with-helm-window
-    (let (prev-win cur-win)
-      (setq helm-persistent-action-display-window
-            (cond ((and (window-live-p helm-persistent-action-display-window)
-                        (not (member helm-persistent-action-display-window
-                                     (get-buffer-window-list helm-buffer))))
-                   helm-persistent-action-display-window)
-                  ((and helm--buffer-in-new-frame-p helm-initial-frame)
-                   (with-selected-frame helm-initial-frame (selected-window)))
-                  ((and split (not (eq split 'never))) (split-window))
-                  ;; Fix Bug#2050 with dedicated window.
-                  ((and (window-dedicated-p
-                         (setq prev-win (previous-window (selected-window) 1)))
-                        (not (eq split 'never)))
-                   (with-helm-after-update-hook
-                     (and (window-live-p helm-persistent-action-display-window)
-                          (delete-window helm-persistent-action-display-window)))
-                   ;; If next-window is usable use it, otherwise split
-                   ;; the helm window.
-                   (let ((nw (next-window (selected-window) 1)))
-                     (if (eql nw prev-win) (split-window) nw)))
-                  ((window-dedicated-p
-                    (setq cur-win (get-buffer-window helm-current-buffer)))
-                   (previous-window (selected-window) 1))
-                  (cur-win)
-                  (t prev-win))))))
+    (setq helm-persistent-action-display-window
+          (cond ((and (window-live-p helm-persistent-action-display-window)
+                      (not (member helm-persistent-action-display-window
+                                   (get-buffer-window-list helm-buffer))))
+                 helm-persistent-action-display-window)
+                ((and helm--buffer-in-new-frame-p helm-initial-frame)
+                 (with-selected-frame helm-initial-frame (selected-window)))
+                ((and split (not (eq split 'never))) (split-window))
+                ((get-buffer-window helm-current-buffer))
+                (t (previous-window (selected-window) 1))))))
 
 (cl-defun helm-select-persistent-action-window (&key split)
   "Select the window that will be used for persistent action.

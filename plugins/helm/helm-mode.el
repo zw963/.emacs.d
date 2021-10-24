@@ -559,10 +559,10 @@ If COLLECTION is an `obarray', a TEST should be needed. See `obarray'."
                             fuzzy
                             reverse-history
                             (requires-pattern 0)
-                            history
+                            (history nil shistory)
+                            raw-history
                             input-history
                             (case-fold helm-comp-read-case-fold-search)
-                            (del-input t)
                             (persistent-action nil)
                             (persistent-help "DoNothing")
                             (mode-line helm-comp-read-mode-line)
@@ -621,18 +621,30 @@ Keys description:
 
 - REQUIRES-PATTERN: Same as helm attribute, default is 0.
 
-- HISTORY: A list containing specific history, default is nil.
-  When it is non--nil, all elements of HISTORY are displayed in
-  a special source before COLLECTION.
+- HISTORY: A symbol where each result will be saved.
+  If not specified as a symbol an error will popup.
+  When specified, all elements of HISTORY are displayed in
+  a special source before or after COLLECTION according to REVERSE-HISTORY.
+  The main difference with INPUT-HISTORY is that the result of the
+  completion is saved whereas in INPUT-HISTORY it is the minibuffer
+  contents which is saved when you exit.
+  Don't use the same symbol for INPUT-HISTORY and HISTORY.
+  NOTE: As mentionned above this has nothing to do with
+  `minibuffer-history-variable', therefore if you want to save this
+  history persistently, you will have to add this variable to the
+  relevant variable of your favorite tool for persistent emacs session
+  i.e. psession, desktop etc...
+
+- RAW-HISTORY: When non-nil do not remove backslashs if some in
+  HISTORY candidates.
 
 - INPUT-HISTORY: A symbol. The minibuffer input history will be
   stored there, if nil or not provided, `minibuffer-history'
-  will be used instead.
+  will be used instead.  You can navigate in this history with
+  `M-p' and `M-n'.
+  Don't use the same symbol for INPUT-HISTORY and HISTORY.
 
 - CASE-FOLD: Same as `helm-case-fold-search'.
-
-- DEL-INPUT: Boolean, when non--nil (default) remove the partial
-  minibuffer input from HISTORY is present.
 
 - PERSISTENT-ACTION: A function called with one arg i.e candidate.
 
@@ -700,7 +712,27 @@ in `helm-current-prefix-arg', otherwise if prefix args were given before
 `helm-comp-read' invocation, the value of `current-prefix-arg' will be used.
 That means you can pass prefix args before or after calling a command
 that use `helm-comp-read'.  See `helm-M-x' for example."
-
+  ;; Handle error with HISTORY:
+  ;;
+  ;; Should show helm with one source at first run and save result on
+  ;; exit, should show the history source along candidates source on
+  ;; next run as soon as `test-hist' value is feeded. 
+  ;;     (setq test-hist nil)
+  ;;     (helm-comp-read "test: " '(a b c d e)
+  ;;                     :history 'test-hist)
+  ;;
+  ;; Should run normally as long as `test-hist' is bound and nil. As
+  ;; soon `test-hist' becomes non-nil throw an error.
+  ;;     (helm-comp-read "test: " '(a b c d e)
+  ;;                     :history test-hist)
+  ;;
+  ;; Should run normally.
+  ;;     (completing-read "test: " '(a b c d e))
+  (cl-assert (if shistory
+                 (or (null history)
+                     (and history (symbolp history)))
+               t)
+             nil "Error: History should be specified as a symbol")
   (when (get-buffer helm-action-buffer)
     (kill-buffer helm-action-buffer))
   (let ((action-fn `(("Sole action (Identity)"
@@ -738,14 +770,16 @@ that use `helm-comp-read'.  See `helm-M-x' for example."
                        :multiline multiline
                        :match-part match-part
                        :filtered-candidate-transformer
-                       (append '((lambda (candidates sources)
-                                   (cl-loop for i in candidates
-                                            ;; Input is added to history in completing-read's
-                                            ;; and may be regexp-quoted, so unquote it
-                                            ;; but check if cand is a string (it may be at this stage
-                                            ;; a symbol or nil) Bug#1553.
-                                            when (stringp i)
-                                            collect (replace-regexp-in-string "\\s\\" "" i))))
+                       (append `((lambda (candidates _source)
+                                   (if ,raw-history
+                                       candidates
+                                     (cl-loop for i in candidates
+                                              ;; Input is added to history in completing-read's
+                                              ;; and may be regexp-quoted, so unquote it
+                                              ;; but check if cand is a string (it may be at this stage
+                                              ;; a symbol or nil) Bug#1553.
+                                              when (stringp i)
+                                              collect (replace-regexp-in-string "\\s\\" "" i)))))
                                (and hist-fc-transformer (helm-mklist hist-fc-transformer)))
                        :persistent-action persistent-action
                        :persistent-help persistent-help
@@ -824,16 +858,10 @@ that use `helm-comp-read'.  See `helm-M-x' for example."
                          :history (and (symbolp input-history) input-history)
                          :buffer buffer))
         (remove-hook 'helm-after-update-hook 'helm-comp-read--move-to-first-real-candidate))
-      ;; Avoid adding an incomplete input to history.
-      (when (and result history del-input)
-        (cond ((and (symbolp history) ; History is a symbol.
-                    (not (symbolp (symbol-value history)))) ; Fix Bug#324.
-               ;; Be sure history is not a symbol with a nil value.
-               (helm-aif (symbol-value history) (setcar it result)))
-              ((consp history) ; A list with a non--nil value.
-               (setcar history result))
-              (t ; Possibly a symbol with a nil value.
-               (set history (list result)))))
+      ;; If `history' is a symbol save it.
+      (when (and result history (symbolp history))
+        (set history (cons (substring-no-properties result)
+                           (delete result (symbol-value history)))))
       (or result (helm-mode--keyboard-quit)))))
 
 

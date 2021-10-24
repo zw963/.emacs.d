@@ -446,6 +446,10 @@ prefix arg Helm will see if there is an application suitable in
 mailcap files.  If you want to specify which external application
 to use (and its options) use a prefix arg.
 
+If you have to pass arguments after filename use `%s' in your command e.g. \"foo %s -a -b\"
+If you want to detach your program from Emacs, you can use e.g. \"(foo %s &)\" (only supported on Linux/Unix).
+When using `%s' do not quote it (i.e. \"%s\"), helm is already quoting filename argument.
+
 Note: What you configure for Helm in `helm-external-programs-associations'
 will take precedence on mailcap files.
 
@@ -455,8 +459,7 @@ Same as above but doesn't quit Helm session, it is apersistent action.
 
 - Open file externally with default tool (`\\[helm-ff-run-open-file-with-default-tool]').
 
-This uses xdg-open which sucks most of the time, but perhaps it
-works fine on Windows.  This is why it is kept in Helm.
+Use `xdg-open' to open files.
 
 *** Toggle auto-completion
 
@@ -910,6 +913,12 @@ With a prefix argument however it will apply `example' on all files at once:
 $ example foo bar baz
 
 Of course the alias command should support this.
+
+NOTE: Helm assume that any alias command ending with '$*' or
+'$*&' supports many files as arguments, so no need to give a
+prefix arg for such alias, however if your command is not an
+alias you have to specify a prefix arg if you want your command
+to apply all files at once.
 
 If you add %s to the command line %s will be replaced with the candidate, this mean you can
 add extra argument to your command e.g. command -extra-arg %s or command %s -extra-arg.
@@ -1950,33 +1959,43 @@ You can of course combine both placeholders if needed.
 
 *** Specify marked files as arguments
 
+When you have marked files and your command support only one file
+as arg, helm will execute command sequencially on each file like
+this:
+
 Example:
-
-    <command> file1 file2...
-
-Call `helm-find-files-eshell-command-on-file' with one prefix argument.  Otherwise
-you can pass one prefix argument from the command selection buffer.
-
-Note: This does not work on remote files.
-
-With two prefix-args the output is printed to the `current-buffer'.
-
-With no prefix argument or a prefix argument value of '(16) (`\\[universal-argument] \\[universal-argument]')
-the command is called once for each file like this:
 
     <command> file1
     <command> file2
-    ...
+    ...etc
+
+When you have marked files and your command accept many files at
+once helm will run your command with all files at once like this:
+
+Example:
+
+    <command> file1 file2 etc...
+
+The two use case above are applied automatically by Helm
+depending if your command is an eshell alias which value ends by
+'$1' or '$*'.  If your command is not an alias, i.e. you entered
+an arbitrary command on prompt with '%s' to specify filenames,
+you will have to pass one prefix argument from the command
+selection buffer.
+
+Note: This does not work on remote files.
+
+With two prefix-args the output is printed to the
+`current-buffer', the command being executed in the same
+conditions as described above.
+NOTE: If your command is not an alias, you can't pass all files at once and print in current buffer at the same time.
+Also note that running multiple files at once is not supported with remote files.
 
 *** Run eshell commands asynchronously
 
 You can run your commands asynchronously by adding \"&\" at end
 of any commands, e.g. \"foo %s &\".  You can also directly setup
 your alias in the eshell alias file with e.g. \"alias foo $1 &\".
-
-NOTE: If you use \"&\" in a command with marked files and your
-command accept many files as argument don't forget to pass the
-prefix arg to ensure you run only one command on all marked async.
 
 ** Commands
 \\<helm-esh-on-file-map>")

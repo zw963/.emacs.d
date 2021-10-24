@@ -82,40 +82,65 @@ contents.  Else it calculates all external commands and sets
                 finally return
                 (if sort (sort completions 'string-lessp) completions)))))
 
-(defun helm-run-or-raise (exe &optional file)
+(defun helm-run-or-raise (exe &optional files detached)
   "Run asynchronously EXE or jump to the application window.
 If EXE is already running just jump to his window if
 `helm-raise-command' is non-nil.
-When FILE argument is provided run EXE with FILE."
-  (let* ((real-com (car (split-string exe)))
-         (proc     (if file (concat real-com " " file) real-com))
-         process-connection-type)
-    (if (get-process proc)
-        (if helm-raise-command
-            (shell-command  (format helm-raise-command real-com))
-          (error "Error: %s is already running" real-com))
-      (when (member real-com helm-external-commands-list)
-        (message "Starting %s..." real-com)
-        (if file
-            (start-process-shell-command
-             proc nil (format "%s %s"
-                              real-com
-                              (shell-quote-argument
-                               (if (eq system-type 'windows-nt)
-                                   (helm-w32-prepare-filename file)
-                                   (expand-file-name file)))))
-          (start-process-shell-command proc nil real-com))
+When FILE argument is provided run EXE with FILES.
+When argument DETACHED is non nil, run EXE and detach it from Emacs,
+this have no effect when FILES arg is specified."
+  (let* ((proc-name (replace-regexp-in-string
+                     "(" "" (car (split-string exe))))
+         (fmt-file  (lambda (file)
+                      (shell-quote-argument
+                       (if (eq system-type 'windows-nt)
+                           (helm-w32-prepare-filename file)
+                         (expand-file-name file)))))
+         (file-arg  (and files (mapconcat fmt-file files " ")))
+         process-connection-type proc)
+    (when (member proc-name helm-external-commands-list)
+      ;; Allow adding more files to the current process if it is
+      ;; already running (i.e. Don't just raise it without sending
+      ;; files) we assume program doesn't start a new
+      ;; process (like firefox, transmission etc...).
+      (if files
+          (cond ((string-match "%s &)\\'" exe)
+                 (message "Starting and detaching `%s' from Emacs" proc-name)
+                 (call-process-shell-command (format exe file-arg)))
+                (t
+                 (message "Starting %s..." proc-name)
+                 (setq proc
+                       (start-process-shell-command
+                        proc-name nil (if (string-match "%s" exe)
+                                          (format exe file-arg)
+                                        (format "%s %s" exe file-arg))))))
+        ;; Just jump to the already running program instance or start
+        ;; a new process.
+        (if (get-process proc-name)
+            (if helm-raise-command
+                (run-at-time 0.1 nil #'shell-command
+                             (format helm-raise-command proc-name))
+              (error "Error: %s is already running" proc-name))
+          (if (and detached (not (memq system-type '(windows-nt ms-dos))))
+              (progn
+                (message "Starting and detaching `%s' from Emacs" proc-name)
+                (call-process-shell-command (format "(%s &)" exe)))
+            (when detached
+              (user-error "Detaching programs not supported on `%s'" system-type))
+            (setq proc (start-process-shell-command proc-name nil exe)))))
+      (when proc
         (set-process-sentinel
-         (get-process proc)
+         proc
          (lambda (process event)
-             (when (and (string= event "finished\n")
-                        helm-raise-command
-                        (not (helm-get-pid-from-process-name real-com)))
-               (shell-command  (format helm-raise-command "emacs")))
-             (message "%s process...Finished." process))))
+           (when (and (string= event "finished\n")
+                      helm-raise-command
+                      (not (helm-get-pid-from-process-name proc-name)))
+             (shell-command  (format helm-raise-command "emacs")))
+           (message "%s process...Finished." process))))
+      ;; Move command on top list.
       (setq helm-external-commands-list
-            (cons real-com
-                  (delete real-com helm-external-commands-list))))))
+            (cons proc-name
+                  (delete proc-name helm-external-commands-list))))))
 
 (defun helm-get-mailcap-for-file (filename)
   "Get the command to use for FILENAME from mailcap files."
@@ -138,13 +163,14 @@ mailcap file.  If nothing found return nil."
            helm-default-external-file-browser)
           (t (helm-get-mailcap-for-file filename)))))
 
-(defun helm-open-file-externally (file)
+(defun helm-open-file-externally (_file)
   "Open FILE with an external program.
 Try to guess which program to use with
 `helm-get-default-program-for-file'.
 If not found or a prefix arg is given query the user which tool
 to use."
-  (let* ((fname      (expand-file-name file))
+  (let* ((files      (helm-marked-candidates :with-wildcard t))
+         (fname      (expand-file-name (car files)))
          (collection (helm-external-commands-list-1 'sort))
          (def-prog   (helm-get-default-program-for-file fname))
          (program    (if (or helm-current-prefix-arg (not def-prog))
@@ -154,12 +180,11 @@ to use."
                               "Program: " collection
                               :must-match t
                               :name "Open file Externally"
-                              :del-input nil
-                              :history helm-external-command-history)
+                              :history 'helm-external-command-history)
                            ;; Always prompt to set this program as default.
                            (setq def-prog nil))
-                         ;; No prefix arg or default program exists.
-                         def-prog)))
+                       ;; No prefix arg or default program exists.
+                       def-prog)))
     (unless (or def-prog ; Association exists, no need to record it.
                 ;; Don't try to record non--filenames associations (e.g urls).
                 (not (file-exists-p fname)))
@@ -178,32 +203,53 @@ to use."
               helm-external-programs-associations)
         (customize-save-variable 'helm-external-programs-associations
                                  helm-external-programs-associations)))
-    (helm-run-or-raise program file)
+    (helm-run-or-raise program files)
     (setq helm-external-command-history
-          (cons program
-                (delete program
-                        (cl-loop for i in helm-external-command-history
-                              when (executable-find i) collect i))))))
+          (cl-loop for i in helm-external-command-history
+                   when (executable-find i) collect i))))
+
+(defun helm-run-external-command-action (candidate &optional detached)
+  (helm-run-or-raise candidate nil detached)
+  (setq helm-external-command-history
+        (cons candidate
+              (delete candidate
+                      helm-external-command-history))))
+
+(defclass helm-external-commands (helm-source-in-buffer)
+  ((filtered-candidate-transformer
+    :initform (lambda (candidates _source)
+                (cl-loop for c in candidates
+                         if (get-process c)
+                         collect (propertize c 'face 'font-lock-type-face)
+                         else collect c)))
+   (must-match :initform t)
+   (nomark :initform t)
+   (action :initform
+           (helm-make-actions
+            "Run program" 'helm-run-external-command-action
+            (lambda ()
+              (unless (memq system-type '(windows-nt ms-dos))
+                "Run program detached"))
+            (lambda (candidate)
+              (helm-run-external-command-action candidate 'detached))))))
 
 ;;;###autoload
-(defun helm-run-external-command (program)
+(defun helm-run-external-command ()
   "Preconfigured `helm' to run External PROGRAM asyncronously from Emacs.
-If program is already running exit with error.
-You can set your own list of commands with
-`helm-external-commands-list'."
-  (interactive (list
-                (helm-comp-read
-                 "RunProgram: "
-                 (helm-external-commands-list-1 'sort)
-                 :must-match t
-                 :del-input nil
-                 :name "External Commands"
-                 :history helm-external-command-history)))
-  (helm-run-or-raise program)
+If program is already running try to run `helm-raise-command' if
+defined otherwise exit with error. You can set your own list of
+commands with `helm-external-commands-list'."
+  (interactive)
+  (helm :sources `(,(helm-make-source "External Commands history" 'helm-external-commands
+                      :data helm-external-command-history)
+                    ,(helm-make-source "External Commands" 'helm-external-commands
+                       :data (helm-external-commands-list-1 'sort)))
+        :buffer "*helm externals commands*"
+        :prompt "RunProgram: ")
+  ;; Remove from history no more valid executables. 
   (setq helm-external-command-history
-        (cons program (delete program
-                              (cl-loop for i in helm-external-command-history
-                                    when (executable-find i) collect i)))))
+        (cl-loop for i in helm-external-command-history
+                 when (executable-find i) collect i)))
 
 
 (provide 'helm-external)

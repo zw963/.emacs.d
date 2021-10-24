@@ -72,6 +72,7 @@
 (defvar helm-completion-styles-alist)
 (defvar helm-persistent-action-window-buffer)
 (defvar completion-flex-nospace)
+(defvar find-function-source-path)
 
 ;;; User vars.
 ;;
@@ -172,7 +173,8 @@ the customize functions e.g. `customize-set-variable' and NOT
 (defvar helm-suspend-update-flag nil)
 (defvar helm-action-buffer "*helm action*"
   "Buffer showing actions.")
-
+(defvar helm-current-prefix-arg nil
+  "Record `current-prefix-arg' when exiting minibuffer.")
 
 ;;; Compatibility
 ;;
@@ -986,6 +988,35 @@ LIST is a list of numbers and NUM a number."
            collect (cons diff i) into res
            minimize diff into min
            finally return (cdr (assq min res))))
+
+(defun helm-group-candidates-by (candidates function &optional selection separate)
+  "Group similar items in CANDIDATES according to FUNCTION.
+Items not matching FUNCTION are grouped as well in a separate group.
+
+Example:
+
+    (setq B '(1 2 3 4 5 6 7 8 9))
+
+    (helm-group-candidates-by B #'cl-oddp 2 'separate)
+    => ((2 4 6 8) (1 3 5 7 9))
+
+SELECTION specify where to start in CANDIDATES.
+Similar candidates to SELECTION will be listed on top.
+
+If SEPARATE is non-nil returns a list of groups i.e. a list of lists,
+otherwise a plain list is returned."
+  (cl-loop with sel = (or selection (helm-get-selection) "")
+           with lst = (copy-sequence candidates)
+           while lst
+           for group = (cl-loop for c in lst
+                                when (equal (funcall function c)
+                                            (funcall function sel))
+                                collect c into grp
+                                and do (setq lst (delete c lst))
+                                finally return (prog1 grp
+                                                 (setq sel (car lst))))
+           if separate collect group
+           else append group))
 
 ;;; Strings processing.
 ;;
@@ -1241,6 +1272,7 @@ Instead of looking in LOAD-PATH to find library, this function
 search in all subdirs of ROOT-DIR, if ROOT-DIR is unspecified ask for
 it with completion.
 TYPE when nil specify function, for other values see `find-function-regexp-alist'."
+  (require 'find-func)
   (let* ((sym (helm-symbolify func))
          (dir (or root-dir (helm-read-file-name
                             "Project directory: "
@@ -1812,6 +1844,9 @@ broken."
         (push (substring string start (match-beginning 0)) result)
         (push (substring string start) result))
     (apply 'concat (nreverse result))))
+
+(when (< emacs-major-version 26)
+  (advice-add 'ansi-color-apply :override #'helm--ansi-color-apply))
 
 
 ;;; Fontlock

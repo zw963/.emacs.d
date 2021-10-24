@@ -48,7 +48,7 @@
 (declare-function eshell/cd "em-dirs.el")
 (declare-function eshell-next-prompt "em-prompt.el")
 (declare-function eshell-resume-eval "esh-cmd")
-(declare-function helm-ls-git-ls "ext:helm-ls-git")
+(declare-function helm-ls-git "ext:helm-ls-git")
 (declare-function helm-hg-find-files-in-project "ext:helm-ls-hg")
 (declare-function helm-gid "helm-id-utils.el")
 (declare-function helm-find-1 "helm-find")
@@ -437,13 +437,19 @@ slower and less featured (only directories colorized)."
 
 (defcustom helm-ff-initial-sort-method nil
   "Sort method to use when initially listing a directory.
-Note that this doesn't affect the listing when matching inside
-the directory (i.e. filenames)."
+
+It is better to keep this nil globally and turn it on only when needed
+otherwise it may be slightly slower specially with `ext' method which
+BTW is not provided on remote files (helm will fallback on nil in such
+case).
+Note that this have no effect as soon as you start narrowing directory
+i.e. filtering filenames inside directory."
   :group 'helm-files
   :type '(choice
           (const :tag "alphabetically" nil)
           (const :tag "newest" newest)
-          (const :tag "size" size)))
+          (const :tag "size" size)
+          (const :tag "extensions" ext)))
 
 (defcustom helm-ff-rotate-image-program "exiftran"
   "External program used to rotate images.
@@ -710,6 +716,7 @@ It is generally \"~/.local/share/Trash\"."
     (define-key map (kbd "S-<f3>")        'helm-ff-sort-by-size)
     (define-key map (kbd "S-<f4>")        'helm-ff-toggle-dirs-only)
     (define-key map (kbd "S-<f5>")        'helm-ff-toggle-files-only)
+    (define-key map (kbd "S-<f6>")        'helm-ff-sort-by-ext)
     (helm-define-key-with-subkeys map (kbd "DEL") ?\d 'helm-ff-delete-char-backward
                                   '((C-backspace . helm-ff-run-toggle-auto-update)
                                     ([C-c DEL] . helm-ff-run-toggle-auto-update))
@@ -787,6 +794,11 @@ to set this to nil (default)."
 When filtering directories/files only, switch back to a \"show all\" view
 when moving out of directory when non nil."
   :type 'boolean
+  :group 'helm-files)
+
+(defcustom helm-ff-eshell-unwanted-aliases nil
+  "A list of eshell aliases to not display."
+  :type '(repeat string)
   :group 'helm-files)
 
 ;; Internal.
@@ -1414,8 +1426,11 @@ windows layout."
                               (file-name-directory candidate))))
     (helm-etags-select helm-current-prefix-arg)))
 
+;;; Eshell command on file
+;;
 (defvar eshell-command-aliases-list nil)
 (defvar helm-eshell-command-on-file-input-history nil)
+(defvar helm-eshell-command-on-file-history nil)
 (cl-defun helm-find-files-eshell-command-on-file-1 (&optional map)
   "Run `eshell-command' on CANDIDATE or marked candidates.
 This is done possibly with an Eshell alias.  If no alias found,
@@ -1449,7 +1464,9 @@ You have to setup some aliases in Eshell with the `alias' command
 or by editing yourself the file `eshell-aliases-file' to make
 this working."
   (require 'em-alias) (eshell-read-aliases-list)
-  (advice-add 'eshell-eval-command :override #'helm--advice-eshell-eval-command)
+  (unless (> emacs-major-version 27)
+    ;; This advice have been merged in emacs-28.
+    (advice-add 'eshell-eval-command :override #'helm--advice-eshell-eval-command))
   (when (or eshell-command-aliases-list
             (y-or-n-p "No eshell aliases found, run eshell-command without alias anyway? "))
     (let* ((cand-list (helm-marked-candidates :with-wildcard t))
@@ -1460,27 +1477,43 @@ this working."
            helm-display-source-at-screen-top
            (helm-actions-inherit-frame-settings t)
            helm-use-frame-when-more-than-two-windows
-           (command (with-helm-display-marked-candidates
-                      helm-marked-buffer-name
-                      (helm-ff--count-and-collect-dups
-                       (mapcar 'helm-basename cand-list))
-                      (with-helm-current-buffer
-                        (helm-comp-read
-                         "Command: "
-                         (cl-loop for (a c) in (eshell-read-aliases-list)
-                                  ;; Positional arguments may be double
-                                  ;; quoted (Bug#1881).
-                                  when (string-match "[\"]?.*\\(\\$1\\|\\$\\*\\)[\"]?\\s-*&?\\'" c)
-                                  collect (propertize a 'help-echo c) into ls
-                                  finally return (sort ls 'string<))
-                         :buffer "*helm eshell on file*"
-                         :name "Eshell command"
-                         :mode-line
-                         '("Eshell alias"
-                           "C-h m: Help, \\[universal-argument]: Insert output at point")
-                         :help-message 'helm-esh-help-message
-                         :input-history
-                         'helm-eshell-command-on-file-input-history))))
+           (command
+            (with-helm-display-marked-candidates
+              helm-marked-buffer-name
+              (helm-ff--count-and-collect-dups
+               (mapcar 'helm-basename cand-list))
+              (with-helm-current-buffer
+                (helm-comp-read
+                 "Command: "
+                 (cl-loop with len = 0
+                          with aliases =
+                          (cl-loop for (a c) in (eshell-read-aliases-list)
+                                   for len-key = (length a)
+                                   when
+                                   (and (string-match
+                                         "\\(\\$1\\|\\$\\*\\)"
+                                         c)
+                                        (not (member a helm-ff-eshell-unwanted-aliases)))
+                                   do (when (> len-key len) (setq len len-key))
+                                   and collect (list a c))
+                          for (a c) in aliases
+                          collect (cons
+                                   (concat (propertize
+                                            a 'face 'font-lock-keyword-face)
+                                           (make-string (1+ (- len (length a))) ? )
+                                           c)
+                                   a))
+                 :fc-transformer #'helm-adaptive-sort
+                 :buffer "*helm eshell on file*"
+                 :name "Eshell command"
+                 :mode-line
+                 '("Eshell alias"
+                   "C-h m: Help, \\[universal-argument]: Insert output at point")
+                 :help-message 'helm-esh-help-message
+                 :history 'helm-eshell-command-on-file-history
+                 :raw-history t
+                 :input-history
+                 'helm-eshell-command-on-file-input-history))))
            (alias-value (car (assoc-default command eshell-command-aliases-list)))
            cmd-line)
       (if (or (equal helm-current-prefix-arg '(16))
@@ -1502,50 +1535,62 @@ this working."
                 (and alias-value
                      ;; If command is an alias be sure it accept
                      ;; more than one arg i.e $*.
-                     (string-match "\\$\\*$" alias-value)))
-               (cdr cand-list))
+                     (string-match "\\$\\*" alias-value)))
+               (cdr cand-list)
+               (and alias-value
+                     ;; Command is an alias and accept only one arg.
+                     (not (string-match "\\$1" alias-value))))
 
-          ;; Run eshell-command with ALL marked files as arguments.
-          ;; This wont work on remote files, because tramp handlers depends
+          ;; Run eshell-command with ALL marked files as argument.
+          ;; This wont work on remote files, because tramp handlers depend
           ;; on `default-directory' (limitation).
           (let ((mapfiles (mapconcat 'shell-quote-argument cand-list " ")))
             (if (string-match "%s" command)
                 (setq cmd-line (format command mapfiles)) ; See [1]
               (setq cmd-line (format "%s %s" command mapfiles)))
             (eshell-command cmd-line))
+        
+        ;; Run eshell-command sequencially on EACH marked files.
+        ;; To work with tramp handler we have to call
+        ;; COMMAND on basename of each file, using
+        ;; its basedir as `default-directory'.
         (unwind-protect
             (progn
-              ;; Run eshell-command on EACH marked files.
-              ;; To work with tramp handler we have to call
-              ;; COMMAND on basename of each file, using
-              ;; its basedir as `default-directory'.
               (cl-loop for f in cand-list
                        for n from 1
                        for dir = (and (not (string-match helm--url-regexp f))
                                       (helm-basedir f))
                        ;; We can use basename here as the command will run
                        ;; under default-directory.
-                       ;; This allow running e.g. "tar czvf test.tar.gz
-                       ;; %s/*" without creating an archive expanding from /home.
-                       for file = (shell-quote-argument (helm-basename f))
+                       ;; This allows running e.g.
+                       ;; "tar czvf test.tar.gz %s/*" without creating
+                       ;; an archive expanding from /home.
+                       for file = (shell-quote-argument
+                                   (if (string-match helm--url-regexp f)
+                                       f (helm-basename f)))
                        ;; \@ => placeholder for file without extension.
                        ;; \# => placeholder for incremental number.
-                       for fcmd = (replace-regexp-in-string
-                                   "\\\\@" (regexp-quote (file-name-sans-extension file))
-                                   (replace-regexp-in-string
-                                    "\\\\#" (format "%03d" n) command t t)
-                                   t t)
+                       for fcmd = (helm-aand command
+                                             (replace-regexp-in-string
+                                              "\\\\#" (format "%03d" n)
+                                              it t t)
+                                             (replace-regexp-in-string
+                                              "\\\\@"
+                                              (regexp-quote
+                                               (file-name-sans-extension file))
+                                              it t t))
                        for com = (if (string-match "%s" fcmd)
-                                     ;; [1] This allow to enter other args AFTER filename
+                                     ;; [1] This allows to enter other args AFTER filename
                                      ;; i.e <command %s some_more_args>
                                      (format fcmd file)
                                    (format "%s %s" fcmd file))
                        do (let ((default-directory (or dir default-directory)))
                             (eshell-command com))))
-          ;; Async process continue running but don't need anymore
+          ;; Async process continues running but doesn't need anymore
           ;; the advice at this point (see the `eshell-eval-command'
-          ;; call in `eshell-command'.) .
-          (advice-remove 'eshell-eval-command #'helm--advice-eshell-eval-command))))))
+          ;; call in `eshell-command').
+          (unless (> emacs-major-version 27)
+            (advice-remove 'eshell-eval-command #'helm--advice-eshell-eval-command)))))))
 
 (defun helm--advice-eshell-eval-command (command &optional input)
   "Fix return value when command ends with \"&\"."
@@ -1742,26 +1787,42 @@ prefix arg shell buffer doesn't exists, create it and switch to it."
 
 (defun helm-ff-sort-by-size ()
   (interactive)
-  (unless (eq helm-ff-initial-sort-method 'size)
-    (setq helm-ff-initial-sort-method 'size)
-    (helm-force-update (helm-get-selection nil helm-ff-transformer-show-only-basename)))
-  (message "Sorting by size"))
+  (let ((helm-ff-initial-sort-method 'size))
+    (helm-force-update
+     (concat (regexp-quote (helm-get-selection
+                            nil helm-ff-transformer-show-only-basename))
+             "$"))
+    (message "Sorting by size")))
 (put 'helm-ff-sort-by-size 'helm-only t)
 
 (defun helm-ff-sort-by-newest ()
   (interactive)
-  (unless (eq helm-ff-initial-sort-method 'newest)
-    (setq helm-ff-initial-sort-method 'newest)
-    (helm-force-update (helm-get-selection nil helm-ff-transformer-show-only-basename)))
-  (message "Sorting by newest"))
+  (let ((helm-ff-initial-sort-method 'newest))
+    (helm-force-update
+     (concat (regexp-quote (helm-get-selection
+                            nil helm-ff-transformer-show-only-basename))
+             "$"))
+    (message "Sorting by newest")))
 (put 'helm-ff-sort-by-newest 'helm-only t)
+
+(defun helm-ff-sort-by-ext ()
+  (interactive)
+  (let ((helm-ff-initial-sort-method 'ext))
+    (helm-force-update
+     (concat (regexp-quote (helm-get-selection
+                            nil helm-ff-transformer-show-only-basename))
+             "$"))
+    (message "Sorting by extensions")))
+(put 'helm-ff-sort-by-ext 'no-helm-mx t)
 
 (defun helm-ff-sort-alpha ()
   (interactive)
-  (unless (eq helm-ff-initial-sort-method nil)
-    (setq helm-ff-initial-sort-method nil)
-    (helm-force-update (helm-get-selection nil helm-ff-transformer-show-only-basename)))
-  (message "Sorting alphabetically"))
+  (let ((helm-ff-initial-sort-method nil))
+    (helm-force-update
+     (concat (regexp-quote (helm-get-selection
+                            nil helm-ff-transformer-show-only-basename))
+             "$"))
+    (message "Sorting alphabetically")))
 (put 'helm-ff-sort-alpha 'helm-only t)
 
 (defun helm-ff-directories-only (candidates _source)
@@ -3242,11 +3303,13 @@ debugging purpose."
                        (list (helm-ff-filter-candidate-one-by-one path nil t)))
                      (helm-ff-directory-files basedir))))))
 
-(defun helm-list-directory (directory)
+(defun helm-list-directory (directory &optional sel)
   "List directory DIRECTORY.
 
 If DIRECTORY is remote use `helm-list-directory-function',
-otherwise use `directory-files'."
+otherwise use `directory-files'.
+SEL argument is only here for debugging purpose, it default to
+`helm-get-selection'."
   (let* ((remote (file-remote-p directory 'method))
          (helm-list-directory-function
           (if (and remote (not (string= remote "ftp")))
@@ -3259,13 +3322,23 @@ otherwise use `directory-files'."
                                     "-t" #'file-newer-than-file-p))
                         (size (if (and remote remote-fn-p)
                                   "-S" #'helm-ff-file-larger-that-file-p))
+                        (ext (unless (and remote remote-fn-p)
+                               #'helm-group-candidates-by))
                         (t nil))))
-    (if remote
-        (funcall helm-list-directory-function directory sort-method)
-      (if sort-method
-          (sort (directory-files directory t directory-files-no-dot-files-regexp)
-                sort-method)
-        (directory-files directory t directory-files-no-dot-files-regexp)))))
+    (cond (remote
+           (funcall helm-list-directory-function directory sort-method))
+          ((memq helm-ff-initial-sort-method '(newest size))
+           (sort (directory-files
+                  directory t directory-files-no-dot-files-regexp)
+                 sort-method))
+          ((eq helm-ff-initial-sort-method 'ext)
+           (funcall sort-method
+                    (directory-files
+                     directory t directory-files-no-dot-files-regexp)
+                    #'file-name-extension
+                    (or sel (helm-get-selection) "")))
+          (t (directory-files
+              directory t directory-files-no-dot-files-regexp)))))
 
 (defsubst helm-ff-file-larger-that-file-p (f1 f2)
   (let ((attr1 (file-attributes f1))
@@ -5729,7 +5802,7 @@ and
                         (fboundp 'helm-ls-git-root-dir)
                         (helm-ls-git-root-dir))
                    (push-to-hist it)
-                   (helm-ls-git-ls))
+                   (helm-ls-git))
                   ((and (require 'helm-ls-hg nil t)
                         (fboundp 'helm-hg-root)
                         (helm-hg-root))
