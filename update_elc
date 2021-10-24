@@ -1,5 +1,21 @@
 #!/usr/local/bin/emacs --script
 
 (normal-top-level-add-subdirs-to-load-path)
-;; (byte-recompile-directory "~/Dropbox/common/.emacs.d/plugins" 0 nil)
+
+;; 这行是用来生成 elc 的, 注意，只有 elc 更新了，eln 才会被更新.
+(byte-recompile-directory "~/Dropbox/common/.emacs.d/plugins" 0 nil)
+
+;; 下面的脚本用力生成 eln 的
 (native-compile-async "~/Dropbox/common/.emacs.d/plugins" 'recursively)
+(while (or comp-files-queue
+           (> (comp-async-runnings) 0))
+  (sleep-for 1))
+
+(if (and (fboundp 'native-comp-available-p)
+         (native-comp-available-p))
+    (message "Native compilation is available")
+  (message "Native complation is *not* available"))
+
+(if (functionp 'json-serialize)
+    (message "Native JSON is available")
+  (message "Native JSON is *not* available"))
