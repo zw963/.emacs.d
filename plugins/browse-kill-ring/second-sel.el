@@ -573,7 +573,7 @@ With prefix arg, rotate that many kills forward or backward."
               'SECONDARY (buffer-substring (overlay-start ov) (overlay-end ov)))
            (x-set-selection
             'SECONDARY (buffer-substring (overlay-start ov) (overlay-end ov)))))))
-    (when (interactive-p) (second-sel-msg))
+    (when (called-interactively-p 'any) (second-sel-msg))
     buf))                               ; Return non-nil if created second sel.
 
 

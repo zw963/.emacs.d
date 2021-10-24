@@ -369,7 +369,7 @@ autoloading which we know has already happened."
 
 (defsubst git--interpret-to-state-symbol (stat)
   "Interpret a one-letter git state string to our state symbols."
-  (case (string-to-char stat)
+  (cl-case (string-to-char stat)
     (?H 'uptodate )
     (?M 'modified )
     (?? 'unknown  )
@@ -496,7 +496,7 @@ visiting files that no longer exist."
             ;; Do the state mark update if the user quits the revert prompts.
             ;; Or, on all unsaved buffers.
             (unwind-protect
-                (case git-working-dir-change-behaviour
+                (cl-case git-working-dir-change-behaviour
                   ('git-ask-for-all-saved
                    (map-y-or-n-p
                     (lambda(buffer) (format "%s has changed, refresh buffer? "
@@ -1152,7 +1152,7 @@ pending commit buffer or nil if the buffer wasn't needed."
       (setq filename (file-relative-name buffer-file-name)))
 
     (if on-git?
-      (case (git--status-file filename)
+      (cl-case (git--status-file filename)
         ('modified (git-commit-all))    ; modified -> commit
         ('staged (git-commit-all))      ; staged -> commit
         ('unknown (git--add filename))  ; unknown  -> add
@@ -1291,7 +1291,7 @@ buffer TEMPLATE. Returns the buffer."
 
           (setq conflict-end (match-beginning 0))
 
-          (case side
+          (cl-case side
             ('local (delete-region conflict-sep conflict-end))
             ('remote (delete-region conflict-begin conflict-sep))
             (t (error "Side must be one of 'local or 'remote"))))))
@@ -2014,7 +2014,7 @@ buffer instead of a new one."
          (friendly-rev1 (or rev1 "<index>"))
          (friendly-rev2 (if (eq t rev2) "<index>" (or rev2 "<working>")))
          (diff-buffer-name (format "*git diff: %s %s..%s*"
-                                   (case (length files)
+                                   (cl-case (length files)
                                      (0 (abbreviate-file-name
                                          (git--get-top-dir)))
                                      (1 (file-relative-name (first files)))
