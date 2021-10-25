@@ -798,6 +798,7 @@ Changes take effect only when a new session is started."
                                         (zig-mode . "zig")
                                         (text-mode . "plaintext")
                                         (markdown-mode . "markdown")
+                                        (gfm-mode . "markdown")
                                         (beancount-mode . "beancount"))
   "Language id configuration.")
 
@@ -834,6 +835,7 @@ directory")
     ("textDocument/formatting" :capability :documentFormattingProvider)
     ("textDocument/hover" :capability :hoverProvider)
     ("textDocument/implementation" :capability :implementationProvider)
+    ("textDocument/linkedEditingRange" :capability :linkedEditingRangeProvider)
     ("textDocument/onTypeFormatting" :capability :documentOnTypeFormattingProvider)
     ("textDocument/prepareRename"
      :check-command (lambda (workspace)
@@ -3428,6 +3430,7 @@ disappearing, unset all the variables related to it."
                                                         ;; Remove this after jdtls support resolveSupport
                                                         (resolveAdditionalTextEditsSupport . t)
                                                         (insertReplaceSupport . t)
+                                                        (deprecatedSupport . t)
                                                         (resolveSupport
                                                          . ((properties . ["documentation"
                                                                            "details"
@@ -3449,8 +3452,7 @@ disappearing, unset all the variables related to it."
                       (publishDiagnostics . ((relatedInformation . t)
                                              (tagSupport . ((valueSet . [1 2])))
                                              (versionSupport . t)))
-                      (moniker . nil)
-                      (linkedEditingRange . nil)))
+                      (linkedEditingRange . ((dynamicRegistration . t)))))
      (window . ((workDoneProgress . t)
                 (showMessage . nil)
                 (showDocument . nil))))
@@ -6510,23 +6512,17 @@ an alist
       (cons signature
             (lsp--imenu-create-hierarchical-index filtered-children)))))
 
-(lsp-defun lsp--symbol-ignore ((&SymbolInformation :kind :location))
+(lsp-defun lsp--symbol-ignore ((&SymbolInformation :kind))
   "Determine if SYM is for the current document and is to be shown."
   ;; It's a SymbolInformation or DocumentSymbol, which is always in the
   ;; current buffer file.
-  (or (and lsp-imenu-index-symbol-kinds
-           (numberp kind)
-           (let ((clamped-kind (if (< 0 kind (length lsp/symbol-kind-lookup))
-                                   kind
-                                 0)))
-             (not (memql (aref lsp/symbol-kind-lookup clamped-kind)
-                         lsp-imenu-index-symbol-kinds))))
-      (and location
-           (not (eq (->> location
-                         (lsp:location-uri)
-                         (lsp--uri-to-path)
-                         (find-buffer-visiting))
-                    (current-buffer))))))
+  (and lsp-imenu-index-symbol-kinds
+       (numberp kind)
+       (let ((clamped-kind (if (< 0 kind (length lsp/symbol-kind-lookup))
+                               kind
+                             0)))
+         (not (memql (aref lsp/symbol-kind-lookup clamped-kind)
+                     lsp-imenu-index-symbol-kinds)))))
 
 (lsp-defun lsp--get-symbol-type ((&SymbolInformation :kind))
   "The string name of the kind of SYM."
