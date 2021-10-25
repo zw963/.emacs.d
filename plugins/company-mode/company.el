@@ -92,6 +92,10 @@
     (t (:background "green")))
   "Face used for the selection in the tooltip.")
 
+(defface company-tooltip-deprecated
+  '((t (:strike-through t)))
+  "Face used for the deprecated items.")
+
 (defface company-tooltip-search
   '((default :inherit highlight))
   "Face used for the search string in the tooltip.")
@@ -402,6 +406,9 @@ duplicates are removed by company, candidates with equal string values will
 be kept if they have different annotations.  For that to work properly,
 backends should store the related information on candidates using text
 properties.
+
+`deprecated': The second argument is a completion candidate.  Return
+non-nil if the completion candidate is deprecated.
 
 `match': The second argument is a completion candidate.  Return a positive
 integer, the index after the end of text matching `prefix' within the
@@ -2256,7 +2263,7 @@ each one wraps a part of the input string."
   (let ((re (funcall company-search-regexp-function text))
         (i 0))
     (cl-dolist (line lines)
-      (when (string-match-p re line (length company-prefix))
+      (when (string-match-p re line)
         (cl-return i))
       (cl-incf i))))
 
@@ -2972,12 +2979,25 @@ If SHOW-VERSION is non-nil, show the version in the echo area."
       (pop copy))
     (apply 'concat pieces)))
 
+(defun company--common-or-matches (value)
+  (let ((matches (company-call-backend 'match value)))
+    (when (and matches
+               company-common
+               (listp matches)
+               (= 1 (length matches))
+               (= 0 (caar matches))
+               (> (length company-common) (cdar matches)))
+      (setq matches nil))
+    (when (integerp matches)
+      (setq matches `((0 . ,matches))))
+    (or matches
+        (and company-common `((0 . ,(length company-common))))
+        nil)))
+
 (defun company-fill-propertize (value annotation width selected left right)
   (let* ((margin (length left))
-         (common (or (company-call-backend 'match value)
-                     (if company-common
-                         (string-width company-common)
-                       0)))
+         (company-common (and company-common (company--clean-string company-common)))
+         (common (company--common-or-matches value))
          (_ (setq value (company-reformat (company--pre-render value))
                   annotation (and annotation (company--pre-render annotation t))))
          (ann-ralign company-tooltip-align-annotations)
@@ -3016,7 +3036,7 @@ If SHOW-VERSION is non-nil, show the version in the echo area."
                               t line))
     (cl-loop
      with width = (- width (length right))
-     for (comp-beg . comp-end) in (if (integerp common) `((0 . ,common)) common)
+     for (comp-beg . comp-end) in common
      for inline-beg = (+ margin comp-beg)
      for inline-end = (min (+ margin comp-end) width)
      when (< inline-beg width)
@@ -3028,7 +3048,7 @@ If SHOW-VERSION is non-nil, show the version in the echo area."
     (when (let ((re (funcall company-search-regexp-function
                              company-search-string)))
             (and (not (string= re ""))
-                 (string-match re value (length company-prefix))))
+                 (string-match re value)))
       (pcase-dolist (`(,mbeg . ,mend) (company--search-chunks))
         (let ((beg (+ margin mbeg))
               (end (+ margin mend))
@@ -3041,6 +3061,14 @@ If SHOW-VERSION is non-nil, show the version in the echo area."
                                     nil line)))))
     (when selected
       (add-face-text-property 0 width 'company-tooltip-selection t line))
+
+    (when (company-call-backend 'deprecated value)
+      (add-face-text-property margin
+                              (min
+                               (+ margin (length value))
+                               (- width (length right)))
+                              'company-tooltip-deprecated t line))
+
     (add-face-text-property 0 width 'company-tooltip t line)
     line))
 
@@ -3600,11 +3628,17 @@ Delay is determined by `company-tooltip-idle-delay'."
 (defun company-preview-show-at-point (pos completion)
   (company-preview-hide)
 
-  (setq completion (copy-sequence (company--pre-render completion)))
-  (add-face-text-property 0 (length completion) 'company-preview
-                          nil completion)
-  (add-face-text-property 0 (length company-common) 'company-preview-common
-                          nil completion)
+  (let* ((company-common (and company-common
+                              (string-prefix-p company-prefix company-common)
+                              company-common))
+         (common (company--common-or-matches completion)))
+    (setq completion (copy-sequence (company--pre-render completion)))
+    (add-face-text-property 0 (length completion) 'company-preview
+                            nil completion)
+
+    (cl-loop for (beg . end) in common
+             do (add-face-text-property beg end 'company-preview-common
+                                        nil completion))
 
     ;; Add search string
     (and (string-match (funcall company-search-regexp-function
@@ -3614,7 +3648,9 @@ Delay is determined by `company-tooltip-idle-delay'."
            (add-face-text-property mbeg mend 'company-preview-search
                                    nil completion)))
 
-    (setq completion (company-strip-prefix completion))
+    (setq completion (if company-common
+                         (company-strip-prefix completion)
+                       completion))
 
     (and (equal pos (point))
          (not (equal completion ""))
@@ -3637,7 +3673,7 @@ Delay is determined by `company-tooltip-idle-delay'."
       (let ((ov company-preview-overlay))
         (overlay-put ov (if ptf-workaround 'display 'after-string)
                      completion)
-        (overlay-put ov 'window (selected-window)))))
+        (overlay-put ov 'window (selected-window))))))
 
 (defun company-preview-hide ()
   (when company-preview-overlay
