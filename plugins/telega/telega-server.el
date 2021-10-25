@@ -31,6 +31,7 @@
 
 (declare-function telega-chats-dirty--update "telega-tdlib-events")
 
+(declare-function telega "telega")
 (declare-function telega-root--buffer "telega-root")
 (declare-function telega-status--set "telega-root" (conn-status &optional aux-status raw))
 
@@ -124,7 +125,10 @@ Otherwise query user about building flags."
       (unless build-flags
         (setq build-flags
               (concat
-               (when (y-or-n-p "Build `telega-server' with VOIP support? ")
+               ;; NOTE: Do not ask about VOIP support, because there
+               ;; is no support for it yet
+               (when (and nil
+                          (y-or-n-p "Build `telega-server' with VOIP support? "))
                  " WITH_VOIP=t")
                ;; NOTE: TON is postponed, see https://t.me/durov/116
                ;; So do not ask for TON support
@@ -139,35 +143,58 @@ Otherwise query user about building flags."
                         "server-reinstall")))
         (error "`telega-server' installation failed")))))
 
-(defun telega-server--find-bin ()
-  "Find telega-server executable.
+(defun telega-server--ensure-build ()
+  "Make sure telega-server is build and can run."
+  (if telega-use-docker
+      (or (executable-find "docker")
+          (error "`docker' not found in exec-path"))
+
+    (let ((exec-path (cons telega-directory exec-path)))
+      (or (if (executable-find telega-server-command)
+              (telega-server--check-version)
+            (telega-server-build))
+          (executable-find telega-server-command)
+          (error "`%s' not found in exec-path" telega-server-command)))))
+
+(defun telega-server--process-command (&rest flags)
+  "Create command to start `telega-server' progress.
+FLAGS - additional.
 Raise error if not found."
-  (let ((exec-path (cons telega-directory exec-path)))
-    (or (executable-find "telega-server")
-        (progn (telega-server-build)
-               (executable-find "telega-server"))
-        (error "`telega-server' not found in exec-path"))))
+  (mapconcat #'identity
+             (cons
+              (if telega-use-docker
+                  (telega-docker-run-cmd telega-server-command)
+                (let ((exec-path (cons telega-directory exec-path)))
+                  (or (executable-find telega-server-command)
+                      (error "`%s' not found in exec-path"
+                             telega-server-command))))
+              flags)
+             " "))
 
 (defun telega-server-version ()
   "Return telega-server version."
   (let ((ts-usage (shell-command-to-string
-                   (concat (telega-server--find-bin) " -h"))))
+                   (telega-server--process-command "-h"))))
     (when (string-match "^Version \\([0-9.]+\\)" ts-usage)
       (match-string 1 ts-usage))))
 
-(defun telega-server--check-version (min-required-version)
-  "Check telega-server version against MIN-REQUIRED-VERSION.
-If does not match, then query user to rebuild telega-server.
-If version does not match then query user to rebuild telega-server."
-  (let ((ts-version (or (telega-server-version) "0.0.0-unknown")))
-    (when (and (version< ts-version min-required-version)
+(defvar telega-server-min-version)
+(defun telega-server--check-version ()
+  "Check telega-server version against `telega-server-min-version'.
+If does not match, then query user to rebuild telega-server."
+  ;; NOTE: do not check version if using dockerized telega-server
+  (let ((ts-version (if telega-use-docker
+                        telega-server-min-version
+                      (or (telega-server-version) "0.0.0-unknown"))))
+    (when (and (version< ts-version telega-server-min-version)
                (y-or-n-p
                 (format "Installed `telega-server' version %s<%s, rebuild? "
-                        ts-version min-required-version)))
+                        ts-version telega-server-min-version)))
       ;; NOTE: remove old telega-server binary before rebuilding
       (let* ((sv-ver (car (split-string
                            (shell-command-to-string
-                            (concat (telega-server--find-bin) " -h")) "\n")))
+                            (telega-server--process-command "-h"))
+                           "\n")))
              (with-voip-p (string-match-p (regexp-quote "with VOIP") sv-ver)))
         (telega-server-build (concat (when with-voip-p " WITH_VOIP=t")
                                      ))))))
@@ -248,18 +275,102 @@ Return parsed command."
   "Function to be called when telega-server gets idle."
   (setq telega-server--idle-timer nil)
 
+  ;; Sync remote and local time. `telega-tdlib--unix-time' will be
+  ;; used in the `(telega-time-seconds)' calls to adjust time to
+  ;; match time on Telegram server side.  Also take into account
+  ;; time used to accomplish request.
+  ;; 
+  ;; We do sync while idle to prevent local clock drift, see
+  ;; https://github.com/tdlib/td/issues/1681
+  (when (plist-get telega-tdlib--unix-time :need-update)
+    (plist-put telega-tdlib--unix-time :need-update nil)
+    (let ((request-time (telega-time-seconds 'as-is)))
+      (telega--getOption :unix_time
+        (lambda (tl-value)
+          (cl-assert (eq (telega--tl-type tl-value) 'optionValueInteger))
+          (if (<= (- (telega-time-seconds 'as-is) request-time) 1)
+              (progn
+                ;; Request took less then 1 second
+                (setq telega-tdlib--unix-time
+                      (list :remote (string-to-number (plist-get tl-value :value))
+                            :local request-time))
+                (telega-debug "Unix time: remote:%S - local:%S = adj:%S"
+                              (plist-get telega-tdlib--unix-time :remote)
+                              (plist-get telega-tdlib--unix-time :local)
+                              (- (plist-get telega-tdlib--unix-time :remote)
+                                 (plist-get telega-tdlib--unix-time :local))))
+            ;; Try update "unix_time" on next idle
+            (plist-put telega-tdlib--unix-time :need-update t))))))
+
   ;; Update dirty stuff
   ;; - Updating chats may cause filters became dirty, so update chats
   ;;   first before redisplaying filters
   (telega-chats-dirty--update)
   (telega-filters--redisplay))
 
+(defun telega-server--commands-equal (cmd1 cmd2)
+  "Return non-nil if CMD1 and CMD2 are equal and can be collapsed.
+Used to optimize events processing in the `telega-server--parse-commands'."
+  (let* ((cmd1-type (nth 0 cmd1))
+         (cmd1-value (nth 1 cmd1))
+         (value-type (telega--tl-type cmd1-value))
+         (cmd2-type (nth 0 cmd2))
+         (cmd2-value (nth 1 cmd2)))
+    (and (string= cmd1-type "event")
+         (string= cmd2-type "event")
+         ;; No callback registered
+         (not (plist-get cmd1-value :@extra))
+         (not (plist-get cmd2-value :@extra))
+         ;; Value types are equal
+         (eq value-type (telega--tl-type cmd2-value))
+         (cl-case value-type
+           (updateFile
+            (eq (telega--tl-get cmd1-value :file :id)
+                (telega--tl-get cmd2-value :file :id)))
+           ((updateChatLastMessage
+             updateChatReadInbox
+             updateChatReadOutbox
+             updateChatUnreadMentionCount
+             updateChatOnlineMemberCount
+             ;; NOTE: `updateChatPosition' can't be collapsed this
+             ;; way, because this event does not provide full info
+             ;; about all chat list positions, it just updates a
+             ;; single chat list position
+             )
+            (and (eq (plist-get cmd1-value :chat_id)
+                     (plist-get cmd2-value :chat_id))))
+           ((updateUserStatus
+             updateUserFullInfo)
+            (eq (telega--tl-get cmd1-value :user_id)
+                (telega--tl-get cmd2-value :user_id)))
+           (updateUser
+            (eq (telega--tl-get cmd1-value :user :id)
+                (telega--tl-get cmd2-value :user :id)))
+           (updateHavePendingNotifications
+            t)
+           ((updateUnreadMessageCount
+             updateUnreadChatCount)
+            (equal (plist-get cmd1-value :chat_list)
+                   (plist-get cmd2-value :chat_list)))
+           )
+         (progn
+           (telega-debug "Collapsed events: %S" value-type)
+           t)
+         )))
+
 (defun telega-server--parse-commands ()
   "Parse all available events from telega-server."
   (goto-char (point-min))
-  (let (cmd-val)
+  (let (cmd-val parsed-commands)
+    ;; NOTE: First parse all commands, then optimize events, because
+    ;; some events (such as `updateFile', `updateChatLastMessage',
+    ;; etc) can be collapsed to single event, then dispatch all the
+    ;; events left after optimization
     (while (setq cmd-val (telega-server--parse-cmd))
-      (apply 'telega-server--dispatch-cmd cmd-val))
+      (setq parsed-commands (cons cmd-val parsed-commands)))
+    (dolist (cmd (cl-delete-duplicates (nreverse parsed-commands)
+                                       :test #'telega-server--commands-equal))
+      (apply #'telega-server--dispatch-cmd cmd))
 
     (if telega-server--idle-timer
         (timer-set-time telega-server--idle-timer
@@ -304,7 +415,11 @@ Return parsed command."
     ;; Notify in echo area if telega-server exited abnormally
     (unless (zerop (process-exit-status proc))
       (message "[%d]telega-server: %s" (process-exit-status proc) status))
-    ))
+
+    ;; If QR auth skipped, then relogin with phone number
+    (when (and telega--relogin-with-phone-number
+               (not (process-live-p proc)))
+      (telega))))
 
 (defun telega-server--send (sexp &optional command)
   "Send SEXP to telega-server."
@@ -378,9 +493,21 @@ COMMAND is passed directly to `telega-server--send'."
    (erase-buffer)
    (insert (format "%s ---[ telega-server started\n" (current-time-string))))
 
-  (let ((process-connection-type nil)
-        (process-adaptive-read-buffering nil)
-        (server-bin (telega-server--find-bin)))
+  ;;
+  (let* ((process-connection-type nil)
+         (process-adaptive-read-buffering nil)
+         (telega-docker--cidfile
+          (telega-docker--container-id-filename))
+         (server-cmd (telega-server--process-command
+                      (when telega-server-logfile
+                        "-l")
+                      (when telega-server-logfile
+                        telega-server-logfile)
+                      "-v"
+                      (if telega-server-logfile
+                          (int-to-string telega-server-verbosity)
+                        "0"))))
+    (telega-debug "telega-server CMD: %s" server-cmd)
     (with-current-buffer (generate-new-buffer " *telega-server*")
       (setq telega-server--on-event-func 'telega--on-event)
       (setq telega-server--deferred-events nil)
@@ -390,14 +517,23 @@ COMMAND is passed directly to `telega-server--send'."
       (setq telega-server--results (make-hash-table :test 'eq))
       (setq telega-server--buffer (current-buffer))
 
+      ;; NOTE: `docker' won't start if cidfile already exists
+      (when (and telega-use-docker telega-docker--cidfile)
+        (delete-file telega-docker--cidfile))
+
       (telega-status--set "telega-server: starting.")
-      (let* ((proc-args (if telega-server-logfile
-                            (list "-l" telega-server-logfile
-                                  "-v" (int-to-string telega-server-verbosity))
-                          (list "-v" "0")))
-             (proc (apply 'start-process
-                          "telega-server" (current-buffer) server-bin
-                          proc-args)))
+      (let* ((proc-cmd-with-args (split-string server-cmd " " t))
+             ;; NOTE: use `start-process-shell-command' for dockerized
+             ;; `telega-server', to make env variables expansion work
+             ;; as they might be specified in
+             ;; `telega-docker-run-command'
+             (proc (apply (if telega-use-docker
+                              'start-process-shell-command
+                            'start-process)
+                          "telega-server" (current-buffer)
+                          (if telega-use-docker
+                              (list server-cmd)
+                            proc-cmd-with-args))))
         (set-process-query-on-exit-flag proc nil)
         (set-process-sentinel proc #'telega-server--sentinel)
         (set-process-filter proc #'telega-server--filter)

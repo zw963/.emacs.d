@@ -174,11 +174,13 @@ Most of these languages available for language detection.")
       (with-current-buffer (get-buffer-create "*Telega Mnz Fontification*")
         (erase-buffer)
         (insert text)
-        (if (and (symbolp mode)
-                 (commandp mode))
-            (funcall mode)
-          (ignore-errors
-            (mapc #'funcall mode)))
+        ;; NOTE: suppress annoying messages from some major modes
+        (let ((inhibit-message t))
+          (if (and (symbolp mode)
+                   (commandp mode))
+              (funcall mode)
+            (ignore-errors
+              (mapc #'funcall mode))))
         ;; NOTE: font-lock might trigger errors, for example:
         ;;   (telega-mnz--render-text-for-mode "$ head -n2 /tmp/pechatnaya-forma.doc\n<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>\n<?mso-application progid=\"Word.Document\"?>" 'xml-mode)
         ;;   ==>
@@ -452,7 +454,7 @@ For non-interactive code attach, use `telega-mnz--chatbuf-attach-internal'."
   "Attach region in current buffer to some chatbuf's input as code.
 BEG is the beginning of the region.
 END is the end of the region."
-  (interactive "*r")
+  (interactive "r")
   (let ((lang (telega-mnz--language-for-mode major-mode))
         (code (buffer-substring-no-properties beg end))
         (chat (telega-completing-read-chat "Attach code to chat: ")))

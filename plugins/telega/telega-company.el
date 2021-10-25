@@ -31,10 +31,15 @@
 (require 'telega-util)
 (require 'telega-user)
 
+(defvar company-backend)
 (defvar company-minimum-prefix-length)
+(defvar company-tooltip-minimum)
+(declare-function company--row "company" (&optional pos))
+(declare-function company--pseudo-tooltip-height "company")
 (declare-function company-begin-backend "company" (backend &optional callback))
 (declare-function company-grab "company" (regexp &optional expression limit))
 (declare-function company-grab-line "company" (regexp &optional expression))
+(declare-function company-call-backend "company" (&rest args))
 
 (declare-function telega-chat--info "telega-chat" (chat))
 (declare-function telega-chat--type "telega-chat" (chat &optional no-interpret))
@@ -156,31 +161,43 @@ Matches only if CHAR does not apper in the middle of the word."
     (require-match 'never)
     (candidates
      (cl-assert (> (length arg) 0))
-     (let ((members (telega--searchChatMembers
-                     telega-chatbuf--chat (substring arg 1))))
-       (nconc (delq nil
-                    (mapcar (lambda (member)
-                              (propertize
-                               (if-let ((un (telega-tl-str member :username)))
-                                   (concat "@" un)
-                                 (telega-user--name member))
-                               'telega-member member))
-                            members))
+     (let ((members
+            (telega--searchChatMembers
+             telega-chatbuf--chat (substring arg 1)
+             ;; NOTE: not using "chatMembersFilterMention"
+             ;; see https://github.com/tdlib/td/issues/1393
+             ;; (list :@type "chatMembersFilterMention"
+             ;;       :message_thread_id (or (plist-get telega-chatbuf--thread-msg
+             ;;                                         :message_thread_id)
+             ;;                              0))
+             )))
+       (nconc (mapcar (lambda (member)
+                        (propertize
+                         (or (telega-msg-sender-username member 'with-@)
+                             (telega-msg-sender-title member))
+                         'telega-member member))
+                      members)
               (cl-remove-if-not (lambda (botname)
                                   (string-prefix-p arg botname))
                                 telega-known-inline-bots))))
     (annotation
      ;; Use non-nil `company-tooltip-align-annotations' to align
-     (let ((member (get-text-property 0 'telega-member arg)))
-       (when member
-         (concat "  " (telega-user--name member 'name)))))
+     (when-let ((member (or (get-text-property 0 'telega-member arg)
+                            (telega-user--by-username arg))))
+       (telega-ins--as-string
+        (telega-ins "  ")
+        (telega-ins (telega-msg-sender-title member))
+        (when telega-company-username-show-avatars
+          (insert-image
+           (telega-msg-sender-avatar-image-one-line member))))))
     (post-completion
      (when-let ((member (get-text-property 0 'telega-member arg)))
-       (unless (telega-tl-str member :username)
+       (unless (or (telega-msg-sender-username member)
+                   (telega-chat-p member))
          (delete-region (- (point) (length arg)) (point))
          (telega-ins (telega-string-as-markup
                       (format "[%s](tg://user?id=%d)"
-                              (telega-user--name member)
+                              (telega-msg-sender-title member)
                               (plist-get member :id))
                       "markdown1" #'telega-markup-markdown1-fmt))))
 
@@ -224,7 +241,7 @@ Matches only if CHAR does not apper in the middle of the word."
     (when (and cg (= telega-chatbuf--input-marker (match-beginning 0)))
       (cons cg company-minimum-prefix-length))))
 
-(defun telega-company--bot-commands-list (bot-info &optional suffix)
+(defun telega-company--bot-commands-list (bot-commands &optional suffix)
   (mapcar (lambda (bot-cmd)
             (propertize (concat "/" (telega-tl-str bot-cmd :command) suffix)
                         'telega-annotation
@@ -232,30 +249,22 @@ Matches only if CHAR does not apper in the middle of the word."
                          (telega-ins--with-attrs
                              (list :max (/ telega-chat-fill-column 2) :elide t)
                            (telega-ins (telega-tl-str bot-cmd :description))))))
-          (plist-get bot-info :commands)))
+          bot-commands))
 
 (defun telega-company--bot-commands ()
   (cl-assert telega-chatbuf--chat)
-  (let ((chat-type (telega-chat--type telega-chatbuf--chat)))
-    (if (eq chat-type 'bot)
-        ;; Chat with bot
-        (let* ((info (telega-chat--info telega-chatbuf--chat))
-               (full-info (telega--full-info info))
-               (bot-info (plist-get full-info :bot_info)))
-          (telega-company--bot-commands-list bot-info))
-
-      ;; Ordinary chat
-      (let ((bots (telega--searchChatMembers
-                   telega-chatbuf--chat "" "Bots" nil t)))
-        (apply #'append
-               (mapcar (lambda (bot-member)
-                         (let ((bot-user (telega-user-get
-                                          (plist-get bot-member :user_id))))
-                           (telega-company--bot-commands-list
-                            (plist-get bot-member :bot_info)
-                            (concat "@" (telega-tl-str bot-user :username)))))
-                       bots))))
-    ))
+  (let* ((info (telega-chat--info telega-chatbuf--chat))
+         (full-info (telega--full-info info)))
+    (if (eq 'bot (telega-chat--type telega-chatbuf--chat))
+        (telega-company--bot-commands-list (plist-get full-info :commands))
+      (apply #'nconc
+             (mapcar (lambda (bot-commands)
+                       (telega-company--bot-commands-list
+                        (plist-get bot-commands :commands)
+                        (let ((bot-user (telega-user-get
+                                         (plist-get bot-commands :bot_user_id))))
+                          (concat "@" (telega-tl-str bot-user :username)))))
+                     (plist-get full-info :bot_commands))))))
 
 ;;;###autoload
 (defun telega-company-botcmd (command &optional arg &rest ignored)
@@ -272,6 +281,69 @@ Matches only if CHAR does not apper in the middle of the word."
      (get-text-property 0 'telega-annotation arg))
     ))
 
+
+;; Functionality to show company tooltip always below the point
+(defvar telega-company--chatbuf-row nil
+  "Current row in the chatbuf before showing company tooltip.
+Used when `telega-company-tooltip-always-below' is non-nil.")
+(make-variable-buffer-local 'telega-company--chatbuf-row)
+
+(defun telega-company--chatbuf-move-row (orig-show-func row &rest args)
+  "Reserve space below the point so company tooltip will be shown below.
+Only if `telega-company-tooltip-always-below' is non-nil."
+  (let (saved-chatbuf--row)
+    (when (and telega-company-tooltip-always-below
+               telega-chatbuf--chat)
+      ;; NOTE: If ROW is moved, then save original row to the
+      ;; `telega-company--chatbuf-row' to restore it later when
+      ;; tooltip hides
+      (let ((height (company--pseudo-tooltip-height)))
+        (when (< height 0)
+          (setq saved-chatbuf--row row)
+          (recenter (- (1+ company-tooltip-minimum)))
+          (setq row (1+ (company--row))))))
+
+    (apply orig-show-func row args)
+
+    ;; NOTE: Set `telega-company--chatbuf-row' *after* calling to orig
+    ;; func, because it calls `company-pseudo-tooltip-hide'
+    (setq telega-company--chatbuf-row saved-chatbuf--row)))
+
+(defun telega-company--restore-row ()
+  "Restore original point row before additional space reservation.
+Only if `telega-company-tooltip-always-below' is non-nil."
+  (when (and telega-company-tooltip-always-below
+             telega-company--chatbuf-row)
+    (cl-assert  telega-chatbuf--chat)
+    (let ((restore-row telega-company--chatbuf-row))
+      (setq telega-company--chatbuf-row nil)
+      (recenter restore-row))))
+
+
+;; Utility functions
+(defun telega-company--grab-backend (what)
+  "Return prefix or a backend for input at point.
+WHAT is one of `prefix', `backend' or `prefix-and-backend'"
+  (let* ((prefix nil)
+         (backend (cl-find-if (lambda (b)
+                                (let ((company-backend b))
+                                  (setq prefix (company-call-backend 'prefix))))
+                              (list 'telega-company-username
+                                    telega-emoji-company-backend
+                                    'telega-company-hashtag
+                                    'telega-company-botcmd))))
+    (when prefix
+      (cl-ecase what
+        (prefix prefix)
+        (backend backend)
+        (prefix-and-backend (cons prefix backend))))))
+
 (provide 'telega-company)
+
+
+(advice-add 'company-pseudo-tooltip-show
+            :around #'telega-company--chatbuf-move-row)
+(advice-add 'company-pseudo-tooltip-hide
+            :after 'telega-company--restore-row)
 
 ;;; telega-company.el ends here

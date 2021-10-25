@@ -59,9 +59,12 @@
   (let ((member-or-user-or-chat (button-get (button-at pos) :value)))
     (cl-ecase (telega--tl-type member-or-user-or-chat)
       (chatMember
-       (telega-user-get (plist-get member-or-user-or-chat :user_id)))
-      (chat (telega-chat-user member-or-user-or-chat 'include-bots))
-      (user member-or-user-or-chat))))
+       (telega-user-get
+        (telega--tl-get member-or-user-or-chat :member_id :user_id)))
+      (chat
+       (telega-chat-user member-or-user-or-chat 'include-bots))
+      (user
+       member-or-user-or-chat))))
 
 (defun telega-user-button--action (button)
   "Action to take when user BUTTON is pressed.
@@ -110,17 +113,18 @@ Format name using FMT-TYPE, one of:
   `full' - Uses all available namings
 Default is: `full'"
   ;; NOTE: USER might be of "contact" type
-  (if (and (eq (telega--tl-type user) 'user)
-           (eq (telega-user--type user) 'deleted))
-      ;; I18N: deleted -> Deleted Account
-      (format "%s-%d" (telega-i18n "lng_deleted") (plist-get user :id))
+  (let ((user-p (eq (telega--tl-type user) 'user))
+        (fmt-type (or fmt-type 'full))
+        (name ""))
+    (if (and user-p (eq (telega-user--type user) 'deleted))
+        ;; I18N: deleted -> Deleted Account
+        (setq name (format "%s-%d" (telega-i18n "lng_deleted")
+                           (plist-get user :id)))
 
-    (let ((fmt-type (or fmt-type 'full))
-          (name ""))
+      ;; Existing user or a contact
       (when (memq fmt-type '(full short))
         (if-let ((un (telega-tl-str user :username)))
             (setq name (concat "@" un))
-
           ;; Change format in case `:username' is unavailable
           (when (eq fmt-type 'short)
             (setq fmt-type 'name))))
@@ -129,8 +133,20 @@ Default is: `full'"
           (setq name (concat ln (if (string-empty-p name) "" " ") name))))
       (when (or (memq fmt-type '(full name)) (string-empty-p name))
         (when-let ((fn (telega-tl-str user :first_name)))
-          (setq name (concat fn (if (string-empty-p name) "" " ") name))))
-      name)))
+          (setq name (concat fn (if (string-empty-p name) "" " ") name)))))
+
+    ;; Scam/Fake/Blacklist badge, apply for users only
+    ;; see https://t.me/emacs_telega/30318
+    (when user-p
+      (when (plist-get user :is_scam)
+        (setq name (concat name " " (propertize (telega-i18n "lng_scam_badge")
+                                                'face 'error))))
+      (when (plist-get user :is_fake)
+        (setq name (concat name " " (propertize (telega-i18n "lng_fake_badge")
+                                                'face 'error))))
+      (when (telega-msg-sender-blocked-p user 'offline)
+        (setq name (concat name " " (propertize "BLOCKED" 'face 'error)))))
+    name))
 
 ;; NOTE: Backward compatibility, DEPRECATED, use `telega-user-title' instead
 (defalias 'telega-user--name 'telega-user-title)
@@ -173,32 +189,6 @@ If AS-NUMBER is specified, return online status as number:
                             :group_in_common_count)))
     (unless (zerop gic-cnt)
       (telega--getGroupsInCommon with-user))))
-
-(defun telega-user-avatar-image (user &optional force-update)
-  "Return avatar image for the USER.
-Return two-line image."
-  (let ((photo (plist-get user :profile_photo)))
-    (telega-media--image
-     (cons user #'telega-avatar--create-image)
-     (cons photo :small)
-     force-update)))
-
-(defun telega-user-avatar-image-one-line (user)
-  "Return avatar for the USER for one line use."
-  (let ((photo (plist-get user :profile_photo)))
-    (telega-media--image
-     (cons user #'telega-avatar--create-image-one-line)
-     (cons photo :small)
-     nil :telega-avatar-1)))
-
-(defun telega-user-avatar-image-three-lines (user)
-  "Return avatar for the USER for three lines use."
-  (let ((photo (plist-get user :profile_photo)))
-    (telega-media--image
-     (cons user (lambda (c-or-u file)
-                  (telega-avatar--create-image c-or-u file 3)))
-     (cons photo :small)
-     nil :telega-avatar-3)))
 
 (defun telega-describe-user--inserter (user-id)
   "Inserter for the user info buffer."

@@ -38,7 +38,8 @@
      footer)
     (("updateMessageInteractionInfo")
      thread-footer)
-    (("updateUserStatus" "updateChatOnlineMemberCount")
+    (("updateUserStatus" "updateChatOnlineMemberCount"
+      "updateChatMessageTtlSetting" "updateMessageMentionRead")
      modeline)
     (("updateChatReadInbox" "updateChatUnreadMentionCount")
      footer modeline)
@@ -121,8 +122,13 @@ If FOR-REORDER is non-nil, then CHAT's node is ok, just update filters."
   ;; If there are more then 50 chats are dirty, then force update
   (when (> (length telega--dirty-chats) 50)
     (telega-chats-dirty--update)
-    (telega-filters--redisplay))
-  )
+    (telega-filters--redisplay)
+
+    ;; NOTE: Timers are not run when Emacs is under heavy load, so
+    ;; force status animations as well if timer is running
+    (when telega-status--timer
+      (telega-status--animate))
+    ))
 
 (defun telega-chats-dirty--update ()
   "Update dirty chats."
@@ -166,7 +172,7 @@ If FOR-REORDER is non-nil, then CHAT's node is ok, just update filters."
     (when (eq (telega--tl-type status) 'userStatusOnline)
       (plist-put user :telega-last-online (telega-time-seconds)))
 
-    ;; NOTE: do not track me online status changes
+    ;; NOTE: do not track online status changes on me
     (unless (telega-me-p user)
       (telega-user--update user event))
     ))
@@ -203,6 +209,18 @@ If FOR-REORDER is non-nil, then CHAT's node is ok, just update filters."
         (ufi (cdr (assq 'user telega--full-info))))
     (puthash user-id (plist-get event :user_full_info) ufi)
 
+    ;; Possibly update `telega--blocked-user-ids', keeping
+    ;; `telega--blocked-user-ids' in sync with update events
+    ;; see https://github.com/tdlib/td/issues/1669
+    (if (telega--tl-get event :user_full_info :is_blocked)
+        (unless (memq user-id telega--blocked-user-ids)
+          (setq telega--blocked-user-ids
+                (append telega--blocked-user-ids (list user-id))))
+      (when (memq user-id telega--blocked-user-ids)
+        (setq telega--blocked-user-ids
+              (cons (car telega--blocked-user-ids)
+                    (delq user-id (cdr telega--blocked-user-ids))))))
+
     (telega-user--update (telega-user-get user-id) event)))
 
 
@@ -219,8 +237,13 @@ If FOR-REORDER is non-nil, then CHAT's node is ok, just update filters."
   (let ((chat (telega-chat-get (plist-get event :chat_id)))
         (photo (plist-get event :photo)))
     (plist-put chat :photo photo)
+
+    ;; XXX remove cached avatars
     (plist-put chat :telega-image nil)
     (plist-put chat :telega-avatar-1 nil)
+    (plist-put chat :telega-avatar-3 nil)
+    (plist-put chat :telega-avatar-vc-1 nil)
+    (plist-put chat :telega-avatar-vc-speaking-1 nil)
 
     (telega-chat--mark-dirty chat event)
     ))
@@ -355,7 +378,7 @@ If FOR-REORDER is non-nil, then CHAT's node is ok, just update filters."
 (defun telega--on-updateChatLastMessage (event)
   (let ((chat (telega-chat-get (plist-get event :chat_id) 'offline)))
     (cl-assert chat)
-    ;; NOTE: `:last_message' is unset when gap is create in the chat
+    ;; NOTE: `:last_message' is unset when gap is created in the chat
     ;; This case is handled in the `telega-chatbuf--last-msg-loaded-p'
     ;; See https://github.com/tdlib/td/issues/896
     (plist-put chat :last_message (plist-get event :last_message))
@@ -436,6 +459,13 @@ NOTE: we store the number as custom chat property, to use it later."
 
     (telega-chat--mark-dirty chat event)))
 
+(defun telega--on-updateChatMessageTtlSetting (event)
+  (let ((chat (telega-chat-get (plist-get event :chat_id))))
+    (cl-assert chat)
+    (plist-put chat :message_ttl_setting (plist-get event :message_ttl_setting))
+
+    (telega-chat--mark-dirty chat event)))
+
 (defun telega--on-updateSecretChat (event)
   (let ((secretchat (plist-get event :secret_chat)))
     (telega--info-update secretchat)
@@ -447,15 +477,41 @@ NOTE: we store the number as custom chat property, to use it later."
                               :test 'eq :key #'telega-chat--info)))
       (telega-chat--mark-dirty chat event))))
 
-(defun telega--on-initial-chats-fetch (chats)
-  "Ensure chats from RESULT exists, and continue fetching chats."
-  (if (> (length chats) 0)
-      ;; Continue fetching chats, redisplaying custom filters
-      (telega--getChats (car (last chats)) (list :@type "chatListMain")
-        #'telega--on-initial-chats-fetch)
+(defun telega--on-blocked-senders-load (senders)
+  ;; NOTE: car of the senders is total number of blocked senders
+  (setq senders (cdr senders))
+  (when senders
+    (cl-incf (car telega--blocked-user-ids) (length senders))
+    (setq telega--blocked-user-ids
+          (append telega--blocked-user-ids
+                  (mapcar (telega--tl-prop :id)
+                          (cl-remove-if-not #'telega-user-p senders))))
+
+    ;; Continue fetching blocked users
+    (telega--getBlockedMessageSenders
+     (car telega--blocked-user-ids) #'telega--on-blocked-senders-load)
+    ))
+
+(defun telega--on-initial-chats-load (tl-ok)
+  "Process initially loaded chats, or continue loading chats."
+  (if (not (telega--tl-error-p tl-ok))
+      (progn
+        ;; Continue fetching chats
+        (telega--loadChats (list :@type "chatListMain")
+          #'telega--on-initial-chats-load))
 
     ;; All chats has been fetched
     (telega-status--set nil "")
+
+    ;; Check `:last_message' of initially fetched chats for client
+    ;; side messages ignoring.  Also trigger reordering, since
+    ;; ignoring last message might affect chat order, see
+    ;; `contrib/telega-adblock.el'
+    (dolist (chat telega--ordered-chats)
+      (when-let ((last-message (plist-get chat :last_message)))
+        (when (telega-msg-run-ignore-predicates last-message 'last-msg)
+          (telega-chat--update chat (list :@type "telegaChatReorder")))))
+
     (run-hooks 'telega-chats-fetched-hook)))
 
 (defun telega--on-updateChatReplyMarkup (event)
@@ -467,20 +523,64 @@ NOTE: we store the number as custom chat property, to use it later."
     (with-telega-chatbuf chat
       (telega-chatbuf--reply-markup-message-fetch))))
 
+(defun telega--on-updateChatVoiceChat (event)
+  (let ((chat (telega-chat-get (plist-get event :chat_id) 'offline)))
+    (cl-assert chat)
+    (plist-put chat :voice_chat (plist-get event :voice_chat))
+
+    (telega-chat--mark-dirty chat event)
+
+    (with-telega-chatbuf chat
+      (telega-chatbuf--voice-chat-fetch))))
+
+(defun telega--on-updateGroupCall (event)
+  (let ((new-group-call (plist-get event :group_call)))
+    (telega-group-call--ensure new-group-call)
+
+    (when-let ((chat (cl-find (plist-get new-group-call :id)
+                              telega--ordered-chats
+                              :key (telega--tl-prop :voice_chat :group_call_id))))
+      (with-telega-chatbuf chat
+        (telega-chatbuf--footer-update)))
+    ))
+  
+(defun telega--on-updateGroupCallParticipant (event)
+  (let ((group-call-id (plist-get event :group_call_id))
+        (call-user (plist-get event :participant)))
+    (when-let ((chat (cl-find group-call-id
+                              telega--ordered-chats
+                              :key (telega--tl-prop :voice_chat :group_call_id))))
+      (with-telega-chatbuf chat
+        ;; TODO: voice-chats
+        ;; update `telega-chatbuf--group-call-users'
+        )
+      )))
+
 
 ;; Chat filters
 (defun telega--on-updateChatFilters (event)
   "List of chat filters has been updated."
-  (setq telega-tdlib--chat-filters
-        (append (plist-get event :chat_filters) nil))
+  ;; NOTE: collect folders with changed names and update all chats in
+  ;; that folders.  Because folder name might be displayed along the
+  ;; side with chat's title in the rootbuf
+  (let* ((new-tdlib-filters (append (plist-get event :chat_filters) nil))
+         (new-names (seq-difference (telega-folder-names new-tdlib-filters)
+                                    (telega-folder-names))))
+    (setq telega-tdlib--chat-filters new-tdlib-filters)
 
-  ;; Update custom filters ewoc
-  (with-telega-root-buffer
-    (telega-save-cursor
-      (telega-filters--refresh))
+    (dolist (folder-name new-names)
+      (dolist (fchat (telega-filter-chats
+                      telega--ordered-chats `(folder ,folder-name)))
+        (telega-chat--mark-dirty fchat)))
+    (telega-chats-dirty--update)
 
-    (run-hooks 'telega-root-update-hook))
-  )
+    ;; Update custom filters ewoc
+    (with-telega-root-buffer
+      (telega-save-cursor
+        (telega-filters--refresh))
+
+      (run-hooks 'telega-root-update-hook))
+    ))
 
 
 ;; Messages updates
@@ -503,16 +603,23 @@ NOTE: we store the number as custom chat property, to use it later."
 
 (defun telega--on-updateNewMessage (event)
   "A new message was received; can also be an outgoing message."
-  (let ((new-msg (plist-get event :message)))
+  (let* ((new-msg (plist-get event :message))
+         (chat (telega-msg-chat new-msg)))
+    ;; NOTE: We always set `:ignored-p' property to not trigger
+    ;; `telega-msg-run-ignore-predicates' once again when this message
+    ;; is inserted into chatbuf
+    (if (telega-msg-run-ignore-predicates new-msg 'last-msg)
+        ;; NOTE: In case ignored message contains mention, we mark all
+        ;; chat mentions as read if there is no other mentions.
+        ;; See https://github.com/zevlg/telega.el/issues/314
+        (when (and (plist-get new-msg :contains_unread_mention)
+                   (eq 1 (plist-get chat :unread_mention_count)))
+          (telega--readAllChatMentions chat))
+      (plist-put new-msg :ignored-p nil))
+
     (run-hook-with-args 'telega-chat-pre-message-hook new-msg)
 
-    ;; NOTE: View ignored messages, so modeline/appindicator won't
-    ;; show there is something important if ignored message contains
-    ;; mention
-    (when (telega-msg-ignored-p new-msg)
-      (telega--viewMessages (telega-msg-chat new-msg) (list new-msg) 'force))
-
-    (with-telega-chatbuf (telega-msg-chat new-msg)
+    (with-telega-chatbuf chat
       (telega-msg-cache new-msg)
 
       ;; NOTE: `:last_message' could be already updated in the chat
@@ -532,7 +639,11 @@ NOTE: we store the number as custom chat property, to use it later."
           (when (telega-msg-observable-p new-msg telega-chatbuf--chat node)
             (telega--viewMessages telega-chatbuf--chat (list new-msg)))
           )))
-    (run-hook-with-args 'telega-chat-post-message-hook new-msg)))
+    ;; NOTE: Trigger `telega-chat-post-message-hook' for outgoing
+    ;; messages, only when message is successfully sent
+    ;; See https://t.me/emacs_telega/25615
+    (unless (plist-get new-msg :sending_state)
+      (run-hook-with-args 'telega-chat-post-message-hook new-msg))))
 
 (defun telega--on-updateMessageSendSucceeded (event)
   "Message has been successfully sent to server.
@@ -568,7 +679,9 @@ Message id could be updated on this update."
                   (progn
                     (ewoc-enter-before telega-chatbuf--ewoc before-node new-msg)
                     (ewoc-invalidate telega-chatbuf--ewoc before-node))
-                (ewoc-enter-last telega-chatbuf--ewoc new-msg)))))))))
+                (ewoc-enter-last telega-chatbuf--ewoc new-msg)))))))
+    (unless (plist-get new-msg :sending_state)
+      (run-hook-with-args 'telega-chat-post-message-hook new-msg))))
 
 (defun telega--on-updateMessageSendFailed (event)
   "Message failed to send."
@@ -794,8 +907,7 @@ messages."
     (telega-user--update (telega-user-get (plist-get call :user_id)) event)
 
     ;; Update aux status
-    (telega-voip--aux-status
-     (or telega-voip--active-call (telega-voip--incoming-call)))
+    (telega-root-aux-redisplay 'telega-ins--voip-active-call)
     ))
 
 ;; Stickers updates
@@ -806,6 +918,10 @@ messages."
 
     (setq telega--stickersets-installed-ids
           (append (plist-get event :sticker_set_ids) nil))
+
+    ;; NOTE: Refresh `telega--stickersets-installed' on next call to
+    ;; `telega-stickerset-completing-read'
+    (setq telega--stickersets-installed nil)
 
     ;; Asynchronously update value for `telega--stickersets-installed'
     ;; and download covers for these sticker sets
@@ -974,6 +1090,13 @@ messages."
     (setq telega--options
           (plist-put telega--options option value))
 
+    (when (and (eq option :unix_time) value)
+      ;; Mark unix-time as need to be updated when Emacs gets idle
+      ;; time, it will be updated on next call to
+      ;; `telega-server--idle-timer-function'
+      (setq telega-tdlib--unix-time
+            (plist-put telega-tdlib--unix-time :need-update t)))
+
     (when (and (eq option :is_location_visible) value)
       (if telega-my-location
           (telega--setLocation telega-my-location)
@@ -989,6 +1112,14 @@ messages."
     (telega-status--set (concat "Auth " telega--auth-state))
     (cl-ecase (intern stype)
       (authorizationStateWaitTdlibParameters
+       ;; Tune permissions for docker's /dev/snd, /dev/video*
+       (when-let ((devices-chown-cmd
+                   (telega-docker-exec-cmd
+                    "chmod -R o+rw /dev/snd /dev/video0" nil
+                    "-u 0" 'no-error)))
+         (telega-debug "docker RUN: %s" devices-chown-cmd)
+         (shell-command-to-string devices-chown-cmd))
+
        (telega--setTdlibParameters))
 
       (authorizationStateWaitEncryptionKey
@@ -1006,12 +1137,29 @@ messages."
        )
 
       (authorizationStateWaitPhoneNumber
-       (let ((phone (read-string "Telega phone number: " "+")))
-         (telega--setAuthenticationPhoneNumber phone)))
+       (if (and (not telega--relogin-with-phone-number)
+                telega-use-images
+                (or (executable-find "qrencode")
+                    ;; NOTE: docker image has "qrencode" tool
+                    telega-use-docker))
+           (progn
+             ;; NOTE: transition to
+             ;; "authorizationStateWaitOtherDeviceConfirmation" state
+             ;; takes some time, so display QR code dialog first, then
+             ;; wait for QR code itself
+             (telega--requestQrCodeAuthentication)
+             (telega-qr-code--show nil))
+
+         (setq telega--relogin-with-phone-number nil)
+         (telega--setAuthenticationPhoneNumber
+          (read-string "Telega phone number: " "+"))))
 
       (authorizationStateWaitCode
        (let ((code (read-string "Telega login code: ")))
          (telega--checkAuthenticationCode code)))
+
+      (authorizationStateWaitOtherDeviceConfirmation
+       (telega-qr-code--show (plist-get state :link)))
 
       (authorizationStateWaitRegistration
        (let* ((names (split-string (read-from-minibuffer "Your Name: ") " "))
@@ -1031,6 +1179,9 @@ messages."
 
 
       (authorizationStateReady
+       ;; Hide previously possibly shown QR code auth dialog
+       (telega-qr-code--hide)
+
        ;; TDLib is now ready to answer queries
        (telega--authorization-ready))
 
@@ -1093,6 +1244,12 @@ messages."
           (append (seq-difference telega--suggested-actions removed-actions
                                   #'equal)
                   added-actions))))
+
+(defun telega--on-updateHavePendingNotifications (event)
+  ;; We define this to avoid
+  ;; "TODO: define `telega--on-updateHavePendingNotifications'"
+  ;; messages in the *telega-debug*
+  )
 
 (provide 'telega-tdlib-events)
 

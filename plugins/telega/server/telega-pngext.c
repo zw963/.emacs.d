@@ -119,7 +119,7 @@ pngext_get_png(struct telega_dat* src, struct telega_dat* png)
 void
 pngext_usage(char* prog)
 {
-        printf("usage: %s -E PREFIX [-f FPS] [-R RDSIZE] -- CMD [ARGS]\n", prog);
+        printf("usage: %s -E PREFIX [-f FPS] [-R RDSIZE] [-- CMD [ARGS]]\n", prog);
         printf("Captures output from external command CMD and extracts\n"
                "png images from there, writing them to temporary location\n"
                "with PREFIX.\n");
@@ -230,8 +230,10 @@ pngext_loop(const char* prefix, size_t rdsize)
                         if (!pngext_get_png(&input, &png_data)) {
                                 char png_filename[512];
                                 snprintf(png_filename, 512, "%s%d.png", prefix, ++frame_num);
-                                if (!pngext_write_file(png_filename, &png_data))
+                                if (!pngext_write_file(png_filename, &png_data)) {
                                         printf("%d %s\n", frame_num, png_filename);
+                                        fflush(stdout);
+                                }
                                 tdat_reset(&png_data);
                         } else {
                                 /* Need more input */
@@ -305,7 +307,17 @@ pngext_main(int ac, char** av)
         }
 
         if (optind >= ac) {
-                pngext_usage(av[0]);
+                /*
+                 * No CMD specified, stop only when stdin is closed,
+                 * ignoring incoming signals.  Making it possible for
+                 * writer decide when to exit.
+                 */
+                signal(SIGSTOP, SIG_IGN);
+                signal(SIGCONT, SIG_IGN);
+                signal(SIGINT, SIG_IGN);
+
+                pngext_loop(prefix, rdsize);
+                return;
                 /* NOT REACHED */
         }
 

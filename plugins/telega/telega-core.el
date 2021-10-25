@@ -32,7 +32,7 @@
 (require 'telega-customize)
 
 (declare-function telega-chat--info "telega-chat" (chat))
-(declare-function telega-window-recenter "telega-util" (win &optional nlines from-point noforce))
+(declare-function telega-window-recenter "telega-util" (win &optional nlines from-point))
 (declare-function telega-emoji-create-svg "telega-util" (emoji &optional c-height))
 (declare-function telega-chats-compare "telega-sort" (criteria chat1 chat2))
 
@@ -64,6 +64,7 @@
 
 (defconst telega-chat--admin-permissions
   '((:can_be_edited . "lng_rights_edit_admin")
+    (:can_manage_chat . nil)            ;TODO
     (:can_change_info . "lng_rights_group_info")
     (:can_post_messages . "lng_rights_channel_post")
     (:can_edit_messages . "lng_rights_channel_edit")
@@ -72,6 +73,7 @@
     (:can_pin_messages . "lng_rights_group_pin")
     (:can_restrict_members . "telega_rights_restrict_members")
     (:can_promote_members . "telega_rights_promote_members")
+    (:can_manage_voice_chats . "lng_rights_group_manage_calls")
     (:is_anonymous . "lng_rights_group_anonymous")))
 
 (defconst telega-notification-scope-types
@@ -79,6 +81,12 @@
     (group . "notificationSettingsScopeGroupChats")
     (channel . "notificationSettingsScopeChannelChats"))
   "Map of lisp name of the scope to TDLib scope type name.")
+
+(defconst telega-currency-symbols-alist
+  '(("EUR" . "€")
+    ("USD" . "$")
+    ("RUB" . "₽"))
+  "Alist of currency symbols.")
 
 ;;; Runtime variables
 (defvar telega--current-buffer nil
@@ -120,7 +128,9 @@ Used for optimisations.")
 (defvar telega--status-aux
   "Aux status used for long requests, such as fetching chats/searching/etc")
 (defvar telega--chats nil "Hash table (id -> chat) for all chats.")
-(defvar telega--cached-messages nil "Hash table ((chat-id . msg-id) -> msg) of cached messages, such as pinned, replies, etc.")
+(defvar telega--cached-messages nil
+  "Hash table ((chat-id . msg-id) -> msg) of cached messages.
+Such as pinned, replies, etc.")
 (defvar telega--actions nil "Hash table (chat-id -> alist-of-user-actions).")
 (defvar telega--ordered-chats nil "Ordered list of all chats.")
 (defvar telega--filtered-chats nil
@@ -129,6 +139,10 @@ Used to calculate numbers displayed in custom filter buttons.")
 (defvar telega-deleted-chats nil
   "List of recently deleted chats.
 Used for \"Recently Deleted Chats\" rootview.")
+(defvar telega--blocked-user-ids (list 0)
+  "List of IDs for blocked users.
+Used to avoid fetching user's full-info to find out that user is blocked.
+CAR of the list is current offset for `telega--getBlockedMessageSenders'.")
 
 (defvar telega--dirty-chats nil
   "Chats need to be updated with `telega-chat--update'.
@@ -176,6 +190,8 @@ Used by `telega-stickerset-installed-p'.")
 (defvar telega--suggested-actions nil
   "List of suggested actions to be taken.")
 
+(defvar telega--group-calls nil "Hash table (id -> group-call).")
+
 ;; Searching
 (defvar telega-search-history nil
   "List of recent search queries.")
@@ -217,12 +233,18 @@ Active call is either outgoing call or accepted incoming call.
 Only one call can be currently active.")
 (defvar telega--scope-notification-alist (cons nil nil)
   "Default notification settings for chats.
-alist where key is one of `private', `group' or `channel'.")
+alist where key is one of:
+\"notificationSettingsScopePrivateChats\",
+\"notificationSettingsScopeGroupChats\",
+\"notificationSettingsScopeChannelChats\".")
 
 (defvar telega-tdlib--chat-filters nil
   "List of chat filters received from TDLib.")
 (defvar telega-tdlib--chat-list nil
   "Active tdlib chat list used for ordering.")
+(defvar telega-tdlib--unix-time nil
+  "Plist holding remote/local unix times.
+Used for adjustments for timing info received from Telegram.")
 
 ;; Minibuffer stuff used by chatbuf and stickers
 (defvar telega-minibuffer--choices nil
@@ -238,6 +260,13 @@ Each element in form: (NAME SSET-ID)")
 Use \\[execute-extended-command] telega-ignored-messages RET to
 display the list.")
 
+(defvar telega-docker--container-id nil
+  "Docker image id currently running.")
+
+;; See https://github.com/tdlib/td/issues/1645
+(defvar telega--relogin-with-phone-number nil
+  "This var is used to relogin with phone number when skipping QR auth")
+
 
 ;;; Shared chat buffer local variables
 (defvar telega-chatbuf--chat nil
@@ -252,6 +281,10 @@ display the list.")
   "List of marked messages.")
 (make-variable-buffer-local 'telega-chatbuf--marked-messages)
 
+(defvar telega-chatbuf--marked-messages-1 nil
+  "List of previously marked messages.")
+(make-variable-buffer-local 'telega-chatbuf--marked-messages-1)
+
 (defvar telega-chatbuf--inline-query nil
   "Non-nil if some inline bot has been requested.
 Actual value is `:@extra` value of the call to inline bot.")
@@ -265,10 +298,21 @@ Actual value is `:@extra` value of the call to inline bot.")
 Asynchronously loaded when chatbuf is created.")
 (make-variable-buffer-local 'telega-chatbuf--administrators)
 
+(defvar telega-chatbuf--voice-chat-hidden nil
+  "Non-nil if non-empty voice chat is displayed in modeline instead of footer.")
+(make-variable-buffer-local 'telega-chatbuf--voice-chat-hidden)
+(defvar telega-chatbuf--group-call-users nil
+  "List of group call participants.")
+(make-variable-buffer-local 'telega-chatbuf--group-call-users)
+
 (defvar telega-chatbuf--fetch-alist nil
   "Alist of async requests (fetches) to the telega-server.
 Could be used for fetching `admins', `pinned-messages', `reply-markup', etc.")
 (make-variable-buffer-local 'telega-chatbuf--fetch-alist)
+
+(defvar telega-chatbuf--bot-start-parameter nil
+  "Parameter to pass to `telega--sendBotStartMessage' when START is pressed.")
+(make-variable-buffer-local 'telega-chatbuf--bot-start-parameter)
 
 
 (defun telega--init-vars ()
@@ -292,6 +336,7 @@ Done when telega server is ready to receive queries."
   (setq telega--nearby-chats nil)
 
   (setq telega-deleted-chats nil)
+  (setq telega--blocked-user-ids (list 0))
   (setq telega--ordered-chats nil)
   (setq telega--filtered-chats nil)
   (setq telega--dirty-chats nil)
@@ -337,6 +382,10 @@ Done when telega server is ready to receive queries."
 
   (setq telega-tdlib--chat-filters nil)
   (setq telega-tdlib--chat-list nil)
+  (setq telega-tdlib--unix-time nil)
+
+  (setq telega--group-calls (make-hash-table :test 'eq))
+  (setq telega-docker--container-id nil)
   )
 
 (defun telega-test-env (&optional quiet-p)
@@ -380,7 +429,7 @@ Return non-nil if all tests are passed."
                       (not telega-chat-show-avatars)))
              nil
              (concat "Emacs with `svg' support is needed to show avatars.  "
-                     "Disable `telega-XXX-show-avatars' or comple Emacs with svg support"))
+                     "Disable `telega-XXX-show-avatars' or recompile Emacs with svg support"))
   (unless quiet-p
     (message "Your Emacs is suitable to run telega.el"))
   t)
@@ -406,7 +455,7 @@ END."
            (save-excursion
              (goto-char (point-min))
              (forward-line (1- ,win-start-line))
-             (set-window-start ,buf-win-sym (point))))))))
+             (set-window-start ,buf-win-sym (point) 'noforce)))))))
 
 (defmacro telega-save-excursion (&rest body)
   "Execute BODY saving current point as moving marker."
@@ -576,9 +625,12 @@ May return nil even when `telega-file--downloaded-p' returns non-nil."
   (and (telega-file--can-download-p file)
        (not (telega-file--downloaded-p file))))
 
+(defsubst telega-file--downloaded-size (file)
+  (telega--tl-get file :local :downloaded_size))
+
 (defsubst telega-file--downloading-progress (file)
   "Return progress of FILE downloading as float from 0 to 1."
-  (color-clamp (/ (float (telega--tl-get file :local :downloaded_size))
+  (color-clamp (/ (float (telega-file--downloaded-size file))
                   (telega-file--size file))))
 
 (defun telega-file--partially-downloaded-p (file)
@@ -729,7 +781,9 @@ Return list of strings."
     ;; result))
 
 (defun telega-fmt-eval-align (estr attrs)
-  "Apply `:min', `:align' and `:align-symbol' properties from ATTRS to ESTR."
+  "Apply `:min', `:align' and `:align-symbol' properties from ATTRS to ESTR.
+`:align-symbol' might be a symbol, in this case `telega-symbol' is
+used to get a string for alignment."
   (let* ((min (plist-get attrs :min))
          (width (- min (string-width estr)))
          (align (plist-get attrs :align))
@@ -738,9 +792,13 @@ Return list of strings."
          (right ""))
     ;; Grow `left' and `right' until they have required width
     (while (< (string-width left) (/ width 2))
-      (setq left (concat left align-symbol)))
+      (setq left (concat left (if (symbolp align-symbol)
+                                  (telega-symbol align-symbol)
+                                align-symbol))))
     (while (< (string-width right) (- width (/ width 2)))
-      (setq right (concat right align-symbol)))
+      (setq right (concat right (if (symbolp align-symbol)
+                                    (telega-symbol align-symbol)
+                                  align-symbol))))
 
     (cl-ecase align
       (left (concat estr left right))
@@ -977,7 +1035,7 @@ button.
 If NO-ERROR, do not signal error if no further buttons could be
 found.
 If NO-ERROR is `interactive', then do whatever `telega-button-forward'
-do for interative calls, i.e. observe the button and show help
+do for interactive calls, i.e. observe the button and show help
 message (if any)."
   (declare (indent 1))
   (interactive "p")
@@ -1137,9 +1195,16 @@ Return t."
 
 (defmacro telega-ins--as-string (&rest body)
   "Execute BODY inserters and return result as a string."
-  `(with-temp-buffer
-     ,@body
-     (buffer-string)))
+  (let ((fra-sym (gensym "frasym")))
+    ;; NOTE: Keep value for buffer local default face while using
+    ;; temporary buffer, so `telega-chars-xwidth/xheight' will
+    ;; continue returning correct values
+    `(let ((,fra-sym face-remapping-alist))
+       (with-temp-buffer
+         (when ,fra-sym
+           (setq-local face-remapping-alist ,fra-sym))
+         ,@body
+         (buffer-string)))))
 
 (defmacro telega-ins--one-lined (&rest body)
   "Execute BODY making insertation one-lined.
@@ -1223,12 +1288,16 @@ Return what BODY returns."
            (goto-char ,spnt-sym)
            (telega-ins ,prefix))))))
 
-(defun telega-ins--move-to-column (column)
+(defun telega-ins--move-to-column (column &optional space-char)
   "Insert space aligned to COLUMN.
 Uses `:align-to' display property."
+  ;; NOTE: Use Pixel Specification for `:align-to' this will take into
+  ;; account `text-scale-mode' into account
   (let ((nwidth (- column (telega-current-column))))
-    (telega-ins (propertize (make-string (if (> nwidth 0) nwidth 1) ?\s)
-                            'display (list 'space :align-to column)))))
+    (telega-ins--with-props 
+        `(display (space :align-to (,(telega-chars-xwidth column))))
+      (telega-ins (make-string (if (> nwidth 0) nwidth 1)
+                               (or space-char ?\s))))))
 
 (provide 'telega-core)
 

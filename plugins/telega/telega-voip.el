@@ -54,7 +54,7 @@
 (defun telega-voip-version ()
   "Return libtgvoip version compiled into telega-server."
   (let ((ts-usage (shell-command-to-string
-                   (concat (telega-server--find-bin) " -h"))))
+                   (telega-server--process-command "-h"))))
     (when (string-match "with VOIP tgvoip v\\([0-9.]+\\)" ts-usage)
       (match-string 1 ts-usage))))
 
@@ -73,35 +73,34 @@
                          'callStatePending)))
               (mapcar 'cdr telega-voip--alist)))
 
-(defun telega-voip--aux-status (call)
-  "Update `telega--status-aux' according to active CALL."
-  (telega-status--set
-   nil (telega-ins--as-string
-        (when call
-          (let ((user-id (plist-get call :user_id))
-                (state (plist-get call :state)))
-            ;; server/user receive status
-            (cond ((plist-get state :is_received)
-                   (telega-ins telega-symbol-heavy-checkmark))
-                  ((plist-get state :is_created)
-                   (telega-ins telega-symbol-checkmark)))
-            (telega-ins telega-symbol-phone)
-            (if (plist-get call :is_outgoing)
-                (telega-ins "→")
-              (telega-ins "←"))
+(defun telega-ins--voip-active-call (&optional call)
+  "Insert active voip call inte root aux ewoc."
+  (when-let ((call (or call telega-voip--active-call)))
+    (telega-ins "Active Call: ")
+    (let ((user-id (plist-get call :user_id))
+          (state (plist-get call :state)))
+      ;; server/user receive status
+      (cond ((plist-get state :is_received)
+             (telega-ins telega-symbol-heavy-checkmark))
+            ((plist-get state :is_created)
+             (telega-ins telega-symbol-checkmark)))
+      (telega-ins telega-symbol-phone)
+      (if (plist-get call :is_outgoing)
+          (telega-ins "→")
+        (telega-ins "←"))
 
-            (apply 'insert-text-button
-                   (telega-user--name (telega-user-get user-id) 'name)
-                   (telega-link-props 'user user-id))
-            (telega-ins-fmt " %s"
-              (substring (plist-get state :@type) 9))
-            (cl-case (telega--tl-type state)
-              (callStatePending
-               ;; dot for animation
-               (telega-ins "."))
-              (callStateReady
-               ;; key emojis
-               (telega-ins " " (telega-voip--call-emojis call)))))))))
+      (apply 'insert-text-button
+             (telega-user--name (telega-user-get user-id) 'name)
+             (telega-link-props 'user user-id))
+      (telega-ins-fmt " %s"
+        (substring (plist-get state :@type) 9))
+      (cl-case (telega--tl-type state)
+        (callStatePending
+         ;; dot for animation
+         (telega-ins "."))
+        (callStateReady
+         ;; key emojis
+         (telega-ins " " (telega-voip--call-emojis call)))))))
 
 
 (defun telega-voip-discard (call)
@@ -128,7 +127,7 @@ Discard currently active call, if any."
     (telega-voip-discard telega-voip--active-call))
 
   (setq telega-voip--active-call call)
-  (telega-voip--aux-status telega-voip--active-call))
+  (telega-root-aux-redisplay #'telega-ins--voip-active-call))
 
 (defun telega-voip-call (user &optional force)
   "Call the USER.
@@ -164,49 +163,22 @@ Discard active call if any."
   (interactive (list telega-voip--active-call))
   (message "TODO: `telega-voip-buffer-show'"))
 
-(defun telega-voip-list-calls (only-missed)
-  "List recent calls.
-If prefix arg is given then list only missed calls."
-  (interactive "P")
-  (let* ((ret (telega-server--call
-               (list :@type "searchCallMessages"
-                     :from_message_id 0
-                     :limit 100
-                     ;; NOTE: `:only_missed t' gives some problems :(
-                     :only_missed (if (null only-missed) :false t))))
-         (messages (mapcar #'identity (plist-get ret :messages))))
-    (with-telega-help-win "*Telega Recent Calls*"
-      (telega-ins (if only-missed "Missed" "All") " Calls\n")
-      (telega-ins (make-string (- (point-max) 2) ?-) "\n")
-
-      (dolist (call-msg messages)
-        (telega-ins--with-attrs (list :align 'left
-                                      :min 60
-                                      :max 60
-                                      :elide t)
-          (telega-ins--username (plist-get call-msg :sender_user_id) 'name)
-          (telega-ins ": ")
-          (telega-ins--content-one-line call-msg))
-        (telega-ins--with-attrs (list :align 'right :min 10)
-          (telega-ins--date (plist-get call-msg :date)))
-        (telega-ins "\n")))
-    ))
-
 
+;; Sounds for `telega-voip-sounds-mode'
 (defun telega-voip-sounds--play-incoming (_call)
   "Incomming CALL pending."
   (unless telega-voip--active-call
-    (telega-ffplay-run (telega-etc-file "sounds/call_incoming.mp3") nil
+    (telega-ffplay-run (telega-etc-file "sounds/call_incoming.mp3")
                        "-nodisp -loop 0")))
 
 (defun telega-voip-sounds--play-outgoing (_call)
   "Outgoing CALL initiated."
-  (telega-ffplay-run (telega-etc-file "sounds/call_outgoing.mp3") nil
+  (telega-ffplay-run (telega-etc-file "sounds/call_outgoing.mp3")
                      "-nodisp -loop 0"))
 
 (defun telega-voip-sounds--play-connect (_call)
   "Call ready to be used."
-  (telega-ffplay-run (telega-etc-file "sounds/call_connect.mp3") nil
+  (telega-ffplay-run (telega-etc-file "sounds/call_connect.mp3")
                      "-nodisp"))
 
 (defun telega-voip-sounds--play-end (call)
@@ -221,12 +193,19 @@ If prefix arg is given then list only missed calls."
                                         callDiscardReasonMissed)))
                     "sounds/call_busy.mp3"
                   "sounds/call_end.mp3")))
-      (telega-ffplay-run (telega-etc-file snd) nil "-nodisp"))
-    ))
+      (telega-ffplay-run (telega-etc-file snd) "-nodisp"))))
 
+;;; ellit-org: minor-modes
+;; ** telega-voip-sounds-mode
+;; 
+;; Mode to notify about VoIP call by playing sounds.
+;; ~telega-voip-sounds-mode~ is enabled by default.  Disable it with:
+;; #+begin_src emacs-lisp
+;; (add-hook 'telega-load-hook (lambda () (telega-voip-sounds-mode -1)))
+;; #+end_src
 (defun telega-voip-sounds-mode (&optional arg)
-  "Toggle soundsToggle telega notifications on or off.
-With positive ARG - enables notifications, otherwise disables.
+  "Toggle sounds for voip calls.
+With positive ARG - enable sounds, otherwise disable.
 If ARG is not given then treat it as 1."
   (interactive "p")
   (if (or (null arg) (> arg 0))
@@ -240,10 +219,213 @@ If ARG is not given then treat it as 1."
     (remove-hook 'telega-call-ready-hook 'telega-voip-sounds--play-connect)
     (remove-hook 'telega-call-end-hook 'telega-voip-sounds--play-end)))
 
+
+;; Voice Chats and Group calls
+(defun telega-voice-chat-start (chat)
+  "Interactively start Voice Chat in the CHAT."
+  (interactive (list (or telega-chatbuf--chat (telega-chat-at (point)))))
+  (let ((group-call (telega-chat-group-call chat)))
+    (cond ((and group-call
+                (> (plist-get group-call :scheduled_start_date) 0))
+           (when (y-or-n-p "Start already scheduled Voice Chat? ")
+             (telega--startScheduledGroupCall group-call)))
+          (group-call
+           (user-error "Voice Chat already running"))
+          (t
+           (telega--createVoiceChat chat
+               (read-string
+                (concat (telega-i18n "lng_group_call_edit_title_header")
+                        ": ")))))))
+
+(defun telega-voice-chat-schedule (chat)
+  "Interactively schedule a voice chat in the CHAT."
+  (interactive (list (or telega-chatbuf--chat (telega-chat-at (point)))))
+  (when-let ((group-call (telega-chat-group-call chat)))
+    (if (> (plist-get group-call :scheduled_start_date) 0)
+        (user-error "Voice Chat already scheduled")
+      (user-error "Voice Chat already running")))
+
+  (let ((start-time (telega-read-timestamp
+                     (concat (telega-i18n "lng_group_call_schedule_title")
+                             ": ")))
+        (title (read-string
+                (concat (telega-i18n "lng_group_call_edit_title_header")
+                        ": "))))
+    (telega--createVoiceChat chat title
+      :start-time start-time)))
+
+(defun telega-voice-chat-discard (chat &optional no-confirm-p)
+  "Discard voice chat in the CHAT."
+  (interactive (list (or telega-chatbuf--chat (telega-chat-at (point)))))
+  (let ((group-call (telega-chat-group-call chat)))
+    (unless group-call
+      (user-error "Chat has no associated Voice Chat"))
+    (when (or (not no-confirm-p)
+              (y-or-n-p "Discard this Voice Chat? "))
+      (telega--discardGroupCall group-call))))
+
+(defun telega-voice-chat-record-start (chat title)
+  "Start recording group call associated with CHAT."
+  (interactive
+   (list (or telega-chatbuf--chat (telega-chat-at (point)))
+         (read-string "Record with Title: ")))
+  (let ((group-call (telega-chat-group-call chat)))
+    (unless group-call
+      (user-error "Chat has no associated Voice Chat"))
+    (unless (plist-get group-call :can_be_managed)
+      (user-error "Can't record: no permission"))
+    (telega--startGroupCallRecording group-call title)))
+
+(defun telega-voice-chat-record-stop (chat)
+  "Start recording group call associated with CHAT."
+  (interactive (list (or telega-chatbuf--chat (telega-chat-at (point)))))
+  (let ((group-call (telega-chat-group-call chat)))
+    (unless (and group-call (plist-get group-call :can_be_managed))
+      (user-error "Can't stop recording"))
+    (telega--endGroupCallRecording group-call)))
+
+(defun telega-voice-chat-toggle-footer (chat)
+  "Toggle voice chate visibility in CHAT's footer/modeline."
+  (interactive (list (or telega-chatbuf--chat (telega-chat-at (point)))))
+  (with-telega-chatbuf chat
+    (setq telega-chatbuf--voice-chat-hidden
+          (not telega-chatbuf--voice-chat-hidden))
+    (telega-chatbuf--footer-update)
+    (telega-chatbuf--modeline-update)))
+
+(defun telega-group-call--ensure (group-call)
+  "Ensure GROUP-CALL is in the `telega--group-calls'.
+Return GROUP-CALL."
+  (when telega-debug
+    (cl-assert group-call))
+  (plist-put group-call :telega-call-recency (telega-time-seconds))
+  (puthash (plist-get group-call :id) group-call telega--group-calls)
+
+  (telega-root-view--update :on-group-call-update group-call)
+  group-call)
+
+(defun telega-group-call-get (group-call-id &optional callback)
+  "Return group call by GROUP-CALL-ID."
+  (declare (indent 1))
+  (telega-debug "group-call: get %d" group-call-id)
+  (let ((group-call (gethash group-call-id telega--group-calls)))
+    (if (or group-call (null callback))
+        (funcall (or callback #'identity) group-call)
+
+      (cl-assert callback)
+      (cl-assert (not (zerop group-call-id)))
+      (telega--getGroupCall group-call-id
+        (lambda (group-call)
+          (telega-group-call--ensure group-call)
+          (funcall callback group-call))))))
+
+(defun telega-group-call--participant-svg-outline (svg circle
+                                                       &optional speaking-p)
+  "Outline resulting SVG for voice chat participant.
+SPEAKING-P if participant is speaking."
+  (svg-circle svg (nth 0 circle) (nth 1 circle) (nth 2 circle)
+              :stroke-width (/ (nth 2 circle) (if speaking-p 5 10))
+              :stroke-color (telega-color-name-as-hex-2digits
+                             (face-foreground
+                              (if speaking-p 'font-lock-string-face 'shadow)
+                              nil t))
+              :opacity 0.85
+              :fill-opacity "0"))
+
+(defun telega-group-call--participant-svg-outline-speaking (svg circle)
+  (telega-group-call--participant-svg-outline svg circle 'speaking))
+
+(defun telega-group-call--participant-create-image (speaking-p
+                                                    cheight sender file)
+  "Create image for SENDER participant.
+SPEAKING-P if participant is speaking.
+CHEIGHT - height in chars for the image."
+  (telega-avatar--create-image
+   sender file cheight
+   (when speaking-p
+     #'telega-group-call--participant-svg-outline-speaking)))
+
+(defun telega-group-call--participant-image (participant &optional cheight
+                                                         force-update)
+  "Create avatar image for the PARTICIPANT.
+PARTICIPANT is either \"groupCallParticipant\" or \"groupCallRecentSpeaker\".
+CHEIGHT is height in chars, default is 1."
+  (telega-msg-sender-avatar-image
+   (telega-msg-sender
+    (or (plist-get participant :speaker) ;groupCallRecentSpeaker
+        (plist-get participant :participant_id))) ;groupCallParticipant
+   (apply-partially #'telega-group-call--participant-create-image
+                    (plist-get participant :is_speaking) (or cheight 1))
+   force-update
+   (intern (concat ":telega-avatar-vc-"
+                   (when (plist-get participant :is_speaking)
+                     "speaking-")
+                   (int-to-string (or cheight 1))))))
+
+(defun telega-group-call-join (_group-call)
+  "Join the GROUP-CALL."
+  (error "TODO: join group call")
+  )
+
+(defun telega-group-call-leave (_group-call)
+  "Leave the GROUP-CALL."
+  (error "TODO: leave group call")
+  )
+
+(defun telega-group-call-set-title (group-call &optional title)
+  "Set GROUP-CALL's title to TITLE.
+If TITLE is not specified, ask user interactively for the new title."
+  (unless title
+    (setq title (read-string "Group Call Title: ")))
+  (telega--setGroupCallTitle group-call title))
+
+(defun telega-describe-group-call--inserter (group-call-id)
+  "Inserter for the voice chat."
+  (let* ((group-call (telega-group-call-get group-call-id))
+         (can-manage-p (plist-get group-call :can_be_managed)))
+    (telega-ins (telega-i18n "lng_group_call_title") ": "
+                (or (telega-tl-str group-call :title)
+                    (propertize "No title" 'face 'shadow)))
+    (telega-ins " ")
+    (if (plist-get group-call :is_joined)
+        (telega-ins--button "Leave"
+          :value group-call
+          :action #'telega-group-call-leave)
+      (telega-ins--button "Join"
+        :value group-call
+        :action #'telega-group-call-join))
+
+    (when can-manage-p
+      (telega-ins " ")
+      (telega-ins--button (telega-i18n "lng_group_call_end")
+        :value group-call
+        :action #'telega--discardGroupCall)
+      (telega-ins " ")
+      (telega-ins--button "Set Title"
+        :value group-call
+        :action #'telega-group-call-set-title))
+
+    (telega-ins "\n")
+    ))
+
+(defun telega-describe-group-call (group-call)
+  "Describe a GROUP-CALL."
+  (with-telega-help-win "*Telegram Voice Chat*"
+    (telega-describe-group-call--inserter (plist-get group-call :id))
+
+    (setq telega--help-win-param (plist-get group-call :id))
+    (setq telega--help-win-inserter #'telega-describe-group-call--inserter)))
+
+(defun telega-describe-group-call--maybe-redisplay (group-call-id)
+  "Possible redisplay \\*Telega Voice Chat\\* buffer for the GROUP-CALL-ID."
+  (telega-help-win--maybe-redisplay "*Telega Voice Chat*" group-call-id))
+
 (provide 'telega-voip)
 
 ;; On load
-(when telega-voip-use-sounds
-  (telega-voip-sounds-mode 1))
+(telega-voip-sounds-mode 1)
+
+;; Display Active Call in the rootbuf aux ewoc
+(add-to-list 'telega-root-aux-inserters #'telega-ins--voip-active-call)
 
 ;;; telega-voip.el ends here

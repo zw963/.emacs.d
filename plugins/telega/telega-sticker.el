@@ -108,7 +108,7 @@ Download only if `telega-use-images' is non-nil."
 
 (defun telega-stickerset--download (sset)
   "Ensure sticker set SSET data is downloaded."
-  (dolist (sticker (plist-get sset :stickers))
+  (seq-doseq (sticker (plist-get sset :stickers))
     (telega-sticker--download sticker)))
 
 (defun telega-stickerset--ensure (sset)
@@ -189,7 +189,7 @@ CALLBACK is called without arguments"
                        (vectorPathCommandLine
                         (plist-get tl-cmd1 :end_point))))
          (svg-path-commands
-          (mapconcat 
+          (mapconcat
            (lambda (path-cmd)
              (cl-ecase (telega--tl-type path-cmd)
                (vectorPathCommandCubicBezierCurve
@@ -239,7 +239,7 @@ CALLBACK is called without arguments"
     (if (plist-get sticker :outline)
         (telega-sticker--svg-outline svg sticker
           :fill (telega-color-name-as-hex-2digits
-                 (face-foreground 'shadow)))
+                 (or (face-foreground 'shadow) "gray50")))
 
       ;; draw emoji and progress circle
       (svg-text svg (if (string-empty-p emoji)
@@ -276,15 +276,19 @@ Return path to png file."
   (let ((png-filename (concat (file-name-sans-extension webp-filename)
                               "_telega.png")))
     (unless (file-exists-p png-filename)
-      (if (executable-find (car telega-sticker--convert-cmd))
-          (shell-command-to-string
-           (format-spec (mapconcat #'identity telega-sticker--convert-cmd " ")
-                        (format-spec-make ?p png-filename
-                                          ?w webp-filename)))
-
-        (telega-help-message 'no-dwebp-binary
-            "Can't find `%s' binary.  `webp' system package not installed?"
-          (car telega-sticker--convert-cmd))))
+      (let ((convert-cmd
+             (telega-docker-exec-cmd
+               (format-spec (mapconcat #'identity telega-sticker--convert-cmd " ")
+                            (format-spec-make ?p png-filename
+                                              ?w webp-filename))
+               'try-host-cmd-first)))
+        (if convert-cmd
+            (progn
+              (telega-debug "WEBP -> PNG: %s" convert-cmd)
+              (shell-command-to-string convert-cmd))
+          (telega-help-message 'no-dwebp-binary
+              "Can't find `%s' binary.  `webp' system package not installed?"
+            (car telega-sticker--convert-cmd)))))
 
     (when (file-exists-p png-filename)
       png-filename)))
@@ -310,11 +314,12 @@ Return path to png file."
                        (and (telega-file--downloaded-p sfile) sfile)
                        (and (telega-file--downloaded-p tfile) tfile)))
          (img-type (when (fboundp 'imagemagick-types) 'imagemagick))
-         (img-file (when-let ((local-path (telega--tl-get filename :local :path)))
-                     (if (or (eq img-type 'imagemagick)
-                             (not (equal (file-name-extension local-path) "webp")))
-                         local-path
-                       (telega-sticker--webp-to-png local-path))))
+         (img-file (or (plist-get sticker :telega-ffplay-frame-filename)
+                       (when-let ((local-path (telega--tl-get filename :local :path)))
+                         (if (or (eq img-type 'imagemagick)
+                                 (not (equal (file-name-extension local-path) "webp")))
+                             local-path
+                           (telega-sticker--webp-to-png local-path)))))
          (cwidth-xmargin (telega-media--cwidth-xmargin
                           (plist-get sticker :width)
                           (plist-get sticker :height)
@@ -323,7 +328,7 @@ Return path to png file."
       (setq img-type (image-type-from-file-name img-file)))
 
     (if (and img-file img-type)
-        (apply #'create-image img-file img-type nil
+        (apply #'telega-create-image img-file img-type nil
                :height (telega-chars-xheight (car telega-sticker-size))
                ;; NOTE: do not use max-width setting, it will slow
                ;; down displaying stickers
@@ -403,7 +408,7 @@ If SLICES-P is non-nil, then insert STICKER using slices."
           (delete-char 1)))
       (telega-chatbuf-sticker-insert sticker))))
 
-(defun telega-ins--sticker-list (stickers &optional addon-inserter)
+(defun telega-ins--sticker-list (stickers)
   "Insert STICKERS list int current buffer."
   (declare (indent 1))
   (seq-doseq (sticker stickers)
@@ -412,9 +417,13 @@ If SLICES-P is non-nil, then insert STICKER using slices."
     (telega-button--insert 'telega-sticker sticker
       'help-echo (let ((emoji (telega-sticker-emoji sticker 'no-props)))
                    (concat "Emoji: " emoji " " (telega-emoji-name emoji)))
-      'action 'telega-sticker--choosen-action)
-    (when addon-inserter
-      (funcall addon-inserter sticker))
+      'action 'telega-sticker--choosen-action
+      'cursor-sensor-functions
+      (when (and (plist-get sticker :is_animated) telega-sticker-animated-play)
+        (list (telega-sticker--gen-sensor-func sticker)))
+      )
+    (when telega-sticker-set-show-emoji
+      (telega-ins (telega-sticker-emoji sticker) "  "))
 ;    (redisplay)
     ))
 
@@ -457,11 +466,7 @@ SSET can be either `sticker' or `stickerSetInfo'."
                        ((plist-get sset :is_masks) "Masks")
                        (t "Stickers"))
                  (length stickers))
-               (telega-ins--sticker-list stickers
-                 (when telega-sticker-set-show-emoji
-                   (lambda (sticker)
-                     (telega-ins (telega-sticker-emoji sticker) "  "))))
-               )))
+               (telega-ins--sticker-list stickers))))
           (sset-id (plist-get sset :id)))
       (when (eq (telega--tl-type sset) 'stickerSetInfo)
         (setq sset (telega-stickerset-get sset-id 'locally)))
@@ -563,8 +568,6 @@ If FOR-PARAM is specified, then insert only if
 
 (defun telega-stickerset--minibuf-post-command ()
   "Function to complete stickerset for `completion-in-region-function'."
-  (cl-assert (eq major-mode 'minibuffer-inactive-mode))
-
   ;; NOTE:
   ;;  - Avoid help window selection by binding `help-window-select'
   ;;  - Avoid smart packages (such as shackle) to handle help window by
@@ -581,14 +584,14 @@ If FOR-PARAM is specified, then insert only if
                      ;; ivy used
                      (nth ivy--index ivy--old-cands))
                     (t (buffer-substring start end))))
-         (comp (car (all-completions str telega-minibuffer--choices)))
-         (sset-id (cadr (assoc comp telega-minibuffer--choices)))
-         (sset (or (cl-find sset-id telega--stickersets-installed
-                            :test 'equal
-                            :key (telega--tl-prop :id))
-                   (telega-stickerset-get sset-id)))
+         (comp (when str (car (all-completions str telega-minibuffer--choices))))
+         (sset-id (when comp (cadr (assoc comp telega-minibuffer--choices))))
+         (sset (when sset-id
+                 (or (cl-find sset-id telega--stickersets-installed
+                              :test 'equal
+                              :key (telega--tl-prop :id))
+                     (telega-stickerset-get sset-id))))
          (tss-buffer (get-buffer "*Telegram Sticker Set*")))
-
     (when (and sset
                (or (not (buffer-live-p tss-buffer))
                    (not (with-current-buffer tss-buffer
@@ -704,6 +707,86 @@ Return sticker set."
      (telega-stickerset-completing-read
       "Trending sticker set: " sticker-sets))))
 
+(defun telega-sticker--animate-callback (_proc frame sticker)
+  "Callback for inline animated sticker playback."
+  (plist-put sticker :telega-ffplay-frame-filename (cdr frame))
+  ;; NOTE: just redisplay the image, not redisplaying full message
+  (telega-media--image-update
+   (cons sticker 'telega-sticker--create-image) nil)
+  (force-window-update)
+  )
+
+(defun telega-sticker--animate-to-png (sticker-file xheight callback
+                                                    &rest callback-args)
+  "Animate animated sticker to series of PNG files."
+  (declare (indent 2))
+  (cl-assert (telega-file--downloaded-p sticker-file))
+
+  ;; Kill previously running animations/ffplay if any
+  (telega-ffplay-stop)
+
+  ;; XXX: heavy heuristics to detect HiDPI displays on MacOS
+  ;; If resulting PNG is too small and DPI is high, then consider HiDPI
+  ;; mode is in use
+  ;; png height = 76 * 4 = 306 is still generates pretty fast on modern PC
+  ;; See https://t.me/emacs_telega/25785
+  (when (and (< xheight 76)
+             (> (round (/ (display-pixel-height) (/ (display-mm-height) 25.4)))
+                96))
+    (setq xheight (* xheight 4)))
+
+  (let* ((prefix (telega-temp-name "png-sticker-anim"))
+         (shell-cmd
+          (if telega-use-docker
+              (telega-docker-exec-cmd
+                (format "sh -c \"gunzip -c '%s' | tgs2png -s 0x%d - | telega-server -E %s\""
+                        (telega--tl-get sticker-file :local :path)
+                        xheight  prefix))
+            (format
+             "gunzip -c '%s' | %s -s 0x%d - | %s -E %s"
+             (telega--tl-get sticker-file :local :path)
+             (or (executable-find "tgs2png")
+                 (error "tgs2png not found in `exec-path', \
+Install from https://github.com/zevlg/tgs2png"))
+             xheight (telega-server--process-command) prefix)))
+         (process-adaptive-read-buffering nil) ;no buffering please
+         (proc (start-process-shell-command
+                "sticker-animate" (get-buffer-create telega-ffplay-buffer-name)
+                shell-cmd)))
+    (telega-debug "Running sticker-animate: %s" shell-cmd)
+
+    (set-process-plist proc (list :prefix prefix
+                                  :nframes -1
+                                  :frames nil
+                                  :callback callback
+                                  :callback-args callback-args))
+    (set-process-query-on-exit-flag proc nil)
+    (set-process-sentinel proc 'telega-ffplay--png-sentinel)
+    (set-process-filter proc 'telega-ffplay--png-filter)
+    proc))
+
+(defun telega-sticker--animate (sticker)
+  "Start animating animated STICKER."
+  (cl-assert (plist-get sticker :is_animated))
+  (telega-file--download (plist-get sticker :sticker) 32
+    (lambda (file)
+      (telega-file--renew sticker :sticker)
+      (when (telega-file--downloaded-p file)
+        (telega-sticker--animate-to-png file
+            (telega-chars-xheight (car telega-sticker-size))
+          #'telega-sticker--animate-callback sticker)))))
+
+(defun telega-sticker--gen-sensor-func (sticker)
+  "Return sensor function to animate STICKER when entered."
+  (cl-assert sticker)
+  (lambda (_window _oldpos dir)
+    (when (and (plist-get sticker :is_animated)
+               telega-sticker-animated-play)
+      (if (eq dir 'entered)
+          (telega-sticker--animate sticker)
+        ;; dir == left
+        (telega--cancelDownloadFile (plist-get sticker :sticker))))))
+
 
 ;;; Animations
 (define-button-type 'telega-animation
@@ -741,16 +824,17 @@ Return sticker set."
          (svg (telega-svg-create xw xh)))
     (telega-svg-progress svg (telega-file--downloading-progress
                               (telega-animation--file animation)))
-    (svg-image svg :scale 1.0
-               :width xw :height xh
-               :ascent 'center
-               :mask 'heuristic
-               ;; text of correct width
-               :telega-text
-               (make-string
-                (or (car (plist-get animation :telega-image-cwidth-xmargin))
-                    w-chars)
-                ?X))
+    (telega-svg-image
+     svg :scale 1.0
+     :width xw :height xh
+     :ascent 'center
+     :mask 'heuristic
+     ;; text of correct width
+     :telega-text
+     (make-string
+      (or (car (plist-get animation :telega-image-cwidth-xmargin))
+          w-chars)
+      ?X))
     ))
 
 (defun telega-animation--create-image (animation &optional _fileignored)
@@ -786,10 +870,14 @@ Return sticker set."
                  :ascent 'center
                  :margin (cons (cdr cwidth-xmargin) 0)
                  :telega-text (make-string (car cwidth-xmargin) ?X))))
-    (cond (anim-frame-filename
+    (cond ((and anim-frame-filename
+                ;; NOTE: Check file for existance, to avoid errors in
+                ;; `insert-file-contents-literally' if file does not
+                ;; exists for some strange reason
+                (file-exists-p anim-frame-filename))
            ;; Remove this prop, because file is about to be deleted
            (plist-put animation :telega-ffplay-frame-filename nil)
-           (apply 'create-image
+           (apply #'telega-create-image
                   (with-temp-buffer
                     (set-buffer-multibyte nil)
                     (insert-file-contents-literally anim-frame-filename)
@@ -797,7 +885,7 @@ Return sticker set."
                   (when (fboundp 'imagemagick-types) 'imagemagick) t img-props))
 
           ((telega-file--downloaded-p tfile)
-           (apply 'create-image
+           (apply #'telega-create-image
                   (telega--tl-get tfile :local :path)
                   (when (fboundp 'imagemagick-types) 'imagemagick) nil img-props))
 
@@ -838,8 +926,8 @@ If SLICES-P is non-nil, then insert ANIMATION using slices."
           (telega-file--download (telega-file--renew anim :animation) 32
             (lambda (file)
               (when (telega-file--downloaded-p file)
-                (telega-ffplay-to-png (telega--tl-get file :local :path) nil
-                  #'telega-animation--ffplay-callback anim))))
+                (telega-ffplay-to-png (telega--tl-get file :local :path) "-an"
+                  (list #'telega-animation--ffplay-callback anim)))))
 
         ;; dir == left
         (telega--cancelDownloadFile (plist-get anim :animation))))))
@@ -875,6 +963,16 @@ PROPS are additional properties to the animation button."
   "Choose saved animation FOR-CHAT."
   (interactive (list telega-chatbuf--chat))
   (telega-animation-choose for-chat (telega--getSavedAnimations) t))
+
+(defun telega-animation-play-inline-p (animation)
+  "Return non-nil if ANIMATION should be played inside Emacs.
+Its behavior is controlled by `telega-animation-play-inline' and
+`telega-open-message-as-file' custom options."
+  (unless (memq 'animation telega-open-message-as-file)
+    (if (numberp telega-animation-play-inline)
+        (>= telega-animation-play-inline
+            (or (plist-get animation :duration) 0))
+      telega-animation-play-inline)))
 
 (provide 'telega-sticker)
 

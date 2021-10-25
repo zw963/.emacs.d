@@ -1,6 +1,6 @@
 ;;; ol-telega.el --- Links to telega chats and messages -*- lexical-binding: t; -*-
 
-;; Copyright (C) 2020 by Zajcev Evgeny.
+;; Copyright (C) 2020-2021 by Zajcev Evgeny.
 
 ;; Author: Zajcev Evgeny <zevlg@yandex.ru>
 ;; Created: Sat Mar 28 11:15:21 2020
@@ -43,8 +43,7 @@
              (fboundp 'org-store-link-props))
     (defalias 'org-link-store-props 'org-store-link-props)))
 
-(require 'telega-tme)
-(require 'telega-util)
+(require 'telega)
 
 (defun org-telega-follow-link (link)
   "Follow a telegram LINK to chat or message."
@@ -65,7 +64,7 @@ message, file or photo."
                          (telega--tl-type (plist-get msg :content)))
                      (y-or-n-p "Store link to a message's file?")))))
          (chat-or-msg
-          (or msg (telega-chat-at (point))))
+          (or msg telega-chatbuf--chat (telega-chat-at (point))))
          (link
           (when chat-or-msg
             (apply #'telega-tme-internal-link-to chat-or-msg
@@ -74,7 +73,20 @@ message, file or photo."
          ;; NOTE: strip leading "tg:"
          (org-link (when link (substring link 3))))
     (when org-link
-      (org-link-store-props :type "telega" :link org-link)
+      (org-link-store-props
+       :type "telega" :link org-link
+       :description
+       (concat (telega-symbol 'telegram)
+               (if (telega-chat-p chat-or-msg)
+                   (telega-chat-title-with-brackets chat-or-msg)
+                 (cl-assert (telega-msg-p chat-or-msg))
+                 (telega-ins--as-string
+                  (telega-ins--msg-sender
+                   (telega-msg-sender chat-or-msg) 'short)
+                  (telega-ins ": ")
+                  (telega-ins--with-attrs
+                      (list :max 20 :align 'left :elide t)
+                    (telega-ins--content-one-line chat-or-msg))))))
       org-link)))
 
 (defun org-telega-complete-link ()

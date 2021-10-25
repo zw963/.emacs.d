@@ -183,14 +183,14 @@ If OFFLINE-P is non-nil, then do not send a request to telega-server."
   (unless chat
     (setq chat (telega-chat-get (plist-get user :id) 'offline)))
 
-  ;; Scam&Blacklist status
-  (when (or (plist-get user :is_scam)
-            (plist-get chat :is_blocked))
+  ;; Scam/Fake/Blacklist status
+  (telega-ins-prefix telega-symbol-blocked
     (telega-ins--with-face 'error
-      (telega-ins telega-symbol-blocked)
+      (when (plist-get user :is_fake)
+        (telega-ins (telega-i18n "lng_fake_badge") " "))
       (when (plist-get user :is_scam)
         (telega-ins (telega-i18n "lng_scam_badge") " "))
-      (when (plist-get chat :is_blocked)
+      (when (telega-msg-sender-blocked-p user 'offline)
         (telega-ins "BLOCKED "))))
 
   ;; Buttons line
@@ -256,9 +256,9 @@ If OFFLINE-P is non-nil, then do not send a request to telega-server."
       (telega-ins "\n")
       (telega-ins--account-ttl))
 
-    (telega-ins "Relationship: ")
-    (telega-ins--user-relationship user)
-    (telega-ins "\n")
+    (telega-ins-prefix "Relationship: "
+      (when (telega-ins--user-relationship user)
+        (telega-ins "\n")))
 
     (when-let ((username (telega-tl-str user :username)))
       ;; I18N: profile_username -> Username:
@@ -289,22 +289,17 @@ If OFFLINE-P is non-nil, then do not send a request to telega-server."
         (telega-ins share-text))
       (telega-ins "\n"))
 
-    ;; Bot info
-    (when-let ((bot-info (plist-get full-info :bot_info)))
-      (when-let ((bot-descr (telega-tl-str bot-info :description)))
-        (telega-ins--labeled "Bot info: " nil
-          (telega-ins bot-descr))
+    ;; Bot Commands
+    (when-let ((bot-cmds (append (plist-get full-info :commands) nil)))
+      (telega-ins "Bot commands: \n")
+      (seq-doseq (cmd bot-cmds)
+        (telega-ins "  ")
+        (telega-ins--with-attrs (list :min 10 :align 'left)
+          (telega-ins "/" (telega-tl-str cmd :command)))
+        (when-let ((cmd-descr (telega-tl-str cmd :description)))
+          (telega-ins--column nil nil
+            (telega-ins " - " cmd-descr)))
         (telega-ins "\n"))
-      (when-let ((bot-cmds (append (plist-get bot-info :commands) nil)))
-        (telega-ins "Bot cmds: \n")
-        (dolist (cmd bot-cmds)
-          (telega-ins "  ")
-          (telega-ins--with-attrs (list :min 10 :align 'left)
-            (telega-ins "/" (telega-tl-str cmd :command)))
-          (when-let ((cmd-descr (telega-tl-str cmd :description)))
-            (telega-ins--column nil nil
-              (telega-ins " - " cmd-descr)))
-          (telega-ins "\n")))
       (telega-ins "\n"))
 
     (when-let ((chats-in-common (telega-user--chats-in-common user)))
@@ -387,23 +382,23 @@ If OFFLINE-P is non-nil, then do not send a request to telega-server."
             (telega-ins-fmt "%02x " (aref ekey ki)))))
       (telega-ins "\n"))))
 
-(defun telega-info--insert-invite-link (chat invite-link)
-  "Insert CHAT's INVITE-LINK into current info buffer."
+(defun telega-info--insert-invite-link (chat chat-invite-link)
+  "Insert CHAT-INVITE-LINK into current info buffer."
   ;; NOTE: maybe use `checkChatInviteLink' to check the invitation
   ;; link for validity?
   (let ((can-generate-p (and (telega-chat-match-p chat '(me-is-owner or-admin))
                              (plist-get (telega-chat-member-my-permissions chat)
                                         :can_invite_users)))
-        (valid-link-p (not (string-empty-p invite-link))))
-    (when (or can-generate-p valid-link-p)
+        (invite-link (telega-tl-str chat-invite-link :invite_link)))
+    (when (or can-generate-p invite-link)
       (telega-ins "Invite link:")
-      (when valid-link-p
+      (when invite-link
         (telega-ins " ")
         (apply 'insert-text-button
                invite-link (telega-link-props 'url invite-link)))
       (when can-generate-p
         (telega-ins " ")
-        (telega-ins--button (if valid-link-p "Regenerate" "Generate")
+        (telega-ins--button (if invite-link "Regenerate" "Generate")
           :value chat
           :action #'telega-chat-generate-invite-link))
       (telega-ins "\n"))))
@@ -418,8 +413,7 @@ If OFFLINE-P is non-nil, then do not send a request to telega-server."
                           (telega-user-get creator-id))))
       (telega-ins "Created: " (telega-user--name creator) "  ")
       (when-let ((creator-member
-                  (cl-find creator-id members
-                           :test '= :key (telega--tl-prop :user_id))))
+                  (cl-find creator members :key #'telega-msg-sender)))
         (telega-ins--date (plist-get creator-member :joined_chat_date))
         (telega-ins "\n")))
 
@@ -430,9 +424,14 @@ If OFFLINE-P is non-nil, then do not send a request to telega-server."
         (telega-ins descr "\n")))
 
     (telega-ins "\n")
-    (telega-ins-fmt "Members: %d users (%d online)\n"
+    (telega-ins-fmt "Members: %d users (%d online, %d admins)\n"
       (plist-get basicgroup :member_count)
-      (or (plist-get chat :x-online-count) 0))
+      (or (plist-get chat :x-online-count) 0)
+      (length (cl-remove-if-not
+               (lambda (member)
+                 (memq (telega--tl-type (plist-get member :status))
+                       '(chatMemberStatusCreator chatMemberStatusAdministrator)))
+               members)))
     (telega-ins--chat-members members)
     ))
 
@@ -442,11 +441,12 @@ If OFFLINE-P is non-nil, then do not send a request to telega-server."
          (my-perms (telega-chat-member-my-permissions chat))
          (member-status-name (plist-get member-status :@type)))
     ;; Scam status first
-    (when (plist-get supergroup :is_scam)
-      (telega-ins--with-face 'error
-        (telega-ins telega-symbol-blocked)
-        ;; I18N: scam_badge -> SCAM
-        (telega-ins (telega-i18n "lng_scam_badge")))
+    (when (telega-ins-prefix telega-symbol-blocked
+            (telega-ins--with-face 'error
+              (when (plist-get supergroup :is_fake)
+                (telega-ins (telega-i18n "lng_fake_badge") " "))
+              (when (plist-get supergroup :is_scam)
+                (telega-ins (telega-i18n "lng_scam_badge") " "))))
       (telega-ins "\n"))
 
     (telega-ins (if (telega-chat-match-p chat 'me-is-member)
@@ -470,7 +470,7 @@ If OFFLINE-P is non-nil, then do not send a request to telega-server."
                            (telega-i18n (if channel-p
                                             "lng_sure_delete_channel"
                                           "lng_sure_delete_group")))
-                      (telega--deleteSupergroup supergroup))))
+                      (telega--deleteChat chat))))
 
         (telega-ins " ")
         (telega-ins--button (telega-i18n (if channel-p
@@ -648,9 +648,10 @@ If OFFLINE-P is non-nil, then do not send a request to telega-server."
         (telega-ins restr-reason "\n")))
 
     (telega-ins "\n")
-    (telega-ins-fmt "Members: %d (%d online)\n"
+    (telega-ins-fmt "Members: %d (%d online, %d admins)\n"
       (plist-get full-info :member_count)
-      (or (plist-get chat :x-online-count) 0))
+      (or (plist-get chat :x-online-count) 0)
+      (plist-get full-info :administrator_count))
     (when (plist-get full-info :can_get_members)
       ;; Asynchronously fetch/insert supergroup members
       (telega--getSupergroupMembers supergroup nil nil nil
@@ -660,7 +661,7 @@ If OFFLINE-P is non-nil, then do not send a request to telega-server."
             (when (buffer-live-p buffer)
               (with-current-buffer buffer
                 (let ((inhibit-read-only t))
-                  (telega-save-excursion
+                  (save-excursion
                     (goto-char at-point)
                     (telega-ins--chat-members members))))))
           )))

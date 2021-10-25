@@ -31,6 +31,9 @@
 (require 'telega-util)
 
 (defvar tracking-buffers)
+(declare-function telega-account-current "telega")
+(declare-function telega "telega" (&optional arg))
+(declare-function telega-kill "telega" (force))
 
 (defgroup telega-modes nil
   "Customization for telega minor modes."
@@ -52,6 +55,7 @@
 ;; - {{{user-option(telega-mode-line-string-format, 2)}}}
 (defcustom telega-mode-line-string-format
   '("   " (:eval (telega-mode-line-icon))
+    (:eval (car (telega-account-current)))
     (:eval (telega-mode-line-online-status))
     (:eval (when telega-use-tracking-for
              (telega-mode-line-tracking)))
@@ -75,19 +79,34 @@
 (defvar telega-mode-line--logo-image-cache nil "Cached loaded logo image.")
 (defun telega-mode-line-logo-image ()
   "Return telega logo image to be used in modeline."
-  (or telega-mode-line--logo-image-cache
+  (let* ((box-line-width-raw
+          (plist-get (face-attribute 'mode-line :box) :line-width))
+         (box-line-width
+          (if (consp box-line-width-raw)
+              (car box-line-width-raw)
+            (or box-line-width-raw 0)))
+         (mode-line-height
+          (+ (telega-chars-xheight 1 'mode-line)
+             ;; NOTE: height adjustment only needed if box-line-width
+             ;; is negative. See https://t.me/emacs_telega/26677
+             (if (< box-line-width 0)
+                 (* 2 box-line-width)
+               0))))
+    (if (eq mode-line-height
+            (plist-get (cdr telega-mode-line--logo-image-cache) :height))
+        telega-mode-line--logo-image-cache
       (setq telega-mode-line--logo-image-cache
             (find-image
-             (list (list :type (when (fboundp 'imagemagick-types) 'imagemagick)
+             (list (list :type 'svg :file "etc/telega-logo.svg"
+                         :scale 1 :ascent 'center :mask 'heuristic
+                         :height mode-line-height)
+                   (list :type (when (fboundp 'imagemagick-types) 'imagemagick)
                          :file "etc/telega-logo.png"
-                         :ascent 'center :mask 'heuristic
-                         :height (window-mode-line-height))
-                   (list :type 'svg :file "etc/telega-logo.svg"
-                         :ascent 'center
-                         :background (face-attribute 'mode-line :background)
-                         :height (window-mode-line-height))
+                         :scale 1 :ascent 'center :mask 'heuristic
+                         :height mode-line-height)
                    (list :type 'xpm :file "etc/telega-logo.xpm"
-                         :ascent 'center))))))
+                         :scale 1 :ascent 'center
+                         :height mode-line-height)))))))
 
 (defun telega-mode-line-icon ()
   "Return telegram logo icon to be used in modeline."
@@ -100,9 +119,11 @@
 
 (defun telega-mode-line-online-status ()
   "Return online status symbol."
-  (if (telega-user-online-p (telega-user-me))
-      telega-symbol-online-status
-    (propertize telega-symbol-online-status 'face 'shadow)))
+  ;; NOTE: At start time user info might not be available
+  (when-let ((me-user (telega-user-me 'locally)))
+    (if (telega-user-online-p me-user)
+        telega-symbol-online-status
+      (propertize telega-symbol-online-status 'face 'shadow))))
 
 (defun telega-mode-line--online-status-update (event)
   (when (eq (plist-get event :user_id) telega--me-id)
@@ -242,21 +263,41 @@ If MESSAGES-P is non-nil then use number of messages with mentions."
 ;; #+end_src
 ;;
 ;; Customizable options:
+;; - {{{user-option(telega-appindicator-use-label, 2)}}}
+;; - {{{user-option(telega-appindicator-icon-colors, 2)}}}
 ;; - {{{user-option(telega-appindicator-show-account-name, 2)}}}
 ;; - {{{user-option(telega-appindicator-show-mentions, 2)}}}
 ;; - {{{user-option(telega-appindicator-labels, 2)}}}
-(declare-function telega "telega" (&optional arg))
-(declare-function telega-account-current "telega")
-(declare-function telega-kill "telega" (force))
+(defcustom telega-appindicator-use-label nil
+  "Non-nil to add text labels to the icon.
+Otherwise use just icon to show info.
+labels are not supported by XEMBED based system trays, such as
+`exwm-systemtray' or `polybar'."
+  :package-version '(telega . "0.7.20")
+  :type 'boolean
+  :group 'telega-modes)
+
+(defcustom telega-appindicator-icon-colors
+  '((offline "white" "black" nil)
+    (online "#7739aa" "white" "#00ff00")
+    (connecting "gray" "white" "white"))
+  "Colors to use for offline/online appindicator icon.
+Alist with `offline', `online' or `connecting' as key, and value in form
+(CIRCLE-COLOR TRIANGLE-COLOR ONLINE-CIRCLE-COLOR)."
+  :package-version '(telega . "0.7.34")
+  :type 'list
+  :group 'telega-modes)
 
 (defcustom telega-appindicator-show-account-name t
-  "*Non-nil to show current account name in appindicator label."
+  "*Non-nil to show current account name in appindicator label.
+Applied only if `telega-appindicator-use-label' is non-nil."
   :package-version '(telega . "0.7.2")
   :type 'boolean
   :group 'telega-modes)
 
 (defcustom telega-appindicator-show-mentions t
-  "*Non-nil to show number of mentions in appindicator label."
+  "*Non-nil to show number of mentions in appindicator label.
+Applied only if `telega-appindicator-use-label' is non-nil."
   :package-version '(telega . "0.7.2")
   :type 'boolean
   :group 'telega-modes)
@@ -271,6 +312,9 @@ Set to nil to use plain number."
   :type 'list
   :group 'telega-modes)
 
+(defvar telega-appindicator--cached-icons nil
+  "Cached icons for offline/online statuses.")
+
 ;;;###autoload
 (define-minor-mode telega-appindicator-mode
   "Toggle display of the unread chats/mentions in the system tray."
@@ -284,9 +328,13 @@ Set to nil to use plain number."
                     :after 'telega-appindicator-update)
         (add-hook 'telega-ready-hook 'telega-appindicator-init)
         (add-hook 'telega-chats-fetched-hook 'telega-appindicator-update)
+        (add-hook 'telega-online-status-hook 'telega-appindicator-update)
+        (add-hook 'telega-connection-state-hook 'telega-appindicator-update)
         (when (telega-server-live-p)
           (telega-appindicator-init)))
 
+    (remove-hook 'telega-connection-state-hook 'telega-appindicator-update)
+    (remove-hook 'telega-online-status-hook 'telega-appindicator-update)
     (remove-hook 'telega-chats-fetched-hook 'telega-appindicator-update)
     (remove-hook 'telega-ready-hook 'telega-appindicator-init)
     (advice-remove 'telega--on-updateChatUnreadMentionCount
@@ -298,11 +346,66 @@ Set to nil to use plain number."
       (telega-server--send "status passive" "appindicator"))
     ))
 
+(defun telega-appindicator--gen-svg-icon (&optional label)
+  "Generate svg icon to be used in appindicator.
+Return filename of the generated icon."
+  (let* ((state (cond ((eq telega--conn-state 'Connecting) 'connecting)
+                      ((funcall telega-online-status-function) 'online)
+                      (t 'offline)))
+         (cached-label (concat (symbol-name state) label))
+         (cached-entry (assoc cached-label telega-appindicator--cached-icons)))
+    ;; NOTE: Check cached icon is still accessible
+    (when (and cached-entry (not (file-exists-p (cdr cached-entry))))
+      (setq telega-appindicator--cached-icons
+            (remove cached-entry telega-appindicator--cached-icons)
+            cached-entry nil))
+
+    (or (cdr cached-entry)
+        (let* ((w 48) (h 48) (logo-w 36)
+               (svg (telega-svg-create w h))
+               (colors (cdr (assq state telega-appindicator-icon-colors))))
+          (svg-circle svg (/ h 2) (/ h 2) (/ h 2)
+                      :fill-color (nth 0 colors))
+          (when (nth 2 colors)
+            (svg-circle svg (/ h 6) (/ h 6) (/ h 6)
+                        :fill-color (nth 2 colors)))
+          (telega-svg-telega-logo svg logo-w
+            :fill-color (nth 1 colors)
+            :transform (format "translate(%f, %f)"
+                               (/ (- h logo-w) 3) (- h logo-w)))
+          ;; Label
+          (when (and label (not (string-empty-p label)))
+            (let ((fsz 36))
+              ;; XXX: white background below the label
+              ;; TODO: find a better way in the future
+              (svg-circle svg (- w (/ fsz 2)) (- h (/ fsz 2)) (1- (/ fsz 2))
+                          :fill-color "white")
+              (svg-text svg label
+                        :font-size fsz
+                        :font-weight "bold"
+                        :fill "#ff0000"
+                        :font-family "monospace"
+                        :stroke-width 1
+                        :stroke-color "white"
+                        ;; XXX insane X/Y calculation
+                        :x (- w fsz)
+                        :y (- h (/ fsz 8)))))
+
+          (let ((image (telega-svg-image svg))
+                (svg-icon-file (telega-temp-name "appindicator-icon" ".svg")))
+            (write-region (plist-get (cdr image) :data)
+                          nil svg-icon-file nil 'quiet)
+            ;; Cache it
+            (setq telega-appindicator--cached-icons
+                  (cons (cons cached-label svg-icon-file)
+                        telega-appindicator--cached-icons))
+            svg-icon-file)))))
+
 (defun telega-appindicator-init ()
   "Initialize appindicator."
   (when telega-appindicator-mode
     (telega-server--send
-     (concat "setup " (telega-etc-file "telega-logo.svg"))
+     (concat "setup " (telega-appindicator--gen-svg-icon))
      "appindicator")
     (telega-appindicator-update)))
 
@@ -310,7 +413,8 @@ Set to nil to use plain number."
   "Update appindicator label."
   (when telega-appindicator-mode
     (let* ((account
-            (when telega-appindicator-show-account-name
+            (when (and telega-appindicator-use-label
+                       telega-appindicator-show-account-name)
               (car (telega-account-current))))
            (uu-chats-num
             (or (plist-get telega--unread-chat-count :unread_unmuted_count)
@@ -320,7 +424,8 @@ Set to nil to use plain number."
               (or (nth (1- uu-chats-num) telega-appindicator-labels)
                   (number-to-string uu-chats-num))))
            (mentions-num
-            (or (when telega-appindicator-show-mentions
+            (or (when (and telega-appindicator-use-label
+                           telega-appindicator-show-mentions)
                   (length (telega-filter-chats
                            telega--ordered-chats '(mention))))
                 0))
@@ -333,10 +438,15 @@ Set to nil to use plain number."
                                          (or uu-chats-str mentions-str))
                                 "-")
                               uu-chats-str
-                              mentions-str))))
-      (telega-server--send
-       (concat "label " (mapconcat #'identity label-strings " "))
-       "appindicator"))))
+                              mentions-str)))
+           (new-label (mapconcat #'identity label-strings " "))
+           (icon-filename
+            (telega-appindicator--gen-svg-icon
+             (unless telega-appindicator-use-label
+               new-label))))
+      (telega-server--send (concat "icon " icon-filename) "appindicator")
+      (when telega-appindicator-use-label
+        (telega-server--send (concat "label " new-label) "appindicator")))))
 
 (defun telega-appindicator--on-event (event)
   "Function called when event from appindicator is received."
@@ -359,26 +469,85 @@ Set to nil to use plain number."
          (message "telega-server: Unknown appindicator-event: %s" event))))
 
 
-;;; Animation autoplay mode
-(defcustom telega-autoplay-messages '(messageAnimation)
-  "Message types to automatically play when received."
+;;; ellit-org: minor-modes
+;; ** telega-autoplay-mode
+;;
+;; Global minor mode to automatically open content for incoming
+;; messages.  Message automatically opens if its type is in the
+;; ~telega-autoplay-messages~ list and message content is fully
+;; observable.
+;;
+;; Enable with ~(telega-autoplay-mode 1)~ or at =telega= load time:
+;; #+begin_src emacs-lisp
+;; (add-hook 'telega-load-hook 'telega-autoplay-mode)
+;; #+end_src
+;;
+;; Customizable options:
+;; - {{{user-option(telega-autoplay-for, 2)}}}
+;; - {{{user-option(telega-autoplay-outgoing, 2)}}}
+;; - {{{user-option(telega-autoplay-messages, 2)}}}
+(defcustom telega-autoplay-for 'all
+  "Chat Filter for chats where to automatically open content."
+  :type 'list
+  :group 'telega-modes)
+
+(defcustom telega-autoplay-outgoing t
+  "Non-nil to play outgoing messages as well."
+  :type 'boolean
+  :group 'telega-modes)
+
+(defcustom telega-autoplay-messages
+  '(messageAnimation messageSticker)
+  "Message to automatically play when received."
   :type 'list
   :group 'telega-modes)
 
 (defun telega-autoplay-on-msg (msg)
   "Automatically play contents of the message MSG.
 Play in muted mode."
-  (when (and (not (plist-get msg :is_outgoing))
-             (memq (telega--tl-type (plist-get msg :content))
-                   telega-autoplay-messages))
-    (telega-msg-open-content msg)))
+  (when (and (or (not (plist-get msg :is_outgoing))
+                 (and telega-autoplay-outgoing
+                      ;; i.e. sent successfully
+                      (not (plist-get msg :sending_state))))
+             (telega-chat-match-p (telega-msg-chat msg) telega-autoplay-for)
+             (telega-msg-observable-p msg))
+    (let* ((content (plist-get msg :content))
+           (content-type (telega--tl-type content))
+           (web-page (plist-get content :web_page)))
+      (cond ((and (memq 'messageAnimation telega-autoplay-messages)
+                  (or (eq 'messageAnimation content-type)
+                      (plist-get web-page :animation)))
+             ;; NOTE: special case for animations, animate only those
+             ;; which can be animated inline, see
+             ;; `telega-animation-play-inline'
+             (let ((animation (or (plist-get content :animation)
+                                  (plist-get web-page :animation))))
+               (when (telega-animation-play-inline-p animation)
+                 (telega-msg-open-animation msg animation))))
+
+            ((and (memq 'messageSticker telega-autoplay-messages)
+                  (or (eq 'messageSticker content-type)
+                      (plist-get web-page :sticker)))
+             ;; NOTE: special case for sticker messages, play animated
+             ;; sticker only if `telega-sticker-animated-play' is set
+             (let ((sticker (or (plist-get content :sticker)
+                                (plist-get web-page :sticker))))
+               (when (and (plist-get sticker :is_animated)
+                          telega-sticker-animated-play)
+                 (telega-sticker--animate sticker))))
+
+            ((memq content-type telega-autoplay-messages)
+             (telega-msg-open-content msg))))))
 
 ;;;###autoload
 (define-minor-mode telega-autoplay-mode
   "Automatically play animation messages."
   :init-value nil :global t :group 'telega-modes
   (if telega-autoplay-mode
-      (add-hook 'telega-chat-post-message-hook 'telega-autoplay-on-msg)
+      (progn
+        (add-hook 'telega-chat-post-message-hook 'telega-autoplay-on-msg)
+        (add-hook 'telega-chat-goto-message-hook 'telega-autoplay-on-msg))
+    (remove-hook 'telega-chat-goto-message-hook 'telega-autoplay-on-msg)
     (remove-hook 'telega-chat-post-message-hook 'telega-autoplay-on-msg)))
 
 
@@ -391,8 +560,8 @@ Play in muted mode."
 ;; Squashing mean adding contents of the new message to the previous
 ;; message by editing contents of the previous message.
 ;;
-;; New message in chat is squashed into your previous message only if
-;; all the conditions are met:
+;; New message in a chat is squashed into your previous message only
+;; if all next conditions are met:
 ;;
 ;; 1. Last message in chat is sent by you
 ;; 2. Nobody seen your last message
@@ -402,7 +571,9 @@ Play in muted mode."
 ;; 6. Last message has no associated web-page
 ;; 7. New message has no ~messageSendOptions~ to avoid squashing
 ;;    scheduled messages or similar
-;;
+;; 8. New message is sent within ~telega-squash-message-within-seconds~
+;;    seconds from last message
+
 ;; Can be enabled globally in all chats matching
 ;; ~telega-squash-message-mode-for~ (see below) chat filter with
 ;; ~(global-telega-squash-message-mode 1)~ or by adding:
@@ -414,12 +585,20 @@ Play in muted mode."
 ;; Customizable options:
 ;;
 ;; - {{{user-option(telega-squash-message-mode-for, 2)}}}
+;; - {{{user-option(telega-squash-message-within-seconds, 2)}}}
 (defcustom telega-squash-message-mode-for
   '(not (or saved-messages (type channel)))
   "*Chat filter for `global-telega-squash-message-mode'.
 Global squash message mode enables message squashing only in
 chats matching this chat filter."
   :type 'list
+  :group 'telega-modes)
+
+(defcustom telega-squash-message-within-seconds 60
+  "Maximum number of seconds between last and new message to apply squashing.
+If new message is sent later then this number of seconds, then
+squashing is not applied."
+  :type 'integer
   :group 'telega-modes)
 
 ;;;###autoload
@@ -473,6 +652,12 @@ chats matching this chat filter."
                    (zerop (plist-get last-msg :reply_to_message_id))
                    ;; Check for 6.
                    (not (telega--tl-get last-msg :content :web_page))
+                   ;; Check for 8.
+                   (< (- (telega-time-seconds)
+                         (if (zerop (plist-get last-msg :edit_date))
+                             (plist-get last-msg :date)
+                           (plist-get last-msg :edit_date)))
+                      telega-squash-message-within-seconds)
                    )
 
           ;; Squashing IMC with `last-msg' by modifying IMC inplace
@@ -613,18 +798,53 @@ Could be used as condition function in `display-buffer-alist'."
 ;; #+BEGIN_SRC emacs-lisp
 ;;   (add-hook 'telega-open-file-hook 'telega-edit-file-mode)
 ;; #+END_SRC
+;;
+;; While editing file press
+;; {{{where-is(telega-edit-file-goto-message,telega-edit-file-mode-map)}}}
+;; to go back to the file's message.
+;;
+;; To switch between files opened from =telega= use
+;; {{{where-is(telega-edit-file-switch-buffer,telega-prefix-map)}}}
+;; binding from the [[#telega-prefix-map][Telega prefix map]].
+;;
+;; To distinguish files opened from =telega= with ordinary files
+;; suffix is added to the buffer name.  You can modify this suffix
+;; using user option:
+;;
+;; - {{{user-option(telega-edit-file-buffer-name-function, 2)}}}
 (declare-function telega-chat-title-with-brackets "telega-chat" (chat &optional with-username-delim))
 (declare-function telega-chatbuf--gen-input-file "telega-chat" (filename &optional file-type preview-p upload-callback))
+
+(defcustom telega-edit-file-buffer-name-function 'telega-edit-file-buffer-name
+  "Function to return buffer name when `telega-edit-file-mode' is enabled.
+Function is called without arguments and should return a buffer name string.
+Inside a function you can use `telega-edit-file-message<f>' to
+get message associated with the file."
+  :package-version '(telega . "0.7.59")
+  :type 'function
+  :group 'telega-modes)
 
 (defvar telega-edit-file-mode-map
   (let ((map (make-sparse-keymap)))
     (define-key map [remap save-buffer] 'telega-edit-file-save-buffer)
+    (define-key map (kbd "M-g t") 'telega-edit-file-goto-message)
 
     (define-key map [menu-bar goto-message]
       '("Goto Telegram Message" . telega-edit-file-goto-message))
     (define-key map [menu-bar turn-off]
       '("Turn off minor mode" . telega-edit-file-mode))
     map))
+
+(defun telega-edit-file-message ()
+  "Return message for the currently edited file with `telega-edit-file-mode'."
+  (cl-assert telega-edit-file-mode)
+  telega--help-win-param)
+
+(defun telega-edit-file-buffer-name ()
+  "Return buffer name for a file edited with `telega-edit-file-mode'."
+  (concat (buffer-name) telega-symbol-mode
+          (telega-chat-title-with-brackets
+           (telega-msg-chat (telega-edit-file-message)))))
 
 ;;;###autoload
 (define-minor-mode telega-edit-file-mode
@@ -634,23 +854,31 @@ Can be enabled only for content from editable messages."
   :map 'telega-edit-file-mode-map
 
   (if telega-edit-file-mode
-    (let* ((msg telega--help-win-param)
-           (chat (and msg (telega-msg-chat msg))))
-      (if (not (plist-get msg :can_be_edited))
-          ;; No message or message can't be edited
-          (telega-edit-file-mode -1)
+      (let ((msg telega--help-win-param))
+        (if (not (plist-get msg :can_be_edited))
+            ;; No message or message can't be edited
+            (telega-edit-file-mode -1)
 
-        (setq mode-line-buffer-identification
-              (list (propertized-buffer-identification "%b")
-                    (propertize
-                     (concat "◁" (telega-chat-title-with-brackets chat))
-                     'face 'mode-line-buffer-id
-                     'help-echo "mouse-1: To goto telegram message"
-                     'mouse-face 'mode-line-highlight
-                     'local-map
-                     (eval-when-compile
-                       (make-mode-line-mouse-map
-                        'mouse-1 #'telega-edit-file-goto-message)))))))
+          ;; Apply buffer name modification to distinguish files
+          ;; opened from telega with ordinary files.  Apply
+          ;; `telega-edit-file-buffer-name-function' only once, by
+          ;; marking buffer name with special text property
+          (when telega-edit-file-buffer-name-function
+            (let ((old-bufname (buffer-name))
+                  (new-bufname (funcall telega-edit-file-buffer-name-function)))
+              (unless (get-text-property 0 :telega-buffer-name old-bufname)
+                (setf (buffer-name)
+                      (propertize new-bufname :telega-buffer-name t)))))
+          (setq mode-line-buffer-identification
+                (list (propertize
+                       "%b"
+                       'face 'mode-line-buffer-id
+                       'help-echo "mouse-1: To goto telegram message"
+                       'mouse-face 'mode-line-highlight
+                       'local-map
+                       (eval-when-compile
+                         (make-mode-line-mouse-map
+                          'mouse-1 #'telega-edit-file-goto-message)))))))
 
     (setq mode-line-buffer-identification
           (propertized-buffer-identification "%12b"))))
@@ -667,7 +895,11 @@ Can be enabled only for content from editable messages."
   "Callback for the file uploading progress.
 UFILE specifies Telegram file being uploading."
   (cond ((telega-file--uploaded-p ufile)
-         (message "Uploaded %s" (telega--tl-get ufile :local :path)))
+         (message "Uploaded %s (%s%s)" (telega--tl-get ufile :local :path)
+                  (file-size-human-readable (telega-file--size ufile))
+                  (if (< (telega-file--size ufile) 1024)
+                      " bytes"
+                    "")))
 
         ((telega-file--uploading-p ufile)
          (message
@@ -691,13 +923,33 @@ UFILE specifies Telegram file being uploading."
     (unless (plist-get msg :can_be_edited)
       (user-error "Telega: message can't be edited"))
 
+    ;; NOTE: `editMessageMedia' always replaces caption, so retain
+    ;; existing caption in the call to `editMessageMedia'
     (telega--editMessageMedia
      msg
      (list :@type "inputMessageDocument"
+           :caption (when-let ((cap (telega--tl-get msg :content :caption)))
+                      (telega-fmt-text-desurrogate (copy-sequence cap)))
            :document (let ((telega-chat-upload-attaches-ahead t))
                        (telega-chatbuf--gen-input-file
                         (buffer-file-name) 'Document nil
                         #'telega-edit-file--upload-callback))))))
+
+(defun telega-edit-file-switch-buffer (buffer)
+  "Interactively switch to BUFFER having `telega-edit-file-mode'."
+  (interactive
+   (let ((edit-file-buffers (internal-complete-buffer
+                             ""
+                             (lambda (name-and-buf)
+                               (buffer-local-value 'telega-edit-file-mode
+                                                   (cdr name-and-buf)))
+                             t)))
+     (unless edit-file-buffers
+       (user-error "No files opened from telega"))
+     (list (funcall telega-completing-read-function
+                    "Telega Edit File: " edit-file-buffers
+                    nil t nil 'buffer-name-history))))
+  (switch-to-buffer buffer))
 
 
 ;;; ellit-org: minor-modes
@@ -768,11 +1020,14 @@ UFILE specifies Telegram file being uploading."
     (781215372 :source opencollective :since_date 1609459200)
     (275409096 :source opencollective :since_date 1610236800)
     (356787489 :source opencollective :since_date 1611532800)
-    (546432750 :source opencollective :since_date 1611792000)
+    (1648334150 :source opencollective :since_date 1611792000)
     (205887307 :source opencollective :since_date 1612224000)
     (110622853 :source opencollective :since_date 1612310400)
     (388827905 :source private :since_date 1614804711)
     (835801 :source opencollective :since_date 1614897092)
+    (1358845605 :source opencollective :since_date 1617444333)
+    (59196540 :source opencollective :since_date 1624869937)
+    (676179719 :source opencollective :since_date 1634203432)
     )
   "Alist of telega patrons.")
 
@@ -840,6 +1095,48 @@ Return patron info, or nil if SENDER is not a telega patron."
     (advice-remove 'telega-avatar--create-image
                    'telega-patrons--avatar-emphasize)
     ))
+
+
+;;; ellit-org: minor-modes
+;; ** telega-my-location-mode  :new:
+;;
+;; ~telega-my-location~ is used by =telega= to calculate distance to
+;; me for location messages.  Also, ~telega-my-location~ is used to
+;; search chats nearby me.  So, having it set to correct value is
+;; essential.  There is
+;; [[#telega-live-locationel--manage-live-location-in-telega-using-geoel][contrib/telega-live-location.el]]
+;; which uses =geo.el= to actualize ~telega-my-location~, however it
+;; is not always possible to use it.
+;;
+;; When ~telega-my-location-mode~ is enabled, your
+;; ~telega-my-location~ gets automatic update when you send location
+;; message into "Saved Messages" using mobile Telegram client.
+;;
+;; Enable with ~(telega-my-location-mode 1)~ or at =telega= load time:
+;; #+begin_src emacs-lisp
+;; (add-hook 'telega-load-hook 'telega-my-location-mode)
+;; #+end_src
+(defun telega-my-location--on-new-message (msg)
+  "Set `telega-my-location' if MSG is a location sent to \"Saved Messages\"."
+  (when (eq telega--me-id (plist-get msg :chat_id))
+    (let ((content (plist-get msg :content)))
+      (when (equal (plist-get content :@type)
+                   "messageLocation")
+        (setq telega-my-location (plist-get content :location))
+        (message "telega: telega-my-location → %s"
+                 (telega-ins--as-string
+                  (telega-ins--location telega-my-location)))))))
+
+(define-minor-mode telega-my-location-mode
+  "Global mode to set `telega-my-location' using \"Saved Messages\".
+When this mode is enabled, you can set `telega-my-location' by sending
+your actual location to \"Saved Messages\" using mobile Telegram client."
+  :init-value nil :global t :group 'telega-modes
+  (if telega-my-location-mode
+      (add-hook 'telega-chat-pre-message-hook
+                'telega-my-location--on-new-message)
+    (remove-hook 'telega-chat-pre-message-hook
+                 'telega-my-location--on-new-message)))
 
 (provide 'telega-modes)
 

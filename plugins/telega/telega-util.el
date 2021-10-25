@@ -57,9 +57,17 @@ Also return `nil' if FILENAME is `nil'."
        (not (string-empty-p filename))
        (file-exists-p filename)))
 
-(defsubst telega-plist-del (plist prop)
+(defun telega-plist-del (plist prop)
   "From PLIST remove property PROP."
-  (cl--plist-remove plist (plist-member plist prop)))
+  ;; NOTE: `cl--plist-remove' has been removed in Emacs master
+  ;; See https://t.me/emacs_telega/27687
+  ;; Code taken from `org-plist-delete'
+  (let (p)
+    (while plist
+      (if (not (eq prop (car plist)))
+          (setq p (plist-put p (car plist) (nth 1 plist))))
+      (setq plist (cddr plist)))
+    p))
 
 (defun telega-plist-map (func plist)
   "Map FUNCTION on PLIST and return resulting list.
@@ -86,12 +94,13 @@ FUNCTION must accept two arguments: KEY and VALUE."
 (defun telega-x-frame ()
   "Return window system frame, if any.
 Selected frame and frame displaying root buffer are examined first."
-  (cl-find-if (lambda (frame)
-                (frame-parameter frame 'window-system))
-              (nconc (list (window-frame
-                            (get-buffer-window (or telega--current-buffer
-                                                   (telega-root--buffer)))))
-                     (frame-list))))
+  (or (when-let ((root-frame
+                  (window-frame
+                   (get-buffer-window (or telega--current-buffer
+                                          (telega-root--buffer))))))
+        (when (display-graphic-p root-frame)
+          root-frame))
+      (cl-find-if #'display-graphic-p (frame-list))))
 
 (defun telega-focus-state (&optional frame)
   "Return non-nil if FRAME has focus.
@@ -157,6 +166,28 @@ If FACE is not specified, then `default' is used."
   "Same as `current-column', but take into account width of the characters."
   (string-width (buffer-substring (point-at-bol) (point))))
 
+(defun telega-canonicalize-number (value from-value)
+  "Canonicalize number VALUE.
+VALUE can be a float, in this case take this fraction from FROM-VALUE.
+Otherwise use VALUE as is.
+MIN-VALUE specifies minimal value after canonicalization.
+Used to calculate canonical values for with of some buttons such as
+`telega-filter-button-width' and `telega-chat-button-width'."
+  (let* ((min-value (when (listp value) (nth 1 value)))
+         (max-value (when (listp value) (nth 2 value)))
+         (value (if (listp value) (nth 0 value) value))
+         (canon-value (if (floatp value)
+                          (progn
+                            (cl-assert (< 0 value 1))
+                            (round (* value from-value)))
+                        value))
+         (ret-min-value (if min-value
+                            (max min-value canon-value)
+                          canon-value)))
+    (if max-value
+        (min max-value ret-min-value)
+      ret-min-value)))
+
 (defun telega-temp-name (prefix &optional ext)
   "Generate unique temporary file name with PREFIX and extension EXT.
 Specify EXT with leading `.'."
@@ -214,7 +245,7 @@ so new Emacs `svg-embed-base-uri-image' functionality could be used."
   (let* ((w (alist-get 'width (cadr svg)))
          (h (alist-get 'height (cadr svg)))
          ;; progress clipping mask
-         (angle-o (+ pi (* 2 pi (- 1.0 progress))))
+         (angle-o (+ float-pi (* 2 float-pi (- 1.0 progress))))
          (clip-dx (* (/ w 2) (1+ (sin angle-o))))
          (clip-dy (* (/ h 2) (1+ (cos angle-o))))
          (pclip (telega-svg-clip-path svg "pclip")))
@@ -231,7 +262,7 @@ so new Emacs `svg-embed-base-uri-image' functionality could be used."
       (telega-svg-path pclip cp))
     ;; progress circle
     (svg-circle svg (/ w 2) (/ h 2) (/ h 2)
-                :fill-color (face-foreground 'shadow)
+                :fill-color (or (face-foreground 'shadow) "gray50")
                 :fill-opacity "0.25"
                 :clip-path "url(#pclip)")
     svg))
@@ -270,6 +301,7 @@ X and Y denotes left up corner."
 
 (defun telega-svg-telega-logo (svg width &rest args)
   "Draw telega triangle of WIDTH."
+  (declare (indent 2))
   (let ((ratio (/ width 32.0))
         (logo-outline '((M (0 10.1891))
                         (l (7.9819 5.5418))
@@ -294,6 +326,28 @@ X and Y denotes left up corner."
                                  (cdr op) " ")))
                       logo-outline "\n")
            args)))
+
+(defun telega-svg-round-square (svg x y width height radius &rest args)
+  "In SVG at X and Y positioon draw square with round corners.
+RADIUS denotes radius for round corners.
+X and Y denotes left up corner."
+  ;; NOTE: Draw 8-corners polygon, and then circles in all four
+  ;; corners
+  (let ((poly-points (list (cons (+ x radius) y)
+                           (cons (- (+ x width) radius) y)
+                           (cons (+ x width) (+ y radius))
+                           (cons (+ x width) (- (+ y height) radius))
+                           (cons (- (+ x width) radius) (+ y height))
+                           (cons (+ x radius) (+ y height))
+                           (cons x (- (+  y height) radius))
+                           (cons x radius))))
+    (apply #'svg-polygon svg poly-points args)
+    ;; Four round courners
+    (apply #'svg-circle svg (+ x radius) (+ y radius) radius args)
+    (apply #'svg-circle svg (- (+ x width) radius) (+ y radius) radius args)
+    (apply #'svg-circle svg (- (+ x width) radius) (- (+ height y) radius) radius args)
+    (apply #'svg-circle svg (+ x radius) (- (+ height y) radius) radius args)
+    ))
 
 (defun telega-svg-create (width height &rest args)
   "Create SVG image using `svg-create'.
@@ -359,11 +413,11 @@ Return resulting x,y,width,height."
               :stroke-color telega-poll-result-color
               :stroke-width stroke-xwidth
               :stroke-linecap "round")
-    (svg-image svg :scale 1
-               :width xwidth :height xheight
-               :mask 'heuristic
-               :ascent 'center
-               :telega-text telega-text)))
+    (telega-svg-image svg :scale 1
+                      :width xwidth :height xheight
+                      :mask 'heuristic
+                      :ascent 'center
+                      :telega-text telega-text)))
 
 (defun telega-self-destruct-create-svg (minithumb &optional emoji-symbol)
   "Create svg image for the self destructing image with minithumbnail MINITHUMB.
@@ -394,6 +448,53 @@ EMOJI-SYMBOL is the emoji symbol to be used. (Default is `telega-symbol-flames')
                       :width xw :height xh
                       :ascent 'center)))
 
+(defun telega-preview-one-line-create-svg (filename data-p width height
+                                                    &optional video-p)
+  "Create preview svg for FILENAME.
+DATA-P is non-nil if FILENAME is actually an image data instead
+WIDTH and HEIGHT is an image size.
+Specify non-nil VIDEO-P if generating preview for video."
+  (let* ((base-dir (if data-p
+                       (telega-directory-base-uri telega-temp-dir)
+                     (file-name-directory filename)))
+         (svg-size (telega-chars-xheight 1))
+         (margin 1)                     ; margin for the mask in pixels
+         (svg (telega-svg-create svg-size svg-size))
+         (pclip (telega-svg-clip-path svg "pclip")))
+    (telega-svg-round-square pclip margin margin
+                             (- svg-size (* 2 margin)) (- svg-size (* 2 margin))
+                             (/ svg-size 6))
+    (cl-destructuring-bind (x-fit y-fit w-fit h-fit)
+        (telega-svg-fit-into width height svg-size svg-size)
+      (telega-svg-embed svg (if data-p
+                                filename
+                              (list (file-relative-name filename base-dir)
+                                    base-dir))
+                        (format "image/%s"
+                                (if data-p
+                                    "jpeg"
+                                  (image-type-from-file-name filename)))
+                        data-p :x x-fit :y y-fit :width w-fit :height h-fit
+                        :clip-path "url(#pclip)"))
+
+    ;; Draw play triangle
+    (when video-p
+      (let ((play-size (/ svg-size 3)))
+        (svg-polygon svg (list (cons (/ (- svg-size play-size) 2)
+                                     (/ (- svg-size play-size) 2))
+                               (cons (/ (- svg-size play-size) 2)
+                                     (/ (+ svg-size play-size) 2))
+                               (cons (/ (+ svg-size play-size) 2)
+                                     (/ svg-size 2)))
+                     :fill "red"
+                     :opacity "0.75")))
+
+    (telega-svg-image svg :scale 1.0 :width svg-size :height svg-size
+                      :ascent 'center
+                      :mask 'heuristic
+                      :base-uri (expand-file-name "dummy" base-dir))
+    ))
+
 ;; code taken from
 ;; https://emacs.stackexchange.com/questions/14420/how-can-i-fix-incorrect-character-width
 (defun telega-symbol-widths-install (symbol-widths-alist)
@@ -418,16 +519,28 @@ SYMBOL could be a cons cell of codepoints, specifying the range."
   (setf (alist-get width telega-symbol-widths)
         (cons symbol (alist-get width telega-symbol-widths))))
 
-(defun telega-time-seconds ()
-  "Return current time as unix timestamp."
-  (floor (time-to-seconds)))
+(defun telega-time-seconds (&optional as-is)
+  "Return current time as unix timestamp.
+If AS-IS is non-nil, then do not apply time adjustment using
+`telega-tdlib--unix-time'."
+  (let ((ctime (floor (time-to-seconds))))
+    (if as-is
+        ctime
+      (+ ctime (- (or (plist-get telega-tdlib--unix-time :remote) 0)
+                  (or (plist-get telega-tdlib--unix-time :local) 0))))))
 
 (defun telega-distance-human-readable (meters)
   "Convert METERS to human readable string."
   (cond ((not (integerp meters)) "unknown")
         ((> meters 10000) (format "%d km" (/ meters 1000)))
         ((>= meters 1000) (format "%.1f km" (/ meters 1000.0)))
-        (t (format "%d m" meters))))
+        (t (format "%d meters" meters))))
+
+(defun telega-number-human-readable (num)
+  "Convert METERS to human readable string."
+  (if (and telega-use-short-numbers (>= num 1000))
+      (format "%.1fk" (/ num 1000.0))
+    (number-to-string num)))
 
 (defun telega-duration-human-readable (seconds &optional n
                                                day-label hour-label min-label)
@@ -583,6 +696,12 @@ See `puny-decode-domain' for details."
                           'telega-entity-type-texturl))
       (textEntityTypeBotCommand
        (list 'face 'telega-entity-type-botcommand))
+      (textEntityTypeMediaTimestamp
+       (list 'action (lambda (button)
+                       (telega-msg-open-media-timestamp
+                        (telega-msg-at button)
+                        (plist-get ent-type :media_timestamp)))
+             'face 'telega-link))
       )))
 
 ;; https://core.telegram.org/bots/api#markdown-style
@@ -614,6 +733,38 @@ Return now text with markdown syntax."
                                   (substring-no-properties text))))
       (textEntityTypeTextUrl
        (format "[%s](%s)" text (plist-get ent-type :url)))
+      (t text))))
+
+(defsubst telega--entity-to-org (entity-text)
+  "Convert ENTITY back to markdown syntax applied to TEXT.
+ENTITY-TEXT is cons cell where car is the ENTITY and cdr is the TEXT.
+Return string with org mode syntax."
+  ;; NOTE: text might have surrogated pairs, for example when editing
+  ;; message with emojis
+  (let ((ent-type (plist-get (car entity-text) :type))
+        (text (cdr entity-text)))
+    (cl-case (and ent-type (telega--tl-type ent-type))
+      (textEntityTypeBold (concat "*" text "*"))
+      (textEntityTypeItalic (concat "/" text "/"))
+      (textEntityTypeUnderline (concat "_" text "_"))
+      (textEntityTypeStrikethrough (concat "+" text "+"))
+      (textEntityTypeCode (concat "~" text "~"))
+      (textEntityTypePre (concat "=" text "="))
+      (textEntityTypePreCode
+       (concat "\n" "#+begin_src " (plist-get ent-type :language) "\n"
+               text "\n"
+               "#+end_src\n"))
+      (textEntityTypeMentionName
+       (format "[[tg://user?id=%d][%s]]" (plist-get ent-type :user_id) text))
+      (textEntityTypeUrl
+       ;; Hexify only spaces and tabs, removing `telega-display'
+       ;; property, which is used in `telega--desurrogate-apply'
+       (replace-regexp-in-string
+        (regexp-quote "\t") "%09"
+        (replace-regexp-in-string (regexp-quote " ") "%20"
+                                  (substring-no-properties text))))
+      (textEntityTypeTextUrl
+       (format "[[%s][%s]]" (plist-get ent-type :url) text))
       (t text))))
 
 (defun telega-string-fmt-text-length (str &optional rstart rend)
@@ -675,6 +826,26 @@ Return nil if STR is not emphasised by org mode."
               (telega-entity-type-strikethrough
                '(:@type "textEntityTypeStrikethrough")))))
       (telega-fmt-text (substring-no-properties str 1 -1) entity-type))))
+
+(defun telega-markup-org--begin-src-fmt (_str)
+  "Format org mode src block specified by STR to formattedText.
+Return nil if STR does not specify org mode source block."
+  (error "TODO: format `begin_src' block")
+  )
+
+(defun telega-markup-org--link-fmt (str)
+  "Format org link specified by STR to formattedText.
+Return nil if STR does not specify an org mode link."
+  (when (string-match org-link-any-re str)
+    (let* ((link-text (match-string 3 str))
+           (link-url (match-string 2 str))
+           (user-id (when (string-prefix-p "tg://user?id=" link-url)
+                      (string-to-number (substring link-url 13)))))
+      (if user-id
+          (telega-fmt-text link-text (list :@type "textEntityTypeMentionName"
+                                           :user_id user-id))
+        (telega-fmt-text link-text (list :@type "textEntityTypeTextUrl"
+                                         :url link-url))))))
 
 (defun telega-markup-org-fmt (str)
   "Format string STR to formattedText using Org Mode markup."
@@ -841,9 +1012,9 @@ Return desurrogated formattedText."
           :text (apply #'concat (mapcar (telega--tl-prop :text) fmt-texts))
           :entities (apply #'seq-concatenate 'vector ents))))
 
-(defun telega--fmt-text-markdown1 (fmt-text)
-  "Return formatted text FMT-TEXT as string with markdown1 syntax."
-  ;; TODO: support nested markdown
+(defun telega--fmt-text-markup (fmt-text entity-to-markup-fun)
+  "Return formatted text FMT-TEXT as string by applying entity function.
+ENTITY-TO-MARKUP-FUN is function to convert TDLib entities to string."
   (let ((text (copy-sequence (plist-get fmt-text :text)))
         (offset 0)
         (strings nil))
@@ -863,16 +1034,24 @@ Return desurrogated formattedText."
     ;; won't intermix with markdown syntax.
     ;; But keep 'display property, so emojis are still displayed as
     ;; images (if `telega-emoji-use-images' is set)
-    (let ((ret-text (apply 'concat (mapcar 'telega--entity-to-markdown
+    (let ((ret-text (apply 'concat (mapcar entity-to-markup-fun
                                            (nreverse strings)))))
       (remove-text-properties 0 (length ret-text) (list 'face) ret-text)
       ret-text)))
+
+(defun telega--fmt-text-markdown1 (fmt-text)
+  "Return formatted text FMT-TEXT as string with markdown1 syntax."
+  (telega--fmt-text-markup fmt-text #'telega--entity-to-markdown))
 
 (defun telega--fmt-text-markdown2 (fmt-text)
   "Return formatted text FMT-TEXT as string with markdown2 syntax."
   (plist-get (telega--getMarkdownText
               (telega-fmt-text-desurrogate (copy-sequence fmt-text)))
              :text))
+
+(defun telega--fmt-text-org (fmt-text)
+  "Return formatted text FMT-TEXT as string with org mode syntax."
+  (telega--fmt-text-markup fmt-text #'telega--entity-to-org))
 
 ;; NOTE: FOR-MSG might be used by advices, see contrib/telega-mnz.el
 (defun telega--fmt-text-faces (fmt-text &optional _for-msg)
@@ -930,7 +1109,7 @@ SORT-CRITERIA is a chat sort criteria to apply. (NOT YET)"
                          (telega-sort-chats
                           (or sort-criteria telega-chat-completing-sort-criteria)
                           (telega-filter-chats (or chats telega--ordered-chats)
-                                               '(or main archive))))))
+                                               '(or main archive has-chatbuf))))))
     (car (alist-get (funcall telega-completing-read-function
                              prompt choices nil t)
                     choices nil nil 'string=))))
@@ -1302,6 +1481,7 @@ KEY, START-NODE and ITER-FUNC are passed directly to `telega-ewoc--find'."
   "Set EWOC's new FOOTER."
   ;; NOTE: No ewoc API to change just footer :(
   ;; only `ewoc-set-hf'
+  (declare (indent 1))
   (ewoc--set-buffer-bind-dll-let* ewoc
       ((foot (ewoc--footer ewoc))
        (hf-pp (ewoc--hf-pp ewoc)))
@@ -1382,18 +1562,38 @@ Alist with elements in form (emoji . image)")
   (telega-emoji-init)
   (car (cl-find emoji telega-emoji-alist :test 'string= :key 'cdr)))
 
+(defun telega-emoji--image-cache-get (emoji xheight)
+  "Get EMOJI from `telega-emoji-svg-images'.
+Also checks that height of the cached image equals to XHEIGHT."
+  (when-let ((cached-image (cdr (assoc emoji telega-emoji-svg-images))))
+    (when (eq xheight (plist-get (cdr cached-image) :height))
+      cached-image)))
+
+(defun telega-emoji--image-cache-put (emoji image)
+  "Put EMOJI IMAGE into `telega-emoji-svg-images' cache."
+  (let ((cached-image (assoc emoji telega-emoji-svg-images)))
+    (if cached-image
+        (setcdr cached-image image)
+      (setq telega-emoji-svg-images
+            (cons (cons emoji image) telega-emoji-svg-images)))))
+
 (defun telega-emoji-create-svg (emoji &optional cheight)
   "Create svg image for the EMOJI.
 CHEIGHT is height for the svg in characters, default=1."
   (let* ((emoji-cheight (or cheight 1))
          (use-cache-p (and (= 1 (length emoji)) (= emoji-cheight 1)))
+         (xh (telega-chars-xheight emoji-cheight))
          (image (when use-cache-p
-                  (cdr (assoc emoji telega-emoji-svg-images)))))
+                  (telega-emoji--image-cache-get emoji xh))))
     (unless image
-      (let* ((xh (telega-chars-xheight emoji-cheight))
-             (font-size (- xh (/ xh 4)))
+      (let* ((font-xh (min xh (telega-chars-xwidth (* 2 emoji-cheight))))
+             (font-size (- font-xh (/ font-xh 5)))
+             (font-y (if (> font-xh xh)
+                         font-size
+                       (cl-assert (>= xh font-xh))
+                       (+ font-size (/ (- xh font-xh) 4))))
              (aw-chars (* (or (telega-emoji-svg-width emoji) (length emoji))
-                          (telega-chars-in-width (- xh (/ xh 8)))))
+                          (telega-chars-in-width font-xh)))
              (xw (telega-chars-xwidth aw-chars))
              (svg (telega-svg-create xw xh))
              ;; NOTE: if EMOJI width matches final width, then use
@@ -1401,18 +1601,30 @@ CHEIGHT is height for the svg in characters, default=1."
              (telega-text (if (= (string-width emoji) aw-chars)
                               emoji
                             (make-string aw-chars ?E))))
-        (svg-text svg emoji
-                  :font-family telega-emoji-font-family
-                  :font-size font-size
-                  :x 0 :y font-size)
+        ;; NOTE: special case librsvg does not handles well - labels
+        ;; such as 1️⃣, for such cases `telega-emoji-svg-width' returns 1
+        (if (and (= (length emoji) 3) (string-suffix-p "️⃣" emoji))
+            (progn
+              (setq telega-text (compose-chars (aref emoji 0) ?⃣))
+              (svg-text svg "⃣"
+                        :font-family telega-emoji-font-family
+                        :font-size font-size
+                        :x 0 :y font-y)
+              (svg-text svg (substring emoji 0 1)
+                        :font-family telega-emoji-font-family
+                        :font-size font-size
+                        :x 0 :y font-y))
+          (svg-text svg emoji
+                    :font-family telega-emoji-font-family
+                    :font-size font-size
+                    :x 0 :y font-y))
         (setq image (telega-svg-image svg :scale 1.0
                                       :width xw :height xh
                                       :ascent 'center
                                       :mask 'heuristic
                                       :telega-text telega-text)))
       (when use-cache-p
-        (setq telega-emoji-svg-images
-              (cons (cons emoji image) telega-emoji-svg-images))))
+        (telega-emoji--image-cache-put emoji image)))
     image))
 
 (defun telega-svg-create-vertical-bar (&optional bar-width bar-position
@@ -1427,7 +1639,7 @@ float values then it is relative to bar width in pixels.  If
 integer values, then pixels used."
   (unless bar-str
     (setq bar-str telega-symbol-vertical-bar))
-  (or (cdr (assoc bar-str telega-emoji-svg-images))
+  (or (telega-emoji--image-cache-get bar-str (telega-chars-xheight 1))
       (let* ((xh (telega-chars-xheight 1))
              (xw (telega-chars-xwidth (string-width bar-str)))
              (svg (telega-svg-create xw xh))
@@ -1439,18 +1651,66 @@ integer values, then pixels used."
                          bar-width
                        (round (* xw (or bar-width 0.07)))))
              image)
+        (when (< bar-xw 1)
+          (setq bar-xw 1))
         (svg-rectangle svg bar-xpos 0 bar-xw xh
                        :fill-color (or color
                                        (telega-color-name-as-hex-2digits
-                                        (face-foreground bar-face))))
+                                        (or (face-foreground bar-face)
+                                            (face-foreground 'default)))))
         (setq image (telega-svg-image svg :scale 1.0
                                       :width xw :height xh
                                       :ascent 'center
                                       :mask 'heuristic
                                       :telega-text bar-str))
-        (setq telega-emoji-svg-images
-              (cons (cons bar-str image) telega-emoji-svg-images))
+        (telega-emoji--image-cache-put bar-str image)
         image)))
+
+(defun telega-svg-create-horizontal-bar (&optional bar-width bar-position
+                                                   bar-str color)
+  "Create svg image for a horizontal bar.
+BAR-STR is string value for textual horizontal bar, by default
+`telega-symbol-horizontal-bar' is used.
+COLOR - bar color, by default `default' face foreground color is used.
+
+BAR-WIDTH and BAR-POSITION defines how horizontal bar is drawn.  If
+float values then it is relative to bar height in pixels.  If
+integer values, then absolute value in pixels is used."
+  (unless bar-str
+    (setq bar-str telega-symbol-horizontal-bar))
+  ;; NOTE: horizontal bars are frequently used as consecutive
+  ;; characters.  However in Emacs if consecutive chars has `eq'
+  ;; `display' property it is displayed is single unit (ref: 40.16.1
+  ;; Display Specs That Replace The Text).  So we use `seq-copy' to
+  ;; make `display' property for horizontal-bar differ
+  (seq-copy 
+   (or (telega-emoji--image-cache-get bar-str (telega-chars-xheight 1))
+       (let* ((xh (telega-chars-xheight 1))
+              (xw (telega-chars-xwidth (string-width bar-str)))
+              (svg (telega-svg-create xw xh))
+              (bar-face (or (get-text-property 0 'face bar-str) 'default))
+              (bar-xw (if (integerp bar-width)
+                          bar-width
+                        (round (* xh (or bar-width 0.07)))))
+              (bar-ypos (- (if (integerp bar-position)
+                               bar-position
+                             (round (* xh (or bar-position 0.5))))
+                           (/ bar-xw 2)))
+              image)
+         (when (< bar-xw 1)
+           (setq bar-xw 1))
+         (svg-rectangle svg 0 bar-ypos xw bar-xw
+                        :fill-color (or color
+                                        (telega-color-name-as-hex-2digits
+                                         (or (face-foreground bar-face)
+                                             (face-foreground 'default)))))
+         (setq image (telega-svg-image svg :scale 1.0
+                                       :width xw :height xh
+                                       :ascent 'center
+                                       :mask 'heuristic
+                                       :telega-text bar-str))
+         (telega-emoji--image-cache-put bar-str image)
+         image))))
 
 (defun telega-symbol-emojify (emoji &optional image-spec)
   "Return a copy of EMOJI with  `display' property of EMOJI svg image.
@@ -1465,25 +1725,34 @@ IMAGE-SPEC could be image, filename or form to be evaluated returning image."
                       image-spec)
                      (image-spec
                       (cl-assert (stringp image-spec))
-                      (create-image image-spec nil nil
-                                    :scale 1.0 :ascent 'center
-                                    :mask 'heuristic
-                                    :width (telega-chars-xwidth
-                                            (string-width emoji))))
+                      (telega-create-image
+                       image-spec nil nil
+                       :scale 1.0 :ascent 'center
+                       :mask 'heuristic
+                       :width (telega-chars-xwidth
+                               (string-width emoji))))
                      (t
                       (telega-emoji-create-svg emoji)))))
     (propertize emoji 'rear-nonsticky '(display) 'display image)))
 
 (defun telega-symbol (ending)
   "Return possible emojified value for the symbol denoted by ENDING.
-Actual symbol value is taken from `telega-symbol-ENDING' variable.
+ENDING could be a string or a symbol.
+If ENDING is a symbol, then value is taken from `telega-symbol-ENDING'
+variable.
 Only endings listed in `telega-symbols-emojify' are emojified."
-  (let ((value (symbol-value (intern (format "telega-symbol-%s" ending)))))
-    (or (and telega-emoji-use-images
-             (let ((emoji-file (cdr (assq ending telega-symbols-emojify))))
-               (when (or emoji-file (memq ending telega-symbols-emojify))
-                 (apply #'telega-symbol-emojify value emoji-file))))
-        value)))
+  (let ((value (if (stringp ending)
+                   ending
+                 (symbol-value (intern (format "telega-symbol-%s" ending)))))
+        (image-spec (cdr (assoc ending telega-symbols-emojify))))
+    (cond ((functionp image-spec)
+           (funcall image-spec ending value))
+          ((or (and telega-use-images image-spec)
+               (and telega-emoji-use-images
+                    (memq ending telega-symbols-emojify)))
+           (apply #'telega-symbol-emojify value image-spec))
+          (t
+           value))))
 
 (defun telega-emoji-has-zero-joiner-p (emoji)
   "Return non-nil if EMOJI has ZWJ char inside."
@@ -1511,7 +1780,8 @@ Only endings listed in `telega-symbols-emojify' are emojified."
   (if (or (telega-emoji-fitz-p emoji)
           (telega-emoji-flag-p emoji)
           (telega-emoji-fe0f-p emoji)
-          (telega-emoji-has-zero-joiner-p emoji))
+          (telega-emoji-has-zero-joiner-p emoji)
+          (and (= (length emoji) 3) (string-suffix-p "️⃣" emoji)))
       1
     nil))
 
@@ -1646,11 +1916,12 @@ If REGION-P is non-nil, then make a screenshot of region."
                               " " tofile)))
     (call-process-shell-command pngpaste-cmd)))
 
-(defun telega-read-timestamp (prompt)
+(defun telega-read-timestamp (prompt &optional only-date-p)
   "Interactively read timestamp in the future.
+If ONLY-DATE-P is specified, then query for date only.
 Return timestamp as unix time."
   (interactive)
-  (let ((date-time (org-read-date 'with-time t nil prompt)))
+  (let ((date-time (org-read-date (not only-date-p) t nil prompt)))
     ;; NOTE: we use `apply' to support Emacs 26
     ;; see https://t.me/emacs_telega/14017
     (round (time-to-seconds (apply #'encode-time (decode-time date-time))))))
@@ -1659,6 +1930,15 @@ Return timestamp as unix time."
   "Open FILENAME inside telega.
 MSG is the message associated with FILENAME."
   (let ((saved-buffer (current-buffer)))
+    ;; NOTE: For newly downloaded FILENAME modtime could differ from
+    ;; modtime of existing buffer, causing annoying "Reread file from
+    ;; disk?" query from Emacs.  We workaround this by updating
+    ;; buffer's modtime to filename's modtime
+    (when-let ((buf (get-file-buffer filename)))
+      (with-current-buffer buf
+        (unless (buffer-modified-p)
+          (set-visited-file-modtime))))
+
     (funcall telega-open-file-function filename)
 
     (unless (eq saved-buffer (current-buffer))
@@ -1672,6 +1952,40 @@ MSG is the message associated with FILENAME."
       (telega-help-message 'open-file
           "To open files in external apps see https://zevlg.github.io/telega.el/#opening-files-using-external-programs")
       )))
+
+(defun telega-file-local-copy (file)
+  "Same as `file-local-copy', but use `telega-temp-dir' for temp files.
+If FILE is local, then return expanded FILE."
+  ;; NOTE: Do logic only for remote files, to avoid calling local-copy
+  ;; handlers.  See https://t.me/emacs_telega/26267
+  (if (not (file-remote-p file))
+      ;; NOTE: if using `telega-server' in docker, and file is not
+      ;; accessible by docker container (i.e. outside ~/.telega dir),
+      ;; then copy file into temporary directory accessible by docker
+      (let ((absfile (expand-file-name file)))
+        (if (and telega-use-docker
+                 (not (string-prefix-p
+                       (concat telega-database-dir "/") absfile)))
+            (let ((tmpfile (telega-temp-name
+                            (concat (file-name-sans-extension
+                                     (file-name-nondirectory absfile))
+                                    "-")
+                            (file-name-extension absfile t))))
+              (copy-file absfile tmpfile 'ok-if-already-exists 'keep-time)
+              tmpfile)
+          absfile))
+
+    ;; NOTE: `tramp-compat-temporary-file-directory'<f> uses standard
+    ;; value for `temporary-file-directory', so just binding it won't
+    ;; work.
+    (let ((tfd-value (get 'temporary-file-directory 'standard-value))
+          (temporary-file-directory telega-temp-dir))
+      (unwind-protect
+          (progn
+            (put 'temporary-file-directory 'standard-value
+                 (list telega-temp-dir))
+            (or (file-local-copy file) (expand-file-name file)))
+        (put 'temporary-file-directory 'standard-value tfd-value)))))
 
 (defun telega-color-name-as-hex-2digits (color)
   "Convert COLOR to #rrggbb form."
@@ -1729,37 +2043,33 @@ in `(window-prev-buffers)' to achive behaviour for nil-valued
       (setf (nth 2 entry)
             (copy-marker (point) (marker-insertion-type (nth 2 entry)))))))
 
-(defun telega-window-recenter (win &optional nlines from-point noforce)
-  "Set WIN's start point so there will be NLINES to current point."
+(defun telega-window-recenter (win &optional nlines from-point)
+  "Set WIN's start point so there will be NLINES to FROM-POINT.
+If FROM-POINT is nil, then current point is taken.
+If NLINES is nil, then recenter."
   (cl-assert win)
-  (let ((win-h (window-height win))
-        (win-start nil))
-    ;; Correct NLINES
-    (unless nlines
-      (setq nlines (/ win-h 2)))
-    (when (< nlines 0)
-      (setq nlines (+ win-h nlines)))
-    (when (< nlines 0)
-      (setq nlines 0))
-    (when (>= nlines win-h)
-      (setq nlines (1- win-h)))
-
+  ;; NOTE: Do not use `set-window-start`, since it might move point
+  ;; See https://github.com/zevlg/telega.el/issues/291
+  (with-selected-window win
     (save-excursion
       (when from-point
         (goto-char from-point))
-      (forward-line (- nlines))
-      (setq win-start (point-at-bol)))
+      (recenter nlines))))
 
-    (cl-assert (<= (count-lines win-start (or from-point (point))) win-h))
-    (set-window-start win win-start noforce)))
-
-(defun telega-base-directory ()
-  "Return `telega-directory' following possible symlink."
-  (let ((telega-dir-link (file-symlink-p telega-directory)))
+(defun telega-directory-base-uri (directory)
+  "Return DIRECTORY following possible symlink.
+Used as for SVG's `:base-uri' functionality."
+  (let ((telega-dir-link (file-symlink-p directory)))
     (if telega-dir-link
         (expand-file-name telega-dir-link
-                          (file-name-directory telega-directory))
-      telega-directory)))
+                          (file-name-directory directory))
+      directory)))
+
+(defun telega-create-image (&rest args)
+  "Wrapper around `create-image' that takes into account `telega-use-images'.
+Also enforces `:transform-smoothing' property to be non-nil."
+  (when telega-use-images
+    (apply #'create-image (nconc args (list :transform-smoothing t)))))
 
 (defconst telega-symbol-animations
   '((dots "." ".." "...")
@@ -1771,10 +2081,10 @@ in `(window-prev-buffers)' to achive behaviour for nil-valued
     (equal "[    ]" "[=   ]" "[==  ]" "[=== ]" "[ ===]" "[  ==]"
            "[   =]" "[    ]" "[   =]" "[  ==]" "[ ===]" "[====]"
            "[=== ]" "[==  ]" "[=   ]")
-    (black-dot "( ●    )" "(  ●   )" "(   ●  )" "(    ● )" "(     ●)" 
+    (black-dot "( ●    )" "(  ●   )" "(   ●  )" "(    ● )" "(     ●)"
                "(    ● )" "(   ●  )" "(  ●   )" "( ●    )" "(●     )")
     (clock "🕛" "🕐" "🕑" "🕒" "🕓" "🕔" "🕕" "🕖" "🕗" "🕘" "🕙" "🕚")
-    (segments "▰▱▱▱▱▱▱" "▰▰▱▱▱▱▱" "▰▰▰▱▱▱▱" "▰▰▰▰▱▱▱" "▰▰▰▰▰▱▱" 
+    (segments "▰▱▱▱▱▱▱" "▰▰▱▱▱▱▱" "▰▰▰▱▱▱▱" "▰▰▰▰▱▱▱" "▰▰▰▰▰▱▱"
               "▰▰▰▰▰▰▱" "▰▰▰▰▰▰▰")
     (large-dots "∙∙∙∙∙" "●∙∙∙∙" "∙●∙∙∙" "∙∙●∙∙" "∙∙∙●∙" "∙∙∙∙●")
     (globe "🌍" "🌎" "🌏")
@@ -1806,6 +2116,166 @@ Binds current symbol to SYM-BIND."
        (sit-for (or ,interval 0.1))
        (setq ,sym-bind (telega-symbol-animate ,sym-bind)))
      (when (input-pending-p) (read-key))))
+
+
+;;; Docker support
+(defvar telega-tdlib-min-version)
+(defvar telega-tdlib-max-version)
+(defun telega-docker--image-name ()
+  "Return image name for suitable docker container."
+  (if (equal telega-tdlib-min-version telega-tdlib-max-version)
+      (format "zevlg/telega-server:%s" telega-tdlib-min-version)
+    "zevlg/telega-server:latest"))
+
+(defvar telega-docker--user-id nil)
+(defun telega-docker--user-id ()
+  "Return UID:GID suitable for docker's -u."
+  (unless telega-docker--user-id
+    (setq telega-docker--user-id
+          (format "%s:%s" (user-uid) (group-gid))))
+
+  (unless (string-match-p "[0-9]+:[0-9]+" telega-docker--user-id)
+    (user-error "telega: Can't get UID/GID, set `telega-docker--user-id' explicitly to \"<UID>:<GID>\""))
+  telega-docker--user-id)
+
+(defun telega-docker--container-id-filename ()
+  "Return file to store docker container id to."
+  (expand-file-name "docker.cid" telega-database-dir))
+
+(defun telega-docker--container-id ()
+  "Return running container id."
+  (when (and telega-use-docker (telega-server-live-p))
+    (unless telega-docker--container-id
+      (setq telega-docker--container-id
+            (string-trim
+             (or (let ((cid-filename (telega-docker--container-id-filename)))
+                   (when (file-exists-p cid-filename)
+                     (with-temp-buffer
+                       (insert-file-contents cid-filename)
+                       (string-trim (buffer-string)))))
+                 (shell-command-to-string
+                  (format "docker ps -qf \"ancestor=%s\""
+                          (telega-docker--image-name)))))))
+    telega-docker--container-id))
+
+(defun telega-docker--selinux-p ()
+  "Return non-nil if running in the selinux environment."
+  (when-let ((selinux-enabled-bin (executable-find "selinuxenabled")))
+    (zerop (call-process selinux-enabled-bin))))
+
+(defvar telega-docker--cidfile nil
+  "Filename to write container id into using --cidfile docker flag.")
+(defun telega-docker-run-cmd (cmd &rest volumes)
+  "Dockerize command CMD."
+  (declare (indent 1))
+  (concat
+   (if telega-docker-run-command
+       (format-spec telega-docker-run-command
+                    (format-spec-make ?u (telega-docker--user-id)
+                                      ?w telega-database-dir
+                                      ?i (telega-docker--image-name)))
+     (let ((selinux-p (telega-docker--selinux-p)))
+       (concat
+        (format "docker run --privileged -i -v %s:%s%s"
+                telega-directory telega-directory
+                (if selinux-p ":z" ""))
+        (when telega-docker--cidfile
+          (concat " --cidfile " telega-docker--cidfile))
+        " -u " (telega-docker--user-id)
+        ;; Connect container to host networking
+        " --net=host"
+        ;; Add host devices to container to allow voice/video
+        ;; recording
+        " --device /dev/snd:/dev/snd"
+        " --device /dev/video0:/dev/video0"
+        " --device /dev/video1:/dev/video1"
+
+        ;; Export resources for pulseaudio to work
+        ;; ref: https://stackoverflow.com/questions/28985714/run-apps-using-audio-in-a-docker-container
+        (concat " -v /dev/shm:/dev/shm"
+                " -v /etc/machine-id:/etc/machine-id"
+                (when-let ((xdg-runtime-dir (getenv "XDG_RUNTIME_DIR")))
+                  (concat (format " -v %s:%s" xdg-runtime-dir xdg-runtime-dir)
+                          " -e XDG_RUNTIME_DIR"))
+                " -v /var/lib/dbus"
+                " -e XDG_RUNTIME_DIR"
+                ;; TODO
+                )
+        ;; Export volumes and env vars need to run appindicator
+        (when telega-appindicator-mode
+          (concat " --security-opt apparmor=unconfined"
+                  (format " -v /tmp/.X11-unix:/tmp/.X11-unix%s"
+                          (if selinux-p ":z" ""))
+                  (when-let ((xauthority (getenv "XAUTHORITY")))
+                    (format " -v %s:%s%s" xauthority xauthority
+                            (if selinux-p ":z" "")))
+                  (when-let ((bus-addr (getenv "DBUS_SESSION_BUS_ADDRESS"))
+                             (bus-path (nth 1 (split-string bus-addr "="))))
+                    (format " -v %s:%s%s" bus-path bus-path
+                            (if selinux-p ":z" "")))
+                  " -e DISPLAY -e XAUTHORITY -e DBUS_SESSION_BUS_ADDRESS"))
+        ;; Additional volumes
+        (mapconcat (lambda (volume)
+                     (format " -v %s:%s%s" volume volume
+                             (if selinux-p ":z" "")))
+                   (or volumes telega-docker-volumes) "")
+        " " (telega-docker--image-name))))
+   " " cmd))
+
+(defun telega-docker-host-cmd-find (program)
+  "Return non-nil if PROGRAM is available on host platform.
+Return absolute path to PROGRAM."
+  (let ((exec-path (cons telega-directory exec-path)))
+    (executable-find program)))
+
+(defun telega-docker-exec-cmd (cmd &optional try-host-p exec-flags no-error)
+  "Format docker exec command to run CMD in the running docker.
+If TRY-HOST-P is specified, return CMD if corresponding program is available.
+Additial EXEC-FLAGS can be specifier to exec command, for example \"-i\".
+If NO-ERROR is specified and corresponding command is not found, do
+not signal an error and just return nil."
+  (let* ((cmd-args (when try-host-p
+                     (split-string cmd " ")))
+         (program (when try-host-p
+                    (car cmd-args)))
+         program-bin)
+    (cond ((and try-host-p
+                (or (not telega-use-docker)
+                    (not (eq telega-debug 'docker)))
+                (setq program-bin (telega-docker-host-cmd-find program)))
+           (mapconcat #'identity (cons program-bin (cdr cmd-args)) " "))
+
+          ((and telega-use-docker (telega-server-live-p))
+           (concat "docker exec "
+                   " " exec-flags
+                   ;; NOTE: `exec-flags' might specify its own "-u",
+                   ;; for example to run commands under root with
+                   ;; "-u 0" `exec-flags'
+                   (unless (string-prefix-p "-u " (or exec-flags ""))
+                     (concat " -u " (telega-docker--user-id)))
+                   " " (telega-docker--container-id)
+                   " " cmd))
+
+          (no-error nil)
+          (t (error "telega: Install `%s' or set `telega-use-docker' to non-nil"
+                    program))
+          )))
+
+
+;; QR code image generation
+(defun telega-qr-code--create-image (text size)
+  "Generate image of SIZE with the QR code encoding TEXT."
+  (let* ((png-filename (telega-temp-name "qrcode-" ".png"))
+         (qrcode-cmd (telega-docker-exec-cmd
+                      (format "qrencode -m 1 -s %d -t png -o %s '%s'"
+                              (telega-chars-xwidth 1) png-filename text)
+                      'try-host-first)))
+    (telega-debug "RUN: %s" qrcode-cmd)
+    (shell-command-to-string qrcode-cmd)
+    (telega-create-image png-filename
+                         (when (fboundp 'imagemagick-types) 'imagemagick) nil
+                         :scale 1.0 :ascent 'center
+                         :width size :height size)))
 
 (provide 'telega-util)
 

@@ -1,9 +1,10 @@
-;;; telega-url-shorten.el --- URL shortening for telega  -*- lexical-binding:t -*-
+;;; telega-url-shorten.el --- URL shortening for telega  -*- lexical-binding: t; no-byte-compile: t; -*-
 
 ;; Copyright (C) 2020 by Zajcev Evgeny.
 
 ;; Author: Zajcev Evgeny <zevlg@yandex.ru>
 ;; Created: Sun Apr  5 12:07:57 2020
+;; Package-Requires: ((all-the-icons "4.0.0"))
 ;; Keywords:
 
 ;; telega is free software: you can redistribute it and/or modify
@@ -51,6 +52,9 @@
 ;; Emacs package.
 
 ;;; Code:
+(require 'cl-lib)
+(require 'telega)
+
 (require 'all-the-icons)
 
 (defgroup telega-url-shorten nil
@@ -80,37 +84,42 @@
 (defcustom telega-url-shorten-regexps
   (list
    `(github-issue
-     :regexp "https?://github.com/\\(.+\\)/issues/\\([0-9]+\\)"
+     :regexp "^https?://github.com/\\(.+\\)/issues/\\([0-9]+\\)"
      :symbol ,(all-the-icons-faicon "github")
      :replace "\\1#\\2"
      :svg-icon ("fa-brands/github-octocat.svg" :scale 0.72))
    `(github-repo
-     :regexp "https?://github.com/\\(.+\\)/\\(.*\\)"
+     :regexp "^https?://github.com/\\(.+\\)/\\(.*\\)"
      :symbol ,(all-the-icons-faicon "github")
      :replace "\\1/\\2"
      :svg-icon ("fa-brands/github-octocat.svg" :scale 0.72))
   `(gitlab-issue
-    :regexp "https?://gitlab.com/\\(.+\\)/issues/\\([0-9]+\\)"
+    :regexp "^https?://gitlab.com/\\(.+\\)/issues/\\([0-9]+\\)"
     :symbol ,(all-the-icons-faicon "gitlab")
     :replace "\\1#\\2"
     :svg-icon ("fa-brands/gitlab-rgb.svg" :scale 0.75))
+  `(gitlab-repo
+    :regexp "^https?://gitlab.com/\\(.+\\)/\\(.*\\)"
+    :symbol ,(all-the-icons-faicon "gitlab")
+    :replace "\\1/\\2"
+    :svg-icon ("fa-brands/gitlab-rgb.svg" :scale 0.75))
    `(youtube
-     :regexp "https?://www.youtube.com/watch.*[?&]v=\\([^&]+\\).+"
+     :regexp "^https?://www.youtube.com/watch.*[?&]v=\\([^&]+\\).+"
      :symbol ,(all-the-icons-faicon "youtube-play")
      :replace "YouTube#\\1"
      :svg-icon ("fa-brands/youtube-rgb.svg" :scale 0.6))
    `(youtu-be
-     :regexp "https?://youtu.be/\\(.+\\)"
+     :regexp "^https?://youtu.be/\\(.+\\)"
      :symbol ,(all-the-icons-faicon "youtube-play")
      :replace "YouTube#\\1"
      :svg-icon ("fa-brands/youtube-rgb.svg" :scale 0.6))
    `(wikipedia
-     :regexp "https?://\\(\\w+.\\)\\{0,2\\}wikipedia.org/wiki/\\(.+\\)"
+     :regexp "^https?://\\(\\w+.\\)\\{0,2\\}wikipedia.org/wiki/\\(.+\\)"
      :symbol ,(all-the-icons-faicon "wikipedia-w")
      :replace "wiki#\\2"
      :svg-icon ("fa-brands/wikipedia.svg" :scale 0.85))
    `(instagram
-     :regexp "https?://\\(www\\.\\)?instagram.com/\\(.+\\)"
+     :regexp "^https?://\\(www\\.\\)?instagram.com/\\(.+\\)"
      :symbol ,(all-the-icons-faicon "instagram")
      :replace "Instagram#\\2"
      :svg-icon ("fa-brands/instagram-rgb.svg" :scale 0.85))

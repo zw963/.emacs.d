@@ -62,7 +62,7 @@
 (declare-function telega-chat--type "telega-chat" (chat &optional no-interpret))
 (declare-function telega-chat-channel-p "telega-chat" (chat))
 (declare-function telega-chat-title "telega-chat" (chat &optional with-username))
-(declare-function telega-chat--info "telega-chat" (chat))
+(declare-function telega-chat--info "telega-chat" (chat &optional local-p))
 (declare-function telega-chat-user "telega-chat" (chat &optional include-bots-p))
 (declare-function telega-chats-top "telega-chat" (category))
 (declare-function telega-chat-member-my-status "telega-chat" (chat))
@@ -139,8 +139,25 @@ See `telega-filter--ewoc-spec' for CUSTOM-SPEC description."
          (unread (apply #'+ (mapcar (telega--tl-prop :unread_count) chats)))
          (mentions (apply #'+ (mapcar
                                (telega--tl-prop :unread_mention_count) chats)))
-         (umwidth 7)
-         (title-width (- telega-filter-button-width umwidth)))
+         (umstring
+          (telega-ins--as-string
+           (telega-ins--with-attrs (list :max 7
+                                         :align-symbol "\u00a0"
+                                         :elide t
+                                         :align 'right)
+             (unless (zerop unread)
+               (telega-ins (telega-number-human-readable unread)))
+             (unless (zerop mentions)
+               (telega-ins-fmt "@%d" mentions)))))
+         (filter-button-width
+          (telega-canonicalize-number telega-filter-button-width
+                                      telega-root-fill-column))
+         (title-width
+          (- filter-button-width (string-width umstring)
+             ;; `filter-button-width' is width for the button
+             ;; including brackes
+             2
+             )))
     (telega-ins--with-props (list 'inactive (not active-p)
                                   'action (if active-p
                                               #'telega-filter-button--action
@@ -151,6 +168,8 @@ See `telega-filter--ewoc-spec' for CUSTOM-SPEC description."
         (telega-ins "[")
         (telega-ins--with-attrs (list :min title-width
                                       :max title-width
+                                      ;; non-break space
+                                      :align-symbol "\u00a0"
                                       :elide t
                                       :align 'left)
           (telega-ins (number-to-string nchats) ":")
@@ -158,20 +177,14 @@ See `telega-filter--ewoc-spec' for CUSTOM-SPEC description."
               (telega-ins--with-face 'bold
                 (telega-ins name))
             (telega-ins name)))
-        (telega-ins--with-attrs (list :min umwidth
-                                      :max umwidth
-                                      :elide t
-                                      :align 'right)
-          (unless (zerop unread)
-            (telega-ins-fmt "%d" unread))
-          (unless (zerop mentions)
-            (telega-ins-fmt "@%d" mentions)))
+        (telega-ins "\u00a0")
+        (telega-ins umstring)
         (telega-ins "]")))))
 
 (defun telega-filter-button--action (button)
   "Action to take when custom filter button is pressed.
 If prefix ARG is specified then set custom filter as active,
-otherwise toggle custom filter in active chat filters."
+otherwise toggle custom filter in the active chat filters."
   (let* ((custom (button-get button :value))
          (fspec (if (or telega-filter-custom-expand
                         (telega-filter--folder-p (nth 1 custom)))
@@ -185,7 +198,11 @@ otherwise toggle custom filter in active chat filters."
       (if (and (telega-filter--folder-p (car (telega-filter-active)))
                (telega-filter--folder-p fspec))
           (telega-filters-push (cons fspec (cdr (telega-filter-active))))
-        (telega-filters-push (cons fspec (telega-filter-active)))))))
+
+        ;; Otherwise toggle it in the active chat filter
+        (if (member fspec (telega-filter-active))
+            (telega-filters-push (delete fspec (telega-filter-active)))
+          (telega-filter-add fspec))))))
 
 (defun telega-filter-active (&optional with-root-view-filter)
   "Return active filter.
@@ -252,21 +269,44 @@ If FILTER is nil, then active filter is used."
 ;; ewoc stuff
 (defun telega-filter--pp (custom)
   "Pretty printer for CUSTOM filter button."
-  (when (> (+ (current-column) telega-filter-button-width)
-           telega-root-fill-column)
-    (insert "\n"))
-  (telega-button--insert 'telega-filter custom)
-  (insert "  "))
+  (let* ((filter-button-width
+          (telega-canonicalize-number telega-filter-button-width
+                                      telega-root-fill-column))
+         (ccolumn (current-column))
+         (custom-filter (nth 1 custom))
+         (folder-p (and (listp custom-filter)
+                        (eq 'folder (car custom-filter)))))
+    ;; NOTE: 3 - two spaces and a newline
+    (cond ((and (not (memq (if folder-p 'folders 'custom)
+                           telega-filter-custom-one-liners))
+                (> (+ 3 ccolumn filter-button-width) telega-root-fill-column))
+           (insert "\n"))
+          ;; NOTE: start Folders from newline for any non-nil
+          ;; `telega-filter-custom-one-liners' setting
+          ((and telega-filter-custom-one-liners
+                folder-p
+                (equal (nth 1 custom-filter)
+                       (telega-tl-str (car telega-tdlib--chat-filters) :title)))
+           (insert "\n"))
+          ((zerop ccolumn)
+           ;; no-op
+           )
+          (t
+           (insert "  "))))
+  (telega-button--insert 'telega-filter custom))
 
 (defun telega-filters--footer ()
   "Generate string used as root header."
   (let ((filters-width (- telega-root-fill-column 8)))
     (telega-ins--as-string
      (telega-ins "\n")
-     (telega-ins "-/--")
+     (telega-ins (telega-symbol 'horizontal-bar)
+                 "/"
+                 (telega-symbol 'horizontal-bar)
+                 (telega-symbol 'horizontal-bar))
      (telega-ins--with-attrs (list :min filters-width
                                    :align 'center
-                                   :align-symbol "-"
+                                   :align-symbol 'horizontal-bar
                                    :max filters-width
                                    :elide t
                                    :elide-trail (/ filters-width 2))
@@ -275,24 +315,36 @@ If FILTER is nil, then active filter is used."
          (unless (telega-filter-default-p active-filter)
            (setq af-str (propertize af-str 'face 'telega-filter-active)))
          (telega-ins af-str)))
-     (telega-ins "----")
+     (telega-ins (telega-symbol 'horizontal-bar)
+                 (telega-symbol 'horizontal-bar)
+                 (telega-symbol 'horizontal-bar)
+                 (telega-symbol 'horizontal-bar))
 
-     (when telega--sort-criteria
+     (when (or telega--sort-criteria telega--sort-inverted)
        (telega-ins "\n")
-       (telega-ins "-\\--")
+       (telega-ins (telega-symbol 'horizontal-bar)
+                   "\\"
+                   (telega-symbol 'horizontal-bar)
+                   (telega-symbol 'horizontal-bar))
        (telega-ins--with-attrs (list :min filters-width
                                      :align 'center
-                                     :align-symbol "-"
+                                     :align-symbol 'horizontal-bar
                                      :max filters-width
                                      :elide t
                                      :elide-trail (/ filters-width 2))
          (telega-ins--with-face 'bold
            (when telega--sort-inverted
-             (telega-ins "(inverted "))
-           (telega-ins-fmt "%S" telega--sort-criteria)
+             (telega-ins "(inverted"))
+           (when telega--sort-criteria
+             (when telega--sort-inverted
+               (telega-ins " "))
+             (telega-ins-fmt "%S" telega--sort-criteria))
            (when telega--sort-inverted
              (telega-ins ")"))))
-       (telega-ins "----"))
+       (telega-ins (telega-symbol 'horizontal-bar)
+                   (telega-symbol 'horizontal-bar)
+                   (telega-symbol 'horizontal-bar)
+                   (telega-symbol 'horizontal-bar)))
      )))
 
 (defun telega-filter--custom-active-p (custom)
@@ -446,10 +498,7 @@ list, if no, then `main' is returned."
 (defun telega-filters--reset (&optional default)
   "Reset all filters.
 Set active filter to DEFAULT."
-  (setq telega--filters (when default
-                          (if (listp default)
-                              (list default)
-                            (list (list default))))
+  (setq telega--filters (when default (list (list default)))
         telega--undo-filters nil))
 
 (defun telega-filters-push (flist)
@@ -546,6 +595,7 @@ ARGS specifies arguments to operation, first must always be chat."
 (defun telega-chat-match-p (chat chat-filter)
   "Return non-nil if CHAT-FILTER matches CHAT.
 If CHAT-FILTER is not specified, active chat filter is used."
+  (declare (indent 1))
   (cond ((null chat-filter) nil)
         ((symbolp chat-filter)
          (funcall (telega-filter--get chat-filter) chat))
@@ -584,7 +634,9 @@ If CHAT-FILTER is ommited, then active filter from
     (let* ((filter-funs
             (cl-remove-if
              (lambda (funsym)
-               (> (length (help-function-arglist funsym)) 1))
+               (let ((funargs (help-function-arglist funsym)))
+                 (and (> (length funargs) 1)
+                      (not (eq '&optional (nth 1 funargs))))))
              (apropos-internal "^telega--filter-[a-z-]+" 'functionp)))
            (filter-names
             (mapcar (lambda (funame)
@@ -676,7 +728,7 @@ If `\\[universal-argument]' is specified, then negate whole active filter."
 (define-telega-filter name (chat regexp)
   "Matches if chat's title matches REGEXP."
   (or (string-match regexp (telega-chat-title chat))
-      (let ((info (telega-chat--info chat)))
+      (let ((info (telega-chat--info chat 'locally)))
         (or (string-match regexp (or (telega-tl-str info :first_name) ""))
             (string-match regexp (or (telega-tl-str info :last_name) ""))
             (string-match regexp (or (telega-tl-str info :username) ""))))))
@@ -835,7 +887,7 @@ Important chat is a chat with unread messages and enabled notifications."
 ;;   {{{fundoc(telega--filter-verified, 2)}}}
 (define-telega-filter verified (chat)
   "Matches if chat is verified."
-  (plist-get (telega-chat--info chat) :is_verified))
+  (plist-get (telega-chat--info chat 'locally) :is_verified))
 
 (defun telega-filter-by-verified ()
   "Filter verified chats."
@@ -849,12 +901,15 @@ Important chat is a chat with unread messages and enabled notifications."
   "Matches if chat's id is one of in ID-LIST."
   (memq (plist-get chat :id) id-list))
 
-(defun telega-filter-by-created-by-me ()
-  "Filter public chats created by me."
-  (interactive)
+(defun telega-filter-by-my-public-chats (chat-type)
+  "Filter public chats created by me.
+CHAT-TYPE is one of `has-username' or `location-based'."
+  (interactive
+   (list (intern (completing-read "Public Chat Type: "
+                                  '("has-username" "location-based") nil t))))
   (telega-filter-add
    (cons 'ids (mapcar (telega--tl-prop :id)
-                      (telega--getCreatedPublicChats)))))
+                      (telega--getCreatedPublicChats chat-type)))))
 
 ;;; ellit-org: chat-filters
 ;; - (me-is-owner [ ~OR-ADMIN~ ]) ::
@@ -966,8 +1021,8 @@ Suffix can be one of:
 - \"-wp\"       - Windows?
 
 If SUFFIX-LIST is not specified, then match any restriction reason."
-  (when-let ((reason (telega-tl-str
-                      (telega-chat--info chat) :restriction_reason)))
+  (when-let ((reason (telega-tl-str (telega-chat--info chat 'locally)
+                                    :restriction_reason)))
     (or (not suffix-list)
         (cl-find reason suffix-list
                  :test (lambda (string regexp)
@@ -1176,11 +1231,71 @@ supergroups and channels and receives CHANNELS_TOO_MUCH error."
          (< muted-for telega-mute-for-ever))))
 
 ;;; ellit-org: chat-filters
+;; - fake-or-scam ::
+;;   {{{fundoc(telega--filter-fake-or-scam, 2)}}}
+(define-telega-filter fake-or-scam (chat)
+  "Matches if chat is fake or scam user or group."
+  (let ((info (telega-chat--info chat)))
+    (or (plist-get info :is_scam)
+        (plist-get info :is_fake))))
+
+;;; ellit-org: chat-filters
+;; - (has-voice-chat [ ~NON-EMPTY~ ]) ::
+;;   {{{fundoc(telega--filter-has-voice-chat, 2)}}}
+(define-telega-filter has-voice-chat (chat &optional non-empty)
+  "Matches if chat contains a live voice chat.
+If non-nil NON-EMPTY is specified, then match only if voice chat is
+not empty."
+  (when-let* ((voice-chat (plist-get chat :voice_chat))
+              (group-call-id (plist-get voice-chat :group_call_id)))
+    (and (not (zerop group-call-id))
+         (or (null non-empty)
+             (plist-get voice-chat :has_participants)))))
+
+(defun telega-filter-by-has-voice-chat (including-empty-p)
+  "Filter chats with started voice chat.
+If INCLUDING-EMPTY-P is non-nil, then keep also empty voice chats."
+  (interactive (list (y-or-n-p "Include empty/scheduled voice chats? ")))
+  (telega-filter-add (if including-empty-p
+                         'has-voice-chat
+                       '(has-voice-chat with-users))))
+
+;;; ellit-org: chat-filters
 ;; - has-favorite-messages ::
 ;;   {{{fundoc(telega--filter-has-favorite-messages, 2)}}}
 (define-telega-filter has-favorite-messages (chat)
   "Matches if chat has favorite messages."
   (telega-chat-uaprop chat :telega-favorite-ids))
+
+;;; ellit-org: chat-filters
+;; - is-public ::
+;;   {{{fundoc(telega--filter-has-message-ttl-setting, 2)}}}
+(define-telega-filter has-message-ttl-setting (chat)
+  "Matches if chat has `:message_ttl_setting'."
+  (when-let ((msg-ttl (plist-get chat :message_ttl_setting)))
+    (> msg-ttl 0)))
+
+;;; ellit-org: chat-filters
+;; - is-broadcast-group ::
+;;   {{{fundoc(telega--filter-is-broadcast-group, 2)}}}
+(define-telega-filter is-broadcast-group (chat)
+  "Matches if chat is a broadcast group."
+  (plist-get (telega-chat--info chat) :is_broadcast_group))
+
+;;; ellit-org: chat-filters
+;; - has-groups-in-common ::
+;;   {{{fundoc(telega--filter-has-groups-in-common, 2)}}}
+(define-telega-filter has-groups-in-common (chat)
+  "Matches if corresponding user has groups in common with me."
+  (when-let ((user (telega-chat-user chat)))
+    (not (zerop (plist-get (telega--full-info user) :group_in_common_count)))))
+
+;;; ellit-org: chat-filters
+;; - is-telega-patron ::
+;;   {{{fundoc(telega--filter-is-telega-patron, 2)}}}
+(define-telega-filter is-telega-patron (chat)
+  "Matches if corresponding user is a telega patron."
+  (telega-msg-sender-patron-p chat))
 
 (provide 'telega-filter)
 

@@ -69,7 +69,9 @@ Rest elements are ewoc specs.")
   "Ewocs in `telega-root-view--ewocs-alist' starts here.")
 (defvar telega-root-view--ewocs-alist nil
   "Named ewocs alist in rootbuf.")
-
+(defvar telega-root-aux--ewoc nil
+  "Auxiliary data shown in the rootbuf.
+Use `telega-root-aux-inserters' to customize it.")
 (defvar telega-status--timer nil
   "Timer used to animate status string.")
 (defvar telega-loading--timer nil
@@ -212,10 +214,26 @@ Rest elements are ewoc specs.")
 
 (defvar telega-voip-map
   (let ((map (make-sparse-keymap)))
+    ;;; ellit-org: rootbuf-voip-bindings
+    ;; - {{{where-is(telega-chat-call,telega-root-mode-map)}}} ::
+    ;;   {{{fundoc(telega-chat-call,2)}}}
+    (define-key map (kbd "c") 'telega-chat-call)
+    ;;; ellit-org: rootbuf-voip-bindings
+    ;; - {{{where-is(telega-voip-accept,telega-root-mode-map)}}} ::
+    ;;   {{{fundoc(telega-voip-accept,2)}}}
     (define-key map (kbd "a") 'telega-voip-accept)
+    ;;; ellit-org: rootbuf-voip-bindings
+    ;; - {{{where-is(telega-voip-discard,telega-root-mode-map)}}} ::
+    ;;   {{{fundoc(telega-voip-discard,2)}}}
     (define-key map (kbd "d") 'telega-voip-discard)
+    ;;; ellit-org: rootbuf-voip-bindings
+    ;; - {{{where-is(telega-voip-buffer-show,telega-root-mode-map)}}} ::
+    ;;   {{{fundoc(telega-voip-buffer-show,2)}}}
     (define-key map (kbd "b") 'telega-voip-buffer-show)
-    (define-key map (kbd "l") 'telega-voip-list-calls)
+    ;;; ellit-org: rootbuf-voip-bindings
+    ;; - {{{where-is(telega-view-calls,telega-root-mode-map)}}} ::
+    ;;   {{{fundoc(telega-view-calls,2)}}}
+    (define-key map (kbd "l") 'telega-view-calls)
     map)
   "Keymap for VoIP commands.")
 
@@ -287,7 +305,35 @@ Rest elements are ewoc specs.")
     map)
   "The key map for telega root buffer.")
 
-(define-derived-mode telega-root-mode nil "◁Root"
+;;; ellit-org: minor-modes
+;; ** telega-root-auto-fill-mode  :new:
+;;
+;; Global minor mode to automatically adjust ~telega-root-fill-column~
+;; to the width of the window displaying rootbuf.
+;;
+;; ~telega-root-auto-fill-mode~ is enabled by default.
+(define-minor-mode telega-root-auto-fill-mode
+  "Toggle rootbuf autofill mode."
+  :init-value nil
+  :global t :group 'telega-modes
+  (if telega-root-auto-fill-mode
+      (with-telega-root-buffer
+        (add-hook 'window-size-change-functions
+                  #'telega-root-buffer-auto-fill nil 'local)
+        (add-hook 'text-scale-mode-hook
+                  #'telega-root-buffer-auto-fill nil 'local)
+        (when-let ((rootbuf-win (get-buffer-window)))
+          (telega-root-buffer-auto-fill rootbuf-win)))
+
+    (with-telega-root-buffer
+      (remove-hook 'text-scale-mode-hook
+                   #'telega-root-buffer-auto-fill 'local)
+      (remove-hook 'window-size-change-functions
+                   #'telega-root-buffer-auto-fill 'local))))
+
+(define-derived-mode telega-root-mode nil
+  `("◁Root" (telega-root-auto-fill-mode
+             "[autofill]" (:eval (format "[%d]" telega-root-fill-column))))
   "The mode for telega root buffer.
 
 Chat bindings (cursor on chat):
@@ -295,7 +341,9 @@ Chat bindings (cursor on chat):
 Global root bindings:
 \\{telega-root-mode-map}"
   :group 'telega-root
-  (telega-runtime-setup)
+
+  (unless (eq (current-buffer) (telega-root--buffer))
+    (error "telega: Can't enable `telega-root-mode' in random buffer"))
 
   (setq-local nobreak-char-display nil)
   ;; NOTE: make `telega-root-keep-cursor' working as expected
@@ -308,7 +356,17 @@ Global root bindings:
   (telega-button--insert
    'telega-status (cons telega--status telega--status-aux))
 
-  ;; delim
+  ;; NOTE: There is no delim between status and aux ewoc, becaus
+  ;; newline delimiters are added in the `telega-root-aux--pp'.  This
+  ;; is done, because there always should be a delim between ewocs
+
+  ;; Ewoc for rootbuf auxiliary inserters
+  (setq telega-root-aux--ewoc (ewoc-create #'telega-root-aux--pp nil nil t))
+  (dolist (aux-inserter telega-root-aux-inserters)
+    (ewoc-enter-last telega-root-aux--ewoc aux-inserter))
+  (goto-char (point-max))
+
+  ;; Delim between ewocs
   (insert "\n")
 
   ;; Custom filters
@@ -327,6 +385,7 @@ Global root bindings:
   (setq telega-root--view nil)
   (telega-view-reset)
 
+  (setq truncate-lines t)
   (setq buffer-read-only t)
   (add-hook 'kill-buffer-hook 'telega-root--killed nil t)
 
@@ -335,7 +394,35 @@ Global root bindings:
     (unless (fboundp 'tracking-mode)
       (user-error "Please install `tracking' package \
 to make use of `telega-use-tracking-for'"))
-    (tracking-mode 1)))
+    (tracking-mode 1))
+
+  ;; NOTE: If rootbuf autofill mode was enabled before telega start,
+  ;; then reapply it, because it uses buffer local hook
+  (when telega-root-auto-fill-mode
+    (telega-root-auto-fill-mode 1))
+
+  (telega-runtime-setup))
+
+(defun telega-root-aux--pp (inserter)
+  "Pretty printer for rootbuf aux INSERTER from `telega-root-aux-inserters'."
+  (telega-ins-prefix "\n"
+    (funcall inserter)))
+
+(defun telega-root-aux-redisplay (&optional item)
+  "Redisplay auxiliary ITEM.
+ITEM is a corresponding inserter from the `telega-root-aux-inserters'.
+If ITEM is not given, then redisplay whole aux ewoc."
+  (with-telega-root-buffer
+    (if item
+        (when-let ((aux-node (telega-ewoc--find-by-data
+                              telega-root-aux--ewoc item)))
+          (ewoc-invalidate telega-root-aux--ewoc aux-node))
+
+      ;; NOTE: `telega-root-aux-inserters' might have changed, so
+      ;; recreate all items
+      (telega-ewoc--clean telega-root-aux--ewoc)
+      (dolist (aux-inserter telega-root-aux-inserters)
+        (ewoc-enter-last telega-root-aux--ewoc aux-inserter)))))
 
 
 (defun telega-root--killed ()
@@ -348,14 +435,15 @@ Terminate telega-server and kill all chat and supplementary buffers."
   (when telega-online--timer
     (cancel-timer telega-online--timer))
 
+  (telega-runtime-teardown)
+
   ;; NOTE: Kill all telega buffers, except for root buffer to avoid
   ;; infinite kill buffer loop, because `telega-root--killed' is
   ;; called when root buffer is killed
   (dolist (tbuf (cl-remove-if-not #'telega-buffer-p (buffer-list)))
     (unless (eq tbuf (telega-root--buffer))
       (kill-buffer tbuf)))
-  (telega-server-kill)
-  (telega-runtime-teardown))
+  (telega-server-kill))
 
 (defun telega-root--buffer ()
   "Return telega root buffer."
@@ -388,7 +476,8 @@ Terminate telega-server and kill all chat and supplementary buffers."
 EWOC-SPEC is plist with keyword elements:
 `:name', `:pretty-printer', `:header', `:footer', `:items'
 `:on-chat-update', `:on-user-update', `:on-message-update',
-`:on-notifications-update', `:on-file-update', `:loading'."
+`:on-notifications-update', `:on-file-update',
+`:on-group-call-update', `:loading'."
   (cl-assert (stringp (plist-get ewoc-spec :name)))
   (let ((ewoc (ewoc-create (telega-ewoc--gen-pp
                             (plist-get ewoc-spec :pretty-printer))
@@ -457,6 +546,48 @@ Keep cursor position only if CHAT is visible."
           (set-window-point win (point)))
         (run-hooks 'telega-root-update-hook)))))
 
+(defun telega-root-buffer-auto-fill (&optional win)
+  "Automatically resize root buffer formatting to WIN's width."
+  (interactive (list (get-buffer-window)))
+  (unless (eq (window-buffer win) (telega-root--buffer))
+    (user-error (concat "telega: `telega-root-buffer-auto-fill' "
+                        "can be called only in Root Buffer.")))
+
+  ;; NOTE: `window-width' does not regard use of oth
+  ;; `text-scale-increase' or `text-scale-decrease'.  So we manually
+  ;; calculate window width in characters
+  ;;
+  ;; XXX: 2 - width for outgoing status, such as ✓, ✔, ⌛, etc
+  (let* ((win-char-width (/ (window-width win 'pixels)
+                            (telega-chars-xwidth 1)))
+         (new-fill-column (- win-char-width 2)))
+    (when (and new-fill-column
+               (> new-fill-column 15)   ;XXX ignore too narrow window
+               (not (eq new-fill-column telega-root-fill-column)))
+      (let ((progress (make-progress-reporter
+                       (format "telega: rootbuf auto fill %d -> %d ..."
+                               telega-root-fill-column new-fill-column))))
+        (with-telega-root-buffer
+          (setq telega-root-fill-column new-fill-column)
+          ;; Fully redisplay filters
+          (let ((telega-filters--dirty t))
+            (telega-filters--redisplay))
+          ;; Redisplay Root View header and all its ewocs
+          (telega-save-cursor
+            (goto-char telega-root-view--header-marker)
+            (telega-root-view--ins-header telega-root--view)
+            (delete-region (point) telega-root-view--ewocs-marker)
+
+            (dolist (ewoc-spec (nthcdr 2 telega-root--view))
+              (with-telega-root-view-ewoc (plist-get ewoc-spec :name) ewoc
+                (when-let ((ewoc-hdr (telega-root-view--ewoc-header
+                                      (plist-get ewoc-spec :header))))
+                  (telega-ewoc--set-header ewoc ewoc-hdr))
+                (ewoc-refresh ewoc))))
+          (run-hooks 'telega-root-update-hook))
+
+        (progress-reporter-done progress)))))
+
 
 ;;; Pretty Printers for root view ewocs
 (defun telega-root--chat-pp (chat &optional custom-inserter custom-action)
@@ -478,8 +609,10 @@ Keep cursor position only if CHAT is visible."
 
 (defun telega-root--global-chat-pp (chat &optional custom-inserter)
   "Display CHAT found in global public chats search."
-  (let* ((telega-chat-button-width (+ telega-chat-button-width
-                                      (/ telega-chat-button-width 2)))
+  (let* ((telega-chat-button-width
+          (round (* (telega-canonicalize-number telega-chat-button-width
+                                                telega-root-fill-column)
+                    1.5)))
          (telega-filters--inhibit-list '(chat-list folder main archive)))
     (telega-root--chat-known-pp chat custom-inserter)))
 
@@ -835,8 +968,7 @@ And run `telega-chatbuf--switch-out' or `telega-chatbuf--switch-in'."
 
             ;; See docstring for `telega-root-keep-cursor'
             (when (eq telega-root-keep-cursor 'track)
-              (telega-root--keep-cursor-at-chat telega-chatbuf--chat))
-            )
+              (telega-root--keep-cursor-at-chat telega-chatbuf--chat)))
         (error
          (message "telega: error in `telega-chatbuf--switch-in': %S" err))))))
 
@@ -855,7 +987,9 @@ And run `telega-chatbuf--switch-out' or `telega-chatbuf--switch-in'."
            (me-user (telega-user-me 'locally))
            (curr-online-p (when me-user (telega-user-online-p me-user))))
       (unless (eq online-p curr-online-p)
-        (telega--setOption :online (if online-p t :false))))))
+        (telega--setOption :online (if online-p t :false))
+
+        (run-hook-with-args 'telega-online-status-hook online-p)))))
 
 (defun telega-check-focus-change ()
   "Function called when some emacs frame changes focus."
@@ -863,11 +997,11 @@ And run `telega-chatbuf--switch-out' or `telega-chatbuf--switch-in'."
   (let ((status-interval (if (funcall telega-online-status-function)
                              telega-online-status-interval
                            telega-offline-status-interval)))
-    (if telega-online--timer
-        (timer-set-time telega-online--timer (time-add nil status-interval))
-      (setq telega-online--timer
-            (run-with-timer
-             status-interval nil #'telega-online-status-timer-function))))
+    (when telega-online--timer
+      (cancel-timer telega-online--timer))
+    (setq telega-online--timer
+          (run-with-timer status-interval nil
+                          #'telega-online-status-timer-function)))
 
   ;; Support for Emacs without 'after-focus-change-function
   (unless (boundp 'after-focus-change-function)
@@ -939,24 +1073,38 @@ If IN-P is non-nil then it is `focus-in', otherwise `focus-out'."
   )
 
 ;;; RootView
-(defun telega-root-view--set-header (header)
-  "Set HEADER for the root view."
-  (save-excursion
-    (delete-region telega-root-view--header-marker
-                   telega-root-view--ewocs-marker)
-    (telega-ins header)
-    (setq telega-root-view--ewocs-marker (point-marker))))
+(defun telega-root-view--ins-header (view-spec)
+  "Insert root view header at the point."
+  (when-let ((view-name (nth 1 view-spec)))
+    (telega-ins--with-attrs
+        (list :elide t
+              :elide-trail (/ telega-root-fill-column 3)
+              :min telega-root-fill-column
+              :max telega-root-fill-column
+              :align 'left
+              :face 'telega-root-heading)
+      (telega-ins (if (listp view-name) (car view-name) "View") ": ")
+      (telega-ins--with-face 'bold
+        (telega-ins (if (listp view-name) (cadr view-name) view-name)))
+      (telega-ins " ")
+      (telega-ins--button "Reset"
+        :action #'telega-view-reset)
+      (telega-ins " "))
+    (telega-ins "\n")))
 
 (defun telega-root-view--update (on-update-prop &rest args)
   "Update root view ewocs using ON-UPDATE-PROP ewoc-spec property and ARGS."
-  (with-telega-root-buffer
+  (let ((rootbuf-updated-p nil))
     (dolist (ewoc-spec (nthcdr 2 telega-root--view))
-      (let ((ewoc-name (plist-get ewoc-spec :name)))
+      (when-let ((on-update-func (plist-get ewoc-spec on-update-prop))
+                 (ewoc-name (plist-get ewoc-spec :name)))
+        (setq rootbuf-updated-p t)
         (with-telega-root-view-ewoc ewoc-name ewoc
-          (when-let ((on-update-func (plist-get ewoc-spec on-update-prop)))
-            (apply on-update-func ewoc-name ewoc args)))))
+          (apply on-update-func ewoc-name ewoc args))))
 
-    (run-hooks 'telega-root-update-hook)))
+    (when rootbuf-updated-p
+      (with-telega-root-buffer
+        (run-hooks 'telega-root-update-hook)))))
 
 (defun telega-root-view--redisplay ()
   "Resort items in root view ewocs according to active sort criteria."
@@ -1001,23 +1149,7 @@ VIEW-FILTER is additional chat filter for this root view."
     ;; Activate VIEW-SPEC by creating ewocs specified in view-spec
     (setq telega-root--view view-spec)
     (save-excursion
-      (when-let ((view-name (nth 1 view-spec)))
-        (telega-ins--with-attrs
-            (list :elide t
-                  :elide-trail (/ telega-root-fill-column 3)
-                  :min telega-root-fill-column
-                  :max telega-root-fill-column
-                  :align 'left
-                  :face 'telega-root-heading)
-          (telega-ins (if (listp view-name) (car view-name) "View") ": ")
-          (telega-ins--with-face 'bold
-            (telega-ins (if (listp view-name) (cadr view-name) view-name)))
-          (telega-ins " ")
-          (telega-ins--button "Reset"
-            :action #'telega-view-reset)
-          (telega-ins " "))
-        (telega-ins "\n"))
-
+      (telega-root-view--ins-header view-spec)
       (setq telega-root-view--ewocs-marker (point-marker))
       (let ((ewoc-specs (nthcdr 2 view-spec))
             (need-loading-timer-p nil))
@@ -1450,7 +1582,7 @@ LINK is cons, where car is the link description, and cdr is the url."
     (telega-save-cursor
       (ewoc-refresh ewoc))
     (when w-start
-      (set-window-start root-win w-start)
+      (set-window-start root-win w-start 'noforce)
       (set-window-point root-win (point)))))
 
 (defun telega-view-settings ()
@@ -1768,6 +1900,82 @@ state kinds to show. By default all kinds are shown."
           (mapcar #'telega-view-favorite-msg--ewoc-spec
                   (telega-filter-chats
                    telega--ordered-chats 'has-favorite-messages)))))
+
+
+;; Voice Chats, inspired by https://t.me/designers/177
+(defun telega-root--passive-voice-chat-pp (_chat)
+  ;; TODO
+  )
+
+(defun telega-root--scheduled-voice-chat-pp (_chat)
+  ;; TODO
+  )
+
+(defun telega-root--active-voice-chat-pp (_chat)
+  ;; TODO
+  )
+
+(defun telega-root--on-group-call-update (_ewoc-name _ewoc _group-call)
+  ;; TODO
+  )
+
+(defun telega-view-voice-chats ()
+  "View active/passive/scheduled voice chats."
+  (interactive)
+  (telega-root-view--apply
+   (list 'telega-view-voice-chats "Voice Chats"
+         (list :name "Active"
+               :pretty-printer #'telega-root--active-voice-chat-pp
+               :items nil               ; todo
+               :on-group-call-update #'telega-root--on-group-call-update)
+         (list :name "Scheduled"
+               :pretty-printer #'telega-root--scheduled-voice-chat-pp
+               :items nil               ; todo
+               :on-group-call-update #'telega-root--on-group-call-update)
+         (list :name "Passive"
+               :pretty-printer #'telega-root--passive-voice-chat-pp
+               :items nil               ; todo
+               :on-group-call-update #'telega-root--on-group-call-update)
+         )))
+
+
+;; Logging in via QR code
+(defun telega-qr-code--show (link)
+  "Hide QR code scanning dialog.
+If LINK is nil, then link is loading."
+  (cl-assert telega-use-images)
+  (with-telega-root-view-ewoc "root" ewoc
+    (telega-save-cursor
+      (telega-ewoc--set-footer ewoc
+        (telega-ins--as-string
+         (if link
+             (telega-ins--image
+              (telega-qr-code--create-image link (telega-chars-xheight 10)))
+           (telega-ins "QR code loading.."))
+         (telega-ins "\n")
+         (telega-ins--with-face 'bold
+           (telega-ins (telega-i18n "lng_intro_qr_title") "\n"))
+         (telega-ins "1. " (telega-i18n "lng_intro_qr_step1") "\n")
+         (telega-ins "2. " (telega-i18n "lng_intro_qr_step2") "\n")
+         (telega-ins "3. " (telega-i18n "lng_intro_qr_step3") "\n")
+         (telega-ins "\n")
+         (telega-ins--button (telega-i18n "lng_intro_qr_skip")
+           'action (lambda (_button)
+                     ;; Skip QR auth and fallback to phone number as
+                     ;; auth method, see
+                     ;; https://github.com/tdlib/td/issues/1645
+                     (setq telega--relogin-with-phone-number t)
+                     (telega-logout))))))
+
+    (run-hooks 'telega-root-update-hook)))
+
+(defun telega-qr-code--hide ()
+  "Hide QR code scanning dialog."
+  (with-telega-root-view-ewoc "root" ewoc
+    (telega-save-cursor
+      (telega-ewoc--set-footer ewoc ""))
+
+    (run-hooks 'telega-root-update-hook)))
 
 (provide 'telega-root)
 

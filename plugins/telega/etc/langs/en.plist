@@ -67,6 +67,8 @@ Example: 23 y.o. designer from San Francisco")
 
  ("lng_scam_badge"
   :value "SCAM")
+ ("lng_fake_badge"
+  :value "FAKE")
  ("lng_owner_badge"
   :value "owner")
  ("lng_admin_badge"
@@ -210,6 +212,8 @@ Example: 23 y.o. designer from San Francisco")
   :value "{mouse}: Goto thread starter message")
  ("telega_chat_modeline_discuss_help"
   :value "{mouse}: Goto chat to discuss this channel")
+ ("telega_chat_modeline_voice_chat_help"
+  :value "{mouse}: Goto Voice Chat of this group")
  ("telega_chat_modeline_members"
   :zero_value "{member_count} members"
   :other_value "{member_count} members, {count} online")
@@ -220,7 +224,7 @@ Example: 23 y.o. designer from San Francisco")
  ("telega_query_delete_chat"
   :value "Delete «{title}» chat? ")
  ("telega_query_delete_chat_history"
-  :value "Delete all message history in «{title}» chat? ")
+  :value "Delete all messages history in «{title}» chat? ")
  ("telega_query_read_chats"
   :one_value "Toggle read for {count} chat? "
   :other_value "Toggle read for {count} chats? ")
@@ -409,6 +413,8 @@ Example: 23 y.o. designer from San Francisco")
   :value "This admin will be able to add new admins with the same (or more limited) permissions.")
  ("lng_rights_about_admin_cant_edit"
   :value "You cannot edit the rights of this admin.") ; :can_be_edited
+ ("lng_rights_group_manage_calls"
+  :value "Manage voice chats")
  ("lng_rights_group_anonymous"
   :value "Remain Anonymous")
  ("lng_rights_edit_admin"
@@ -473,6 +479,13 @@ Example: 23 y.o. designer from San Francisco")
   :value "Photo has expired")
  ("lng_ttl_video_expired"
   :value "Video has expired")
+ ;; message_ttl_setting
+ ("lng_ttl_about_duration1"
+  :value "24 hours")
+ ("lng_ttl_about_duration2"
+  :value "7 days")
+ ("telega_ttl_about_disable"
+  :value "disable")
 
  ;; Calls
  ("lng_call_error_not_available"
@@ -611,4 +624,120 @@ Example: 23 y.o. designer from San Francisco")
   :value "No unread stories")
  ("telega_stories_featured"
   :value "Featured")
+
+ ;; Group call chats
+ ("lng_group_call_starts"
+  :value "Voice Chat starts {when}")
+ ("lng_group_call_starts_in"
+  :value "Starts in")
+ ("lng_group_call_start_now"
+  :value "Start Now")
+ ("lng_group_call_edit_title_header"
+  :value "Voice chat title")
+ ("lng_group_call_schedule_title"
+  :value "Schedule Voice Chat")
+ ("lng_group_call_scheduled_status"
+  :value "Scheduled")
+
+ ("lng_group_call_title"
+  :value "Voice Chat")
+ ("lng_group_call_end"
+  :value "End Voice Chat")
+ ("lng_group_call_leave_title"
+  :value "Leave voice chat")
+ ("lng_group_call_leave_sure"
+  :value "Do you want to leave this voice chat?")
+ ("lng_group_call_join_as_header"
+  :value "Join Voice Chat as...")
+
+ ("lng_group_call_members"
+  :one_value "{count} participant"
+  :other_value "{count} participants")
+ ("lng_action_group_call_scheduled_group"
+  :value "{from} scheduled a voice chat for {date}")
+ ("lng_action_group_call_scheduled_channel"
+  :value "Voice chat scheduled for {date}")
+ ("lng_action_group_call_started"
+  :value "{from} started {chat}")
+ ("lng_action_group_call_started_chat"
+  :value "a voice chat")
+ ("lng_action_group_call_finished"
+  :value "Voice chat finished ({duration})")
+ ("lng_group_call_invite_done_user"
+  :value "You invited {user} to the voice chat.")
+ ("lng_group_call_invite_done_many"
+  :one_value "You invited **{count} member** to the voice chat."
+  :other_value "You invited **{count} members** to the voice chat.")
+ ("lng_action_invite_users_many"
+  :value "{from} invited {users} to {chat}")
+ ("lng_action_invite_user_chat"
+  :value "the voice chat")
+
+  ("lng_action_bot_allowed_from_domain"
+   :value "You allowed this bot to message you when you logged in on {domain}.")
+
+ ("lng_rights_gigagroup_title"
+  :value "Broadcast group")
+ ("lng_rights_gigagroup_about"
+  :value "Broadcast groups can have over 200,000 members, but only admins can send messages in them.")
+ ("lng_gigagroup_convert_feature1"
+  :value "No limit on the number of members.")
+ ("lng_gigagroup_convert_feature2"
+  :value "Only admins can send messages.")
+ ("lng_gigagroup_convert_feature3"
+  :value "Can't be turned back into a regular group.")
+
+ ;; Player controls
+ ("lng_mac_menu_player_stop"
+  :value "Stop")
+
+ ;; QR code
+ ("lng_phone_to_qr"
+  :value "Quick log in using QR code")
+ ("lng_intro_qr_step1"
+  :value "Open Telegram on your phone")
+ ("lng_intro_qr_step2"
+  :value "Go to Settings > Devices > Scan QR")
+ ("lng_intro_qr_step3"
+  :value "Scan this image to Log In")
+ ("lng_intro_qr_skip"
+  :value "Or log in using your phone number")
+ ("lng_intro_qr_title"
+  :value "Scan From Mobile Telegram")
+
+ ("lng_group_invite_qr_title"
+  :value "Invite by QR Code")
+ ("lng_group_invite_qr_about"
+  :value "Everyone on Telegram can scan this code to join your group.")
+ ("lng_group_invite_context_qr"
+  :value "Get QR Code")
+ ("lng_group_invite_qr_copied"
+  :value "QR Code copied to clipboard.")
+
+ ("lng_payments_invoice_label_test"
+  :value "Test invoice")
+ ("lng_payments_invoice_label"
+  :value "Invoice")
+
+ ;; Searching messages
+ ("lng_search_messages_from"
+  :value "Show messages from")
+ ("lng_search_global_results"
+  :value "Global search results")
+ ("lng_search_no_results"
+  :value "No messages found")
+ ("lng_search_found_results"
+  :one_value "Found {count} message"
+  :other_value "Found {count} messages")
+
+ ("telega_stop_live_location"
+  :one_value "Stop"
+  :other_value "Stop All")
+ ("telega_query_stop_live_location"
+  :one_value "Stop sharing live location?"
+  :other_value "Stop sharing live location in {count} chats?")
+
+ ("lng_bot_description"
+  :value "What can this bot do?")
+
  )

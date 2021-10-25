@@ -1,6 +1,6 @@
 ;;; telega.el --- Telegram client (unofficial)  -*- lexical-binding:t -*-
 
-;; Copyright (C) 2016-2020 by Zajcev Evgeny
+;; Copyright (C) 2016-2021 by Zajcev Evgeny
 ;; Copyright (C) 2019-2020 by Brett Gilio
 
 ;; Author: Zajcev Evgeny <zevlg@yandex.ru>
@@ -8,11 +8,11 @@
 ;; Keywords: comm
 ;; Package-Requires: ((emacs "26.1") (visual-fill-column "1.9") (rainbow-identifiers "0.2.2"))
 ;; URL: https://github.com/zevlg/telega.el
-;; Version: 0.7.024
-(defconst telega-version "0.7.024")
-(defconst telega-server-min-version "0.7.4")
-(defconst telega-tdlib-min-version "1.7.0")
-(defconst telega-tdlib-max-version "1.7.0")
+;; Version: 0.7.81
+(defconst telega-version "0.7.81")
+(defconst telega-server-min-version "0.7.7")
+(defconst telega-tdlib-min-version "1.7.7")
+(defconst telega-tdlib-max-version nil)
 
 (defconst telega-tdlib-releases '("1.7.0" . "1.8.0")
   "Cons cell with current and next TDLib releases.
@@ -75,58 +75,73 @@ Used for manual generation.")
 (defvar telega-prefix-map
   (let ((map (make-sparse-keymap)))
     ;;; ellit-org: prefix-map-bindings
-    ;; - {{{where-is(telega,telega-prefix-map)}}} ::
-    ;;   {{{fundoc(telega, 2)}}}
-    (define-key map (kbd "t") 'telega)
-    ;;; ellit-org: prefix-map-bindings
-    ;; - {{{where-is(telega-chat-with,telega-prefix-map)}}} ::
-    ;;   {{{fundoc(telega-chat-with, 2)}}}
-    (define-key map (kbd "c") 'telega-chat-with)
-    ;;; ellit-org: prefix-map-bindings
-    ;; - {{{where-is(telega-switch-important-chat,telega-prefix-map)}}} ::
-    ;;   {{{fundoc(telega-switch-important-chat, 2)}}}
-    (define-key map (kbd "i") 'telega-switch-important-chat)
-    ;;; ellit-org: prefix-map-bindings
-    ;; - {{{where-is(telega-saved-messages,telega-prefix-map)}}} ::
-    ;;   {{{fundoc(telega-saved-messages, 2)}}}
-    (define-key map (kbd "s") 'telega-saved-messages)
+    ;; - {{{where-is(telega-account-switch,telega-prefix-map)}}} ::
+    ;;   {{{fundoc(telega-account-switch, 2)}}}
+    (define-key map (kbd "a") 'telega-account-switch)
     ;;; ellit-org: prefix-map-bindings
     ;; - {{{where-is(telega-switch-buffer,telega-prefix-map)}}} ::
     ;;   {{{fundoc(telega-switch-buffer, 2)}}}
     (define-key map (kbd "b") 'telega-switch-buffer)
     ;;; ellit-org: prefix-map-bindings
+    ;; - {{{where-is(telega-chat-with,telega-prefix-map)}}} ::
+    ;;   {{{fundoc(telega-chat-with, 2)}}}
+    (define-key map (kbd "c") 'telega-chat-with)
+    ;;; ellit-org: prefix-map-bindings
+    ;; - {{{where-is(telega-edit-file-switch-buffer,telega-prefix-map)}}} ::
+    ;;   {{{fundoc(telega-edit-file-switch-buffer, 2)}}}
+    (define-key map (kbd "e") 'telega-edit-file-switch-buffer)
+    ;;; ellit-org: prefix-map-bindings
+    ;; - {{{where-is(telega-switch-important-chat,telega-prefix-map)}}} ::
+    ;;   {{{fundoc(telega-switch-important-chat, 2)}}}
+    (define-key map (kbd "i") 'telega-switch-important-chat)
+    ;;; ellit-org: prefix-map-bindings
     ;; - {{{where-is(telega-buffer-file-send,telega-prefix-map)}}} ::
     ;;   {{{fundoc(telega-buffer-file-send, 2)}}}
     (define-key map (kbd "f") 'telega-buffer-file-send)
     ;;; ellit-org: prefix-map-bindings
+    ;; - {{{where-is(telega-saved-messages,telega-prefix-map)}}} ::
+    ;;   {{{fundoc(telega-saved-messages, 2)}}}
+    (define-key map (kbd "s") 'telega-saved-messages)
+    ;;; ellit-org: prefix-map-bindings
+    ;; - {{{where-is(telega,telega-prefix-map)}}} ::
+    ;;   {{{fundoc(telega, 2)}}}
+    (define-key map (kbd "t") 'telega)
+    ;;; ellit-org: prefix-map-bindings
+    ;; - {{{where-is(telega-switch-unread-chat,telega-prefix-map)}}} ::
+    ;;   {{{fundoc(telega-switch-unread-chat, 2)}}}
+    ;;
+    ;;   Customizable options:
+    ;;   - {{{user-option(telega-filter-unread-chats, 4)}}}
+    (define-key map (kbd "u") 'telega-switch-unread-chat)
+    ;;; ellit-org: prefix-map-bindings
     ;; - {{{where-is(telega-browse-url,telega-prefix-map)}}} ::
     ;;   {{{fundoc(telega-browse-url, 2)}}}
     (define-key map (kbd "w") 'telega-browse-url)
-    ;;; ellit-org: prefix-map-bindings
-    ;; - {{{where-is(telega-account-switch,telega-prefix-map)}}} ::
-    ;;   {{{fundoc(telega-account-switch, 2)}}}
-    (define-key map (kbd "a") 'telega-account-switch)
     map)
   "Keymap for the telega commands.")
 
 (defun telega--create-hier ()
   "Ensure directory hier is valid."
-  (ignore-errors
-    (mkdir telega-directory))
-  (ignore-errors
-    (mkdir telega-cache-dir))
-  (ignore-errors
-    (mkdir telega-temp-dir))
-  )
+  (mkdir telega-directory t)
+  (mkdir telega-cache-dir t)
+  (mkdir telega-temp-dir t)
 
-(defun telega-account-current ()
-  "Return current account."
-  (cl-find-if #'telega-account--current-p telega-accounts))
+  ;; NOTE: make sure directory for `telega-server-logfile' exists
+  ;; See https://github.com/zevlg/telega.el/issues/307
+  (unless (file-exists-p (file-name-directory telega-server-logfile))
+    (error (concat "telega: directory %s does not exists, "
+                   "can't write to `telega-server-logfile'")
+           (file-name-directory telega-server-logfile)))
+  )
 
 (defun telega-account--current-p (account)
   "Return non-nil if the ACCOUNT is current."
   (equal (plist-get (cdr account) 'telega-database-dir)
          telega-database-dir))
+
+(defun telega-account-current ()
+  "Return current account."
+  (cl-find-if #'telega-account--current-p telega-accounts))
 
 (defun telega-account-switch (account-name)
   "Switch to the ACCOUNT-NAME."
@@ -143,10 +158,13 @@ Used for manual generation.")
   (let ((account (assoc account-name telega-accounts)))
     (cl-assert account)
     (unless (telega-account--current-p account)
-      (setq account (cdr account))
-      (while account
-        (set (car account) (cadr account))
-        (setq account (cddr account)))
+      ;; Set account's variables
+      (telega--tl-dolist ((var-name var-value) (cdr account))
+        (set var-name var-value))
+      ;; After setting all the variables of the account it must
+      ;; become current
+      (unless (telega-account--current-p account)
+        (user-error "telega: Invalid config for \"%s\" account: at least 'telega-database-dir variable must be provided"))
 
       (telega-server-kill)
       ;; Wait for server to die
@@ -161,25 +179,30 @@ Used for manual generation.")
 Pop to root buffer.
 If `\\[universal-argument]' is specified, then do not pop to root buffer."
   (interactive "P")
-  (telega--create-hier)
 
-  (unless (telega-server-live-p)
-    ;; NOTE: for telega-server restarts also recreate root buffer,
-    ;; killing root buffer also cleanup all chat buffers and stops any
-    ;; timers used for animation
-    (when (buffer-live-p (telega-root--buffer))
-      (kill-buffer (telega-root--buffer)))
+  ;; For multiple accounts setup possibly select (if there is no
+  ;; default account declared) an account to use
+  (if (and telega-accounts (not (telega-account-current)))
+      (call-interactively #'telega-account-switch)
 
-    (telega--init-vars)
-    (with-current-buffer (get-buffer-create telega-root-buffer-name)
-      (telega-root-mode))
+    (telega--create-hier)
+    (unless (telega-server-live-p)
+      ;; NOTE: for telega-server restarts also recreate root buffer,
+      ;; killing root buffer also cleanup all chat buffers and stops any
+      ;; timers used for animation
+      (when (buffer-live-p (telega-root--buffer))
+        (kill-buffer (telega-root--buffer)))
 
-    (telega-server--check-version telega-server-min-version)
-    (telega-server--start)
-    (telega-i18n-init))
+      (telega--init-vars)
+      (with-current-buffer (get-buffer-create telega-root-buffer-name)
+        (telega-root-mode))
 
-  (unless arg
-    (pop-to-buffer-same-window telega-root-buffer-name)))
+      (telega-server--ensure-build)
+      (telega-server--start)
+      (telega-i18n-init))
+
+    (unless arg
+      (pop-to-buffer-same-window telega-root-buffer-name))))
 
 ;;;###autoload
 (defun telega-kill (force)
@@ -203,50 +226,59 @@ Works only if current state is `authorizationStateWaitCode'."
 (defun telega--authorization-ready ()
   "Called when tdlib is ready to receive queries."
   ;; Validate tdlib version
-  (when (version< (plist-get telega--options :version)
-                  telega-tdlib-min-version)
-    (warn (concat "TDLib version=%s < %s (min required), "
-                  "please upgrade TDLib and recompile `telega-server'")
-          (plist-get telega--options :version)
-          telega-tdlib-min-version))
-  (when (and telega-tdlib-max-version
-             (version< telega-tdlib-max-version
-                       (plist-get telega--options :version)))
-    (warn (concat "TDLib version=%s > %s (max required), "
-                  "please downgrade TDLib and recompile `telega-server'")
-          (plist-get telega--options :version)
-          telega-tdlib-max-version))
+  (let ((version-error-msg
+         (cond ((version< (plist-get telega--options :version)
+                          telega-tdlib-min-version)
+                (format "TDLib version=%s < %s (min required), \
+please upgrade TDLib and recompile `telega-server'"
+                        (plist-get telega--options :version)
+                        telega-tdlib-min-version))
+               ((and telega-tdlib-max-version
+                     (version< telega-tdlib-max-version
+                               (plist-get telega--options :version)))
+                (format "TDLib version=%s > %s (max required), \
+please downgrade TDLib and recompile `telega-server'"
+                        (plist-get telega--options :version)
+                        telega-tdlib-max-version)))))
+    (if version-error-msg
+        (progn
+          (telega-kill 'force)
+          (run-with-timer 0 nil #'warn version-error-msg))
 
-  (setq telega--me-id (plist-get telega--options :my_id)
-        telega--replies-id (plist-get telega--options :replies_bot_chat_id))
-  (cl-assert telega--me-id)
-  (telega--setOptions telega-options-plist)
-  ;; In case language pack id has not yet been selected, then select
-  ;; suggested one or fallback to "en"
-  (unless (plist-get telega--options :language_pack_id)
-    (telega--setOption :language_pack_id
-      (or (plist-get telega--options :suggested_language_pack_id) "en")))
+      ;; Versions are ok
+      (setq telega--me-id (plist-get telega--options :my_id)
+            telega--replies-id (plist-get telega--options :replies_bot_chat_id))
+      (cl-assert telega--me-id)
+      (telega--setOptions telega-options-plist)
+      ;; In case language pack id has not yet been selected, then select
+      ;; suggested one or fallback to "en"
+      (unless (plist-get telega--options :language_pack_id)
+        (telega--setOption :language_pack_id
+          (or (plist-get telega--options :suggested_language_pack_id) "en")))
 
-  ;; Apply&update notifications settings
-  (dolist (scope-type telega-notification-scope-types)
-    (when-let ((settings
-                (alist-get (car scope-type) telega-notifications-defaults)))
-      (apply #'telega--setScopeNotificationSettings (cdr scope-type) settings)))
-  ;; NOTE: telega--scope-notification-alist will be updated upon
-  ;; `updateScopeNotificationSettings' event
+      ;; Apply&update notifications settings
+      (dolist (scope-type telega-notification-scope-types)
+        (when-let ((settings
+                    (alist-get (car scope-type) telega-notifications-defaults)))
+          (apply #'telega--setScopeNotificationSettings (cdr scope-type) settings)))
 
-  ;; All OK, request for chats/users/etc
-  (telega-status--set nil "Fetching chats...")
+      ;; Fetch blocked users
+      (telega--getBlockedMessageSenders 0 #'telega--on-blocked-senders-load)
 
-  (telega--getChats nil (list :@type "chatListMain")
-    #'telega--on-initial-chats-fetch)
-  ;; NOTE: We hope `telega--getChats' will return all chats in the
-  ;; Archive, in general this is not true, we need special callback to
-  ;; continue fetching, as with "chatListMain" list
-  (telega--getChats nil (list :@type "chatListArchive")
-    #'ignore)
+      ;; NOTE: telega--scope-notification-alist will be updated upon
+      ;; `updateScopeNotificationSettings' event
 
-  (run-hooks 'telega-ready-hook))
+      ;; All OK, request for chats/users/etc
+      (telega-status--set nil "Loading chats...")
+
+      (telega--loadChats (list :@type "chatListMain")
+        #'telega--on-initial-chats-load)
+      ;; NOTE: We hope `telega--getChats' will return all chats in the
+      ;; Archive, in general this is not true, we need special callback to
+      ;; continue fetching, as with "chatListMain" list
+      (telega--loadChats (list :@type "chatListArchive"))
+
+      (run-hooks 'telega-ready-hook))))
 
 ;;;###autoload
 (defun telega-version (&optional insert-p)
@@ -264,6 +296,8 @@ string at point."
                           ")"
                           " (telega-server v"
                           (telega-server-version)
+                          (when telega-use-docker
+                            (concat " [docker]"))
                           ")")))
     (if insert-p
         (insert version)
@@ -275,7 +309,7 @@ string at point."
 (defun telega-report-bug ()
   "Create bug report for https://github.com/zevlg/telega.el/issues."
   (interactive)
-  
+
   (let ((help-window-select t))
     (with-telega-help-win "*Telega Bug Report*"
       (insert "<!--- Provide a general summary of the issue in the Title above -->"
@@ -320,19 +354,21 @@ string at point."
 
 (push (expand-file-name "contrib" telega--lib-directory) load-path)
 
-;; Load hook might install new symbols into
-;; `telega-symbol-widths'
-(run-hooks 'telega-load-hook)
-(telega-symbol-widths-install telega-symbol-widths)
-
-;; For newly incoming messages in openned chat
-(add-hook 'telega-chat-pre-message-hook #'telega-msg-run-ignore-predicates)
-;; For messages loaded from history
-(add-hook 'telega-chat-insert-message-hook #'telega-msg-run-ignore-predicates)
-
 ;; Enable patrons mode by default
 (telega-patrons-mode 1)
 
+;; Enable root auto fill mode by default
+(telega-root-auto-fill-mode 1)
+
+(run-hooks 'telega-load-hook)
+;; Load hook might install new symbols into
+;; `telega-symbol-widths'
+(telega-symbol-widths-install telega-symbol-widths)
+
+;; For messages loaded from history
+(add-hook 'telega-chat-insert-message-hook #'telega-msg-run-ignore-predicates)
+
+;; WARN about usage of the obsolete variables
 (require 'telega-obsolete)
 
 ;;; telega.el ends here

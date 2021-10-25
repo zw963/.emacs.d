@@ -152,7 +152,7 @@ SCOPE-TYPE is same an in `telega-chat-notification-scope'."
                 (telega--getChatNotificationSettingsExceptions scope-type)))
       (telega-ins-fmt "Exceptions: %d chats\n" (length exception-chats))
       (telega-ins--labeled "  " nil
-        (cl-dolist (chat exception-chats)
+        (dolist (chat exception-chats)
           (telega-button--insert 'telega-chat chat
             :inserter #'telega-ins--chat
             :action #'telega-describe-chat)
@@ -305,19 +305,24 @@ FORCE is used for testing only, should not be used in real code."
   ;;  3. Message already has been read (see ~telega-msg-seen-p~)
   ;;  4. Message is older then 1 min (to avoid poping up messages on
   ;;     laptop wakeup)
-  ;;  5. Message is currently observable in chatbuf
+  ;;  5. Message is currently observable in chatbuf chatbuf must be
+  ;;     selected and focused in (not having
+  ;;     `telega-chatbuf--refresh-point')
   ;;  6. *TODO*: If Emacs frame has focus and root buffer is current
+  ;;     ARGUABLE!
   (unless (or (telega-msg-ignored-p msg)
-              (> (- (time-to-seconds) (plist-get msg :date)) 60))
+              (> (- (telega-time-seconds) (plist-get msg :date)) 60))
     (let ((chat (telega-msg-chat msg)))
-      (unless (or (and (not (telega-chat-private-p chat))
-                       (not (telega-chat-match-p chat 'me-is-member)))
+      (unless (or (not (telega-chat-match-p chat
+                         '(or (type private secret) me-is-member)))
                   (and (telega-chat-muted-p chat)
                        (or (telega-chat-notification-setting
                             chat :disable_mention_notifications)
                            (not (plist-get msg :contains_unread_mention))))
                   (telega-msg-seen-p msg chat)
-                  (telega-msg-observable-p msg chat))
+                  (and (not (with-telega-chatbuf chat
+                              telega-chatbuf--refresh-point))
+                       (telega-msg-observable-p msg chat)))
         (if (> telega-notifications-delay 0)
             (run-with-timer telega-notifications-delay nil
                             'telega-notifications--chat-msg0 msg)

@@ -61,11 +61,12 @@ CALL-SEXP and CALLBACK are passed directly to `telega-server--call'."
     (list :@type "messageSenderChat"
           :chat_id (plist-get msg-sender :id))))
 
-(defun telega--getOption (prop-kw)
+(defun telega--getOption (prop-kw &optional callback)
+  (declare (indent 1))
   (telega-server--call
    (list :@type "getOption"
-         :name (substring (symbol-name prop-kw) 1))) ; strip `:'
-  )
+         :name (substring (symbol-name prop-kw) 1)) ; strip `:'
+   callback))
 
 (defun telega--setOption (prop-kw val &optional sync-p)
   "Set option, defined by keyword PROP-KW to VAL.
@@ -208,15 +209,6 @@ Return (or call the CALLBACK with) newly create chat."
            :force (if force t :false)))
     :id)))
 
-(defun telega--deleteSupergroup (supergroup)
-  "Delete a SUPERGROUP or channel.
-All messagess will be deleted as well.
-Only owner can delete supergroup.
-Chats with more than 1000 members can't be deleted using this method."
-  (telega-server--send
-   (list :@type "deleteSupergroup"
-         :supergroup_id (plist-get supergroup :id))))
-
 (defun telega--setSupergroupUsername (supergroup username)
   "Change SUPERGROUP's username to USERNAME.
 Requires owner right."
@@ -251,7 +243,7 @@ all messages must have same user sender."
            :user_id (plist-get sender :id)
            :message_ids (cl-map #'vector (telega--tl-prop :id)
                                 (cons msg other-messages))))))
-    
+
 (defun telega--createSecretChat (secret-chat-id)
   "Return existing secret chat with id equal to SECRET-CHAT-ID."
   (telega-chat-get
@@ -274,14 +266,6 @@ all messages must have same user sender."
          :chat_id (plist-get chat :id)
          :message_thread_id (telega-chat-message-thread-id chat)
          :action action)))
-
-(defun telega--sendChatSetTtlMessage (chat ttl-seconds)
-  "Changes the current TTL setting for the CHAT.
-Sends corresponding message."
-  (telega-server--send
-   (list :@type "sendChatSetTtlMessage"
-         :chat_id (plist-get chat :id)
-         :ttl ttl-seconds)))
 
 (defun telega--getMessageEmbeddingCode (msg &optional for-album-p)
   "Returns an HTML code for embedding the message MSG."
@@ -310,35 +294,53 @@ If message is not found, then return `nil'."
           :message_id msg-id)
     callback))
 
+(defun telega--getChatMessageByDate (chat-id date &optional callback)
+  "Returns the last message sent in a chat no later than the specified DATE.
+DATE is a unix timestamp."
+  (declare (indent 2))
+  (with-telega-server-reply (reply)
+      (unless (telega--tl-error-p reply)
+        reply)
+
+    (list :@type "getChatMessageByDate"
+          :chat_id chat-id
+          :date date)
+    callback))
+
 (defun telega--getMessages (chat-id message-ids &optional callback)
   "Get messages by CHAT-ID and MESSAGE-IDS."
   (declare (indent 2))
   (with-telega-server-reply (reply)
-      (append (plist-get reply :messages) nil)
+      ;; Filter out nil messages
+      ;; See https://github.com/tdlib/td/issues/1511
+      (delq nil (append (plist-get reply :messages) nil))
 
     (list :@type "getMessages"
           :chat_id chat-id
           :message_ids (apply #'vector message-ids))
     callback))
 
-(defun telega--getMessageLink (msg &optional for-album-p for-comment-p)
+(cl-defun telega--getMessageLink (msg &key for-album-p for-comment-p
+                                      media-timestamp)
   "Get https link for message MSG in a supergroup or a channel."
+  (declare (indent 1))
   (plist-get
    (telega-server--call
     (list :@type "getMessageLink"
           :chat_id (plist-get msg :chat_id)
           :message_id (plist-get msg :id)
+          :media_timestamp (or media-timestamp 0)
           :for_album (if for-album-p t :false)
           :for_comment (if for-comment-p t :false)))
    :link))
 
-(defun telega--generateChatInviteLink (chat)
-  "Generate a new invite link for a CHAT.
+(defun telega--replacePermanentChatInviteLink (chat)
+  "Generate a new permament invite link for a CHAT.
 Available for basic groups, supergroups, and channels.
 Return generated link as string."
   (plist-get
    (telega-server--call
-    (list :@type "generateChatInviteLink"
+    (list :@type "replacePermanentChatInviteLink"
           :chat_id (plist-get chat :id)))
    :invite_link))
 
@@ -423,12 +425,18 @@ Use it when `inlineKeyboardButtonBuy' key is pressed."
          :shipping_option_id (or shipping-id "")
          :credentials credentials)))
 
-(defun telega--getCreatedPublicChats (&optional callback)
-  "Return list of public chats created by the user."
+(defun telega--getCreatedPublicChats (chat-type &optional callback)
+  "Return list of public chats created by the user.
+CHAT-TYPE is one of `has-username' or `location-based'."
   (with-telega-server-reply (reply)
       (mapcar #'telega-chat-get (append (plist-get reply :chat_ids) nil))
 
-   (list :@type "getCreatedPublicChats")
+   (list :@type "getCreatedPublicChats"
+         :type (cl-ecase chat-type
+                 (has-username
+                  (list :@type "publicChatTypeHasUsername"))
+                 (location-based
+                  (list :@type "publicChatTypeIsLocationBased"))))
    callback))
 
 (defun telega--getInactiveSupergroupChats (&optional callback)
@@ -650,32 +658,30 @@ Photo and Video files have attached sticker sets."
          :chat_id (plist-get message :chat_id)
          :message_ids (vector (plist-get message :id)))))
 
-(defun telega--deleteChatReplyMarkup (chat-id msg-id)
+(defun telega--deleteChatReplyMarkup (message)
   "Deletes the default reply markup from a chat.
 Must be called after a one-time keyboard or a ForceReply reply
 markup has been used."
   (telega-server--send
    (list :@type "deleteChatReplyMarkup"
-         :chat_id chat-id
-         :message_id msg-id)))
+         :chat_id (plist-get message :chat_id)
+         :message_id (plist-get message :id))))
 
-(defun telega--searchChatMembers (chat query &optional filter limit as-member-p)
+(cl-defun telega--searchChatMembers (chat query &optional members-filter
+                                          &key limit as-member-p)
   "Search CHAT members by QUERY.
-FILTER is one \"Administrators\", \"Members\", \"Restricted\",
-\"Banned\", \"Bots\", default is \"Members\".
+MEMBERS-FILTER is TDLib's \"ChatMembersFilter\".
 LIMIT by default is 50.
-If AS-MEMBER-P, then return \"chatMember\" structs instead of users."
+If AS-MEMBER-P is non-nil, then return \"chatMember\" structs instead
+of message sender."
   (let ((reply (telega-server--call
-                (list :@type "searchChatMembers"
-                      :chat_id (plist-get chat :id)
-                      :query query
-                      :limit (or limit 50)
-                      :filter (list :@type (concat "chatMembersFilter"
-                                                   (or filter "Members")))))))
-    (mapcar (if as-member-p
-                #'identity
-              (lambda (member)
-                (telega-user-get (plist-get member :user_id))))
+                (nconc (list :@type "searchChatMembers"
+                             :chat_id (plist-get chat :id)
+                             :query query
+                             :limit (or limit 50))
+                       (when members-filter
+                         (list :filter members-filter))))))
+    (mapcar (if as-member-p #'identity #'telega-msg-sender)
             (plist-get reply :members))))
 
 (defun telega--getChatAdministrators (chat &optional callback)
@@ -704,7 +710,7 @@ If AS-MEMBER-P, then return \"chatMember\" structs instead of users."
           :scope (list :@type scope-type)
           :compare_sound (if compare-sound-p t :false))
     callback))
-           
+
 (defun telega--getScopeNotificationSettings (scope-type &optional callback)
   "Return the notification settings for chats of a given type SCOPE-TYPE.
 SCOPE-TYPE is one of:
@@ -720,15 +726,14 @@ SCOPE-TYPE is one of:
   "Change notification settings for chats of a given SCOPE-TYPE.
 SCOPE-TYPE is the same as in `telega--getScopeNotificationSettings'.
 SETTINGS is a plist with notification settings to set."
-  (let ((tdlib-scope-type
-         (alist-get scope-type telega-notification-scope-types))
-        (scope-settings (telega-chat-notification-scope scope-type))
+  (let ((scope-settings (telega-chat-notification-scope scope-type))
         (request (list :@type "scopeNotificationSettings")))
     (telega--tl-dolist ((prop-name value) (append scope-settings settings))
       (setq request (plist-put request prop-name (or value :false))))
+    (cl-assert (stringp scope-type))
     (telega-server--send
      (list :@type "setScopeNotificationSettings"
-           :scope (list :@type tdlib-scope-type)
+           :scope (list :@type scope-type)
            :notification_settings request))))
 
 (defun telega--resetAllNotificationSettings ()
@@ -763,14 +768,25 @@ Return list of \"ChatMember\" objects."
           :limit (or limit 200))
     callback))
 
-(defun telega--setChatMemberStatus (chat user status &optional callback)
-  "Change the STATUS of a CHAT USER, needs appropriate privileges.
-STATUS is one of: "
+(defun telega--setChatMemberStatus (chat msg-sender status &optional callback)
+  "Change the STATUS of a MSG-SENDER, needs appropriate privileges.
+STATUS is a tl object."
   (telega-server--send
    (list :@type "setChatMemberStatus"
          :chat_id (plist-get chat :id)
-         :user_id (plist-get user :id)
+         :member_id (telega--MessageSender msg-sender)
          :status status)
+   callback))
+
+(defun telega--banChatMember (chat msg-sender &optional revoke-messages-p
+                                   until-date callback)
+  "Ban MSG-SENDER in the CHAT."
+  (telega-server--send
+   (list :@type "banChatMember"
+         :chat_id (plist-get chat :id)
+         :member_id (telega--MessageSender msg-sender)
+         :revoke_messages (if revoke-messages-p t :false)
+         :banned_until_date (or until-date 0))
    callback))
 
 (defun telega--addChatMember (chat user &optional forward-limit)
@@ -874,6 +890,13 @@ The messages are returned in a reverse chronological order."
          :only_local (or only-local :false))
    callback))
 
+(defun telega--deleteChat (chat)
+  "Delete a CHAT along with all messages.
+Requires owner privileges."
+  (telega-server--send
+   (list :@type "deleteChat"
+         :chat-id (plist-get chat :id))))
+
 (defun telega--deleteChatHistory (chat &optional remove-from-list revoke)
   "Deletes all messages in the CHAT only for the user.
 Cannot be used in channels and public supergroups.
@@ -881,7 +904,7 @@ Pass REVOKE to try to delete chat history for all users."
   (telega-server--send
    (list :@type "deleteChatHistory"
          :chat_id (plist-get chat :id)
-         :remove_from_chat_list (or remove-from-list :false)
+         :remove_from_chat_list (if remove-from-list t :false)
          :revoke (if revoke t :false))))
 
 (defun telega--getChatScheduledMessages (chat &optional callback)
@@ -934,6 +957,19 @@ Pass REVOKE to try to delete chat history for all users."
          :message_id msg-id)
    callback))
 
+(defun telega--getMessageViewers (msg &optional callback)
+  "Get MSG message viewers list."
+  (declare (indent 1))
+  (declare (tdlib-api "1.7.8"))
+
+  (with-telega-server-reply (reply)
+      (mapcar #'telega-user-get (plist-get reply :user_ids))
+
+    (list :@type "getMessageViewers"
+          :chat_id (plist-get msg :chat_id)
+          :message_id (plist-get msg :id))
+    callback))
+
 (defun telega--getMessagePublicForwards (msg &optional offset limit callback)
   "Return forwarded copies of a channel message to different public channels."
   (telega-server--call
@@ -965,6 +1001,10 @@ Pass REVOKE to try to delete chat history for all users."
   (telega-server--send
    (list :@type "checkAuthenticationCode"
          :code code)))
+
+(defun telega--requestQrCodeAuthentication ()
+  (telega-server--send
+   (list :@type "requestQrCodeAuthentication")))
 
 (defun telega--registerUser (first-name &optional last-name)
   "Finish new user registration."
@@ -1064,6 +1104,18 @@ Requires `:can_change_info' rights."
                                    :path (expand-file-name filename))))
    (or callback 'ignore)))
 
+(defun telega--setChatMessageTtlSetting (chat ttl)
+  "Changes CHAT's message TTL setting.
+Message TTL is a self-destruct timer for new messages used in a
+chat. Requires can_delete_messages administrator right in basic
+groups, supergroups and channels.
+TTL must be 0, 86400 or 604800."
+  (cl-assert (or (telega-chat-secret-p chat) (memq ttl '(0 86400 604800))))
+  (telega-server--send
+   (list :@type "setChatMessageTtlSetting"
+         :chat_id (plist-get chat :id)
+         :ttl ttl)))
+
 (defun telega--setChatPermissions (chat &rest permissions)
   "Set CHAT's permission with updated values from PERMISSIONS."
   (declare (indent 1))
@@ -1122,6 +1174,7 @@ Return ChatFilterInfo."
    callback))
 
 (defun telega--editChatFilter (filter-id new-chat-filter &optional callback)
+  (declare (indent 2))
   (telega-server--call
    (list :@type "editChatFilter"
          :chat_filter_id filter-id
@@ -1170,7 +1223,7 @@ New slow mode DELAY for the chat must be one of 0, 10, 30, 60,
   (telega-server--send
    (list :@type "setTdlibParameters"
          :parameters (list :@type "tdlibParameters"
-                           :use_test_dc (or telega-use-test-dc :false)
+                           :use_test_dc (if telega-use-test-dc t :false)
                            :database_directory telega-database-dir
                            :files_directory telega-cache-dir
                            :use_file_database telega-use-file-database
@@ -1218,19 +1271,34 @@ Consider this as reverse operation to `telega--parseMarkdown'."
          :file_id file-id)
    callback))
 
-(defun telega--downloadFile (file-id &optional priority callback)
+(defun telega--getRemoteFile (remote-file-id &optional file-type callback)
+  (telega-server--call
+   (nconc (list :@type "getRemoteFile"
+                :remote_file_id remote-file-id)
+          (when file-type
+            (list :file_type file-type)))
+   callback))
+
+(cl-defun telega--downloadFile (file-id &key priority offset limit sync-p
+                                        callback)
   "Asynchronously downloads a file by its FILE-ID from the cloud.
 `telega--on-updateFile' will be called to notify about the
 download progress and successful completion of the download.
 PRIORITY is integer in range 1-32 (higher downloads faster), default is 1.
 CALLBACK is callback to call with single argument - file, by
 default `telega-file--update' is called."
-  (declare (indent 2))
+  (declare (indent 1))
   (telega-server--call
-   (list :@type "downloadFile"
-         :file_id file-id
-         :priority (or priority 1))
-   (or callback 'telega-file--update)))
+   (nconc (list :@type "downloadFile"
+                :file_id file-id
+                :priority (or priority 1))
+          (when offset
+            (list :offset offset))
+          (when limit
+            (list :limit limit))
+          (when sync-p
+            (list :synchronous (if sync-p t :false))))
+   (or callback (when sync-p 'telega-file--update))))
 
 (defun telega--cancelDownloadFile (file &optional only-if-pending)
   "Stop downloading the FILE.
@@ -1414,6 +1482,27 @@ Media content is an animation, an audio, a document, a photo or a video."
           (when reply-markup
             (list :reply_markup reply-markup)))
    (or callback (unless sync-p #'ignore))))
+
+(defun telega--editMessageSchedulingState (msg scheduling-state)
+  "Edit scheduling state for the message MSG.
+MSG must be previously scheduled."
+  (declare (indent 1))
+  (telega-server--send
+   (list :@type "editMessageSchedulingState"
+         :chat_id (plist-get msg :chat_id)
+         :message_id (plist-get msg :id)
+         :scheduling_state scheduling-state)))
+
+(defun telega--searchChatRecentLocationMessages (chat &optional callback)
+  "Returns recent location messages of CHAT members that were sent to the CHAT."
+  (declare (indent 1))
+  (with-telega-server-reply (reply)
+      (append (plist-get reply :messages) nil)
+
+    (list :@type "searchChatRecentLocationMessages"
+          :chat_id (plist-get chat :id)
+          :limit 20)
+    callback))
 
 (defun telega--getActiveLiveLocationMessages (&optional callback)
   "Return list of messages with active live locatins."
@@ -1644,37 +1733,48 @@ Default LIMIT is 30."
    (list :@type "getChat"
          :chat_id chat-id)))
 
-(defun telega--getChats (&optional offset-chat chat-list callback)
+(defun telega--loadChats (chat-list &optional callback)
+  "Load more chats from a CHAT-LIST.
+Return error if all chats are loaded."
+  (declare (indent 1))
+  (telega-server--call
+   (list :@type "loadChats"
+         :chat_list chat-list
+         :limit 1000)
+   (or callback 'ignore)))
+
+(defun telega--getChats (chat-list &optional callback)
   "Retreive all chats from the server in async manner.
 OFFSET-CHAT is the chat to start getting chats from."
-  (declare (indent 2))
+  (declare (indent 1))
   (with-telega-server-reply (reply)
       (mapcar #'telega-chat--ensure
               (mapcar #'telega-chat-get (plist-get reply :chat_ids)))
 
-    (nconc (list :@type "getChats"
-;                 :offset_order "9223372036854775807"
-                 :offset_chat_id (or (plist-get offset-chat :id) 0)
-                 :limit 1000)
-           (when chat-list
-             (list :chat_list chat-list
-                   :offset_order
-                   (if offset-chat
-                       (let ((telega-tdlib--chat-list chat-list))
-                         (plist-get (telega-chat-position offset-chat) :order))
-                     "9223372036854775807")
-                   )))
+    (list :@type "getChats"
+          :chat_list chat-list
+          :limit 1000)
     callback))
 
-(defun telega--reportChat (chat reason &optional messages)
+(defun telega--reportChat (chat reason &optional messages text)
   "Report a CHAT to the Telegram moderators.
 REASON is one of: \"Spam\", \"Violence\", \"Pornography\",
-\"ChildAbuse\", \"Copyright\" or \"UnrelatedLocation\"."
+\"ChildAbuse\", \"Copyright\", \"UnrelatedLocation\",
+\"Fake\" or \"Custom\"."
   (telega-server--send
    (list :@type "reportChat"
          :chat_id (plist-get chat :id)
          :reason (list :@type (concat "chatReportReason" reason))
-         :message_ids (cl-map 'vector (telega--tl-prop :id) messages))))
+         :message_ids (cl-map 'vector (telega--tl-prop :id) messages)
+         :text (or text ""))))
+
+(defun telega--reportChatPhoto (chat photo-file reason &optional text)
+  (telega-server--send
+   (list :@type "reportChatPhoto"
+         :chat_id (plist-get chat :id)
+         :file_id (plist-get photo-file :id)
+         :reason (list :@type (concat "chatReportReason" reason))
+         :text (or text ""))))
 
 (defun telega--removeChatActionBar (chat)
   "Remove CHAT's action bar without any other action."
@@ -1714,7 +1814,7 @@ be marked as read."
     (when force
       (dolist (msg non-viewed-messages)
         (plist-put msg :telega-viewed-in-thread thread-id)))
-  
+
     (when non-viewed-messages
       (telega-server--send
        (list :@type "viewMessages"
@@ -1886,6 +1986,105 @@ If OPTION-IDS is not specified, then retract the voice."
           :limit (or limit 100)
           :only_missed (if only-missed-p t :false))
     callback))
+
+;; Group Calls section
+(defun telega--getGroupCall (group-call-id &optional callback)
+  (declare (indent 1))
+  (telega-server--call
+   (list :@type "getGroupCall"
+         :group_call_id group-call-id)
+   callback))
+
+(defun telega--loadGroupCallParticipants (group-call &optional limit)
+  ;; TDLib: The group call must be previously received through
+  ;; getGroupCall and must be joined or being joined
+  (telega-server--send
+   (list :@type "loadGroupCallParticipants"
+         :group_call_id (plist-get group-call :id)
+         :limit (or limit 100))))
+
+(cl-defun telega--createVoiceChat (chat title &key (start-time 0) callback)
+  "Create a voice chat (a group call bound to a chat).
+Available only for basic groups and supergroups.
+Return an ID of group call."
+  (declare (indent 2))
+  (with-telega-server-reply (reply)
+      (plist-get reply :id)
+
+    (list :@type "createVoiceChat"
+          :chat_id (plist-get chat :id)
+          :title title
+          :start_date start-time)
+    callback))
+
+(defun telega--setGroupCallTitle (group-call title)
+  "Set GROUP-CALL TITLE."
+  (cl-assert (plist-get group-call :can_be_managed))
+  (telega-server--send
+   (list :@type "setGroupCallTitle"
+         :group_call_id (plist-get group-call :id)
+         :title title)))
+
+(defun telega--leaveGroupCall (group-call)
+  "Leave a GROUP-CALL."
+  (telega-server--send
+   (list :@type "leaveGroupCall"
+         :group_call_id (plist-get group-call :id)))
+  )
+
+(defun telega--discardGroupCall (group-call)
+  "Discard a GROUP-CALL."
+  (telega-server--send
+   (list :@type "discardGroupCall"
+         :group_call_id (plist-get group-call :id)))
+  )
+
+(defun telega--getGroupCallInviteLink (group-call &optional can-self-unmute-p
+                                                  callback)
+  (telega-server--call
+   (list :@type "getGroupCallInviteLink"
+         :group_call_id (plist-get group-call :id)
+         :can_self_unmute (if can-self-unmute-p t :false))
+   callback))
+
+(defun telega--startGroupCallRecording (group-call title)
+  "Starts recording of a GROUP-CALL."
+  (cl-assert (plist-get group-call :can_be_managed))
+  (telega-server--call
+   (list :@type "startGroupCallRecording"
+         :group_call_id (plist-get group-call :id)
+         :title title)))
+
+(defun telega--endGroupCallRecording (group-call)
+  "Ends recording of a GROUP-CALL."
+  (cl-assert (plist-get group-call :can_be_managed))
+  (telega-server--call
+   (list :@type "endGroupCallRecording"
+         :group_call_id (plist-get group-call :id))))
+
+(defun telega--getVoiceChatAvailableParticipants (chat &optional callback)
+  "Get list of message senders, which can be used as voice chat alias.
+CHAT is ordinary Telegram chat."
+  (declare (indent 1))
+  (with-telega-server-reply (reply)
+      (mapcar #'telega-msg-sender (plist-get reply :senders))
+
+    (list :@type "getVoiceChatAvailableParticipants"
+          :chat_id (plist-get chat :id))
+    callback))
+
+(defun telega--startScheduledGroupCall (group-call)
+  "Starts a scheduled GROUP-CALL."
+  (telega-server--send
+   (list :@type "startScheduledGroupCall"
+         :group_call_id (plist-get group-call :id))))
+
+(defun telega--toggleGroupCallEnabledStartNotification (group-call)
+  (telega-server--send
+   (list :@type "startScheduledGroupCall"
+         :group_call_id (plist-get group-call :id)
+         :enabled_start_notification
+         (if (plist-get group-call :enabled_start_notification) :false t))))
 
 (provide 'telega-tdlib)
 
