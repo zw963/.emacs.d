@@ -7,7 +7,11 @@
 ;; (setq zenburn-scale-outline-headlines t)
 ;; (load-theme 'zenburn t)
 
-(load-theme 'material t)
+;; (load-theme 'material t) ;; 这个是原来的
+;; (require 'spacemacs-common)
+(load-theme 'spacemacs-dark t)
+;; (load-theme 'dracula t)
+
 ;; (require 'doom-themes)
 ;; (load-theme 'doom-one t)
 
@@ -18,9 +22,6 @@
 
 ;; (require 'color-theme-sanityinc-tomorrow)
 ;; (load-theme 'sanityinc-tomorrow-blue t)
-
-;; (require 'spacemacs-common)
-;; (load-theme 'spacemacs-dark t)
 
 ;; (load-theme 'danneskjold t)
 ;; (load-theme 'monokai t)

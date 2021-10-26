@@ -235,6 +235,7 @@
     (add-to-list 'initial-frame-alist param)
     ))
 
+;; 获取当前使用的字体：(face-attribute 'default :font)
 ;; (set-frame-font "Fira Code")
 ;; (set-frame-font "Inconsolata")
 ;; (set-frame-font "SHS Monaco Adjusted Medium:style=Medium-12")
