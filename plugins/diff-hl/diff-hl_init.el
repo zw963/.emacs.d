@@ -13,12 +13,20 @@
 (require 'diff-hl-flydiff)
 (diff-hl-flydiff-mode 1)
 
+(setq diff-hl-show-staged-changes nil)
+
+(setq diff-hl-ask-before-revert-hunk t)
+(defun diff-hl-revert-narrow-to-hunk (end)
+  (fancy-narrow-to-region (point) end))
+
+(setq diff-hl-highlight-revert-hunk-function #'diff-hl-revert-narrow-to-hunk)
+
 (defun diff-hl-show-hunk-or-show-first-hunk ()
   (interactive)
   (if (diff-hl-hunk-overlay-at (point))
       (diff-hl-show-hunk)
     (progn
-      (beginning-of-buffer)
+      (goto-char (point-min))
       (diff-hl-show-hunk-next))
     ))
 

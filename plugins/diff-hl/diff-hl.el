@@ -641,6 +641,52 @@ in the source file, or the last line of the hunk above it."
     (goto-char (overlay-start hunk))
     (push-mark (overlay-end hunk) nil t)))
 
+(defvar diff-hl-diff-buffer-with-reference-no-context t)
+
+(defun diff-hl-stage-current-hunk ()
+  (interactive)
+  (diff-hl-find-current-hunk)
+  (let* ((line (line-number-at-pos))
+         (file buffer-file-name)
+         (dest-buffer (get-buffer-create " *diff-hl-stage*"))
+         (orig-buffer (current-buffer))
+         (file-base (shell-quote-argument (file-name-nondirectory file)))
+         (diff-hl-diff-buffer-with-reference-no-context nil)
+         success)
+    (with-current-buffer dest-buffer
+      (let ((inhibit-read-only t))
+        (erase-buffer)))
+    (diff-hl-diff-buffer-with-reference file dest-buffer)
+    (with-current-buffer dest-buffer
+      (with-no-warnings
+        (let (diff-auto-refine-mode)
+          (diff-hl-diff-skip-to line)))
+      (let ((inhibit-read-only t))
+        (save-excursion
+          (diff-end-of-hunk)
+          (delete-region (point) (point-max)))
+        (diff-beginning-of-hunk)
+        (delete-region (point-min) (point))
+        ;; diff-no-select creates a very ugly header; Git rejects it
+        (insert (format "diff a/%s b/%s\n" file-base file-base))
+        (insert (format "--- a/%s\n" file-base))
+        (insert (format "+++ b/%s\n" file-base)))
+      (let ((patchfile (make-temp-file "diff-hl-stage-patch")))
+        (write-region (point-min) (point-max) patchfile
+                      nil 'silent)
+        (unwind-protect
+            (with-current-buffer orig-buffer
+              (with-output-to-string
+                (vc-git-command standard-output 0
+                                patchfile
+                                "apply" "--cached" ))
+              (setq success t))
+          (delete-file patchfile))))
+    (when success
+      (message "Hunk staged")
+      (unless diff-hl-show-staged-changes
+        (diff-hl-update)))))
+
 (defvar diff-hl-command-map
   (let ((map (make-sparse-keymap)))
     (define-key map "n" 'diff-hl-revert-hunk)
@@ -848,8 +894,11 @@ the `diff-program' to be in your `exec-path'."
               (diff-hl-create-revision
                file
                (or diff-hl-reference-revision
-                   (diff-hl-working-revision file backend))))))
-      (diff-no-select rev (current-buffer) "-U 0 --strip-trailing-cr" 'noasync
+                   (diff-hl-working-revision file backend)))))
+           (switches (if diff-hl-diff-buffer-with-reference-no-context
+                         "-U 0 --strip-trailing-cr"
+                       "-u --strip-trailing-cr")))
+      (diff-no-select rev (current-buffer) switches 'noasync
                       (get-buffer-create dest-buffer))
       (with-current-buffer dest-buffer
         (let ((inhibit-read-only t))
