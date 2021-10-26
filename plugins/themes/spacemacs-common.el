@@ -215,7 +215,12 @@ to 'auto, tags may not be properly aligned. "
 
 ;;;;; ahs
      `(ahs-face ((,class (:background ,highlight))))
+     `(ahs-face-unfocused ((,class (:background ,highlight))))
+     `(ahs-definition-face ((,class (:background ,highlight))))
+     `(ahs-definition-face-unfocused ((,class (:background ,highlight))))
      `(ahs-plugin-whole-buffer-face ((,class (:background ,mat :foreground ,bg1))))
+     `(ahs-plugin-default-face ((,class (:background ,highlight))))
+     `(ahs-plugin-default-face-unfocused ((,class (:background ,highlight))))
 
 ;;;;; anzu-mode
      `(anzu-mode-line ((,class (:foreground ,yellow :inherit bold))))
@@ -583,7 +588,7 @@ to 'auto, tags may not be properly aligned. "
      `(info-title-4 ((,class (:height 1.2))))
 
 ;;;;; ivy
-     `(ivy-current-match ((,class (:background ,highlight :inherit bold))))
+     `(ivy-current-match ((,class (:background ,highlight :inherit bold :extend t))))
      `(ivy-minibuffer-match-face-1 ((,class (:inherit bold))))
      `(ivy-minibuffer-match-face-2 ((,class (:foreground ,head1 :underline t))))
      `(ivy-minibuffer-match-face-3 ((,class (:foreground ,head4 :underline t))))
@@ -622,6 +627,12 @@ to 'auto, tags may not be properly aligned. "
 
 ;;;;; linum-relative
      `(linum-relative-current-face ((,class (:foreground ,comp))))
+
+;;;;; lsp
+     `(lsp-ui-doc-background ((,class (:background ,bg2))))
+     `(lsp-ui-doc-header ((,class (:foreground ,head1 :background ,head1-bg))))
+
+     `(lsp-ui-sideline-code-action ((,class (:foreground ,comp))))
 
 ;;;;; magit
      `(magit-blame-culprit ((,class :background ,yellow-bg :foreground ,yellow)))
@@ -740,7 +751,7 @@ to 'auto, tags may not be properly aligned. "
      `(org-block-end-line ((,class (:background ,cblk-ln-bg :foreground ,cblk-ln :extend t))))
      `(org-clock-overlay ((,class (:foreground ,comp))))
      `(org-code ((,class (:foreground ,cyan))))
-     `(org-column ((,class (:background ,highlight))))
+     `(org-column ((,class (:background ,highlight :inherit ,(if spacemacs-theme-org-height 'default)))))
      `(org-column-title ((,class (:background ,highlight))))
      `(org-date ((,class (:underline t :foreground ,var))))
      `(org-date-selected ((,class (:background ,func :foreground ,bg1))))
@@ -749,6 +760,8 @@ to 'auto, tags may not be properly aligned. "
      `(org-done ((,class (:foreground ,suc :inherit bold :background ,green-bg))))
      `(org-ellipsis ((,class (:foreground ,keyword))))
      `(org-footnote  ((,class (:underline t :foreground ,base))))
+     `(org-headline-done ((,class (:foreground ,aqua))))
+     `(org-headline-todo ((,class (:foreground ,meta))))
      `(org-hide ((,class (:foreground ,base))))
      `(org-kbd ((,class (:inherit region :foreground ,base :box (:line-width 1 :style released-button)))))
      `(org-level-1 ((,class (:inherit bold :bold ,(if spacemacs-theme-org-bold 'unspecified nil) :foreground ,head1 :height ,(if spacemacs-theme-org-height 1.3 1.0) :background ,(when spacemacs-theme-org-highlight head1-bg)))))
@@ -833,6 +846,10 @@ to 'auto, tags may not be properly aligned. "
      `(rcirc-timestamp ((,class (:foreground ,keyword))))
      `(rcirc-track-keyword ((,class (:background ,green :foreground ,bg1))))
      `(rcirc-url ((,class (:inherit link))))
+
+;;;;; sh-mode
+     `(sh-heredoc ((,class :foreground ,str)))
+     `(sh-quoted-exec ((,class :foreground ,func)))
 
 ;;;;; shm
      `(shm-current-face ((,class (:background ,green-bg-s))))
@@ -924,6 +941,12 @@ to 'auto, tags may not be properly aligned. "
      `(treemacs-git-modified-face ((,class (:foreground ,blue :background ,blue-bg))))
      `(treemacs-git-untracked-face ((,class (:foreground ,aqua :background ,aqua-bg))))
 
+;;;;; tab-bar-mode
+     `(tab-bar ((,class (:foreground ,base :background ,bg1))))
+     `(tab-bar-tab ((,class (:foreground ,base :background ,bg1 :weight bold))))
+     `(tab-line ((,class (:foreground ,base :background ,bg1))))
+     `(tab-bar-tab-inactive ((,class (:foreground ,base-dim :background ,bg2 :weight light))))
+
 ;;;;; web-mode
      `(web-mode-builtin-face ((,class (:inherit ,font-lock-builtin-face))))
      `(web-mode-comment-face ((,class (:inherit ,font-lock-comment-face))))
@@ -1008,7 +1031,9 @@ to 'auto, tags may not be properly aligned. "
                                ("FIXME"       . ,war)
                                ("XXX+"        . ,war)
                                ("\\?\\?\\?+"  . ,war)))
-
+;;;;; org
+     `(org-fontify-done-headline nil)
+     `(org-fontify-todo-headline nil)
 
 ;;;;; pdf-tools
     `(pdf-view-midnight-colors '(,base . ,bg1)))
