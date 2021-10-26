@@ -97,6 +97,7 @@
 ;; (require 'workgroups_init)
 ;; (require 'pdf-tools_init)
 ;; (require 'valign_init)
+(require 'cnfonts_init)
 (require 'find-file-in-project_init)
 (require 'vterm_init)
 ;; (require 'auto-complete_init)
