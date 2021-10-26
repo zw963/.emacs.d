@@ -1,7 +1,7 @@
 (require 'zoom-frm)
 ;; (require 'autofit-frame)
 (global-set-key (kbd "C--" ) 'zoom-frm-out)
-(global-set-key (kbd "C-+") 'zoom-frm-in)
+(global-set-key (kbd "C-=") 'zoom-frm-in)
 
 (global-set-key (if (boundp 'mouse-wheel-down-event) ; Emacs 22+
                     (vector (list 'control
