@@ -32,6 +32,12 @@
             (set (make-local-variable 'ac-use-menu-map) t)
             ))
 
+;; 初始化 mu 的步骤：
+;; 1. pacman -S xapian-core，安装必须的依赖
+;; 2. 可选的，编译 mu
+;; 3. mu init 初始化
+;; 4. mu index 创建索引
+;; 5.
 ;; ============================== mu4e 设置 ==============================
 (require 'mu4e)
 (require 'mu4e-contrib)                 ; Need by mu4e-html2text-command

@@ -29,19 +29,38 @@
 
 (require 'org)
 (require 'mu4e-view)
-(require 'mu4e-utils)
+
 
 (defgroup mu4e-org nil
-  "Settings for the org-mode related functionality in mu4e."
+  "Settings for the Org mode related functionality in mu4e."
   :group 'mu4e
   :group 'org)
+
+(defcustom mu4e-org-link-desc-func
+  (lambda (msg) (or (plist-get msg :subject) "No subject"))
+  "Function that takes a msg and returns a description.
+This can be used in org capture templates and storing links.
+
+Example usage:
+
+  (defun my-link-descr (msg)
+    (let ((subject (or (plist-get msg :subject)
+                       \"No subject\"))
+          (date (or (format-time-string mu4e-headers-date-format
+                    (mu4e-msg-field msg :date))
+                    \"No date\")))
+      (concat subject \" \" date)))
+
+  (setq org-mu4e-link-desc-func 'my-link-descr)"
+  :type '(function)
+  :group 'mu4e-org)
 
 (defvar mu4e-org-link-query-in-headers-mode nil
   "Prefer linking to the query rather than to the message.
 If non-nil, `org-store-link' in `mu4e-headers-mode' links to the
 the current query; otherwise, it links to the message at point.")
 
-(defun mu4e~org-store-link-query ()
+(defun mu4e--org-store-link-query ()
   "Store a link to a mu4e query."
   (setq org-store-link-plist nil) ; reset
   (org-store-link-props
@@ -51,14 +70,14 @@ the current query; otherwise, it links to the message at point.")
    :link        (concat "mu4e:query:" (mu4e-last-query))
    :description (format "[%s]" (mu4e-last-query))))
 
-(defun mu4e~org-address (cell)
-  "Get address field FIELD from MSG as a string or nil."
+(defun mu4e--org-address (cell)
+  "Get an address from CELL."
   (let ((name (car cell)) (addr (cdr cell)))
     (if name
         (format "%s <%s>" name addr)
       (format "%s" addr))))
 
-(defun mu4e~org-store-link-message ()
+(defun mu4e--org-store-link-message ()
   "Store a link to a mu4e message."
   (setq org-store-link-plist nil)
   (let* ((msg      (mu4e-message-at-point))
@@ -71,15 +90,15 @@ the current query; otherwise, it links to the message at point.")
      :type                     "mu4e"
      :date                     date
      :from                     (when from
-                                 (mu4e~org-address from))
+                                 (mu4e--org-address from))
      :maildir                  (plist-get msg :maildir)
      :message-id               msgid
      :path                     (plist-get msg :path)
      :subject                  (plist-get msg :subject)
      :to                       (when to
-                                 (mu4e~org-address to))
+                                 (mu4e--org-address to))
      :link                     (concat "mu4e:msgid:" msgid)
-     :description              (or (plist-get msg :subject) "No subject"))))
+     :description              (funcall mu4e-org-link-desc-func msg))))
 
 (defun mu4e-org-store-link ()
   "Store a link to a mu4e message or query.
@@ -90,9 +109,9 @@ valid even after moving the message around."
   (when (derived-mode-p 'mu4e-view-mode 'mu4e-headers-mode)
     (if (and (derived-mode-p 'mu4e-headers-mode)
              mu4e-org-link-query-in-headers-mode)
-        (mu4e~org-store-link-query)
+        (mu4e--org-store-link-query)
       (when (mu4e-message-at-point)
-        (mu4e~org-store-link-message)))))
+        (mu4e--org-store-link-message)))))
                                          ;
 (defun mu4e-org-open (link)
   "Open the org LINK.
@@ -103,7 +122,7 @@ the query (for links starting with 'query:')."
    ((string-match "^msgid:\\(.+\\)" link)
     (mu4e-view-message-with-message-id (match-string 1 link)))
    ((string-match "^query:\\(.+\\)" link)
-    (mu4e-headers-search (match-string 1 link) current-prefix-arg))
+    (mu4e-search (match-string 1 link) current-prefix-arg))
    (t (mu4e-error "Unrecognized link type '%s'" link))))
 
 (make-obsolete 'org-mu4e-open 'mu4e-org-open "1.3.6")
