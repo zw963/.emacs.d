@@ -31,7 +31,7 @@ You need add following code into `~/.emacs` to let all packages start to work.
 (setenv "INSIDE_EMACS" "true")
 
 (relative-load "Dropbox/common/.emacs.d/set_load_path.el")
-(relative-load "Dropbox/common/.emacs.d/.emacs")
+(relative-load "Dropbox/common/.emacs.d/early-init.el")
 ```
 
 # philosophy

@@ -5,7 +5,7 @@
 ;; 这行是用来生成 elc 的, 注意，只有 elc 更新了，eln 才会被更新.
 (byte-recompile-directory "~/Dropbox/common/.emacs.d/plugins" 0 nil)
 
-;; 下面的脚本用力生成 eln 的
+;; 下面的脚本用来生成 eln 的
 (native-compile-async "~/Dropbox/common/.emacs.d/plugins" 'recursively)
 (while (or comp-files-queue
            (> (comp-async-runnings) 0))
