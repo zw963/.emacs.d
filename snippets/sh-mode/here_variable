@@ -1,0 +1,7 @@
+# -*- mode: snippet -*-
+# name: define a variable use here document.
+# key: here1
+# --
+read -r -d '' ${1:variable} <<${2:'}${3:HERE}$2
+`(yas-stripped-selected-text "" "")`$0
+$3

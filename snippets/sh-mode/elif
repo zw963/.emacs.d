@@ -1,0 +1,5 @@
+# -*- mode: snippet -*-
+# name: elif
+# key: el
+# --
+el${1:$(if-any "if" "se")}`(key-field "1" "cond" "[ " " ]")`${1:$(if-any "; then")}

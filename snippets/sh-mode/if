@@ -1,0 +1,7 @@
+# -*- mode: snippet -*-
+# name: if [ test ] ... fi
+# key: if
+# binding: i
+# condition: (yas-use-region-p)
+# --
+if`(field "1" "cond")`; then`(def "" "fi")`

@@ -1,0 +1,12 @@
+# -*- mode: snippet -*-
+# name: wrapperinit
+# key: wrapperinit
+# --
+ROOT=\$(dirname \`readlink -e \$0\`)/..
+basename=\$(basename \$0)
+
+[ -e /usr/local/bin/\$basename ] || sudo ln -sf \$ROOT/bin/$basename /usr/local/bin
+
+export LD_LIBRARY_PATH=\$ROOT/lib:\$LD_LIBRARY_PATH
+export LIBPATH=\$LD_LIBRARY_PATH
+exec -a \$basename \$ROOT/bin.real/\$basename "\$@"
