@@ -30,10 +30,17 @@
 (require 'cl-lib)
 (require 'ido)
 
-(require 'mu4e-helpers)
+(require 'mu4e-utils)
 (require 'mu4e-message)
-(require 'mu4e-search)
 (require 'mu4e-meta)
+
+(declare-function mu4e~proc-extract     "mu4e-proc")
+(declare-function mu4e-headers-search   "mu4e-headers")
+
+(defvar mu4e-headers-include-related)
+(defvar mu4e-headers-show-threads)
+(defvar mu4e-view-show-addresses)
+(defvar mu4e-view-date-format)
 
 
 ;;; Count lines
@@ -43,8 +50,7 @@
 Works for headers view and message-view."
   (message "Number of lines: %s"
            (shell-command-to-string
-            (concat "wc -l < "
-		    (shell-quote-argument (mu4e-message-field msg :path))))))
+            (concat "wc -l < " (shell-quote-argument (mu4e-message-field msg :path))))))
 
 ;;; Org Helpers
 
@@ -103,22 +109,22 @@ file where you store your org-contacts."
 
 ;;; Patches
 
-(defvar mu4e--patch-directory-history nil
+(defvar mu4e~patch-directory-history nil
   "History of directories we have applied patches to.")
 
 ;; This essentially works around the fact that read-directory-name
 ;; can't have custom history.
-(defun mu4e--read-patch-directory (&optional prompt)
+(defun mu4e~read-patch-directory (&optional prompt)
   "Read a `PROMPT'ed directory name via `completing-read' with history."
   (unless prompt
     (setq prompt "Target directory:"))
   (file-truename
    (completing-read prompt 'read-file-name-internal #'file-directory-p
-                    nil nil 'mu4e--patch-directory-history)))
+                    nil nil 'mu4e~patch-directory-history)))
 
 (defun mu4e-action-git-apply-patch (msg)
   "Apply `MSG' as a git patch."
-  (let ((path (mu4e--read-patch-directory "Target directory: ")))
+  (let ((path (mu4e~read-patch-directory "Target directory: ")))
     (let ((default-directory path))
       (shell-command
        (format "git apply %s"
@@ -131,10 +137,10 @@ If the `default-directory' matches the most recent history entry don't
 bother asking for the git tree again (useful for bulk actions)."
 
   (let ((cwd (substring-no-properties
-              (or (car mu4e--patch-directory-history)
+              (or (car mu4e~patch-directory-history)
                   "not-a-dir"))))
     (unless (and (stringp cwd) (string= default-directory cwd))
-      (setq cwd (mu4e--read-patch-directory "Target directory: ")))
+      (setq cwd (mu4e~read-patch-directory "Target directory: ")))
     (let ((default-directory cwd))
       (shell-command
        (format "git am %s %s"
@@ -153,7 +159,7 @@ messages can lead to messages with multiple tags headers.")
 (defvar mu4e-action-tags-completion-list '()
   "List of tags for completion in `mu4e-action-retag-message'.")
 
-(defun mu4e--contains-line-matching (regexp path)
+(defun mu4e~contains-line-matching (regexp path)
   "Return non-nil if the file at PATH contain a line matching REGEXP.
 Otherwise return nil."
   (with-temp-buffer
@@ -162,7 +168,7 @@ Otherwise return nil."
       (goto-char (point-min))
       (re-search-forward regexp nil t))))
 
-(defun mu4e--replace-first-line-matching (regexp to-string path)
+(defun mu4e~replace-first-line-matching (regexp to-string path)
   "Replace first line matching REGEXP in PATH with TO-STRING."
   (with-temp-file path
     (insert-file-contents path)
@@ -170,14 +176,6 @@ Otherwise return nil."
       (goto-char (point-min))
       (if (re-search-forward regexp nil t)
           (replace-match to-string nil nil)))))
-
-(declare-function mu4e--server-add "mu4e-server")
-(defun mu4e--refresh-message (path)
-  "Re-parse message at PATH.
-if this works, we will
-receive (:info add :path <path> :docid <docid>) as well as (:update
-<msg-sexp>)."
-  (mu4e--server-add path))
 
 (defun mu4e-action-retag-message (msg &optional retag-arg)
   "Change tags of MSG with RETAG-ARG.
@@ -221,19 +219,19 @@ would add 'tag' and 'long tag', and remove 'oldtag'."
     (setq tagstr (replace-regexp-in-string "[\\&]" "\\\\\\&" tagstr))
     (setq tagstr (replace-regexp-in-string "[/]"   "\\&" tagstr))
 
-    (if (not (mu4e--contains-line-matching (concat header ":.*") path))
+    (if (not (mu4e~contains-line-matching (concat header ":.*") path))
         ;; Add tags header just before the content
-        (mu4e--replace-first-line-matching
+        (mu4e~replace-first-line-matching
          "^$" (concat header ": " tagstr "\n") path)
 
       ;; replaces keywords, restricted to the header
-      (mu4e--replace-first-line-matching
+      (mu4e~replace-first-line-matching
        (concat header ":.*")
        (concat header ": " tagstr)
        path))
 
     (mu4e-message (concat "tagging: " (mapconcat 'identity taglist ", ")))
-    (mu4e--refresh-message path)))
+    (mu4e-refresh-message path)))
 
 (defun mu4e-action-show-thread (msg)
   "Show thread for message at point with point remaining on MSG.
@@ -242,13 +240,14 @@ action was invoked. If invoked in view mode, continue to display
 the message."
   (let ((msgid (mu4e-message-field msg :message-id)))
     (when msgid
-      (let ((mu4e-search-threads t)
+      (let ((mu4e-headers-show-threads t)
             (mu4e-headers-include-related t))
-        (mu4e-search
+        (mu4e-headers-search
          (format "msgid:%s" msgid)
          nil nil nil
          msgid (and (eq major-mode 'mu4e-view-mode)
                     (not (eq mu4e-split-view 'single-window))))))))
+
 ;;; _
 (provide 'mu4e-actions)
 ;;; mu4e-actions.el ends here
