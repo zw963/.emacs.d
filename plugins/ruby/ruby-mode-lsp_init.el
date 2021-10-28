@@ -37,11 +37,11 @@
                'enh-ruby-mode-hook
                'ruby-mode
                ))
-  (add-hook hook '(lambda ()
-                    (unless (and rvm--current-ruby rvm--current-gemset)
-                      (rvm-activate-corresponding-ruby))
-                    (lsp-deferred)
-                    )))
+  (add-hook hook (lambda ()
+                   (unless (and rvm--current-ruby rvm--current-gemset)
+                     (rvm-activate-corresponding-ruby))
+                   (lsp-deferred)
+                   )))
 
 (provide 'ruby-mode-lsp_init)
 
