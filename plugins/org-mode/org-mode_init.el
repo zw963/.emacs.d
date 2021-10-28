@@ -37,8 +37,8 @@
 
 ;; 这个用来复制 org 里面的代码块。
 (defun org-copy-src-block-link()
-  (forward-line -2)
   (interactive)
+  (forward-line -2)
   (org-edit-src-code)
   (mark-whole-buffer)
   (with-no-warnings

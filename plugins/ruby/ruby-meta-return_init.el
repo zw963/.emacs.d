@@ -80,11 +80,11 @@ If the result is do-end block, it will always be multiline."
   (interactive)
   (cond
    ;; inside a string
-   ((fourth (syntax-ppss)) (call-interactively 'newline-and-indent))
+   ((cl-fourth (syntax-ppss)) (call-interactively 'newline-and-indent))
 
    ((and
      ;; inside a comment.
-     (fifth (syntax-ppss))
+     (cl-fifth (syntax-ppss))
      (eq (point) (line-end-position)))
     (call-interactively 'indent-new-comment-line))
 

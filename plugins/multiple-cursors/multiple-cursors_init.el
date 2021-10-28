@@ -1,6 +1,6 @@
-(setq mc/list-file (expand-file-name "plugins/multiple-cursors/.mc-lists.el"))
-
 (require 'multiple-cursors)
+
+(setq mc/list-file (expand-file-name "plugins/multiple-cursors/.mc-lists.el"))
 
 (global-set-key (kbd "C-S-c C-S-c") 'mc/edit-lines)
 

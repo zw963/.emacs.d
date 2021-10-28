@@ -16,7 +16,7 @@
       (setq column (string-to-number (match-string 3 lc-cond)))
       (if (= 0 line) (setq line (line-number-at-pos)))
       (if (> line max-lines) (setq line max-lines))
-      (goto-line line)
+      (forward-line line)
       (move-to-column column)
       (message "Marker set to line %d column %s" (line-number-at-pos) (current-column))
       )))

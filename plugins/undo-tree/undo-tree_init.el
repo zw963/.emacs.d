@@ -21,7 +21,8 @@
   (interactive)
   (cond ((and (save-excursion (setq begin-pos (search-backward-regexp "(puts \"\\\\033\\[0;44m\\\\033\\[1m\";__x=(" nil t) ))
               (save-excursion (setq end-pos (search-forward-regexp ");puts File.readlines.*__x)" nil t 1))))
-         (save-excursion (replace-regexp "(puts.*__x=(\\|);puts File.readlines.*__x)" "" nil begin-pos end-pos)))
+         (save-excursion (while (re-search-forward "(puts.*__x=(\\|);puts File.readlines.*__x)" begin-pos end-pos)
+                           (replace-match ""))))
         (t (call-interactively 'undo-tree-undo))))
 
 (global-set-key [remap undo-tree-undo] 'undo-tree-or-undo-pp)

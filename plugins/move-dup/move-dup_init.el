@@ -8,7 +8,7 @@
   (interactive)
   (move-dup-duplicate-up 1)
   (comment-region (line-beginning-position) (line-end-position))
-  (next-line 1))
+  (forward-line 1))
 
 (global-set-key [(shift meta return)] 'move-dup-duplicate-up-then-comment)
 

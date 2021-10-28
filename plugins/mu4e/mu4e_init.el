@@ -1,6 +1,9 @@
 ;; 下面是 gmail 设置。(不确定是否和 163 设定正好相反？)
 ;; 注意：默认使用 .netrc 获取信息。
 
+(require 'smtpmail)
+(require 'message)
+
 (setq
  ;; smtpmail-stream-type 'ssl                  ; SMTP 连接类型
  smtpmail-smtp-server "smtp.gmail.com"       ;不确定是否可以使用环境变量.

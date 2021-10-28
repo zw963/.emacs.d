@@ -61,9 +61,11 @@
   (let ((fn (buffer-file-name (ibuffer-current-buffer t))))
     (run-process "bc2" fn)))
 
+(require 'dired)
 (define-key dired-mode-map [(control f11)] 'dired-bc1-current-file)
 (define-key dired-mode-map [(meta f11)] 'dired-bc2-current-file)
 
+(require 'ibuffer)
 (define-key ibuffer-mode-map [(control f11)] 'ibuffer-bc1-current-file)
 (define-key ibuffer-mode-map [(meta f11)] 'ibuffer-bc2-current-file)
 

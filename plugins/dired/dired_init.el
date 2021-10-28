@@ -47,7 +47,6 @@
 (define-key dired-mode-map [down-mouse-1] 'dired-efap-click)
 
 (require 'ripgrep-dired)
-(concat "hello" "world")
 (setq ripgrep-dired-rg-basic-args "-nH --no-heading --smart-case \
 -g '!*~' -g '!#*#' -g '!.#*'")
 

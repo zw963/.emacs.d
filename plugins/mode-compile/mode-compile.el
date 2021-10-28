@@ -277,7 +277,7 @@
 (require 'byte-compile "bytecomp")
 ;;; For easy macros
 (require 'backquote)
-(require 'cl)
+(require 'cl-lib)
 (load-library "cl-macs")
 ;; Pretty print elisp
 (require 'pp)

@@ -6,9 +6,9 @@
                 rustic-mode-hook
                 rust-mode-hook
                 ))
-  (add-hook hook '(lambda ()
-                    (aggressive-indent-mode)
-                    )))
+  (add-hook hook (lambda ()
+                   (aggressive-indent-mode)
+                   )))
 
 (add-to-list
  'aggressive-indent-dont-indent-if

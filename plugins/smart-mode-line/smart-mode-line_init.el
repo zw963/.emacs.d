@@ -80,9 +80,6 @@
 ;; (require 'nyan-mode)
 ;; (add-to-list 'mode-line-format (list '(:eval (list (nyan-create)))))
 
-;; (require 'parrot)
-;; (add-to-list 'mode-line-format (list '(:eval (list (parrot-create)))))
-
 (sml/setup)
 
 (require 'show-point-mode)

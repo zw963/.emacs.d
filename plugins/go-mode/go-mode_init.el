@@ -5,16 +5,15 @@
 
 ;; ;; Set up before-save hooks to format buffer and add/delete imports.
 ;; ;; Make sure you don't have other gofmt/goimports hooks enabled.
-(defun lsp-go-install-save-hooks ()
-  (add-hook 'before-save-hook #'lsp-format-buffer t t)
-  (add-hook 'before-save-hook #'lsp-organize-imports t t)
-  )
 
-(defun my-go-mode-hook ()
-  (lsp-deferred)
-  (lsp-go-install-save-hooks)
+(with-eval-after-load 'lsp-mode
+  (defun lsp-go-install-save-hooks ()
+    (add-hook 'before-save-hook #'lsp-format-buffer t t)
+    (add-hook 'before-save-hook #'lsp-organize-imports t t)
+    )
+  (add-hook 'go-mode-hook 'lsp-go-install-save-hooks)
+  (add-hook 'go-mode-hook 'lsp-deferred)
   )
-(add-hook 'go-mode-hook 'my-go-mode-hook)
 
 ;; (if (not (string-match "go" compile-command))
 ;;     (set (make-local-variable 'compile-command)

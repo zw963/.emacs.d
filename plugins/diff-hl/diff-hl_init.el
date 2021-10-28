@@ -17,7 +17,9 @@
 
 (setq diff-hl-ask-before-revert-hunk t)
 (defun diff-hl-revert-narrow-to-hunk (end)
-  (fancy-narrow-to-region (point) end))
+  (if (fboundp 'fancy-narrow-to-region)
+      (fancy-narrow-to-region (point) end)
+    (narrow-to-region (point) end)))
 
 (setq diff-hl-highlight-revert-hunk-function #'diff-hl-revert-narrow-to-hunk)
 

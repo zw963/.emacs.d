@@ -20,6 +20,7 @@
 (global-set-key [(meta u)] 'my-string-inflection-cycle-auto)
 
 (require 'sequential-command)
+(require 'subword)
 (defun backward-capitalize-word ()
   (interactive)
   (subword-capitalize (- (1+ (seq-count*)))))

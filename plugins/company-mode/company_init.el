@@ -36,7 +36,7 @@
 (define-key company-active-map (kbd "C-s") 'company-filter-candidates)
 
 ;; Use M-1,2 ... to select a candidation.
-(setq company-show-numbers t)
+(setq company-show-quick-access t)
 
 ;; 这个其实是替换 company-preview-if-just-one-frontend 为 company-preview-frontend
 ;; 这样做，会让 preview 总是在光标处 inline 显示。
