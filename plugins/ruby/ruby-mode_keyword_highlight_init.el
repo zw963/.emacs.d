@@ -159,7 +159,7 @@ Use `font-lock-add-keywords' in case of `ruby-mode' or
 (defun ruby-apply-keywords-for-file-type ()
   "Apply extra font lock keywords specific to models, controllers etc."
   (when (buffer-file-name)
-    (loop for (re keywords) in
+    (cl-loop for (re keywords) in
           `(("_controller\\.rb$"   ,rinari-controller-keywords)
             ("app/models/.+\\.rb$" ,rinari-model-keywords)
             ("db/migrate/.+\\.rb$" ,rinari-migration-keywords)
