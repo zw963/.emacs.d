@@ -111,10 +111,14 @@
 
 (add-hook 'mu4e-compose-mode-hook 'auto-fill-mode)
 
-(define-key mu4e-headers-mode-map (kbd "v") #'mu4e-views-mu4e-select-view-msg-method)
-
+;; 检测 xwidget 是否工作的办法： (xwidget-webkit-browse-url "https://www.gnu.org/")
+;; mu4e-view 将造成 space 快捷键不工作。
 ;; (require 'mu4e-views)
-;; (setq mu4e-views-next-previous-message-behaviour 'always-switch-to-view)
+;; ;; 调用 mu4e-views-mu4e-select-view-msg-method 选择采用的 view 方法。
+;; (define-key mu4e-headers-mode-map (kbd "v") #'mu4e-views-mu4e-select-view-msg-method)
+;; (define-key mu4e-headers-mode-map (kbd "M-n") #'mu4e-views-cursor-msg-view-window-down)
+;; (define-key mu4e-headers-mode-map (kbd "M-p") #'mu4e-views-cursor-msg-view-window-up)
+;; ;; (setq mu4e-views-next-previous-message-behaviour 'always-switch-to-view)
 
 (require 'NetworkManager)
 
