@@ -364,13 +364,17 @@ TODO: IGNORE-FACE."
           (cnfonts-ui--create-align-test-buttons (car fontsize-list) i))
         (widget-insert "\n")))
     (widget-insert "\n")
-    (widget-insert (format "%-38s" (format "( %s )" (cnfonts--get-current-profile t))))
+    (widget-insert (format "%-28s" (format "( %s )" (cnfonts--get-current-profile t))))
     (widget-create 'push-button
-                   :tag "[ 对齐设置完成 ]"
+                   :tag "[ 完成对齐设置并重置字号 ]"
                    :tab-stop-point t
                    :button-face-get 'ignore
                    :mouse-face-get 'ignore
-                   :action 'cnfonts-ui-quit-align)))
+                   :action 'cnfonts-ui-quit-align)
+    (widget-insert "\n\n注意：这个界面只是用来生成各个字号的对齐设置，用户点击
+[完成对齐设置并重置字号] 按钮之后，cnfonts 将重置到已经
+保存的字号，这个字号是使用 cnfonts-increase-fontsize 和
+cnfonts-decrease-fontsize 两个命令来控制的。")))
 
 (defun cnfonts-ui--create-fonts-page (page-name)
   (let ((index (cnfonts-ui--get-page-info page-name :index))
@@ -499,9 +503,15 @@ TODO: IGNORE-FACE."
 ------------------------------------------------------
 ** 根据 cnfonts 的设置，自动生成一个 elisp 字体配置片断
 
-如果用户觉得 cnfonts *太厚重*, 可以将下面
-一段 elisp 粘贴到 ~/.emacs 文件，然后保存，就不需要启
-动 cnfonts 来配置字体了。
+如果用户觉得 cnfonts *太厚重*, 可以将下面一段 elisp 粘贴到
+~/.emacs 文件，然后保存，就不需要启动 cnfonts 来配置字体了。
+
+注意事项：
+1. 下面的设置使用的字号是 `cnfonts-increase-fontsize'
+   或者 `cnfonts-decrease-fontsize' 两个命令设置的默认使用字号。
+2, 如果用户使用 emacs daemon, 那么下面的设置可能需要调整，
+   比如包装成一个函数放到 after-make-frame-functions 和
+   window-setup-hook 中。
 
 -------
 ")
@@ -627,7 +637,8 @@ TODO: IGNORE-FACE."
           (cnfonts--set-font fontsizes-list))))))
 
 (defun cnfonts-ui--create-tab-stop-point ()
-  "Create a widget, the curse will stop to this widget when forward/backward widget."
+  "Create a widget.
+the curse will stop to this widget when forward/backward widget."
   (widget-create 'push-button
                  :tag "\n"
                  :tab-stop-point t

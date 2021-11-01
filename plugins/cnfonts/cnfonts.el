@@ -33,7 +33,7 @@
 ;; ** 简介
 ;; 注意：cnfonts 原来叫： chinese-fonts-setup, 一开始使用三个词的首字
 ;; 母组成的字符串 "cfs-" 做为包的前缀，但不幸和 gnu 的项目 cfs.el 冲突，
-;; 所以将包的前缀更改为 "cnfonts". chinese-fonts-setup 将做为 cnfonts
+;; 所以将包的前缀更改为 "cnfonts".  chinese-fonts-setup 将做为 cnfonts
 ;; 的别名使用。
 
 ;; cnfonts 是一个 Emacs 中英文字体配置工具。可以比较方便地实
@@ -43,12 +43,13 @@
 
 ;; ** 基本原理
 ;; cnfonts 的核心很简单，就是让中文字体和英文字体使用不同的字
-;; 号，从而实现中英文对齐，它和下面的样例代码原理是一样的：
+;; 号，从而实现中英文对齐，它和下面的样例代码原理是 *类似* 的，只是用的命令
+;; 稍微不同。
 
 ;; #+BEGIN_EXAMPLE
 ;; (set-frame-font "-unknown-PragmataPro-normal-normal-normal-*-*-*-*-*-*-0-iso10646-1")
 ;; (dolist (charset '(kana han symbol cjk-misc bopomofo))
-;;   (set-fontset-font (frame-parameter nil 'font)
+;;   (set-fontset-font "fontset-default"
 ;;                     charset (font-spec :family "Microsoft Yahei" :size 16)))
 ;; #+END_EXAMPLE
 
@@ -333,7 +334,7 @@
   :type '(repeat string))
 
 (defcustom cnfonts-default-step 5
-  "default cnfonts step."
+  "Default cnfonts step."
   :group 'cnfonts
   :type 'integer)
 
@@ -413,7 +414,7 @@ The below is an example which is used to set symbol fonts:
                   :size %e))
 (dolist (charset '(kana han symbol cjk-misc bopomofo))
   (set-fontset-font
-   (frame-parameter nil 'font)
+   \"fontset-default\"
    charset
    (font-spec :name \"%C\"
               :weight 'normal
@@ -1022,10 +1023,10 @@ If PREFER-SHORTNAME is non-nil, return shortname list instead."
     (define-key keymap (kbd "C-<right>") 'cnfonts-increment-fontsize-at-point)
     (define-key keymap (kbd "C-<left>") 'cnfonts-decrement-fontsize-at-point)
     keymap)
-  "Keymap for variable `cnfonts-profile-edit-mode', a minor mode used to setup fonts names and sizes.")
+  "Keymap for variable `cnfonts-profile-edit-mode'.")
 
 (define-minor-mode cnfonts-profile-edit-mode
-  "Minor for setup fonts names and sizes"
+  "Minor for setup fonts names and sizes."
   nil " Rem" cnfonts-profile-edit-mode-map)
 
 (defun cnfonts--select-profile (profile-name)
@@ -1168,7 +1169,7 @@ FONTSIZES-LIST."
 
 (defun cnfonts--return-fonts-configure-string ()
   "返回一个 elisp 片断，这个 elisp 片断可以用来配置中文和英文字体."
-  (let* ((fonts (cnfonts--get-valid-fonts))
+  (let* ((fonts (cnfonts--get-valid-fonts t))
          (fontsizes (cnfonts--get-current-fontsizes))
          (english-fontname (nth 0 fonts))
          (chinese-fontname (nth 1 fonts))
@@ -1206,7 +1207,7 @@ FONTSIZES-LIST."
       (insert (format "\"%s\"" choose)))))
 
 (defun cnfonts-set-font-first-time (&optional frame)
-  "Emacs 启动后，第一次设置字体使用的函数.
+  "Emacs 启动后，第一次设置 FRAME 字体使用的函数.
 
 这个函数会使用 cnfonts 缓存机制，设置字体速度较快。"
   (let ((cnfonts-use-cache t))
@@ -1247,7 +1248,7 @@ FONTSIZES-LIST."
         (`cygwin
          (setq fallback-font-name "MS Gothic")
          (setq fallback-font-name2 "Lucida Sans Unicode"))
-        (other
+        (_
          (setq fallback-font-name nil)
          (setq fallback-font-name2 nil)))
       (when (and fallback-font-name fallback-font-name2)
