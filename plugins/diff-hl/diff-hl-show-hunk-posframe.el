@@ -91,18 +91,9 @@ Customize it to change the base properties of the text.")
     (define-key map [escape]    #'diff-hl-show-hunk-hide)
     (define-key map (kbd "q")   #'diff-hl-show-hunk-hide)
     (define-key map (kbd "C-g") #'diff-hl-show-hunk-hide)
-    (define-key map (kbd "p")   #'diff-hl-show-hunk-previous)
-    (define-key map (kbd "n")   #'diff-hl-show-hunk-next)
-    (define-key map (kbd "c")   #'diff-hl-show-hunk-copy-original-text)
-    (define-key map (kbd "r")   #'diff-hl-show-hunk-revert-hunk)
-    (define-key map (kbd "[")   #'diff-hl-show-hunk-previous)
-    (define-key map (kbd "]")   #'diff-hl-show-hunk-next)
-    (define-key map (kbd "{")   #'diff-hl-show-hunk-previous)
-    (define-key map (kbd "}")   #'diff-hl-show-hunk-next)
+    (set-keymap-parent map diff-hl-show-hunk-map)
     map)
-  "Keymap for command `diff-hl-show-hunk-posframe--transient-mode'.
-Capture all the vertical movement of the point, and converts it
-to scroll in the posframe")
+  "Keymap for command `diff-hl-show-hunk-posframe--transient-mode'.")
 
 (define-minor-mode diff-hl-show-hunk-posframe--transient-mode
   "Temporal minor mode to control diff-hl posframe."
@@ -165,7 +156,14 @@ The button calls an ACTION."
    (diff-hl-show-hunk--posframe-button
     "♻ Revert hunk"
     "Revert hunk (\\[diff-hl-show-hunk-revert-hunk])"
-    #'diff-hl-show-hunk-revert-hunk)))
+    #'diff-hl-show-hunk-revert-hunk)
+
+   (unless diff-hl-show-staged-changes
+     (diff-hl-show-hunk--posframe-button
+      "⊕ Stage hunk"
+      "Stage hunk (\\[diff-hl-show-hunk-stage-hunk])"
+      #'diff-hl-show-hunk-stage-hunk))
+   ))
 
 ;;;###autoload
 (defun diff-hl-show-hunk-posframe (buffer &optional _line)
