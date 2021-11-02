@@ -195,54 +195,6 @@
 (put 'set-goal-column 'disabled nil)
 (fset 'yes-or-no-p 'y-or-n-p) ;用 y/n 方式代替 yes/no
 
-;; 有关设置字体的一些参考代码
-(defun my-better-font()
-  (interactive)
-  (defvar my-english-font "Fira Code:style=Regular")
-  (defvar my-english-font-height (* 13 10))
-
-  (defvar my-chinese-font "LXGW WenKai Mono,霞鹜文楷等宽:style=Regular")
-  (defvar my-chinese-font-size 13)
-
-  (defvar +font-rescale '((tall . 1.0) (wide . 1.0)))
-  (defvar +font-wide-or-tall 'tall)
-  ;; 设置英文字体
-  (set-face-font 'default my-english-font)
-  ;; (set-face-attribute 'default nil :height my-english-font-height :weight 'regular :family my-english-font)
-  (let ((rescale (alist-get +font-wide-or-tall +font-rescale)))
-    (setq face-font-rescale-alist
-          `((,my-chinese-font . ,rescale))))
-  (when (display-graphic-p)
-    ;; 设置中文字体
-    (dolist (charset '(kana han hangul cjk-misc bopomofo symbol))
-      (set-fontset-font
-       (frame-parameter nil 'font)
-       charset
-       (font-spec :family my-chinese-font :size my-chinese-font-size)))
-    ;; instruct Emacs to use emoji fonts,
-    (set-fontset-font t 'symbol (font-spec :family "Noto Color Emoji") nil 'prepend)
-    ))
-
-(defun my-better-hybird-font ()
-  ;; 设置混合字体
-  (dolist (param '(
-                   ;; (font . "yaheiInconsolata-15")
-                   ;; (font . "Sarasa Mono SC Nerd-15")
-                   ;; (font . "YaHei Monaco Hybird:style=Regular-15")
-                   (font . "SHS Monaco Adjusted Medium:style=Medium-12")
-                   ))
-    (add-to-list 'default-frame-alist param)
-    (add-to-list 'initial-frame-alist param)
-    ))
-
-;; 获取当前使用的字体：(face-attribute 'default :font)
-;; (set-frame-font "Fira Code")
-;; (set-frame-font "Inconsolata")
-;; (set-frame-font "SHS Monaco Adjusted Medium:style=Medium-12")
-;; ，, '' " 1 l i o 0
-;; (my-better-font)
-;; (my-better-hybird-font)
-
 ;; ------------------------------ 启动最大化 ------------------------------
 ;; 可以通过运行 fc-list 来查看字体的名称.
 (defun initialize-frame-delay (&optional frame)

@@ -36,8 +36,10 @@
 ;; `diff-hl-previous-hunk'   C-x v [
 ;; `diff-hl-next-hunk'       C-x v ]
 ;; `diff-hl-show-hunk'       C-x v *
+;; `diff-hl-stage-current-hunk' C-x v S
 ;; `diff-hl-set-reference-rev'
 ;; `diff-hl-reset-reference-rev'
+;; `diff-hl-unstage-file'
 ;;
 ;; The mode takes advantage of `smartrep' if it is installed.
 ;;
@@ -664,11 +666,17 @@ its end position."
 
 (defvar diff-hl-diff-buffer-with-reference-no-context t)
 
-(defun diff-hl-stage-current-hunk ()
-  (interactive)
+(defun diff-hl--ensure-staging-supported ()
   (let ((backend (vc-backend buffer-file-name)))
     (unless (eq backend 'Git)
-      (user-error "Only Git supports staging; this file is controlled by %s" backend)))
+      (user-error "Only Git supports staging; this file is controlled by %s" backend))))
+
+(defun diff-hl-stage-current-hunk ()
+  "Stage the hunk at or near point.
+
+Only supported with Git."
+  (interactive)
+  (diff-hl--ensure-staging-supported)
   (diff-hl-find-current-hunk)
   (let* ((line (line-number-at-pos))
          (file buffer-file-name)
@@ -714,6 +722,17 @@ its end position."
         (message "Hunk staged"))
       (unless diff-hl-show-staged-changes
         (diff-hl-update)))))
+
+(defun diff-hl-unstage-file ()
+  (interactive)
+  "Unstage all changes in the current file.
+
+Only supported with Git."
+  (unless buffer-file-name
+    (user-error "No current file"))
+  (diff-hl--ensure-staging-supported)
+  (vc-git-command nil 0 buffer-file-name "reset")
+  (message "Unstaged all"))
 
 (defvar diff-hl-command-map
   (let ((map (make-sparse-keymap)))

@@ -54,10 +54,14 @@
 ;; 打开这两个变量, 查看那些包有错误.
 (unless (string= (getenv "LOAD_INIT") "true")
   (setq debug-on-error t)              ;需要调试时，开启这个。
+  (setq no-byte-compile t)
   ;;(setq debug-on-signal t)
   )
 
 ;; ============================== 编程相关 ==============================
+
+
+;;(require 'diff-hl_init)
 
 ;; (require 'rvm)
 ;; (require 'lsp-mode)
