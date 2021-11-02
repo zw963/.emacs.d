@@ -84,6 +84,8 @@ Then call ORIG-FUN with its ARGS and reopen treemacs if it was open before."
 (define-key evil-treemacs-state-map (kbd "tg")  #'treemacs-git-mode)
 (define-key evil-treemacs-state-map (kbd "tn")  #'treemacs-indent-guide-mode)
 (define-key evil-treemacs-state-map (kbd "w")   #'treemacs-set-width)
+(define-key evil-treemacs-state-map (kbd ">")   #'treemacs-increase-width)
+(define-key evil-treemacs-state-map (kbd "<")   #'treemacs-decrease-width)
 (define-key evil-treemacs-state-map (kbd "b")   #'treemacs-add-bookmark)
 (define-key evil-treemacs-state-map (kbd "?")   #'treemacs-common-helpful-hydra)
 (define-key evil-treemacs-state-map (kbd "C-?") #'treemacs-advanced-helpful-hydra)
@@ -91,6 +93,8 @@ Then call ORIG-FUN with its ARGS and reopen treemacs if it was open before."
 (define-key evil-treemacs-state-map (kbd "TAB") #'treemacs-TAB-action)
 (define-key evil-treemacs-state-map (kbd "H")   #'treemacs-collapse-parent-node)
 (define-key evil-treemacs-state-map (kbd "!")   #'treemacs-run-shell-command-for-current-node)
+(define-key evil-treemacs-state-map (kbd "=")   #'treemacs-fit-window-width)
+(define-key evil-treemacs-state-map (kbd "W")   #'treemacs-extra-wide-toggle)
 
 (evil-define-key 'treemacs treemacs-mode-map (kbd "yp")     #'treemacs-copy-project-path-at-point)
 (evil-define-key 'treemacs treemacs-mode-map (kbd "ya")     #'treemacs-copy-absolute-path-at-point)

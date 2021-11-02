@@ -409,7 +409,11 @@ performance cap and to prevent too long directory names in the treemacs view.
 
 To minimise this option's impact on display performance the search for
 directories to collapse is done asynchronously in a python script and will thus
-only work when python installed.  The script should work both on python 2 and 3."
+only work when python installed.  The script should work both on python 2 and 3.
+
+If you experience incorrect display of CJK characters while using this feature
+you have to inform Emacs about your language environment using
+`set-language-environment'."
   :type 'integer
   :group 'treemacs)
 
@@ -756,6 +760,16 @@ marking the selected line."
 
 (defcustom treemacs-width 35
   "Width of the treemacs window."
+  :type 'integer
+  :group 'treemacs-window)
+
+(defcustom treemacs-wide-toggle-width 70
+  "When resizing, this value is added or substracted from the window width."
+  :type 'integer
+  :group 'treemacs-window)
+
+(defcustom treemacs-width-increment 1
+  "When resizing, this value is added or substracted from the window width."
   :type 'integer
   :group 'treemacs-window)
 
