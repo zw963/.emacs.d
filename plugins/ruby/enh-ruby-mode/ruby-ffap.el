@@ -32,7 +32,9 @@
 (defun ruby-ffap-gem-path(gem)
   "Find the exact GEM path in the bundler, use RVM."
   (when (ruby-ffap-is-require-p)
-    (let ((rvm-verbose nil)) (rvm-activate-corresponding-ruby))
+    (let ((rvm-verbose nil))
+      (unless (and rvm--current-ruby rvm--current-gemset)
+        (rvm-activate-corresponding-ruby)))
     (shell-command-to-string
      (concat
       ruby-ffap-program-name
