@@ -33,9 +33,9 @@
     ))
 
 (define-key diff-hl-command-map [(*)] 'diff-hl-show-hunk-or-show-first-hunk)
-(define-key diff-hl-show-hunk--inline-popup-map (kbd "p") #'diff-hl-show-hunk-previous)
-(define-key diff-hl-show-hunk--inline-popup-map (kbd "n") #'diff-hl-show-hunk-next)
-(define-key diff-hl-show-hunk--inline-popup-map (kbd "r") #'diff-hl-show-hunk-revert-hunk)
+(define-key diff-hl-show-hunk-map (kbd "p") #'diff-hl-show-hunk-previous)
+(define-key diff-hl-show-hunk-map (kbd "n") #'diff-hl-show-hunk-next)
+(define-key diff-hl-show-hunk-map (kbd "r") #'diff-hl-show-hunk-revert-hunk)
 
 ;; (require 'diff-hl-show-hunk-posframe)
 ;; (setq diff-hl-show-hunk-function 'diff-hl-show-hunk-posframe)
