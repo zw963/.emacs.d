@@ -61,7 +61,7 @@
 ;; ============================== 编程相关 ==============================
 
 
-;;(require 'diff-hl_init)
+;; (require 'diff-hl_init)
 
 ;; (require 'rvm)
 ;; (require 'lsp-mode)
