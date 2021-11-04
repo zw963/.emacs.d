@@ -27,15 +27,20 @@
  '(helm-ag-ignore-patterns '("!*~" "!#*#" "!*.min.*" "!TAGS" "!tags"))
  )
 
-(setq helm-do-ag-on-current-directory-p nil)
+(setq helm-ag--actions
+      '(("Open file" . helm-ag--action-find-file)
+        ("Open file other window" . helm-ag--action-find-file-other-window)
+        ("Edit search results" . helm-ag--edit)
+        ("Save results in buffer" . helm-ag--action-save-buffer))
+      )
 
+(setq helm-do-ag-on-current-directory-p nil)
 (defun helm-quit-and-helm-do-ag-on-current-directory ()
   "Drop into `helm-do-ag' on DEFAULT-DIRECTORY from `helm'."
   (interactive)
   (setq helm-do-ag-on-current-directory-p t)
   (with-helm-alive-p
     (helm-run-after-exit #'helm-do-ag default-directory nil helm-pattern)))
-
 (defun advice-up-on-level-corretly-when-run-helm-do-ag-this-file (orig-fun &rest command)
   "If start helm-ag with `helm-do-ag-this-file', `helm-ag--do-ag-up-one-level' not work,
 we have to run `helm-do-ag' on DEFAULT-DIRECTORY first, then up one level function start to work."
@@ -48,13 +53,8 @@ we have to run `helm-do-ag' on DEFAULT-DIRECTORY first, then up one level functi
 (define-key helm-do-ag-map [(control r)] 'helm-ag--do-ag-up-one-level)
 (add-hook 'helm-quit-hook (lambda () (setq helm-do-ag-on-current-directory-p nil)))
 
-;; Ctrl + l, will up one level, 我为什么要换成 super l? 先撤回。
-;; (define-key helm-ag-map [(super l)] 'helm-ag--up-one-level)
-;; (define-key helm-do-ag-map [(super l)] 'helm-ag--do-ag-up-one-level)
-
-;; helm-grep-ag-command 设置成 rg 后，用 helm-do-grep-ag
-
-(setq helm-grep-ag-command "rg --no-config --hidden --no-heading --smart-case --color=always --line-number %s %s %s")
+;; helm-grep-ag-command 设置成 rg 后，用 helm 自带的 helm-do-grep-ag 命令调用下面这个。
+'(helm-grep-ag-command "rg --no-config --no-heading --hidden --smart-case --color=always --line-number %s %s %s")
 
 (provide 'helm-ag_init)
 
