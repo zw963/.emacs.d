@@ -83,6 +83,7 @@
 (require 'back-button_init)
 (require 'bm_init)
 (require 'helpful_init)
+(require 'wgrep_init)
 
 ;; (require 'ido_init)
 ;; (require 'popwin_init)
