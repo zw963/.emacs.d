@@ -3,4 +3,4 @@
 # binding: M-c p
 # condition: (yas-use-region-p)
 # --
-(puts "\033[0;44m\033[1m";__x=(`(yas-selected-text)`);puts File.readlines(__FILE__)[__LINE__-1][/;__x=\\\((.*?)\\\);.*/, 1];pp(__x, __x.class);print "\033[0m"; __x)
+(puts "\033[1;44m";__x=(`(yas-selected-text)`);puts File.readlines(__FILE__)[__LINE__-1][/;__x=\\\((.*?)\\\);.*/, 1];pp(__x, __x.class);print "\033[0m"; __x)

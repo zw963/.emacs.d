@@ -19,12 +19,11 @@
 
 (defun undo-tree-or-undo-pp (&optional arg)
   (interactive)
-  (cond ((and (save-excursion (setq begin-pos (search-backward-regexp "(puts \"\\\\033\\[0;44m\\\\033\\[1m\";__x=(" nil t) ))
-              (save-excursion (setq end-pos (search-forward-regexp ");puts File.readlines.*__x)" nil t 1))))
-         (save-excursion (while (re-search-forward "(puts.*__x=(\\|);puts File.readlines.*__x)" begin-pos end-pos)
-                           (replace-match ""))))
-        (t (call-interactively 'undo-tree-undo))))
-
+  (let ((begin-pos (save-excursion (search-backward-regexp "(puts \"\\\\033\\[1;44m\";__x=(" nil t)))
+        (end-pos (save-excursion (search-forward-regexp ");puts File.readlines.*__x)" nil t 1))))
+    (cond ((and begin-pos end-pos)
+           (save-excursion (replace-regexp "(puts.*__x=(\\|);puts File.readlines.*__x)" "" nil begin-pos end-pos)))
+          (t (call-interactively 'undo-tree-undo)))))
 (global-set-key [remap undo-tree-undo] 'undo-tree-or-undo-pp)
 
 (global-set-key [(control meta /)] 'undo-tree-redo)
