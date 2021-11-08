@@ -3,7 +3,7 @@
 ;; (setq edit-server-url-major-mode-alist '(("github\\.com" . markdown-mode)
 ;;                                          ("ruby-china" . markdown-mode)
 ;;                                          ("gitlab" . markdown-mode)))
-(setq edit-server-port 9292)                              ; 注意, 要调整插件的端口为 9289
+(setq edit-server-port 9289)
 (setq edit-server-default-major-mode 'markdown-mode)
 (when (and (require 'edit-server nil t) (daemonp))
   (edit-server-start)
