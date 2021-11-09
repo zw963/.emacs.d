@@ -12,7 +12,6 @@
 (treemacs-follow-mode t)
 ;; (require 'treemacs-project-follow-mode)
 ;; (treemacs-project-follow-mode t)
-(treemacs-git-mode 'deferred)
 (setq treemacs-is-never-other-window t)
 (setq treemacs-silent-refresh    t)
 

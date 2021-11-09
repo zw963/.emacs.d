@@ -4,7 +4,7 @@
 
 ;; Author: Alexander Miller <alexanderm@web.de>
 ;; Package-Requires: ((emacs "26.1") (dash "2.11.0") (s "1.10.0") (posframe "0.6.0"))
-;; Package-Version: 1.5.4
+;; Package-Version: 1.5.5
 ;; Homepage: https://github.com/Alexander-Miller/cfrs
 
 ;; This program is free software; you can redistribute it and/or modify
@@ -55,7 +55,7 @@ Only the `:background' part is used."
   "Read a string using a pos-frame with given PROMPT and INITIAL-INPUT."
   (if (not (or (display-graphic-p)
                (not (fboundp #'display-buffer-in-side-window))))
-      (read-string prompt nil nil initial-input)
+      (read-string prompt initial-input)
     (let* ((buffer (get-buffer-create " *Pos-Frame-Read*"))
            (border-color (face-attribute 'cfrs-border-color :background nil t))
            (cursor (cfrs--determine-cursor-type))
@@ -70,6 +70,7 @@ Only the `:background' part is used."
                                           (cursor-type . ,cursor)
                                           (no-accept-focus . nil)))))
       (with-selected-frame frame
+        (select-frame frame)
         (x-focus-frame frame)
         (add-hook 'delete-frame-functions #'cfrs--on-frame-kill nil :local)
         (with-current-buffer buffer
