@@ -4,7 +4,7 @@
 
 ;;; Code:
 (setenv "RUBYOPT" "")
-;; (setenv "RUBYLIB" "")
+;; (setenv "RUBYLIB" "") ;; 如果设置 RUBYLIB 为空，可能造成一些 ruby 工具无法使用
 (setenv "http_proxy" "")
 (setenv "https_proxy" "")
 (setenv "ftp_proxy" "")

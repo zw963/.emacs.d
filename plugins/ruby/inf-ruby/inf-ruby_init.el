@@ -1,10 +1,11 @@
 (require 'inf-ruby)
 
 ;; ;; 启动 console 之前, 初始化 rvm.
-(advice-add 'inf-ruby-console-auto :before (lambda ()
-                                              (unless (and rvm--current-ruby rvm--current-gemset)
-                                                (rvm-activate-corresponding-ruby))
-                                              ))
+(advice-add 'inf-ruby-console-auto :before
+            (lambda ()
+              (unless (and rvm--current-ruby rvm--current-gemset)
+                (rvm-activate-corresponding-ruby))
+              ))
 
 (add-hook 'after-init-hook 'inf-ruby-switch-setup)
 
@@ -12,9 +13,9 @@
 
 (add-hook 'inf-ruby-mode-hook
           (lambda ()
-             (define-key inf-ruby-mode-map [(control n)] 'comint-next-input)
-             (define-key inf-ruby-mode-map [(control p)] 'comint-previous-input)
-             ))
+            (define-key inf-ruby-mode-map [(control n)] 'comint-next-input)
+            (define-key inf-ruby-mode-map [(control p)] 'comint-previous-input)
+            ))
 
 (add-hook 'compilation-filter-hook 'inf-ruby-auto-enter)
 
