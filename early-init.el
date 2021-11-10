@@ -23,7 +23,6 @@
 (normal-top-level-add-subdirs-to-load-path)
 ")
 
-(relative-load "base_init.el")
 (relative-load "functions.el")
 (relative-load "keybindings.el")
 
@@ -49,6 +48,7 @@
 (global-set-key [(control o)] 'open-line-and-indent)
 
 (relative-load "autoloads.el")
+(relative-load "base_init.el")
 (relative-load "init.el")
 
 ;; 打开这两个变量, 查看那些包有错误.
@@ -61,7 +61,7 @@
 ;; ============================== 编程相关 ==============================
 
 
-;; (require 'diff-hl_init)
+;; (require 'treemacs_init)
 
 ;; (require 'rvm)
 ;; (require 'lsp-mode)
