@@ -1,3 +1,13 @@
+;; Emacs 默认只是在 shell, vterm, shell, term 下面设定这个环境变量.
+;; 这里全局增加这个环境变量.
+(setenv "INSIDE_EMACS" "true")
+;; (setenv "RUBYLIB" "") ;; 如果设置 RUBYLIB 为空，可能造成一些 ruby 工具无法使用
+(setenv "RUBYOPT" "")
+(setenv "http_proxy" "")
+(setenv "https_proxy" "")
+(setenv "ftp_proxy" "")
+
+
 ;; (setq read-process-output-max (* 1024 1024)) ;; 1M
 ;; (setq inhibit-compacting-font-caches t)  ; Don’t compact font caches during GC.
 
