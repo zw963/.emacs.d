@@ -15,12 +15,12 @@
 (setq treemacs-is-never-other-window t)
 (setq treemacs-silent-refresh    t)
 
-(defun treemacs-ignore-example (filename absolute-path)
-  (or (string-suffix-p filename ".elc")
-      ;; (string-prefix-p "/x/y/z/" absolute-path)
-      ))
+;; (defun treemacs-ignore-example (filename absolute-path)
+;;   (or (string-suffix-p filename ".elc")
+;;       ;; (string-prefix-p "/x/y/z/" absolute-path)
+;;       ))
 
-(add-to-list 'treemacs-ignored-file-predicates #'treemacs-ignore-example)
+;; (add-to-list 'treemacs-ignored-file-predicates #'treemacs-ignore-example)
 
 ;; (setq treemacs-width 30)
 
@@ -30,6 +30,10 @@
 
 ;; 改变图标大小，默认 22.
 ;; (treemacs-resize-icons 22)
+
+;; 让 treemacs 使用当前 active 的 window 打开新文件 buffer.
+;; (treemacs-define-doubleclick-action 'file-node-open #'treemacs-visit-node-in-most-recently-used-window)
+;; (treemacs-define-doubleclick-action 'file-node-closed #'treemacs-visit-node-in-most-recently-used-window)
 
 ;; (setq treemacs-indentation-string (propertize " ⫶ " 'face 'font-lock-comment-face)
 ;;       treemacs-indentation 1)
