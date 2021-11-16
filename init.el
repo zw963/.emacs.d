@@ -1,6 +1,6 @@
 ;; -*-Emacs-Lisp-*-
 
-;; ------------------------------显示相关设置------------------------------
+;; ------------------------------ Theme ------------------------------
 ;; popular themes: https://emacsthemes.com/popular/index.html
 ;; (setq zenburn-use-variable-pitch t)
 ;; (setq zenburn-scale-org-headlines t)

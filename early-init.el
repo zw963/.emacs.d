@@ -17,7 +17,6 @@
 (gcmh-mode)
 
 (require 'auto-compile_init)
-(require 'cl)
 
 (require 'server)
 ;; Emacs server 设定
@@ -65,20 +64,11 @@
 (unless (string= (getenv "LOAD_INIT") "true")
   (setq debug-on-error t)              ;需要调试时，开启这个。
   (setq no-byte-compile t)
-  ;;(setq debug-on-signal t)
+  ;; (setq debug-on-signal t)
   )
-
 ;; ============================== 编程相关 ==============================
-
 
 ;; (require 'treemacs_init)
 
-;; (require 'rvm)
-;; (require 'lsp-mode)
-;; (require 'lsp-modeline)
-;; (require 'lsp-headerline)
-;; (require 'dap-mode)
-;; (require 'dap-ui)
-;; (require 'dap-mouse)
-;; (require 'ruby_init)
-;; (require 'company)
+;; (normal-top-level-add-subdirs-to-load-path)
+;; (require 'treemacs)

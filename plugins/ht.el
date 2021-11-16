@@ -4,8 +4,6 @@
 
 ;; Author: Wilfred Hughes <me@wilfred.me.uk>
 ;; Version: 2.4
-;; Package-Version: 20210119.741
-;; Package-Commit: c4c1be487d6ecb353d07881526db05d7fc90ea87
 ;; Keywords: hash table, hash map, hash
 ;; Package-Requires: ((dash "2.12.0"))
 

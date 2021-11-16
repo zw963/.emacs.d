@@ -251,7 +251,7 @@ This is used by styles external to Emacs that don't understand faces."
 
 (defcustom alert-persist-idle-time 900
   "If idle this many seconds, all alerts become persistent.
-This can be overriden with the Never Persist option (:never-persist)."
+This can be overridden with the Never Persist option (:never-persist)."
   :type 'integer
   :group 'alert)
 
@@ -406,7 +406,7 @@ For user customization, see `alert-user-configuration'.")
   :group 'alert)
 
 (defface alert-trivial-face
-  '((t (:foreground "Dark Purple")))
+  '((t (:foreground "Dark Violet")))
   "Trivial alert face."
   :group 'alert)
 
@@ -732,7 +732,7 @@ strings."
                                     (if urgency
                                         (symbol-name urgency)
                                       "normal")))
-               alert-libnotify-additional-args))
+               (copy-tree alert-libnotify-additional-args)))
              (category (plist-get info :category)))
         (nconc args
                (list "--expire-time"
@@ -803,7 +803,7 @@ strings."
   "Internal store of notification ids returned by the `notifications' backend.
 Used for replacing notifications with the same id.  The key is
 the value of the :id keyword to `alert'.  An id is only stored
-here if there `alert' was called ith an :id keyword and handled
+here if there `alert' was called with an :id keyword and handled
 by the `notifications' style.")
 
 (when (featurep 'notifications)
@@ -867,6 +867,14 @@ From https://github.com/julienXX/terminal-notifier."
                        (alert-encode-string (plist-get info :message))
                        (alert-encode-string (plist-get info :title)))))
   (alert-message-notify info))
+
+(when (fboundp 'mac-do-applescript)
+  ;; Use built-in AppleScript support when possible.
+  (defun alert-osx-notifier-notify (info)
+    (mac-do-applescript (format "display notification %S with title %S"
+                                (alert-encode-string (plist-get info :message))
+                                (alert-encode-string (plist-get info :title))))
+    (alert-message-notify info)))
 
 (alert-define-style 'osx-notifier :title "Notify using native OSX notification" :notifier #'alert-osx-notifier-notify)
 
