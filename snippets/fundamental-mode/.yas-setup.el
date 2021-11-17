@@ -228,6 +228,24 @@ js 以 { 开头, function(done) { ... }
      " }")
    ))
 
+(defun ruby-do-block (&optional field-index field-content)
+  "Inset ruby do/end block."
+  ;; 如果是两个参数.
+  (insert
+   (if field-content
+       (concat
+        (yas-field-func field-index " do |")
+        (yas-field-string-content field-index field-content)
+        ;; 记住, 插入的字符串不可以 \n 结尾, 否则当 expand 的时候, 更改这个字段会发生缩进错误.
+        ;; 它会给你再加一个 \n, 但是不会自动缩进了.
+        (yas-field-func field-index "|")
+        ;; 原来在 | 后面的 \n, 挪到了这里.
+        "\n`(yas-stripped-selected-text)`$0"
+        (yas-field-func field-index "\nend"))
+     ;; 如果不是两个参数, field-index 如果存在, 表示不插入 $0, 否则插入.
+     (concat " do\n" (unless field-index "`(yas-stripped-selected-text \"\" \"\")``(if-key \"$0\")`") "\nend")
+     )))
+
 (defun block-left-border ()
   (if yas-selected-text
       (if (string-match "\n" yas-selected-text)
@@ -444,6 +462,7 @@ after-field-delimiter: 字段之后的标识符。例如： 结束双引号
 (yas-define-condition-cache yas-use-region-p (or (expand-from-key-p) (use-region-p)))
 (yas-define-condition-cache yas-in-interpolated-string-p (member (fourth (syntax-ppss)) (list ?\" ?\` ?/)))
 (yas-define-condition-cache yas-in-string-p (fourth (syntax-ppss)))
+(yas-define-condition-cache yas-in-string-p (not (fourth (syntax-ppss))))
 (yas-define-condition-cache yas-in-comment-p (fifth (syntax-ppss)))
 (yas-define-condition-cache yas-in-string-or-comment-p (or (fourth (syntax-ppss)) (fifth (syntax-ppss))))
 (yas-define-condition-cache yas-not-escaped-p (not (looking-back "\\\\")))
