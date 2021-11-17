@@ -4,7 +4,7 @@
 (require 'yard-mode_init)
 (require 'ruby-meta-return_init)
 (require 'rvm_init)
-;; (require 'ruby-test-mode_init)
+(require 'ruby-test-mode_init)
 (require 'ruby-mode_keyword_highlight_init)
 (require 'rbs-mode)
 

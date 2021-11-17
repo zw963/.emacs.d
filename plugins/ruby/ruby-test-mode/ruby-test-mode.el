@@ -124,7 +124,8 @@ Test Driven Development in Ruby."
     (,(pcre-to-elisp "(.*)/test/functional/(.*)_test\\.rb$") "\\1/app/controllers/\\2.rb")
 
     ;; Project/test/aaa/bbb_test.rb => Project/lib/aaa/bbb.rb
-    (,(pcre-to-elisp "(.*)/test/(.*)_test\\.rb$") "\\1/lib/\\2.rb")
+    ;; Project/test/aaa/bbb_test.rb => Project/app/aaa/bbb.rb
+    (,(pcre-to-elisp "(.*)/test/(.*)_test\\.rb$") "\\1/lib/\\2.rb" "\\1/app/\\2.rb")
 
     ;; make ruby-test-mode support asserts spec.
     (,(pcre-to-elisp "(.*)/spec/javascripts/(.*)_spec\\.(js|coffee)$")
