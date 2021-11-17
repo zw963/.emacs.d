@@ -121,23 +121,26 @@
 
 ;; TODO: 奇怪，取消某个设置, 会导致 next-line 到最后, 有奇怪的提示音.
 
-(setq use-file-dialog nil                       ;关闭 GUI dialog.
-      use-dialog-box nil
-      inhibit-startup-echo-area-message t
-      scroll-preserve-screen-position t         ;移动屏幕时，保持光标相对屏幕的位置不变。
-      revert-without-query '(".*")              ;设定那些 buffer 执行 revert 时, 不提示确认.
-      read-quoted-char-radix 10                 ;字符代码以十进制显示
-      echo-keystrokes 0.1                       ;快速在minibuffer显示按键提示，间隔0.1秒
-      display-time-day-and-date t               ;显示时间包含当前日期
-      blink-matching-paren nil                  ;关闭括号匹配自动跳转
-      visible-bell t                            ;开启屏幕闪屏提示
-      display-time-24hr-format t                ;使用24小时形式显示时间.
-      display-buffer-reuse-frames t             ;切换到已有的frame
-      dabbrev-case-fold-search nil              ;自动完成大小写敏感.
-      ;; initial-major-mode 'org-mode           ;初始的 scratch 使用 org-mode.
-      truncate-lines t                          ;关闭自动折行.
-      load-prefer-newer t                       ;总首选较新的那个。(即使 el 比elc 新)
-      )
+(setq
+ ;; 默认值 true, 表示如果用鼠标操作时，使用当前操作系统的 GUI 对话框来创建文件。
+ ;; use-file-dialog nil
+
+ ;; use-dialog-box nil
+ inhibit-startup-echo-area-message t
+ scroll-preserve-screen-position t         ;移动屏幕时，保持光标相对屏幕的位置不变。
+ revert-without-query '(".*")              ;设定那些 buffer 执行 revert 时, 不提示确认.
+ read-quoted-char-radix 10                 ;字符代码以十进制显示
+ echo-keystrokes 0.1                       ;快速在minibuffer显示按键提示，间隔0.1秒
+ display-time-day-and-date t               ;显示时间包含当前日期
+ blink-matching-paren nil                  ;关闭括号匹配自动跳转
+ visible-bell t                            ;开启屏幕闪屏提示
+ display-time-24hr-format t                ;使用24小时形式显示时间.
+ display-buffer-reuse-frames t             ;切换到已有的frame
+ dabbrev-case-fold-search nil              ;自动完成大小写敏感.
+ ;; initial-major-mode 'org-mode           ;初始的 scratch 使用 org-mode.
+ truncate-lines t                          ;关闭自动折行.
+ load-prefer-newer t                       ;总首选较新的那个。(即使 el 比elc 新)
+ )
 
 (require 'whitespace)
 (setq
