@@ -1,0 +1,6 @@
+# -*- mode: snippet -*-
+# name: must_respond_to
+# key: must
+# condition: (yas-ruby-test-p)
+# --
+must_respond_to :${1:meth}`(string-field "2" "." ", ")`

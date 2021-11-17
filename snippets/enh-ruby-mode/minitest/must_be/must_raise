@@ -1,0 +1,6 @@
+# -*- mode: snippet -*-
+# name: must_raise
+# key: must
+# condition: (yas-ruby-test-p)
+# --
+must_raise ${1:*Exception}`(string-field "2" "." ", ")`

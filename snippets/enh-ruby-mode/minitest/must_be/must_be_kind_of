@@ -1,0 +1,6 @@
+# -*- mode: snippet -*-
+# name: must_be_kind_of(..)
+# key: must
+# condition: (yas-ruby-test-p)
+# --
+must_be_kind_of ${1:Kind}`(string-field "2" "." ", ")`

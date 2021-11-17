@@ -1,0 +1,6 @@
+# -*- mode: snippet -*-
+# name: must_be_instance_of(..)
+# key: must
+# condition: (yas-ruby-test-p)
+# --
+must_be_instance_of ${1:ExpectedClass}`(string-field "2" "." ", ")`

@@ -1,0 +1,6 @@
+# -*- mode: snippet -*-
+# name: must_be_silent
+# key: must
+# condition: (yas-ruby-test-p)
+# --
+must_be_silent`(string-field "1" "." " ")`

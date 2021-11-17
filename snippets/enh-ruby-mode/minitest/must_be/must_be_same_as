@@ -1,0 +1,6 @@
+# -*- mode: snippet -*-
+# name: must_be_same_as
+# key: must
+# condition: (yas-ruby-test-p)
+# --
+must_be_same_as ${1:obj}`(string-field "2" "." ", ")`

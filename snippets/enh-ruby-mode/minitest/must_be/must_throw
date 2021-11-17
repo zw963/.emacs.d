@@ -1,0 +1,6 @@
+# -*- mode: snippet -*-
+# name: must_throw
+# key: must
+# condition: (yas-ruby-test-p)
+# --
+must_throw :${1:sym}`(string-field "2" "." ", ")`
