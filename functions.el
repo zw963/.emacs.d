@@ -79,7 +79,7 @@ Use `font-lock-add-keywords' in case of `ruby-mode' or
     (let ((root (if (locate-dominating-file default-directory ".git")
                     (expand-file-name (locate-dominating-file default-directory ".git"))
                   "")))
-      (kill-new (replace-regexp-in-string (regexp-quote root) "" (buffer-file-name)))
+      (kill-new (replace-regexp-in-string (regexp-quote root) "" (concat (buffer-file-name) ":" (number-to-string (line-number-at-pos)))))
       )))
 
 (defun rename-current-buffer-file ()
