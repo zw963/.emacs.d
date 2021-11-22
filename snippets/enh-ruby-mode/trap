@@ -1,0 +1,7 @@
+# -*- mode: snippet -*-
+# name: trap(:QUIT)
+# key: trap
+# --
+trap(`(field "1" "QUIT" ":")`) do
+  $0
+end
