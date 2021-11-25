@@ -3,6 +3,7 @@
 (require 'helm-git-grep)
 
 (setq helm-git-grep-pathspecs '("*" ":!:*.min.js*" ":!:*.less" ":!:*/vendor/assets*"))
+(setq helm-git-grep-ignore-case nil)
 
 (setq helm-git-grep-source
       (helm-make-source "Git Grep" 'helm-git-grep-class
@@ -18,7 +19,7 @@
   (interactive)
   (if (and (fboundp 'helm-ls-git-root-dir) (helm-ls-git-root-dir))
       (call-interactively 'helm-git-grep-at-point)
-    (call-interactively 'helm-do-ag)))
+    (call-interactively 'helm-do-ag-this-file)))
 
 (global-set-key (kbd "M-r") 'helm-git-grep-at-point-or-helm-do-ag)
 (define-key isearch-mode-map (kbd "M-r") 'helm-git-grep-from-isearch)
