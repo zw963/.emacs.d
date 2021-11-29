@@ -49,12 +49,6 @@
 (add-hook 'after-init-hook #'mu4e-alert-enable-notifications)
 (add-hook 'after-init-hook #'mu4e-alert-enable-mode-line-display)
 
-;; 所有未读邮件, 不含邮件列表, 及其他特殊分类。
-(setq mu4e-bookmarks '(("flag:unread" "Unread mail" ?u)))
-;; 添加今天、最近七天未读邮件, 这两个分类，包含所有类型邮件。
-(add-to-list 'mu4e-bookmarks '("date:today..now" "Today's messages" ?t))
-(add-to-list 'mu4e-bookmarks '("date:7d..now" "Last 7 days" ?w))
-
 ;; 以上所有分类，均不含标记为 Spam 的邮件, 需要单独进这个分类查找。
 ;; (add-github-watch '("maildir:/trash" "Spam email" ?s))
 
@@ -71,10 +65,11 @@
 ;;                                ))
 
 (setq mu4e-maildir-shortcuts
-      '( ("/INBOX"               . ?i)
-         ("/[Gmail].Sent Mail"   . ?s)
-         ("/[Gmail].Trash"       . ?t)
-         ("/[Gmail].All Mail"    . ?a)
+      '( ("/gmail/INBOX"               . ?i)
+         ("/gmail/[Gmail].Sent Mail"   . ?s)
+         ("/gmail/[Gmail].Drafts"   . ?s)
+         ("/gmail/[Gmail].Trash"       . ?t)
+         ("/gmail/[Gmail].All Mail"    . ?a)
          ))
 
 (setq

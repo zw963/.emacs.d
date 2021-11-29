@@ -77,6 +77,9 @@
         ))
 
 (require 'org-superstar)
+(setq org-hide-leading-stars nil)
+(setq org-superstar-leading-bullet ?\s)
+(setq org-indent-mode-turns-on-hiding-stars nil)
 (add-hook 'org-mode-hook #'org-superstar-mode)
 
 ;; 快捷键：C-c C-j 打开新的 entry, C-c C-k 保存并关闭

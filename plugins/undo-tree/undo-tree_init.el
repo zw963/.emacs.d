@@ -32,5 +32,10 @@
 (define-key undo-tree-visualizer-mode-map [(l)] 'undo-tree-visualize-switch-branch-right)
 (define-key undo-tree-visualizer-mode-map [(j)] 'undo-tree-visualize-switch-branch-left)
 
+;; (require 'undo-fu)
+;; (global-unset-key (kbd "C-z"))
+;; (global-set-key (kbd "C-z")   'undo-fu-only-undo)
+;; (global-set-key (kbd "C-S-z") 'undo-fu-only-redo)
+
 (provide 'undo-tree_init)
 ;;; undo-tree_init.el ends here

@@ -1,4 +1,4 @@
-;; awesome-tray.el ---  Modular tray bar
+;;; awesome-tray.el ---  Modular tray bar
 
 ;; Filename: awesome-tray.el
 ;; Description: Modular tray bar
@@ -6,8 +6,8 @@
 ;; Maintainer: Andy Stewart <lazycat.manatee@gmail.com>
 ;; Copyright (C) 2018, Andy Stewart, all rights reserved.
 ;; Created: 2018-10-07 07:30:16
-;; Version: 3.2
-;; Last-Updated: 2019-08-20 20:27:18
+;; Version: 4.2
+;; Last-Updated: 2020-06-18 21:02:39
 ;;           By: Andy Stewart
 ;; URL: http://www.emacswiki.org/emacs/download/awesome-tray.el
 ;; Keywords:
@@ -17,6 +17,7 @@
 ;;
 ;; `cl-lib'
 ;; `subr-x'
+;; `battery'
 ;;
 
 ;;; This file is NOT part of GNU Emacs
@@ -67,12 +68,46 @@
 ;; `awesome-tray-mode-line-inactive-color'
 ;; `awesome-tray-active-modules'
 ;; `awesome-tray-git-update-duration'
+;; `awesome-tray-refresh-idle-delay'
+;; `awesome-tray-buffer-name-buffer-changed'
+;; `awesome-tray-buffer-name-buffer-changed-style'
+;; `awesome-tray-input-method-en-style'
+;; `awesome-tray-input-method-zh-style'
+;; `awesome-tray-buffer-read-only-style'
 ;;
 ;; All of the above can customize by:
 ;;      M-x customize-group RET awesome-tray RET
 ;;
 
 ;;; Change log:
+;;
+;; 2020/06/18
+;;      * Shorter date info.
+;;
+;; 2020/05/06
+;;      * Just show origin message if got any error, easy to debug.
+;;
+;; 2020/04/01
+;;      * Shorter tray info.
+;;
+;; 2020/02/27
+;;      * Adapter the latest version of the snails.
+;;      * Adjust algorithm of `awesome-tray-get-frame-width'.
+;;
+;; 2020/02/19
+;;      * Add week info in date.
+;;
+;; 2020/02/14
+;;      * Add `awesome-tray-battery-update-duration' to fix `set-mark-command' failed.
+;;
+;; 2020/02/10
+;;      * Add battery remaining time.
+;;
+;; 2020/02/05
+;;      * Add battery status.
+;;
+;; 2020/01/05
+;;      * Hide awesome-tab info if it is too long.
 ;;
 ;; 2019/08/20
 ;;      * Use variable `awesome-tray-mode-line-default-height' fix issue #34.
@@ -164,6 +199,7 @@
 ;;; Require
 (require 'cl-lib)
 (require 'subr-x)
+(require 'battery)
 
 ;;; Code:
 (defgroup awesome-tray nil
@@ -181,10 +217,26 @@
   :group 'awesome-tray)
 
 (defcustom awesome-tray-active-modules
-  '("location" "parent-dir" "mode-name" "awesome-tab" "date")
+  '("location" "buffer-name" "belong" "file-path" "mode-name" "input-method" "battery" "date")
   "Default active modules."
   :type 'list
   :group 'awesome-tray)
+
+(defcustom awesome-tray-essential-modules
+  '("location" "buffer-name" "belong" "file-path")
+  "Default ellipsis modules, show when minibuffer is too long."
+  :type 'list
+  :group 'awesome-tray)
+
+(defcustom awesome-tray-buffer-name-max-length 20
+  "Max length of buffer name."
+  :group 'awesome-tray
+  :type 'int)
+
+(defcustom awesome-tray-file-name-max-length 20
+  "Max length of file name."
+  :group 'awesome-tray
+  :type 'int)
 
 (defcustom awesome-tray-git-update-duration 5
   "Update duration of git command, in seconds.
@@ -192,6 +244,48 @@
 It's very slow start new process in Windows platform.
 Maybe you need set this option with bigger value to speedup on Windows platform."
   :type 'integer
+  :group 'awesome-tray)
+
+(defcustom awesome-tray-belong-update-duration 5
+  "Update duration of which class, in seconds."
+  :type 'integer
+  :group 'awesome-tray)
+
+(defcustom awesome-tray-battery-update-duration 5
+  "Update duration of battery status, in seconds.
+
+It will make command `set-mark-command' failed if not use duration."
+  :type 'integer
+  :group 'awesome-tray)
+
+(defcustom awesome-tray-refresh-idle-delay 0.5
+  "Update idle delay of awesome tray, in seconds."
+  :type 'double
+  :group 'awesome-tray)
+
+(defcustom awesome-tray-buffer-name-buffer-changed-style "*"
+  "`awesome-tray-buffer-name-buffer-changed' style."
+  :type 'string
+  :group 'awesome-tray)
+
+(defcustom awesome-tray-buffer-name-buffer-changed nil
+  "Show the current buffer changes after buffer-name."
+  :type 'boolean
+  :group 'awesome-tray)
+
+(defcustom awesome-tray-input-method-en-style "EN"
+  "English input method display style for input-method module."
+  :type 'string
+  :group 'awesome-tray)
+
+(defcustom awesome-tray-input-method-zh-style "ZH"
+  "Chinese input method display style for input-method module."
+  :type 'string
+  :group 'awesome-tray)
+
+(defcustom awesome-tray-buffer-read-only-style "R-O"
+  "Display style for buffer-read-only module."
+  :type 'string
   :group 'awesome-tray)
 
 (defcustom awesome-tray-file-path-show-filename nil
@@ -218,6 +312,10 @@ their first character.
 
 These goes before those shown in their full names."
   :type 'integer
+  :group 'awesome-tray)
+
+(defface awesome-tray-default-face '((t :inherit default))
+  "Face for string constant ouside modules."
   :group 'awesome-tray)
 
 (defface awesome-tray-module-git-face
@@ -316,6 +414,39 @@ These goes before those shown in their full names."
   "Evil state face."
   :group 'awesome-tray)
 
+(defface awesome-tray-module-battery-face
+  '((((background light))
+     :foreground "#008080" :bold t)
+    (t
+     :foreground "#00ced1" :bold t))
+  "Battery state face."
+  :group 'awesome-tray)
+
+(defface awesome-tray-module-buffer-read-only-face
+  '((((background light))
+     :foreground "#cc2444" :bold t)
+    (t
+     :foreground "#ff2d55" :bold t))
+  "Buffer read only face."
+  :group 'awesome-tray)
+
+(defface awesome-tray-module-belong-face
+  '((((background light))
+     :foreground "#cc2444" :bold t)
+    (t
+     :foreground "#ff2d55" :bold t))
+  "Buffer read only face."
+  :group 'awesome-tray)
+
+(defface awesome-tray-module-input-method-face
+  '((((background light))
+     :foreground "#008080" :bold t)
+    (t
+     :foreground "#00ced1" :bold t))
+  "Input method face."
+  :group 'awesome-tray)
+
+;;;###autoload
 (define-minor-mode awesome-tray-mode
   "Modular tray bar."
   :require 'awesome-tray-mode
@@ -324,7 +455,7 @@ These goes before those shown in their full names."
       (awesome-tray-enable)
     (awesome-tray-disable)))
 
-(defvar awesome-tray-info-padding-right 1)
+(defvar awesome-tray-info-padding-right 0)
 
 (defvar awesome-tray-mode-line-colors nil)
 
@@ -335,6 +466,16 @@ These goes before those shown in their full names."
 (defvar awesome-tray-git-command-last-time 0)
 
 (defvar awesome-tray-git-command-cache "")
+
+(defvar awesome-tray-belong-last-time 0)
+
+(defvar awesome-tray-belong-last-buffer nil)
+
+(defvar awesome-tray-belong-cache "")
+
+(defvar awesome-tray-battery-status-last-time 0)
+
+(defvar awesome-tray-battery-status-cache "")
 
 (defvar awesome-tray-last-tray-info nil)
 
@@ -353,6 +494,10 @@ These goes before those shown in their full names."
     ("parent-dir" . (awesome-tray-module-parent-dir-info awesome-tray-module-parent-dir-face))
     ("mode-name" . (awesome-tray-module-mode-name-info awesome-tray-module-mode-name-face))
     ("rvm" . (awesome-tray-module-rvm-info awesome-tray-module-rvm-face))
+    ("battery" . (awesome-tray-module-battery-info awesome-tray-module-battery-face))
+    ("input-method" . (awesome-tray-module-input-method-info awesome-tray-module-input-method-face))
+    ("buffer-read-only" . (awesome-tray-module-buffer-read-only-info awesome-tray-module-buffer-read-only-face))
+    ("belong" . (awesome-tray-module-belong-info awesome-tray-module-belong-face))
     ))
 
 (defun awesome-tray-enable ()
@@ -384,7 +529,7 @@ These goes before those shown in their full names."
                       :inherit 'unspecified)
   ;; Add update timer.
   (setq awesome-tray-timer
-        (run-with-timer 0 0.5 'awesome-tray-show-info))
+        (run-with-timer 0 awesome-tray-refresh-idle-delay 'awesome-tray-show-info))
   (add-hook 'focus-in-hook 'awesome-tray-show-info)
   (setq awesome-tray-active-p t))
 
@@ -413,19 +558,31 @@ These goes before those shown in their full names."
     (erase-buffer))
   (setq awesome-tray-active-p nil))
 
-(defun awesome-tray-build-info ()
+(defun awesome-tray-build-active-info ()
   (condition-case nil
       (mapconcat 'identity (cl-remove-if #'(lambda (n) (equal (length n) 0))
                                          (mapcar 'awesome-tray-get-module-info awesome-tray-active-modules)) " ")
     (format "Awesome Tray broken.")))
 
+(defun awesome-tray-build-essential-info ()
+  (condition-case nil
+      (mapconcat 'identity (cl-remove-if #'(lambda (n) (equal (length n) 0))
+                                         (mapcar 'awesome-tray-get-module-info awesome-tray-essential-modules)) " ")
+    (format "Awesome Tray broken.")))
+
 (defun awesome-tray-get-module-info (module-name)
   (let* ((func (ignore-errors (cadr (assoc module-name awesome-tray-module-alist))))
-         (face (ignore-errors (cddr (assoc module-name awesome-tray-module-alist))))
-         (info (ignore-errors (propertize (funcall func) 'face face))))
-    (if info
-        info
-      (propertize "" 'face face))))
+         (face-param (ignore-errors (caddr (assoc module-name awesome-tray-module-alist))))
+         (face (cond ((functionp face-param) (funcall face-param))
+                     ((facep face-param) face-param)
+                     (t nil)))
+         (raw-info (ignore-errors (funcall func)))
+         (info (ignore-errors (if face (propertize raw-info 'face face) raw-info))))
+    (if func
+        (if info
+            info
+          (propertize "" 'face face))
+      (propertize module-name 'face 'awesome-tray-default-face))))
 
 (defun awesome-tray-module-git-info ()
   (if (executable-find "git")
@@ -452,44 +609,90 @@ These goes before those shown in their full names."
               )
     ""))
 
+(defun awesome-tray-module-battery-info ()
+  (let ((current-seconds (awesome-tray-current-seconds)))
+    (if (> (- current-seconds awesome-tray-battery-status-last-time) awesome-tray-battery-update-duration)
+        (let* ((battery-info (funcall battery-status-function))
+               (battery-type (battery-format "%L" battery-info))
+               battery-status)
+          (setq awesome-tray-battery-status-last-time current-seconds)
+
+          ;; Short battery type.
+          (cond ((string-equal battery-type "on-line")
+                 (setq battery-type "ON")
+                 (setq battery-status (battery-format "-%p%%" battery-info)))
+                ((string-equal battery-type "off-line")
+                 (setq battery-type "OFF")
+                 (setq battery-status (battery-format "-%p%% %t" battery-info))))
+
+          ;; Update battery cache.
+          (setq awesome-tray-battery-status-cache (concat battery-type battery-status)))
+      awesome-tray-battery-status-cache)))
+
 (defun awesome-tray-module-mode-name-info ()
-  (format "%s" major-mode))
+  (car (split-string (format "%s" major-mode) "-mode")))
 
 (defun awesome-tray-module-location-info ()
-  (format "(%s:%s %s)"
+  (format "%s:%s %s"
           (format-mode-line "%l")
           (format-mode-line "%c")
           (format-mode-line "%p")
           ))
 
 (defun awesome-tray-module-date-info ()
-  (format-time-string "[%Y-%m-%d %H:%M]"))
+  (format-time-string "%m-%d %H:%M %a"))
 
 (defun awesome-tray-module-last-command-info ()
   (format "%s" last-command))
 
 (defun awesome-tray-module-buffer-name-info ()
-  (format "%s" (buffer-name)))
+  (let ((ellipsis "...")
+        bufname)
+    (setq bufname (if awesome-tray-buffer-name-buffer-changed
+                      (if (and (buffer-modified-p)
+                               (not (eq buffer-file-name nil)))
+                          (concat (buffer-name) awesome-tray-buffer-name-buffer-changed-style)
+                        (buffer-name))
+                    (format "%s" (buffer-name))))
+    (if (> (length bufname) awesome-tray-buffer-name-max-length)
+        (format "%s%s" (substring bufname 0 (- awesome-tray-buffer-name-max-length (length ellipsis))) ellipsis)
+      bufname)))
+
+(defun awesome-tray-module-buffer-read-only-info ()
+  (if (and (eq buffer-read-only t)
+           (not (eq buffer-file-name nil)))
+      (format "%s" awesome-tray-buffer-read-only-style)))
+
+(defun awesome-tray-module-input-method-info ()
+  (if (eq current-input-method nil)
+      (format "%s" awesome-tray-input-method-en-style)
+    (format "%s" awesome-tray-input-method-zh-style)))
 
 (defun awesome-tray-module-parent-dir-info ()
-  (if (or (derived-mode-p 'dired-mode) (not buffer-file-name))
-      ""
-    (format "%sdir:%s"
-            (if (buffer-modified-p) "*" "")
-            (file-name-nondirectory (directory-file-name default-directory)))))
+  (format "%s" (file-name-nondirectory (directory-file-name default-directory))))
 
 (defun awesome-tray-shrink-dir-name (name)
   "Shrink NAME to be its first letter, or the first two if starts \".\"
 
 NAME is a string, typically a directory name."
-  (let ((dot-num (if (string-match "\\.+" name)
+  (let ((dot-num (if (string-match "^\\.+" name)
                      (length (match-string 0 name))
                    0)))
-    (substring name 0 (+ dot-num awesome-tray-file-path-truncated-name-length))))
+    (substring name 0 (min (length name) (+ dot-num awesome-tray-file-path-truncated-name-length)))))
 
 (defun awesome-tray-module-file-path-info ()
   (if (not buffer-file-name)
-      (format "%s" (buffer-name))
+      (let ((ellipsis "...")
+            (bufname (buffer-name)))
+        (setq bufname (if awesome-tray-buffer-name-buffer-changed
+                          (if (and (buffer-modified-p)
+                                   (not (eq buffer-file-name nil)))
+                              (concat (buffer-name) awesome-tray-buffer-name-buffer-changed-style)
+                            (buffer-name))
+                        (format "%s" (buffer-name))))
+        (if (> (length bufname) awesome-tray-file-name-max-length)
+            (format "%s%s" (substring bufname 0 (- awesome-tray-file-name-max-length (length ellipsis))) ellipsis)
+          bufname))
     (let* ((file-path (split-string (buffer-file-name) "/" t))
            (shown-path)
            (path-len (length file-path))
@@ -517,13 +720,16 @@ NAME is a string, typically a directory name."
                   "/"
                 ".../")
               (string-join (nreverse (cl-remove "" shown-path)) "/")
-              (when (not show-name) "/")))))
+              (when (and shown-path (not show-name)) "/")))))
 
 (defun awesome-tray-module-awesome-tab-info ()
   (with-demoted-errors
       ""
     (if (featurep 'awesome-tab)
-        (format "%s" (cdr (awesome-tab-selected-tab (awesome-tab-current-tabset t))))
+        (let ((tab-info (format "%s" (cdr (awesome-tab-selected-tab (awesome-tab-current-tabset t))))))
+          (if (> (string-width tab-info) 30)
+              ""
+            tab-info))
       "")))
 
 (defun awesome-tray-module-evil-info ()
@@ -542,43 +748,105 @@ NAME is a string, typically a directory name."
           state)
       "")))
 
+(defun awesome-tray-module-belong-info ()
+  (if (featurep 'tree-sitter)
+      (let ((current-seconds (awesome-tray-current-seconds)))
+        (if (or (not (eq (current-buffer) awesome-tray-belong-last-buffer))
+                (> (- current-seconds awesome-tray-belong-last-time) awesome-tray-belong-update-duration))
+            (progn
+              (setq awesome-tray-belong-last-time current-seconds)
+              (setq awesome-tray-belong-last-buffer (current-buffer))
+              (awesome-tray-update-belong-cache))
+          awesome-tray-belong-cache))
+    ""))
+
+(defun awesome-tray-update-belong-cache ()
+  (setq awesome-tray-belong-cache
+        (let* ((class-nodes (append (awesome-tray-get-match-nodes "(class_definition name: (symbol) @x)")
+                                    (awesome-tray-get-match-nodes "(class_definition name: (identifier) @x)")))
+               (function-nodes (append (awesome-tray-get-match-nodes "(function_definition name: (symbol) @x)")
+                                       (awesome-tray-get-match-nodes "(function_definition name: (identifier) @x)")))
+               which-belong-info
+               which-class-info
+               which-func-info)
+          (setq which-class-info (catch 'found
+                                   (dolist (class-node class-nodes)
+                                     (when (and (> (point) (tsc-node-start-position (tsc-get-parent class-node)))
+                                                (< (point) (tsc-node-end-position (tsc-get-parent class-node))))
+                                       (throw 'found (tsc-node-text class-node)))
+                                     )
+                                   (throw 'found "")))
+          (setq which-func-info (catch 'found
+                                  (dolist (function-node function-nodes)
+                                    (when (and (> (point) (tsc-node-start-position (tsc-get-parent function-node)))
+                                               (< (point) (tsc-node-end-position (tsc-get-parent function-node))))
+                                      (throw 'found (tsc-node-text function-node)))
+                                    )
+                                  (throw 'found "")))
+          (setq which-belong-info (string-trim (concat which-class-info " " which-func-info)))
+          (if (string-equal which-belong-info "")
+              ""
+            (format "[%s]" which-belong-info))))
+  awesome-tray-belong-cache)
+
+(defun awesome-tray-get-match-nodes (match-rule)
+  (ignore-errors
+    (let* ((query (tsc-make-query tree-sitter-language match-rule))
+           (root-node (tsc-root-node tree-sitter-tree))
+           (captures (mapcar #'cdr (tsc-query-captures query root-node #'tsc--buffer-substring-no-properties))))
+      captures)))
+
 (defun awesome-tray-show-info ()
   ;; Only flush tray info when current message is empty.
   (unless (current-message)
     (awesome-tray-flush-info)))
 
 (defun awesome-tray-get-frame-width ()
-  "Support `snails' framework.
-When snails active, calculate previous frame's width,
-Otherwise calculate current frame's width."
-  (if (and (featurep 'snails)
-           snails-frame
-           (frame-live-p snails-frame))
-      (frame-width (previous-frame))
+  "Only calculating a main Frame width, to avoid wrong width when new frame, such as `snails'."
+  (if (display-graphic-p)
+      (with-selected-frame (car (last (frame-list)))
+        (frame-width))
     (frame-width)))
 
 (defun awesome-tray-flush-info ()
-  (let* ((tray-info (awesome-tray-build-info)))
+  (let* ((tray-info (awesome-tray-build-active-info)))
     (with-current-buffer " *Minibuf-0*"
       (erase-buffer)
       (insert (concat (make-string (max 0 (- (awesome-tray-get-frame-width) (string-width tray-info) awesome-tray-info-padding-right)) ?\ ) tray-info)))))
 
 (defun awesome-tray-get-echo-format-string (message-string)
-  (let* ((tray-info (awesome-tray-build-info))
-         (blank-length (- (awesome-tray-get-frame-width) (string-width tray-info) (string-width message-string) awesome-tray-info-padding-right))
-         (empty-fill-string (make-string (max 0 (- (awesome-tray-get-frame-width) (string-width tray-info) awesome-tray-info-padding-right)) ?\ ))
-         (message-fill-string (make-string (max 0 (- (awesome-tray-get-frame-width) (string-width message-string) (string-width tray-info) awesome-tray-info-padding-right)) ?\ )))
+  (let* ((tray-info (awesome-tray-build-active-info))
+         (blank-length (- (awesome-tray-get-frame-width) (string-width tray-info) (string-width message-string) awesome-tray-info-padding-right)))
     (prog1
-        (if (> blank-length 0)
-            ;; Fill message's end with whitespace to keep tray info at right of minibuffer.
-            (concat message-string message-fill-string tray-info)
-          (if (and awesome-tray-last-tray-info
-                   message-string
-                   (string-suffix-p awesome-tray-last-tray-info message-string))
-              ;; Fill empty whitespace if new message contain duplicate tray-info (cause by move mouse on minibuffer window).
-              (concat empty-fill-string tray-info)
-            ;; Don't fill whitepsace at end of message if new message is very long.
-            (concat message-string "\n" empty-fill-string tray-info)))
+        (cond
+         ;; Fill message's end with whitespace to keep tray info at right of minibuffer.
+         ((> blank-length 0)
+          (concat message-string
+                  (make-string (max 0 (- (awesome-tray-get-frame-width)
+                                         (string-width message-string)
+                                         (string-width tray-info)
+                                         awesome-tray-info-padding-right)) ?\ )
+                  tray-info))
+         ;; Fill empty whitespace if new message contain duplicate tray-info (cause by move mouse on minibuffer window).
+         ((and awesome-tray-last-tray-info
+               message-string
+               (string-suffix-p awesome-tray-last-tray-info message-string))
+          (concat (make-string (max 0 (- (awesome-tray-get-frame-width)
+                                         (string-width tray-info)
+                                         awesome-tray-info-padding-right)) ?\ )
+                  tray-info))
+         (t
+          (let* ((essential-info (awesome-tray-build-essential-info))
+                 (fill-string (make-string (max 0 (- (awesome-tray-get-frame-width)
+                                                     (string-width essential-info)
+                                                     (string-width message-string)
+                                                     awesome-tray-info-padding-right)) ?\ )))
+            (if (> (+ (string-width message-string) (string-width fill-string) (string-width essential-info))
+                   (awesome-tray-get-frame-width))
+                ;; Don't show tray information if message is too long.
+                message-string
+              (concat message-string fill-string essential-info))
+            )))
       ;; Record last tray information.
       (setq awesome-tray-last-tray-info tray-info))))
 
@@ -604,28 +872,46 @@ Otherwise calculate current frame's width."
 ;; Wrap `message' make tray information visible always
 ;; even other plugins call `message' to flush minibufer.
 (defun awesome-tray-message-advice (old-message &rest arguments)
-  (unless (ignore-errors
-            (cond
-             ;; Don't wrap tray info if `awesome-tray-active-p' is nil.
-             ((not awesome-tray-active-p)
-              (apply old-message arguments))
-             ;; Don't wrap awesome-tray info if variable `inhibit-message' is non-nil.
-             (inhibit-message
-              (apply old-message arguments))
-             ;; Just flush tray info if message string is empty.
-             ((not (car arguments))
-              (apply old-message arguments)
-              (awesome-tray-flush-info))
-             ;; Otherwise, wrap message string with tray info.
-             (t
-              (apply old-message "%s" (cons (awesome-tray-get-echo-format-string (apply 'format arguments)) '()))
-              ))
-            ;; Return t if everything is okay.
-            t)
-    (apply old-message "Sorry, something error in awesome-tray.")
-    ))
+  (if (ignore-errors
+        (cond
+         ;; Don't wrap tray info if `awesome-tray-active-p' is nil.
+         ((not awesome-tray-active-p)
+          (apply old-message arguments))
+
+         ;; Don't wrap awesome-tray info if variable `inhibit-message' is non-nil.
+         (inhibit-message
+          (apply old-message arguments))
+
+         ;; Just flush tray info if message string is empty.
+         ((not (car arguments))
+          (apply old-message arguments)
+          (awesome-tray-flush-info))
+
+         ;; Otherwise, wrap message string with tray info and show it in echo area,
+         ;; logging origin message at `*Messages*' buffer if allowed.
+         (t
+          (if message-log-max
+              (let ((inhibit-message t))
+                (apply old-message arguments)))
+          (let ((message-log-max nil))
+            (apply old-message "%s" (cons (awesome-tray-get-echo-format-string (apply 'format arguments)) '())))))
+
+        ;; Return t if everything is okay.
+        t)
+      ;; Return origin message string. if not, `message' function will always return `nil'.
+      (if (car arguments)
+          (apply 'format arguments))
+    (apply old-message arguments)))
 
 (advice-add #'message :around #'awesome-tray-message-advice)
+
+(defun awesome-tray-current-message-advice (old-func &rest arguments)
+  (let ((message-string (apply old-func arguments)))
+    (if (and message-string awesome-tray-last-tray-info)
+        (string-trim-right (replace-regexp-in-string awesome-tray-last-tray-info "" message-string))
+      message-string)))
+
+(advice-add #'current-message :around #'awesome-tray-current-message-advice)
 
 (defun awesome-tray-end-of-buffer-advice (old-func &rest arguments)
   (apply old-func arguments)
