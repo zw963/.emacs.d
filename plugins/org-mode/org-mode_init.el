@@ -4,18 +4,13 @@
 ;; 命令: org-md-export-as-markdown
 (require 'ox-md)
 
-;; 听说可以让性能好一些?
-(remove-hook 'org-mode-hook #'org-superstar-mode)
-
-(setq org-hide-leading-stars nil)
-
 ;; (setq org-fontify-quote-and-verscmee-blocks nil
 ;;       org-fontify-whole-heading-line nil
 ;;       org-hide-leading-stars nil)
 
 (setq org-startup-with-inline-images t)
 
-(setq org-completion-use-ido t)
+;; (setq org-completion-use-ido t)
 (setq org-hide-leading-stars t) ;隐藏刚开始的*符号
 (setq org-table-auto-blank-field nil)
 
@@ -81,8 +76,20 @@
         ;; ... add all the components here (see below)...
         ))
 
-(require 'org-bullets)
-(add-hook 'org-mode-hook 'org-bullets-mode)
+(require 'org-superstar)
+(add-hook 'org-mode-hook #'org-superstar-mode)
+
+;; 快捷键：C-c C-j 打开新的 entry, C-c C-k 保存并关闭
+(require 'org-journal)
+(setq org-journal-dir (expand-file-name "org/journal" default-directory))
+;; (setq org-journal-date-prefix "#+TITLE: ")
+;; (setq org-journal-time-prefix "* ")
+(setq org-journal-date-format "%F, %A")
+(setq org-journal-time-format "%T ")
+(setq org-journal-file-format "%Y/%m.org")
+(setq org-journal-file-type 'Monthly)
+(setq org-journal-enable-agenda-integration t)
+(setq org-journal-enable-cache t)
 
 (provide 'org-mode_init)
 ;;; org-mode_init.el ends here
