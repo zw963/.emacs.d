@@ -15,7 +15,7 @@
 ;; rbtagger 和 ctags-update，lsp 冲突。
 ;; (require 'rbtagger_init)
 ;; (require 'ctags-update_init)
-(require 'ruby-mode-lsp_init)
+;; (require 'ruby-mode-lsp_init)
 (require 'rspec-mode_init)
 (require 'yari_init)
 
