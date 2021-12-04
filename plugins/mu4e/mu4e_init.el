@@ -7,12 +7,12 @@
 (setq
  send-mail-function 'smtpmail-send-it
  smtpmail-stream-type 'starttls
- smtpmail-default-smtp-server "smtp.gmail.com"
- smtpmail-smtp-server "smtp.gmail.com"       ;不确定是否可以使用环境变量.
+ ;; smtpmail-default-smtp-server "smtp.gmail.com"
+ ;; smtpmail-smtp-server "smtp.gmail.com"       ; 使用 SMTPSERVER 环境变量
  smtpmail-smtp-service 587                   ; 587 是 gmail 的 smtp 端口.
- user-full-name "Billy.Zheng"           ;发件人姓名, $NAME 环境变量指定
- user-mail-address "vil963@gmail.com"      ;发件人默认邮件地址, 可以通过 $EMAIL 来指定.
- smtpmail-smtp-user "vil963"
+ ;; user-full-name "Billy.Zheng"           ;发件人姓名, $NAME 环境变量指定
+ ;; user-mail-address "my_email@gmail.com"      ;发件人默认邮件地址, 可以通过 $EMAIL 来指定.
+ ;; smtpmail-smtp-user "myuser"                 ; 会自动在 .netrc 中查找
  smtpmail-queue-mail nil   ; 不使用 queue 模式, mu 要求这样设定来支持离线模式。
  smtpmail-queue-dir   "~/Maildir/queue/cur"
  starttls-use-gnutls t
