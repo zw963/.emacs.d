@@ -87,6 +87,9 @@
 (require 'package)
 (add-to-list 'package-archives '("marmalade" . "http://marmalade-repo.org/packages/"))
 (add-to-list 'package-archives '("melpa" . "https://melpa.org/packages/"))
+(add-to-list 'package-archives '("elpy" . "http://jorgenschaefer.github.io/packages/"))
+(add-to-list 'package-archives '("gnu" . "http://elpa.emacs-china.org/gnu/"))
+
 ;; 注意，flycheck 依赖这个包，对 emacs-lisp 做语法检查。
 ;; (package-initialize)
 

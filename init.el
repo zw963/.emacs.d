@@ -7,9 +7,10 @@
 ;; (setq zenburn-scale-outline-headlines t)
 ;; (load-theme 'zenburn t)
 
-;; (load-theme 'material t) ;; 这个是原来的
+(load-theme 'material t) ;; 这个是原来的
+;; (load-theme 'material-light t) ;; 这个是原来的
 ;; (require 'spacemacs-common)
-(load-theme 'spacemacs-dark t)
+;; (load-theme 'spacemacs-dark t)
 ;; (load-theme 'dracula t)
 
 ;; (require 'doom-themes)
@@ -52,6 +53,7 @@
 (require 'beacon_init)
 (require 'which-key_init)
 (require 'zoom-frm_init)
+;; (require 'awesome-tray_init)
 (require 'smart-mode-line_init)
 (require 'minimap_init)
 ;; (require 'eyebrowse_init)
@@ -92,7 +94,6 @@
 ;; (require 'solargraph_init) -----------
 ;; (require 'quickrun_init)
 ;; (require 'spaceline_init)
-;; (require 'awesome-tray_init)
 ;; (require 'awesome-tab_init)
 ;; (require 'awesome-pair_init)
 ;; (require 'super-save_init)

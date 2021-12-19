@@ -1,0 +1,7 @@
+# -*- mode: snippet -*-
+# name: generate a file
+# key: generate
+# --
+[ -e ${1:file_name} ] || cat <<'HEREDOC' > $1
+  $0
+HEREDOC
