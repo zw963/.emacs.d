@@ -82,6 +82,16 @@ Use `font-lock-add-keywords' in case of `ruby-mode' or
       (kill-new (replace-regexp-in-string (regexp-quote root) "" (concat (buffer-file-name) ":" (number-to-string (line-number-at-pos)))))
       )))
 
+(defun save-buffer-and-kill-buffer-and-window ()
+  "Simple convenience function.
+  Saves the buffer of the current day's entry and kills the window
+  Similar to org-capture like behavior"
+  (interactive)
+  (save-buffer)
+  (kill-buffer-and-window))
+
+(global-set-key [(control c) (control k)] 'save-buffer-and-kill-buffer-and-window)
+
 (defun rename-current-buffer-file ()
   "Renames current buffer and file it is visiting."
   (interactive)
