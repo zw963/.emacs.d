@@ -62,12 +62,19 @@
     (run-process "bc2" fn)))
 
 (require 'dired)
-(define-key dired-mode-map [(control f11)] 'dired-bc1-current-file)
-(define-key dired-mode-map [(meta f11)] 'dired-bc2-current-file)
+
+(add-hook 'dired-mode-hook
+          (lambda ()
+            (define-key dired-mode-map [(control f12)] 'dired-bc1-current-file)
+            (define-key dired-mode-map [(meta f12)] 'dired-bc2-current-file)
+            ))
 
 (require 'ibuffer)
-(define-key ibuffer-mode-map [(control f11)] 'ibuffer-bc1-current-file)
-(define-key ibuffer-mode-map [(meta f11)] 'ibuffer-bc2-current-file)
+(add-hook 'ibuffer-mode-hook
+          (lambda ()
+            (define-key ibuffer-mode-map [(control f12)] 'ibuffer-bc1-current-file)
+            (define-key ibuffer-mode-map [(meta f12)] 'ibuffer-bc2-current-file)
+            ))
 
 (provide 'beyond-compare_init)
 
