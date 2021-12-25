@@ -25,6 +25,21 @@
   (add-hook 'dart-mode-hook 'lsp)
   )
 
+(require 'flutter)
+
+(setq flutter-l10n-arb-dir "lib/i10n")
+(setq flutter-l10n-template-arb-file "intl_zh_Hans.arb")
+
+(add-hook 'dart-mode-hook 'flutter-test-mode)
+(define-key dart-mode-map (kbd "C-M-x") 'flutter-run-or-hot-reload)
+
+(require 'hover)
+
+(setq hover-command-path "hover")
+(setq hover-hot-reload-on-save t)
+(setq hover-clear-buffer-on-hot-restart t)
+(setq hover-screenshot-path "$HOME/Pictures")
+
 (provide 'dart-mode_init)
 
 ;;; dart-mode_init.el ends here

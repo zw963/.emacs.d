@@ -19,6 +19,12 @@
 (with-eval-after-load 'which-key
   (add-hook 'lsp-after-open-hook 'lsp-enable-which-key-integration))
 
+
+(add-hook 'lsp-mode-hook
+          (lambda ()
+            (setq-local company-format-margin-function #'company-vscode-dark-icons-margin))
+          )
+
 (require 'lsp-modeline)
 ;; 用来在 minibuffer 显示 code actions 信息。
 (setq lsp-modeline-code-actions-enable nil) ;; 默认开启的
@@ -51,6 +57,9 @@
 (require 'lsp-lens)
 (setq lsp-lens-enable t)
 
+(setq lsp-signature-render-documentation)
+(setq lsp-signature-function 'lsp-signature-posframe)
+
 ;; lsp-ui auto config completion, code-actions, breadcrumb, ‘flycheck’,
 ;;‘flymake’, ‘imenu’, symbol highlighting, lenses, links, and so on.
 
@@ -59,11 +68,14 @@
   ;; 关闭这个，会让 diagnostics(从 lsp-server 返回的诊断信息) 和 flycheck 信息在 minibuffer 合并显示.
   (setq lsp-ui-sideline-show-diagnostics nil)
 
+
   ;; 隐藏右边乱七八糟一大堆信息，暂时看不懂到底有什么用。
   (setq lsp-ui-sideline-show-hover nil) ; 这是默认值
 
   ;; code actions 是问题的修复策略.
   (setq lsp-ui-sideline-show-code-actions t) ; 这是默认值
+
+  (setq lsp-ui-peek-fontify )
 
   (setq lsp-ui-doc-enable t) ; 这是默认值
   (setq lsp-ui-doc-delay 3)
@@ -98,6 +110,7 @@
 (with-eval-after-load 'treemacs
   (require 'lsp-treemacs)
   (lsp-treemacs-sync-mode 1)
+  (setq lsp-treemacs-error-list-current-project-only t)
   ;; (add-hook 'treemacs-switch-workspace-hook 'lsp-treemacs-symbols)
   ;; (add-hook 'treemacs-select-hook 'lsp-ui-imenu)
   ;; (add-hook 'treemacs-switch-workspace-hook 'lsp-ui-imenu)
