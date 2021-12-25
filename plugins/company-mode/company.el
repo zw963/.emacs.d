@@ -69,7 +69,8 @@
   "Extensible inline text completion mechanism."
   :group 'abbrev
   :group 'convenience
-  :group 'matching)
+  :group 'matching
+  :link '(custom-manual "(company) Top"))
 
 (defgroup company-faces nil
   "Faces used by Company."
@@ -140,19 +141,29 @@
   "Face used for the selected quick-access hints shown in the tooltip."
   :package-version '(company . "0.9.14"))
 
-(defface company-scrollbar-fg
+(define-obsolete-face-alias
+ 'company-scrollbar-fg
+ 'company-tooltip-scrollbar-thumb
+ "0.9.14")
+
+(defface company-tooltip-scrollbar-thumb
   '((((background light))
      :background "darkred")
     (((background dark))
      :background "gray33"))
-  "Face used for the tooltip scrollbar thumb.")
+  "Face used for the tooltip scrollbar thumb (bar).")
 
-(defface company-scrollbar-bg
+(define-obsolete-face-alias
+ 'company-scrollbar-bg
+ 'company-tooltip-scrollbar-track
+ "0.9.14")
+
+(defface company-tooltip-scrollbar-track
   '((((background light))
      :background "wheat")
     (((background dark))
      :background "gray28"))
-  "Face used for the tooltip scrollbar background.")
+  "Face used for the tooltip scrollbar track (trough).")
 
 (defface company-preview
   '((default :inherit (company-tooltip-selection company-tooltip)))
@@ -255,8 +266,9 @@ The visualized data is stored in `company-prefix', `company-candidates',
   :type 'integer)
 
 (defcustom company-tooltip-minimum 6
-  "The minimum height of the tooltip.
-If this many lines are not available, prefer to display the tooltip above."
+  "Ensure visibility of this number of candidates.
+When that many lines are not available between point and the bottom of the
+window, display the tooltip above point."
   :type 'integer)
 
 (defcustom company-tooltip-minimum-width 0
@@ -1535,13 +1547,14 @@ end of the match."
     (module . "symbol-namespace.svg")
     (numeric . "symbol-numeric.svg")
     (operator . "symbol-operator.svg")
-    (parameter . "symbol-parameter.svg")
     (property . "symbol-property.svg")
-    (ruler . "symbol-ruler.svg")
+    (reference . "references.svg")
     (snippet . "symbol-snippet.svg")
     (string . "symbol-string.svg")
     (struct . "symbol-structure.svg")
     (text . "symbol-key.svg")
+    (type-parameter . "symbol-parameter.svg")
+    (unit . "symbol-ruler.svg")
     (value . "symbol-enumerator.svg")
     (variable . "symbol-variable.svg")
     (t . "symbol-misc.svg")))
@@ -1622,6 +1635,7 @@ end of the match."
     (class "c" font-lock-type-face)
     (color "#" success)
     (constant "c" font-lock-constant-face)
+    (constructor "c" font-lock-function-name-face)
     (enum-member "e" font-lock-builtin-face)
     (enum "e" font-lock-builtin-face)
     (field "f" font-lock-variable-name-face)
@@ -1634,13 +1648,14 @@ end of the match."
     (module "{" font-lock-type-face)
     (numeric "n" font-lock-builtin-face)
     (operator "o" font-lock-comment-delimiter-face)
-    (parameter "p" font-lock-builtin-face)
     (property "p" font-lock-variable-name-face)
-    (ruler "r" shadow)
+    (reference "r" font-lock-doc-face)
     (snippet "S" font-lock-string-face)
     (string "s" font-lock-string-face)
     (struct "%" font-lock-variable-name-face)
     (text "w" shadow)
+    (type-parameter "p" font-lock-type-face)
+    (unit "u" shadow)
     (value "v" font-lock-builtin-face)
     (variable "v" font-lock-variable-name-face)
     (t "." shadow))
@@ -1656,14 +1671,15 @@ The only mandatory element in CONF is ICON, you can omit both the FG and BG
 fields without issue.
 
 When BG is omitted and `company-text-icons-add-background' is non-nil, a BG
-color will be generated using a gradient between the active tooltip color and
+color is generated using a gradient between the active tooltip color and
 the FG color."
   :type 'list)
 
 (defcustom company-text-face-extra-attributes '(:weight bold)
-  "Additional attributes to add to text icons' faces.
-If non-nil, an anonymous face will be generated.
-Only affects `company-text-icons-margin'."
+  "Additional attributes to add to text/dot icons faces.
+If non-nil, an anonymous face is generated.
+
+Affects `company-text-icons-margin' and `company-dot-icons-margin'."
   :type 'list)
 
 (defcustom company-text-icons-format " %s "
@@ -1671,7 +1687,7 @@ Only affects `company-text-icons-margin'."
   :type 'string)
 
 (defcustom company-text-icons-add-background nil
-  "When non-nil, generate a background color for text icons when none is given.
+  "Generate a background color for text/dot icons when none is given.
 See `company-text-icons-mapping'."
   :type 'boolean)
 
@@ -3380,8 +3396,8 @@ but adjust the expected values appropriately."
 (defun company--scrollbar (i bounds)
   (propertize " " 'face
               (if (and (>= i (car bounds)) (<= i (cdr bounds)))
-                  'company-scrollbar-fg
-                'company-scrollbar-bg)))
+                  'company-tooltip-scrollbar-thumb
+                'company-tooltip-scrollbar-track)))
 
 (defun company--scrollpos-line (text width fancy-margin-width)
   (propertize (concat (company-space-string company-tooltip-margin)
@@ -3495,7 +3511,7 @@ Returns a negative number if the tooltip should be displayed above point."
   (when (overlayp company-pseudo-tooltip-overlay)
     (overlay-put company-pseudo-tooltip-overlay 'invisible nil)
     (overlay-put company-pseudo-tooltip-overlay 'line-prefix nil)
-    (overlay-put company-pseudo-tooltip-overlay 'after-string nil)
+    (overlay-put company-pseudo-tooltip-overlay 'before-string nil)
     (overlay-put company-pseudo-tooltip-overlay 'display nil)
     (overlay-put company-pseudo-tooltip-overlay 'face nil)))
 
@@ -3506,9 +3522,12 @@ Returns a negative number if the tooltip should be displayed above point."
       ;; Beat outline's folding overlays.
       ;; And Flymake (53). And Flycheck (110).
       (overlay-put ov 'priority 111)
+      ;; visual-line-mode
+      (when (memq (char-before (overlay-start ov)) '(?\s ?\t))
+        (setq disp (concat "\n" disp)))
       ;; No (extra) prefix for the first line.
       (overlay-put ov 'line-prefix "")
-      (overlay-put ov 'after-string disp)
+      (overlay-put ov 'before-string disp)
       ;; `display' is better than `invisible':
       ;; https://debbugs.gnu.org/18285
       ;; https://debbugs.gnu.org/20847
@@ -3648,7 +3667,9 @@ Delay is determined by `company-tooltip-idle-delay'."
            (add-face-text-property mbeg mend 'company-preview-search
                                    nil completion)))
 
-    (setq completion (if company-common
+    (setq completion (if (string-prefix-p company-prefix completion
+                                          (eq (company-call-backend 'ignore-case)
+                                              'keep-prefix))
                          (company-strip-prefix completion)
                        completion))
 

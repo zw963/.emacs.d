@@ -6,7 +6,7 @@
 ;;         Naoya Yamashita <conao3@gmail.com>
 ;; Maintainer: Feng Shu <tumashu@163.com>
 ;; URL: https://github.com/tumashu/ivy-posframe
-;; Version: 0.6.2
+;; Version: 0.6.3
 ;; Keywords: abbrev, convenience, matching, ivy
 ;; Package-Requires: ((emacs "26.0") (posframe "1.0.0") (ivy "0.13.0"))
 
@@ -272,21 +272,21 @@ This variable is useful for `ivy-posframe-read-action' .")
   (if (not (posframe-workable-p))
       (ivy-display-function-fallback str)
     (with-ivy-window
-      (apply #'posframe-show
-             ivy-posframe-buffer
-             :font ivy-posframe-font
-             :string str
-             :position (point)
-             :poshandler poshandler
-             :background-color (face-attribute 'ivy-posframe :background nil t)
-             :foreground-color (face-attribute 'ivy-posframe :foreground nil t)
-             :internal-border-width ivy-posframe-border-width
-             :internal-border-color (face-attribute 'ivy-posframe-border :background nil t)
-             :override-parameters ivy-posframe-parameters
-             :refposhandler ivy-posframe-refposhandler
-             :hidehandler #'ivy-posframe-hidehandler
-             (funcall ivy-posframe-size-function))
-      (ivy-posframe--add-prompt 'ignore)))
+     (apply #'posframe-show
+            ivy-posframe-buffer
+            :font ivy-posframe-font
+            :string str
+            :position (point)
+            :poshandler poshandler
+            :background-color (face-attribute 'ivy-posframe :background nil t)
+            :foreground-color (face-attribute 'ivy-posframe :foreground nil t)
+            :border-width ivy-posframe-border-width
+            :border-color (face-attribute 'ivy-posframe-border :background nil t)
+            :override-parameters ivy-posframe-parameters
+            :refposhandler ivy-posframe-refposhandler
+            :hidehandler #'ivy-posframe-hidehandler
+            (funcall ivy-posframe-size-function))
+     (ivy-posframe--add-prompt 'ignore)))
   (with-current-buffer ivy-posframe-buffer
     (setq-local truncate-lines ivy-truncate-lines)))
 
@@ -328,6 +328,9 @@ This variable is useful for `ivy-posframe-read-action' .")
 
 (defun ivy-posframe-display-at-frame-bottom-left (str)
   (ivy-posframe--display str #'posframe-poshandler-frame-bottom-left-corner))
+
+(defun ivy-posframe-display-at-frame-bottom-center (str)
+  (ivy-posframe--display str #'posframe-poshandler-frame-bottom-center))
 
 (defun ivy-posframe-display-at-frame-bottom-window-center (str)
   (ivy-posframe--display

@@ -784,10 +784,11 @@ key (a string), cmd and doc (a string)."
            "\n")))
 
 (defun ivy-read-action-format-columns (actions)
-  "Create a docstring from ACTIONS, using several columns if needed to preserve `ivy-height'.
+  "Create a potentially multi-column docstring from ACTIONS.
+Several columns are used as needed to preserve `ivy-height'.
 
-ACTIONS is a list.  Each list item is a list of 3 items: key (a
-string), cmd and doc (a string)."
+ACTIONS is a list with elements of the form (KEY COMMAND DOC),
+where KEY and DOC are strings."
   (let ((length (length actions))
         (i 0)
         (max-rows (- ivy-height 1))
@@ -855,7 +856,8 @@ selection, non-nil otherwise."
                                   (cdr actions)))
                 (not (string= key (car (nth action-idx (cdr actions))))))
       (setq key (concat key (key-description (vector (read-key hint))))))
-    (ivy-shrink-after-dispatching)
+    ;; Ignore resize errors with minibuffer-only frames (#2726).
+    (ignore-errors (ivy-shrink-after-dispatching))
     (cond ((member key '("ESC" "C-g" "M-o"))
            nil)
           ((null action-idx)
@@ -1704,6 +1706,8 @@ This string is inserted into the minibuffer."
            (const :tag "Default" ivy-format-function-default)
            (const :tag "Arrow prefix" ivy-format-function-arrow)
            (const :tag "Full line" ivy-format-function-line)
+           (const :tag "Arrow prefix + full line"
+                  ivy-format-function-arrow-line)
            (function :tag "Custom function"))))
 
 (defun ivy-sort-file-function-default (x y)
@@ -3965,7 +3969,8 @@ and SEPARATOR is used to join them."
      separator)))
 
 (defun ivy-format-function-default (cands)
-  "Transform CANDS into a string for minibuffer."
+  "Transform CANDS into a multiline string for the minibuffer.
+Add the face `ivy-current-match' to the selected candidate."
   (ivy--format-function-generic
    (lambda (str)
      (ivy--add-face str 'ivy-current-match))
@@ -3974,7 +3979,9 @@ and SEPARATOR is used to join them."
    "\n"))
 
 (defun ivy-format-function-arrow (cands)
-  "Transform CANDS into a string for minibuffer."
+  "Transform CANDS into a multiline string for the minibuffer.
+Like `ivy-format-function-default', but also prefix the selected
+candidate with an arrow \">\"."
   (ivy--format-function-generic
    (lambda (str)
      (concat "> " (ivy--add-face str 'ivy-current-match)))
@@ -3984,14 +3991,30 @@ and SEPARATOR is used to join them."
    "\n"))
 
 (defun ivy-format-function-line (cands)
-  "Transform CANDS into a string for minibuffer.
-Note that since Emacs 27, `ivy-current-match' needs to have :extend t attribute.
-It has it by default, but the current theme also needs to set it."
+  "Transform CANDS into a multiline string for the minibuffer.
+Like `ivy-format-function-default', but extend highlighting of
+the selected candidate to the window edge.
+
+Note that since Emacs 27, `ivy-current-match' needs to have a
+non-nil :extend attribute.  This is the case by default, but it
+also needs to be preserved by the current theme."
   (ivy--format-function-generic
    (lambda (str)
      (ivy--add-face (concat str "\n") 'ivy-current-match))
    (lambda (str)
      (concat str "\n"))
+   cands
+   ""))
+
+(defun ivy-format-function-arrow-line (cands)
+  "Transform CANDS into a multiline string for the minibuffer.
+This combines the \">\" prefix of `ivy-format-function-arrow'
+with the extended highlighting of `ivy-format-function-line'."
+  (ivy--format-function-generic
+   (lambda (str)
+     (concat "> " (ivy--add-face (concat str "\n") 'ivy-current-match)))
+   (lambda (str)
+     (concat "  " str "\n"))
    cands
    ""))
 

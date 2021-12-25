@@ -2,7 +2,7 @@
 
 ;; Copyright (C) 2020 Eric Dallo
 
-;; Version: 1.20.0
+;; Version: 1.20.1
 ;; Package-Requires: ((emacs "26.1") (lsp-treemacs "0.3") (lsp-mode "7.0.1") (dap-mode "0.6") (f "0.20.0") (dash "2.14.1") (dart-mode "1.0.5"))
 ;; Keywords: languages, extensions
 ;; URL: https://emacs-lsp.github.io/lsp-dart
@@ -99,7 +99,7 @@ If unspecified, diagnostics will not be generated."
 
 ;;; Internal
 
-(defvar lsp-dart-version-string "1.20.0")
+(defvar lsp-dart-version-string "1.20.1")
 
 (defun lsp-dart--library-folders ()
   "Return the library folders path to analyze."
@@ -109,13 +109,6 @@ If unspecified, diagnostics will not be generated."
     (if (string-prefix-p sdk-root (buffer-file-name))
         (append (list (file-name-directory (buffer-file-name))) lsp-dart-extra-library-directories)
       lsp-dart-extra-library-directories)))
-
-(defun lsp-dart--configuration (_workspace _items)
-  "Return the client workspace configuration."
-  (vector (lsp-ht ("enableSdkFormatter" lsp-dart-enable-sdk-formatter)
-                  ("completeFunctionCalls" lsp-dart-complete-function-calls)
-                  ("showTodos" lsp-dart-show-todos)
-                  ("lineLength" lsp-dart-line-length))))
 
 (defun lsp-dart--server-command ()
   "Generate LSP startup command."
@@ -137,6 +130,12 @@ If unspecified, diagnostics will not be generated."
   (when (lsp-dart-test-file-p (buffer-file-name)) (lsp-dart-test-mode 1))
   (when lsp-dart-main-code-lens (lsp-dart-main-code-lens-mode 1))
   (when lsp-dart-test-code-lens (lsp-dart-test-code-lens-mode 1)))
+
+(lsp-register-custom-settings
+ '(("dart.enableSdkFormatter" lsp-dart-enable-sdk-formatter)
+   ("dart.completeFunctionCalls" lsp-dart-complete-function-calls)
+   ("dart.showTodos" lsp-dart-show-todos)
+   ("dart.lineLength" lsp-dart-line-length)))
 
 (lsp-register-client
  (make-lsp-client :new-connection
@@ -160,8 +159,8 @@ If unspecified, diagnostics will not be generated."
                                                                                               (when (lsp-dart-flutter-project-p)
                                                                                                 (run-hook-with-args 'lsp-dart-flutter-outline-arrived-hook notification))))
                                                  ("$/analyzerStatus" #'ignore))
-                  :request-handlers (lsp-ht ("workspace/configuration" #'lsp-dart--configuration))
                   :after-open-fn #'lsp-dart--activate-features
+                  :custom-capabilities `((experimental . ((snippetTextEdit . ,(and lsp-enable-snippet (featurep 'yasnippet))))))
                   :server-id 'dart_analysis_server))
 
 
