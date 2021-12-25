@@ -3,6 +3,7 @@
 
 (setq mc/cmds-to-run-for-all
       '(
+        beginning-of-buffer
         describe-key
         helm-confirm-and-exit-minibuffer
         iedit-mode
