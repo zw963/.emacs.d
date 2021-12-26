@@ -9,9 +9,11 @@
 
 (global-set-key (kbd "C-x +") 'zoom)
 
+
 (custom-set-variables
  '(zoom-size 'size-callback)
- '(zoom-ignored-major-modes '(dired-mode markdown-mode minimap-mode))
+ '(zoom-ignored-major-modes '(dired-mode markdown-mode))
+ '(zoom-ignored-buffer-names '(" *MINIMAP*"))
  )
 
 (zoom-mode)

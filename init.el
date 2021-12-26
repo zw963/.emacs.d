@@ -32,14 +32,14 @@
 ;; (zerodark-setup-modeline-format)
 ;; ==============================开启的功能==============================
 
-(require 'flyspell_init)
+;; (require 'flyspell_init)
 (require 'org-mode_init)
 (require 'ibuffer_init)
 (require 'dired_init)
 (require 'all-the-icons_init)
 (require 'shell_init)
 (require 'flycheck_init)
-(require 'quickrun_init)
+;; (require 'quickrun_init)
 (require 'treemacs_init)
 (require 'page-break-lines_init)
 ;; 下面两个库都针对 kill-ring-save, kill-region 等函数添加了 device.
@@ -55,7 +55,6 @@
 (require 'zoom-frm_init)
 ;; (require 'awesome-tray_init)
 (require 'smart-mode-line_init)
-(require 'minimap_init)
 ;; (require 'eyebrowse_init)
 (require 'winum_init)
 (require 'hydra_init);; depend by treemacs
@@ -63,7 +62,7 @@
 ;; (require 'auto-indent-mode_init)
 ;; (require 'aggressive-indent_init)
 (require 'edit-server_init)
-(require 'fanyi_init)
+;; (require 'fanyi_init)
 (require 'markdown-mode_init)
 (require 'iedit_init)
 (require 'multiple-cursors_init)
@@ -77,8 +76,8 @@
 (require 'ivy_init)
 ;; (require 'snails_init)
 (require 'company_init)
-(require 'yasnippet_init)
 (require 'prescient_init) ;; 这个必须放在 ivy_init 后面.
+(require 'yasnippet_init)
 (require 'anzu_init)
 ;; (require 'visual-regexp_init)
 (require 'pangu-spacing_init)
@@ -107,13 +106,14 @@
 ;; (require 'english-teacher_init)
 (require 'async_init)
 (require 'mu4e_init)
-(require 'zoom_init)
 (require 'volatile-highlights_init)
 (require 'buffer-move_init)
 
 ;; ============================== 编程相关 ==============================
 
 ;; (require 'color-identifiers-mode_init)
+(require 'minimap_init)
+(require 'zoom_init)
 (require 'smartparens_init)
 (require 'string-inflection_init)
 (require 'highlight-indentation_init)
@@ -151,14 +151,14 @@
 (require 'ws-butler_init)
 (require 'solaire-mode_init)
 ;; 这个老是运行失败。
-;; (require 'wakatime-mode_init)
+(require 'wakatime-mode_init)
 
 ;; (require 'symbol-overlay_init)
 ;; (require 'feature-mode_init)
 ;; (require 'mode-compile_init)
 ;; (require 'fluentd-mode)
 ;; (require 'disable-mouse_init)
-(require 'telega_init)
+;; (require 'telega_init)
 ;; (require 'eaf_init)
 
 ;; 加载 dotfiles 时，阻止 gc.
