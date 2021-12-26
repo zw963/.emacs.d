@@ -212,7 +212,7 @@ Argument IGNORED is ignored."
         ;; siblings
         (window-resize-pixelwise t))
     ;; start from a balanced layout anyway
-    ;; (balance-windows)
+    (balance-windows)
     ;; check if the selected window is not ignored
     (unless (zoom--window-ignored-p)
       (zoom--resize)

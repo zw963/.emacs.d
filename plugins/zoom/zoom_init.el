@@ -9,12 +9,19 @@
 
 (global-set-key (kbd "C-x +") 'zoom)
 
-
 (custom-set-variables
  '(zoom-size 'size-callback)
  '(zoom-ignored-major-modes '(dired-mode markdown-mode))
  '(zoom-ignored-buffer-names '(" *MINIMAP*"))
  )
+
+(with-eval-after-load 'minimap
+  (defun my/fix-minimap-size ()
+    (with-selected-window (get-buffer-window " *MINIMAP*")
+      (setq window-size-fixed t)
+      (let ((width 30))
+        (window-resize (selected-window) (- width (window-total-width)) t t))))
+  (add-hook 'minimap-mode-hook 'my/fix-minimap-size))
 
 (zoom-mode)
 

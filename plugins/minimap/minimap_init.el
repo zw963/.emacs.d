@@ -1,7 +1,7 @@
 (require 'minimap)
 
 (setq minimap-window-location 'right)
-(setq minimap-width-fraction 0.05)
+;; (setq minimap-width-fraction 0.05)
 
 (global-set-key [(f10)] 'minimap-mode)
 
