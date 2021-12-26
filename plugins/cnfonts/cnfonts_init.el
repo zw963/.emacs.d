@@ -4,16 +4,16 @@
 (setq cnfonts-use-face-font-rescale t)
 
 (defconst cnfonts-personal-fontnames
-  '(;; 英文字体
-    ("FiraCode-Retina")
-    ;; 中文字体
-    ("霞鹜文楷等宽")
-    ;; EXT-B 字体
-    ()
-    ;; Symbol 字符字体
-    ()
-    ;; Emacs 社区配置中，用于装饰的字符使用的字体
-    ()))
+ '(;; 英文字体
+   ("Fira Code Retina")
+   ;; 中文字体
+   ("微软雅黑" "霞鹜文楷等宽")
+   ;; EXT-B 字体
+   ()
+   ;; Symbol 字符字体
+   ()
+   ;; Emacs 社区配置中，用于装饰的字符使用的字体
+   ()))
 
 (setq cnfonts-directory (expand-file-name "configs" (file-name-directory (or load-file-name buffer-file-name))))
 
