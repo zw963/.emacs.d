@@ -1,8 +1,8 @@
 ;;; cargo-process.el --- Cargo Process Major Mode -*-lexical-binding: t-*-
 
-;; Copyright (C) 2015  Kevin W. van Rooijen
+;; Copyright (C) 2021  Kevin W. van Rooijen
 
-;; Author: Kevin W. van Rooijen <kevin.van.rooijen@attichacker.com>
+;; Author: Kevin W. van Rooijen
 ;; Keywords: processes, tools
 
 ;; This program is free software; you can redistribute it and/or modify
@@ -47,14 +47,15 @@
 ;;  * cargo-process-upgrade            - Run the optional cargo command upgrade.
 ;;  * cargo-process-outdated           - Run the optional cargo command outdated.
 ;;  * cargo-process-audit              - Run the optional cargo command audit.
+;;  * cargo-process-script             - Run the optional cargo command script.
 
 ;;
 ;;; Code:
 
 (require 'compile)
 (require 'button)
-(require 'rust-mode)
 (require 'markdown-mode)
+(require 'tramp)
 
 (defgroup cargo-process nil
   "Cargo Process group."
@@ -196,6 +197,10 @@
   "Subcommand used by `cargo-process-audit'."
   :type 'string)
 
+(defcustom cargo-process--command-script "script"
+  "Subcommand used by `cargo-process-script'."
+  :type 'string)
+
 (defvar cargo-process-favorite-crates nil)
 
 (defface cargo-process--ok-face
@@ -307,6 +312,24 @@ for error reporting."
       (json-read-from-string text)
     (error (user-error text))))
 
+(defun cargo-process--tramp-file-name-prefix (file-name)
+  "Return the TRAMP prefix for FILE-NAME.
+If FILE-NAME is not a TRAMP file, return an empty string."
+  (if (and (fboundp 'tramp-tramp-file-p)
+           (tramp-tramp-file-p file-name))
+      (let ((tramp-file-name (tramp-dissect-file-name file-name)))
+        (setf (nth 6 tramp-file-name) nil)
+        (tramp-make-tramp-file-name tramp-file-name))
+    ""))
+
+(defun cargo-process--tramp-file-local-name (file-name)
+  "Return the local component of FILE-NAME.
+If FILE-NAME is not a TRAMP file, return it unmodified."
+  (if (and (fboundp 'tramp-tramp-file-p)
+           (tramp-tramp-file-p file-name))
+      (nth 6 (tramp-dissect-file-name file-name))
+    file-name))
+
 (defun cargo-process--workspace-root ()
   "Find the workspace root using `cargo metadata`."
   (when (cargo-process--project-root)
@@ -314,11 +337,13 @@ for error reporting."
                            (concat (shell-quote-argument cargo-process--custom-path-to-bin)
                                    " metadata --format-version 1 --no-deps")))
            (metadata-json (cargo-json-read-from-string metadata-text))
-           (workspace-root (cdr (assoc 'workspace_root metadata-json))))
+           (tramp-prefix (cargo-process--tramp-file-name-prefix (cargo-process--project-root)))
+           (workspace-root (concat tramp-prefix
+                                   (cdr (assoc 'workspace_root metadata-json)))))
       workspace-root)))
 
 (defun manifest-path-argument (name)
-  (let ((manifest-filename (cargo-process--project-root "Cargo.toml")))
+  (let ((manifest-filename (cargo-process--tramp-file-local-name (cargo-process--project-root "Cargo.toml"))))
     (when (and manifest-filename
                (not (member name cargo-process--no-manifest-commands)))
       (concat "--manifest-path " (shell-quote-argument manifest-filename)))))
@@ -399,7 +424,12 @@ Meant to be run as a `compilation-filter-hook'."
   "Return the current test."
   (save-excursion
     (unless (cargo-process--defun-at-point-p)
-      (rust-beginning-of-defun))
+      (cond ((fboundp 'rust-beginning-of-defun)
+             (rust-beginning-of-defun))
+            ((fboundp 'rustic-beginning-of-defun)
+             (rustic-beginning-of-defun))
+            (t (user-error "%s needs either rust-mode or rustic-mode"
+                           this-command))))
     (beginning-of-line)
     (search-forward "fn ")
     (let* ((line (buffer-substring-no-properties (point)
@@ -517,7 +547,7 @@ Cargo: Create a new cargo project."
           (cargo-process--start "New" command)))
     (set-process-sentinel
      process
-     (lambda (process event)
+     (lambda (_process _event)
        (let* ((project-root (cargo-process--project-root))
               (default-directory (or project-root default-directory)))
          (cond
@@ -555,7 +585,7 @@ DIRECTORY is created if necessary."
                                      event
                                      (expand-file-name "Cargo.toml" directory))))))
 
-(defun cargo-process--open-manifest (process event manifest-path)
+(defun cargo-process--open-manifest (_process event manifest-path)
   "Open the manifest file when process ends."
   (when (equal event "finished\n")
     (find-file manifest-path)))
@@ -701,6 +731,17 @@ Requires Cargo Audit to be installed."
                                         (cargo-process--project-root "Cargo.lock"))))
 
 ;;;###autoload
+(defun cargo-process-script ()
+  "Run the Cargo script command.
+With the prefix argument, modify the command's invocation.
+Cargo: Script compiles and runs 'Cargoified Rust scripts'.
+Requires Cargo Script to be installed."
+  (interactive)
+  (cargo-process--start "Script" (concat cargo-process--command-script
+					 " "
+					 buffer-file-name)))
+
+;;;###autoload
 (defun cargo-process-rm (crate)
   "Run the Cargo rm command.
 With the prefix argument, modify the command's invocation.
@@ -728,9 +769,11 @@ Cargo: Upgrade dependencies as specified in the local manifest file"
     (if deplist
         (let* ((all (when (or all
                               (y-or-n-p "Upgrade all crates? "))
-                      "--all"))
+                      "--workspace"))
                (crates (when (not all)
-                         (completing-read "Crate(s) to upgrade: " deplist nil 'confirm))))
+                         (or crates
+                             (completing-read "Crate(s) to upgrade: "
+                                              deplist nil 'confirm)))))
           (cargo-process--start "Upgrade" (concat cargo-process--command-upgrade
                                                   " "
                                                   all

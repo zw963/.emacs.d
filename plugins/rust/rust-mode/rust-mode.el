@@ -1,6 +1,6 @@
 ;;; rust-mode.el --- A major-mode for editing Rust source code -*-lexical-binding: t-*-
 
-;; Version: 0.5.0
+;; Version: 1.0.3
 ;; Author: Mozilla
 ;; Url: https://github.com/rust-lang/rust-mode
 ;; Keywords: languages
@@ -30,6 +30,16 @@ This variable might soon be remove again.")
 (defvar electric-pair-inhibit-predicate)
 (defvar electric-pair-skip-self)
 (defvar electric-indent-chars)
+
+(defcustom rust-before-save-hook 'rust-before-save-method
+  "Function for formatting before save."
+  :type 'function
+  :group 'rust-mode)
+
+(defcustom rust-after-save-hook 'rust-after-save-method
+  "Default method to handle rustfmt invocation after save."
+  :type 'function
+  :group 'rust-mode)
 
 ;;; Customization
 
@@ -200,6 +210,11 @@ Use idomenu (imenu with `ido-mode') for best mileage.")
   (let ((map (make-sparse-keymap)))
     (define-key map (kbd "C-c C-d") 'rust-dbg-wrap-or-unwrap)
     (when rust-load-optional-libraries
+      (define-key map (kbd "C-c C-c C-u") 'rust-compile)
+      (define-key map (kbd "C-c C-c C-k") 'rust-check)
+      (define-key map (kbd "C-c C-c C-t") 'rust-test)
+      (define-key map (kbd "C-c C-c C-r") 'rust-run)
+      (define-key map (kbd "C-c C-c C-l") 'rust-run-clippy)
       (define-key map (kbd "C-c C-f") 'rust-format-buffer)
       (define-key map (kbd "C-c C-n") 'rust-goto-format-problem))
     map)
@@ -259,15 +274,14 @@ Use idomenu (imenu with `ido-mode') for best mileage.")
               'rust-electric-pair-inhibit-predicate-wrap)
   (setq-local electric-pair-skip-self 'rust-electric-pair-skip-self-wrap)
 
-  (add-hook 'before-save-hook 'rust-before-save-hook nil t)
-  (add-hook 'after-save-hook 'rust-after-save-hook nil t)
-  )
+  (add-hook 'before-save-hook rust-before-save-hook nil t)
+  (add-hook 'after-save-hook rust-after-save-hook nil t))
 
 ;;;###autoload
 (add-to-list 'auto-mode-alist '("\\.rs\\'" . rust-mode))
 
 (defvar rust-top-item-beg-re
-  (concat "\\s-*"
+  (concat "\\s-*\\(?:priv\\|pub\\)?\\s-*"
           ;; TODO some of this does only make sense for `fn' (unsafe, extern...)
           ;; and not other items
           (rust-re-shy (concat (rust-re-shy rust-re-vis) "[[:space:]]+")) "?"
@@ -275,7 +289,7 @@ Use idomenu (imenu with `ido-mode') for best mileage.")
           (rust-re-shy (concat (rust-re-shy rust-re-unsafe) "[[:space:]]+")) "?"
           (regexp-opt
            '("enum" "struct" "union" "type" "mod" "use" "fn" "static" "impl"
-             "extern" "trait"))
+             "extern" "trait" "async"))
           "\\_>")
   "Start of a Rust item.")
 
@@ -289,7 +303,7 @@ Use idomenu (imenu with `ido-mode') for best mileage.")
     "box" "break"
     "const" "continue" "crate"
     "do" "dyn"
-    "else" "enum" "extern"
+    "else" "enum" "extern" "existential"
     "false" "fn" "for"
     "if" "impl" "in"
     "let" "loop"
@@ -1263,7 +1277,8 @@ This wraps the default defined by `electric-pair-inhibit-predicate'."
 This wraps the default defined by `electric-pair-skip-self'."
   (or
    (= ?> char)
-   (funcall (default-value 'electric-pair-skip-self) char)))
+   (let ((skip-self (default-value 'electric-pair-skip-self)))
+     (and skip-self (funcall skip-self char)))))
 
 (defun rust-ordinary-lt-gt-p ()
   "Test whether the `<' or `>' at point is an ordinary operator of some kind.

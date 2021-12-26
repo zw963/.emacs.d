@@ -9,29 +9,37 @@
 
 ;;; Code:
 
-(require 'xterm-color)
 (require 'markdown-mode)
-
-(require 'cl-lib)
-(require 'dash)
-(require 'subr-x)
+(require 'xterm-color)
 
 (require 'compile)
 
-(require 'rustic-common)
-(require 'rustic-util)
-(require 'rustic-cargo)
+(require 'rustic)
+
+(defvar rustic-format-trigger)
+(defvar rustic-format-on-save)
 
 ;;; Customization
 
 (defgroup rustic-compilation nil
   "Rust Compilation."
+  :group 'rustic
   :group 'processes)
 
 (defcustom rustic-compile-command (purecopy "cargo build")
   "Default command for rust compilation."
   :type 'string
   :group 'rustic-compilation)
+
+(defcustom rustic-compile-command-remote "~/.cargo/bin/cargo"
+  "Default command for remote rust compilation."
+  :type 'string
+  :group 'rustic-compilation)
+
+(defun rustic-compile-command ()
+  (if (file-remote-p (or (buffer-file-name) ""))
+      rustic-compile-command-remote
+    rustic-compile-command))
 
 (defcustom rustic-compile-display-method 'display-buffer
   "Default function used for displaying compilation buffer."
@@ -44,6 +52,17 @@
                  (string :tag "1")
                  (string :tag "full"))
   :group 'rustic-compilation)
+
+(defcustom rustic-list-project-buffers-function
+  (if (fboundp 'projectile-project-buffers)
+      'projectile-project-buffers
+    'rustic-project-buffer-list)
+  "Function used to list buffers belonging to current project."
+  :type '(choice (const projectile-project-buffers)
+                 (const rustic-project-buffer-list)
+                 function)
+  :group 'rustic)
+
 
 ;;; Faces
 
@@ -113,38 +132,6 @@
     map)
   "Keymap for rust compilation log buffers.")
 
-(define-compilation-mode rustic-compilation-mode "rust-compilation"
-  "Rust compilation mode.
-
-Error matching regexes from compile.el are removed."
-  (setq-local compilation-message-face 'rustic-message)
-  (setq-local compilation-error-face   'rustic-compilation-error)
-  (setq-local compilation-warning-face 'rustic-compilation-warning)
-  (setq-local compilation-info-face    'rustic-compilation-info)
-  (setq-local compilation-column-face  'rustic-compilation-column)
-  (setq-local compilation-line-face    'rustic-compilation-line)
-
-  (setq-local xterm-color-names-bright rustic-ansi-faces)
-  (setq-local xterm-color-names rustic-ansi-faces)
-
-  (setq-local compilation-error-regexp-alist-alist nil)
-  (add-to-list 'compilation-error-regexp-alist-alist
-               (cons 'rustic-error rustic-compilation-error))
-  (add-to-list 'compilation-error-regexp-alist-alist
-               (cons 'rustic-warning rustic-compilation-warning))
-  (add-to-list 'compilation-error-regexp-alist-alist
-               (cons 'rustic-info rustic-compilation-info))
-  (add-to-list 'compilation-error-regexp-alist-alist
-               (cons 'rustic-panic rustic-compilation-panic))
-
-  (setq-local compilation-error-regexp-alist nil)
-  (add-to-list 'compilation-error-regexp-alist 'rustic-error)
-  (add-to-list 'compilation-error-regexp-alist 'rustic-warning)
-  (add-to-list 'compilation-error-regexp-alist 'rustic-info)
-  (add-to-list 'compilation-error-regexp-alist 'rustic-panic)
-
-  (add-hook 'compilation-filter-hook #'rustic-insert-errno-button nil t))
-
 (defvar rustic-compilation-error
   (let ((err "^error[^:]*:[^\n]*\n\s*-->\s")
         (file "\\([^\n]+\\)")
@@ -179,6 +166,38 @@ Error matching regexes from compile.el are removed."
     (let ((re (concat panic file ":" start-line ":" start-col)))
       (cons re '(1 2 3))))
   "Match thread panics.")
+
+(define-compilation-mode rustic-compilation-mode "rust-compilation"
+  "Rust compilation mode.
+
+Error matching regexes from compile.el are removed."
+  (setq-local compilation-message-face 'rustic-message)
+  (setq-local compilation-error-face   'rustic-compilation-error)
+  (setq-local compilation-warning-face 'rustic-compilation-warning)
+  (setq-local compilation-info-face    'rustic-compilation-info)
+  (setq-local compilation-column-face  'rustic-compilation-column)
+  (setq-local compilation-line-face    'rustic-compilation-line)
+
+  (setq-local xterm-color-names-bright rustic-ansi-faces)
+  (setq-local xterm-color-names rustic-ansi-faces)
+
+  (setq-local compilation-error-regexp-alist-alist nil)
+  (add-to-list 'compilation-error-regexp-alist-alist
+               (cons 'rustic-error rustic-compilation-error))
+  (add-to-list 'compilation-error-regexp-alist-alist
+               (cons 'rustic-warning rustic-compilation-warning))
+  (add-to-list 'compilation-error-regexp-alist-alist
+               (cons 'rustic-info rustic-compilation-info))
+  (add-to-list 'compilation-error-regexp-alist-alist
+               (cons 'rustic-panic rustic-compilation-panic))
+
+  (setq-local compilation-error-regexp-alist nil)
+  (add-to-list 'compilation-error-regexp-alist 'rustic-error)
+  (add-to-list 'compilation-error-regexp-alist 'rustic-warning)
+  (add-to-list 'compilation-error-regexp-alist 'rustic-info)
+  (add-to-list 'compilation-error-regexp-alist 'rustic-panic)
+
+  (add-hook 'compilation-filter-hook #'rustic-insert-errno-button nil t))
 
 ;;; Compilation Process
 
@@ -224,35 +243,32 @@ Set environment variables for rust process."
           (set (make-local-variable 'compilation-auto-jump-to-next) t))
       (sit-for 0))))
 
+(defvar rustic-before-compilation-hook nil)
+
 (defun rustic-compilation-start (command &optional args)
-  "Format crate before running actual compile command when `rustic-format-trigger'
-is set to 'on-compile. If rustfmt fails, don't start compilation."
-  (let ((compile-p t))
-    (when (and (eq rustic-format-trigger 'on-compile))
-      (let ((proc (rustic-cargo-fmt)))
-        (while (eq (process-status proc) 'run)
-          (sit-for 0.1))
-        (when (not (zerop (process-exit-status proc)))
-          (funcall rustic-compile-display-method (process-buffer proc))
-          (setq compile-p nil))))
-    (when compile-p
-      (rustic-compilation command args))))
+  "Start a compilation process COMMAND with ARGS.
+ARGS is a plist that affects how the process is run,
+see `rustic-compilation' for details.  First run
+`rustic-before-compilation-hook' and if any of these
+functions fails, then do not start compilation."
+  (when (run-hook-with-args-until-failure 'rustic-before-compilation-hook)
+    (rustic-compilation command args)))
 
 (defun rustic-compilation (command &optional args)
   "Start a compilation process with COMMAND.
 
-:no-display - don't display buffer when starting compilation process
-:buffer - name for process buffer
-:process - name for compilation process
-:mode - mode for process buffer
-:directory - set `default-directory'
-:sentinel - process sentinel
-"
+ARGS is a plist that affects how the process is run.
+- `:no-display' don't display buffer when starting compilation process
+- `:buffer' name for process buffer
+- `:process' name for compilation process
+- `:mode' mode for process buffer
+- `:directory' set `default-directory'
+- `:sentinel' process sentinel"
   (let ((buf (get-buffer-create
               (or (plist-get args :buffer) rustic-compilation-buffer-name)))
         (process (or (plist-get args :process) rustic-compilation-process-name))
         (mode (or (plist-get args :mode) 'rustic-compilation-mode))
-        (directory (or (plist-get args :directory) (rustic-buffer-workspace)))
+        (directory (or (plist-get args :directory) (funcall rustic-compile-directory-method)))
         (sentinel (or (plist-get args :sentinel) #'compilation-sentinel)))
     (rustic-compilation-setup-buffer buf directory mode)
     (setq next-error-last-buffer buf)
@@ -263,7 +279,8 @@ is set to 'on-compile. If rustfmt fails, don't start compilation."
                            :buffer buf
                            :command command
                            :filter #'rustic-compilation-filter
-                           :sentinel sentinel))))
+                           :sentinel sentinel
+                           :file-handler t))))
 
 (defun rustic-compilation-filter (proc string)
   "Insert the text emitted by PROC.
@@ -311,21 +328,25 @@ Translate STRING with `xterm-color-filter'."
           (set-window-point win (point-min)))))))
 
 (defun rustic-compilation-process-live (&optional nosave)
-  "List live rustic processes."
-  (let ((procs (list rustic-compilation-process-name
-                     rustic-format-process-name
-                     rustic-clippy-process-name
-                     rustic-test-process-name))
-        live)
-    (setq live (-non-nil (cl-loop for proc in procs
-                                  collect (let ((p (get-process proc)))
-                                            (if (process-live-p p) p nil)))))
-    (cl-assert (<= (length live) 1))
-    (when live
-      (rustic-process-kill-p (car live)))
+  "Ask to kill live rustic process if any and call `rustic-save-some-buffers'.
+If optional NOSAVE is non-nil, then do not do the latter.
+Return non-nil if there was a live process."
+  (let ((procs (mapcan (lambda (proc)
+                         (and proc
+                              (let ((proc (get-process proc)))
+                                (and (process-live-p proc)
+                                     (list proc)))))
+                       (list rustic-compilation-process-name
+                             (bound-and-true-p rustic-format-process-name)
+                             (bound-and-true-p rustic-clippy-process-name)
+                             (bound-and-true-p rustic-test-process-name)))))
+    (when (> (length procs) 1)
+      (error "BUG: Multiple live rustic processes: %s" procs))
+    (when procs
+      (rustic-process-kill-p (car procs)))
     (unless nosave
       (rustic-save-some-buffers))
-    live))
+    procs))
 
 (defun rustic-process-kill-p (proc &optional no-error)
   "Don't allow two rust processes at once.
@@ -352,7 +373,7 @@ buffers are formatted after saving if turned on by `rustic-format-trigger'."
                   (if (fboundp rustic-list-project-buffers-function)
                       (funcall rustic-list-project-buffers-function)
                     (buffer-list))))
-        (b (get-buffer rustic-format-buffer-name)))
+        (b (get-buffer (bound-and-true-p rustic-format-buffer-name))))
     (when (buffer-live-p b)
       (kill-buffer b))
     (dolist (buffer buffers)
@@ -370,22 +391,10 @@ buffers are formatted after saving if turned on by `rustic-format-trigger'."
                                                (buffer-file-name buffer)))
                           (progn (save-buffer) t)
                         nil))))
-            (when (and saved-p (rustic-format-on-save-p) (eq major-mode 'rustic-mode))
-              (let* ((file (buffer-file-name buffer))
-                     (proc (rustic-format-start-process
-                            'rustic-format-file-sentinel
-                            :buffer buffer
-                            :files file)))
-                (while (eq (process-status proc) 'run)
-                  (sit-for 0.1))))))))))
-
-;; disable formatting for `save-some-buffers'
-(defun rustic-save-some-buffers-advice (orig-fun &rest args)
-  (let ((rustic-format-trigger nil)
-        (rustic-format-on-save nil))
-    (apply orig-fun args)))
-
-(advice-add 'save-some-buffers :around #'rustic-save-some-buffers-advice)
+            (when (and saved-p
+                       (eq major-mode 'rustic-mode)
+                       (fboundp 'rustic-maybe-format-after-save))
+              (rustic-maybe-format-after-save buffer))))))))
 
 (defun rustic-compile-goto-error-hook (orig-fun &rest args)
   "Provide possibility use `compile-goto-error' on line numbers in compilation buffers.
@@ -490,9 +499,9 @@ In either store the used command in `compilation-arguments'."
         (if (or compilation-read-command arg)
             (read-from-minibuffer "Compile command: "
                                   (or compilation-arguments
-                                      rustic-compile-command))
-          rustic-compile-command))
-  (setq compilation-directory (rustic-buffer-workspace))
+                                      (rustic-compile-command)))
+          (rustic-compile-command)))
+  (setq compilation-directory (funcall rustic-compile-directory-method))
   (rustic-compilation-process-live)
   (rustic-compilation-start (split-string compilation-arguments)
                             (list :directory compilation-directory)))
@@ -501,10 +510,42 @@ In either store the used command in `compilation-arguments'."
 (defun rustic-recompile ()
   "Re-compile the program using `compilation-arguments'."
   (interactive)
-  (let* ((command (or compilation-arguments rustic-compile-command))
+  (let* ((command (or compilation-arguments (rustic-compile-command)))
          (dir compilation-directory))
     (rustic-compilation-process-live)
     (rustic-compilation (split-string command) (list :directory dir))))
+
+;;; Spinner
+
+(require 'spinner)
+
+(defcustom rustic-display-spinner t
+  "Display spinner."
+  :type 'boolean
+  :group 'rustic)
+
+(defcustom rustic-spinner-type 'horizontal-moving
+  "Holds the type of spinner to be used in the mode-line.
+Takes a value accepted by `spinner-start'."
+  :type `(choice (choice :tag "Choose a spinner by name"
+                         ,@(mapcar (lambda (c) (list 'const (car c)))
+                                   spinner-types))
+                 (const :tag "A random spinner" random)
+                 (repeat :tag "A list of symbols from `spinner-types' to randomly choose from"
+                         (choice :tag "Choose a spinner by name"
+                                 ,@(mapcar (lambda (c) (list 'const (car c)))
+                                           spinner-types)))
+                 (vector :tag "A user defined vector"
+                         (repeat :inline t string))))
+
+(defmacro rustic-with-spinner (spinner val mode-line &rest body)
+  (declare (indent defun))
+  `(when rustic-display-spinner
+     (when (spinner-p ,spinner)
+       (spinner-stop ,spinner))
+     (setq ,spinner ,val)
+     (setq mode-line-process ,mode-line)
+     ,@body))
 
 ;;; _
 (provide 'rustic-compile)

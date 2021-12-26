@@ -2,15 +2,14 @@
 
 ;;; Code:
 
-(require 'dash)
-(require 'etags)
-(require 's)
 (require 'f)
-(require 'thingatpt)
-(require 'button)
-(require 'help-mode)
+(require 's)
 
-(require 'rustic-common)
+(require 'button)
+(require 'etags)
+(require 'help-mode)
+(require 'thingatpt)
+
 (require 'rustic)
 
 (defvar rustic-racer-args nil)
@@ -159,7 +158,7 @@ error."
     (unless (file-exists-p rust-src-path)
       (user-error "No such directory: %s. Please set `rustic-racer-rust-src-path' or `RUST_SRC_PATH'"
                   rust-src-path))
-    (let ((default-directory (rustic-buffer-workspace))
+    (let ((default-directory (funcall rustic-compile-directory-method))
           (process-environment (append (list
                                         (format "RUST_SRC_PATH=%s" (expand-file-name rust-src-path))
                                         (format "CARGO_HOME=%s" (expand-file-name cargo-home)))

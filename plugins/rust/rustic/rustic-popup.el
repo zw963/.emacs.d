@@ -6,7 +6,6 @@
 
 ;;; Code:
 
-(require 'rustic-common)
 (require 'rustic-cargo)
 
 ;;; Customization
@@ -25,6 +24,11 @@
 The first element of each list contains a command's binding."
   :type 'list
   :group 'rustic-popup)
+
+(defcustom rustic-kill-buffer-and-window t
+  "Whether to kill popup window and buffer after command execution."
+  :type 'boolean
+  :group 'rustic)
 
 (define-obsolete-face-alias 'rustic-popup-key-face
   'rustic-popup-key "1.2")
@@ -88,7 +92,7 @@ The first element of each list contains a command's binding."
       (insert (propertize "Commands: " 'face 'rustic-popup-section) "\n")
       (insert " " (propertize "g" 'face 'rustic-popup-key)
               "      " "recompile" "   " "\""
-              (or compilation-arguments rustic-compile-command)
+              (or compilation-arguments (rustic-compile-command))
               "\"" "\n\n")
       (dolist (command rustic-popup-commands)
         (insert "\s")
@@ -103,10 +107,10 @@ The first element of each list contains a command's binding."
       (goto-char (point-min)))))
 
 ;;;###autoload
-(defun rustic-popup ()
+(defun rustic-popup (&optional args)
   "Setup popup.
 If directory is not in a rust project call `read-directory-name'."
-  (interactive)
+  (interactive "P")
   (let ((func (lambda ()
                 (let ((buf (get-buffer-create rustic-popup-buffer-name))
                       (win (split-window-below))
@@ -116,13 +120,11 @@ If directory is not in a rust project call `read-directory-name'."
                   (select-window win)
                   (fit-window-to-buffer)
                   (set-window-text-height win (+ (window-height) 1))))))
-    (if (rustic-buffer-workspace t)
-        (funcall func)
-      (let ((dir (read-directory-name "Rust project:")))
-        (let ((default-directory dir))
-          (if (rustic-buffer-workspace t)
-              (funcall func)
-            (message "Not a rust project.")))))))
+    (if args
+        (let ((dir (read-directory-name "Rust project:")))
+          (let ((default-directory dir))
+            (funcall func)))
+      (funcall func))))
 
 ;;; Interactive
 
@@ -142,7 +144,9 @@ If directory is not in a rust project call `read-directory-name'."
            (c (intern (concat "rustic-cargo-" command))))
       (if (commandp c)
           (call-interactively c)
-        (call-interactively 'rustic-compile (concat "cargo " command))))))
+        (call-interactively 'rustic-compile (concat "cargo " command)))))
+  (when rustic-kill-buffer-and-window
+    (kill-buffer-and-window)))
 
 ;;;###autoload
 (defun rustic-popup-default-action ()
@@ -165,7 +169,7 @@ corresponding line."
        ((search-forward-regexp "\srecompile\s" (line-end-position) t)
         (setq compilation-arguments
               (read-string "Compilation arguments: "
-                           (or compilation-arguments rustic-compile-command)))
+                           (or compilation-arguments (rustic-compile-command))))
         (rustic-popup-insert-contents (current-buffer)))
        ((search-forward-regexp "\stest" (line-end-position) t)
         (setq rustic-test-arguments
