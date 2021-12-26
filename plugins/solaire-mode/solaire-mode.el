@@ -3,10 +3,10 @@
 ;; Copyright (C) 2017-2021 Henrik Lissner
 ;;
 ;; Author: Henrik Lissner <http://github/hlissner>
-;; Maintainer: Henrik Lissner <henrik@lissner.net>
+;; Maintainer: Henrik Lissner <contact@henrik.io>
 ;; Created: Jun 3, 2017
-;; Modified: September 27, 2021
-;; Version: 2.0.3
+;; Modified: December 13, 2021
+;; Version: 2.0.4
 ;; Keywords: dim bright window buffer faces
 ;; Homepage: https://github.com/hlissner/emacs-solaire-mode
 ;; Package-Requires: ((emacs "25.1") (cl-lib "0.5"))
@@ -80,6 +80,10 @@ Used to camoflauge the leading asterixes in `org-mode' when
   "Alternative face for the `mode-line' face."
   :group 'solaire-mode)
 
+(defface solaire-mode-line-active-face '((t :inherit mode-line-active))
+  "Alternative face for the `mode-line-active' face (Emacs 29+)."
+  :group 'solaire-mode)
+
 (defface solaire-mode-line-inactive-face '((t :inherit mode-line-inactive))
   "Alternative face for the `mode-line-inactive' face."
   :group 'solaire-mode)
@@ -110,6 +114,7 @@ Should accept one argument: the buffer and return truthy for buffers where
     (line-number                . solaire-line-number-face)
     (header-line                . solaire-header-line-face)
     (mode-line                  . solaire-mode-line-face)
+    (mode-line-active           . solaire-mode-line-active-face)
     (mode-line-inactive         . solaire-mode-line-inactive-face)
     (highlight-indentation-face . solaire-hl-line-face)
     ,@(unless (version<= emacs-version "26")
