@@ -6,7 +6,6 @@
 
 (cnfonts-enable)
 
-
 ;; 有关设置字体的一些参考代码
 (defun my-better-font()
   (interactive)
