@@ -66,9 +66,3 @@
   (setq no-byte-compile t)
   ;; (setq debug-on-signal t)
   )
-;; ============================== 编程相关 ==============================
-
-;; (require 'treemacs_init)
-
-;; (normal-top-level-add-subdirs-to-load-path)
-;; (require 'treemacs)

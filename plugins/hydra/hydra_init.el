@@ -19,6 +19,18 @@
             (lambda (arg) (call-interactively #'dap-hydra)))
   )
 
+(with-eval-after-load 'back-button
+  (defhydra hydra-back-button
+    (
+     global-map "C-x ,"
+     :pre (setq cursor-type t)
+     :post (setq cursor-type 'bar)
+     )
+    "global mark ring"
+    ("n" back-button-global-forward "global next mark")
+    ("p" back-button-global-backward "global previous hunk"))
+  )
+
 (with-eval-after-load 'hydra
   (defhydra hydra-block-nav
     (
