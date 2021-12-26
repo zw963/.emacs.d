@@ -1,6 +1,6 @@
 ;;; helm-help.el --- Help messages for Helm. -*- lexical-binding: t -*-
 
-;; Copyright (C) 2012 ~ 2020 Thierry Volpiatto <thierry.volpiatto@gmail.com>
+;; Copyright (C) 2012 ~ 2021 Thierry Volpiatto <thierry.volpiatto@gmail.com>
 
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -433,6 +433,16 @@ TIP: Use `\\<helm-map>\\[helm-toggle-resplit-and-swap-windows]' and `\\[helm-enl
 and to enlarge it while viewing images.
 Note this may not work with exotic Helm windows settings such as the ones in Spacemacs.
 
+**** Show thumbnails
+
+Helm use image-dired to show thumbnails on image files, you can
+toggle the thumbnail view with \\<helm-find-files-map>`\\[helm-ff-toggle-thumbnails]'.
+
+**** Launch a slideshow from marked files
+
+Helm provides an action from `helm-find-files' that allows running a slideshow on marked files.
+Just mark image files and launch slideshow from action menu, bindings are self documented.
+
 *** Open files externally
 
 - Open file with external program (`\\<helm-find-files-map>\\[helm-ff-run-open-file-externally]',`C-u' to choose).
@@ -478,11 +488,7 @@ Simply write the path in the prompt and press `RET', e.g.
 
 *** To create a new file, enter a filename not ending with \"/\"
 
-Note that when you enter a new name, this one is prefixed with
-\[?] if you are in a writable directory.  If you are in a directory
-where you have no write permission the new file name is not
-prefixed and is colored in red.  There is not such distinction
-when using Tramp, new filename just appears on top of buffer.
+Note that when you enter a new name, this one is prefixed with [?].
 
 *** Recursive search from Helm-find-files
 
@@ -844,6 +850,19 @@ automatically \"-e 'ssh -p 2222'\" to the rsync command line
 unless you have specified yourself the \"-e\" option by editing
 rsync command line with a prefix arg (see above).
 
+*** Access files on Android phones from Helm
+
+Since Android doesn't provide anymore mass storage for USB, it is
+not simple to access files on Android, the best way to do this
+actually seems to use Adb, here some hints to set this up, read
+in addition the Tramp documentation.
+
+1) Install Adb, most distribution provide it.
+2) Enable on your phone USB debug in System/dvlpmnt settings.
+3) From helm-find-files use adb tramp method:
+    /adb::/
+From there you can navigate as usual, mark and copy files etc...
+
 *** Bookmark the `helm-find-files' session
 
 You can bookmark the `helm-find-files' session with `\\[helm-ff-bookmark-set]'.
@@ -958,6 +977,7 @@ the same hosts.
 As a rule of thumb, prefer the scp method unless using multihops (which only
 works with the ssh method), especially when copying large files.
 
+IMPORTANT:
 You need to hit `C-j' once on top of a directory on the first connection
 to complete the pattern in the minibuffer.
 
@@ -980,6 +1000,11 @@ without addind the ending \":\", second hit insert the last \":\".
 As soon the last \":\" is entered TRAMP will kick in and you should see the list
 of candidates soon after.
 
+**** Completion on tramp methods
+
+If you enter \":\" directly after \"/\" or \"|\" you will have completion on tramp methods,
+hitting `\\[helm-execute-persistent-action]' or `right' on a method will insert it in minibuffer.
+ 
 When connection fails, be sure to delete your TRAMP connection with M-x
 `helm-delete-tramp-connection' before retrying.
 
@@ -1204,7 +1229,8 @@ you will have to refresh manually directories when needed with `\\<helm-map>\\[h
 |\\[helm-ff-sort-by-newest]|Sort by newest
 |\\[helm-ff-sort-by-size]|Sort by size
 |\\[helm-ff-toggle-dirs-only]|Show only directories
-|\\[helm-ff-toggle-files-only]|Show only files")
+|\\[helm-ff-toggle-files-only]|Show only files
+|\\[helm-ff-toggle-thumbnails]|Show thumbnails on image files")
 
 ;;; Help for file-name-history
 ;;

@@ -1,6 +1,6 @@
 ;;; helm-elisp.el --- Elisp symbols completion for helm. -*- lexical-binding: t -*-
 
-;; Copyright (C) 2012 ~ 2020 Thierry Volpiatto <thierry.volpiatto@gmail.com>
+;; Copyright (C) 2012 ~ 2021 Thierry Volpiatto <thierry.volpiatto@gmail.com>
 
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -31,7 +31,7 @@
 (declare-function helm-describe-face "helm-lib")
 (declare-function helm-read-file-name "helm-mode")
 (declare-function helm-comp-read "helm-mode")
-(declare-function helm-M-x-transformer-no-sort "helm-command")
+(declare-function helm-M-x-transformer-no-sort-no-props "helm-command")
 
 ;;; Customizable values
 
@@ -434,7 +434,7 @@ If SYM is not documented, return \"Not documented\"."
   "Preconfigured Helm to complete file name at point."
   (interactive)
   (require 'helm-mode)
-  (let* ((tap (thing-at-point 'filename))
+  (let* ((tap (or (thing-at-point 'filename) ""))
          beg
          (init (and tap
                     (or force
@@ -625,7 +625,7 @@ double quote."
             (helm-apropos-init 'commandp default))
     :fuzzy-match helm-apropos-fuzzy-match
     :filtered-candidate-transformer
-    (append (list #'helm-M-x-transformer-no-sort)
+    (append (list #'helm-M-x-transformer-no-sort-no-props)
             (and (null helm-apropos-fuzzy-match)
                  '(helm-apropos-default-sort-fn)))
     :display-to-real 'helm-symbolify

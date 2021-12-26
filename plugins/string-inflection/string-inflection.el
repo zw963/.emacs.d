@@ -4,7 +4,7 @@
 
 ;; Author: akicho8 <akicho8@gmail.com>
 ;; Keywords: elisp
-;; Version: 1.0.14
+;; Version: 1.0.16
 
 ;; This file is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -96,6 +96,15 @@ the beginning."
   :type 'boolean)
 
 (defconst string-inflection-word-chars "a-zA-Z0-9_-")
+
+(defcustom string-inflection-erase-chars-when-region "./"
+  "When selected in the region, this character is included in the transformation as part of the string.
+
+Exactly assume that the underscore exists.
+For example, when you select `Foo/Bar', it is considered that `Foo_Bar' is selected.
+If include `:', select `FOO::VERSION' to run `M-x\ string-inflection-underscore' to `foo_version'."
+  :group 'string-inflection
+  :type 'string)
 
 ;; --------------------------------------------------------------------------------
 
@@ -213,10 +222,20 @@ the beginning."
                   (point))))
          (str (buffer-substring start end)))
     (prog1
-        (if (use-region-p)
+        (progn
+          (when (use-region-p)
             ;; https://github.com/akicho8/string-inflection/issues/31
             ;; Multiple lines will be one line because [:space:] are included to line breaks
-            (replace-regexp-in-string "[.:/]+" "_" str) ; 'aa::bb.cc dd/ee' => 'aa_bb_cc dd_ee'
+            (setq str (replace-regexp-in-string (concat "[" string-inflection-erase-chars-when-region "]+") "_" str)) ; 'aa::bb.cc dd/ee' => 'aa_bb_cc dd_ee'
+
+            ;; kebabing a region can insert an unexpected hyphen
+            ;; https://github.com/akicho8/string-inflection/issues/34
+            (with-syntax-table (copy-syntax-table)
+              (modify-syntax-entry ?_ "w")
+              (setq str (replace-regexp-in-string "_+\\b" "" str)) ; '__aA__ __aA__' => '__aA __aA'
+              (setq str (replace-regexp-in-string "\\b_+" "" str)) ; '__aA __aA'     => 'aA aA'
+              )
+            )
           str)
       (delete-region start end))))
 

@@ -33,15 +33,4 @@
     ("l" block-nav-next-indentation-level "down one level")
     ))
 
-(with-eval-after-load 'back-button
-  (defhydra hydra-back-button
-    (
-     global-map "C-x ,"
-     :pre (setq cursor-type t)
-     :post (setq cursor-type 'bar)
-     )
-    "global mark ring"
-    ("n" back-button-global-forward "global next mark")
-    ("p" back-button-global-backward "global previous hunk")))
-
 (provide 'hydra_init)

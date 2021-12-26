@@ -122,7 +122,7 @@ Use `font-lock-add-keywords' in case of `ruby-mode' or
     "assert" "assert_equal" "assert_response" "assert_same_elements" "assert_includes" "assert_empty"
     "assert_instance_of" "assert_kind_of" "assert_match" "assert_nil" "assert_output" "assert_raises"
     "assert_response_to" "assert_same" "assert_silent" "assert_throws" "assert_enqueued_with"
-    "assert_mock"
+    "assert_mock" "assert_in_delta"
     "refute" "refute_nil" "refute_empty" "refute_empty" "refute_same" "refute_in_delta" "refute_respond_to"
     "refute_in_epsilon" "refute_includes" "refute_instance_of" "refute_kind_of" "refute_match"
     )

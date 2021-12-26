@@ -338,11 +338,12 @@ afterwards."
 (defun shackle--display-buffer-same (buffer alist)
   "Display BUFFER in the currently selected window.
 ALIST is passed to `shackle--window-display-buffer' internally."
-  (let ((window (shackle--window-display-buffer buffer (selected-window)
-                                                'window alist)))
-    (prog1 window
-      (when shackle-inhibit-window-quit-on-same-windows
-        (shackle--inhibit-window-quit window)))))
+  (unless (window-minibuffer-p)
+    (let ((window (shackle--window-display-buffer
+                   buffer (selected-window) 'window alist)))
+      (prog1 window
+        (when shackle-inhibit-window-quit-on-same-windows
+          (shackle--inhibit-window-quit window))))))
 
 (defun shackle--display-buffer-frame (buffer alist plist)
   "Display BUFFER in a popped up frame.

@@ -3,7 +3,7 @@
 
 ;; Copyright (C) 2010 - 2019, 2020, 2021 Victor Ren
 
-;; Time-stamp: <2021-01-14 23:56:53 Victor Ren>
+;; Time-stamp: <2021-12-23 19:28:21 Victor Ren>
 ;; Author: Victor Ren <victorhge@gmail.com>
 ;; Keywords: occurrence region simultaneous rectangle refactoring
 ;; Version: 0.9.9.9
@@ -54,7 +54,9 @@
 
 ;;; Code:
 
-;; (eval-when-compile (require 'cl-lib))
+(eval-when-compile (require 'cl-lib))
+
+(require 'kmacro)
 
 (declare-function c-before-change "cc-mode.el")
 
@@ -136,10 +138,10 @@ Either nil, t, or 'open.  'open means the same as t except that
 opens hidden overlays. ")
 
 (defvar iedit-lib-skip-invisible-count 0
-  "This is buffer local varible which is the number of skipped invisible occurrence. ")
+  "This is buffer local variable which is the number of skipped invisible occurrence. ")
 
 (defvar iedit-lib-skip-filtered-count 0
-  "This is buffer local varible which is the number of filtered occurrence. ")
+  "This is buffer local variable which is the number of filtered occurrence. ")
 
 (defvar iedit-hiding nil
   "This is buffer local variable which indicates whether buffer lines are hided. ")
@@ -162,7 +164,14 @@ that is going to be changed.")
 (defvar iedit-before-buffering-point nil
   "This is buffer local variable which is the point before modification.")
 
-;; `iedit-update-occurrences' gets called twice when change==0 and
+(defvar iedit-buffering-overlay nil
+  "This is buffer local variable which is the current overlay before starting recording kmacro.")
+
+(defvar iedit-start-kmacro-offset nil
+  "This is buffer local variable which is the offset from the
+  current overlay start before starting recording kmacro.")
+
+;; `iedit-record-changes' gets called twice when change==0 and
 ;; occurrence is zero-width (beg==end) -- for front and back insertion.
 (defvar iedit-skip-modification-once t
   "Variable used to skip first modification hook run when
@@ -214,6 +223,8 @@ It replaces `inhibit-modification-hooks' which prevents calling
 (make-variable-buffer-local 'iedit-before-buffering-string)
 (make-variable-buffer-local 'iedit-before-buffering-undo-list)
 (make-variable-buffer-local 'iedit-before-buffering-point)
+(make-variable-buffer-local 'iedit-buffering-overlay)
+(make-variable-buffer-local 'iedit-start-kmacro-offset)
 (make-variable-buffer-local 'iedit-skip-modification-once)
 (make-variable-buffer-local 'iedit-aborting)
 (make-variable-buffer-local 'iedit-buffering)
@@ -258,6 +269,9 @@ It replaces `inhibit-modification-hooks' which prevents calling
     (define-key map (kbd "M-D") 'iedit-delete-occurrences)
     (define-key map (kbd "M-N") 'iedit-number-occurrences)
     (define-key map (kbd "M-B") 'iedit-toggle-buffering)
+	(define-key map [remap kmacro-start-macro-or-insert-counter] 'iedit-start-kmacro)
+	(define-key map [remap kmacro-end-or-call-macro] 'iedit-end-and-call-kmacro)
+	(define-key map [remap kmacro-end-and-call-macro] 'iedit-end-and-call-kmacro)
     (define-key map (kbd "M-<") 'iedit-goto-first-occurrence)
     (define-key map (kbd "M->") 'iedit-goto-last-occurrence)
     (define-key map (kbd "C-?") 'iedit-help-for-occurrences)
@@ -316,6 +330,12 @@ It should be set before occurrence overlay is created.")
 (defun iedit--quit ()
   "Quit the current mode by calling mode exit function."
   (interactive)
+  (when iedit-buffering
+	(setq iedit-buffering nil)
+	(when defining-kbd-macro
+	  (kmacro-keyboard-quit)
+	  (force-mode-line-update t)
+	  (setq defining-kbd-macro nil)))
   (funcall iedit-lib-quit-func))
 
 (defun iedit-make-markers-overlays (markers)
@@ -413,6 +433,7 @@ Return the start position of the new occurrence if successful."
         ))
     pos))
 
+;; todo: this function is not used yet.
 (defun iedit-add-region-as-occurrence (beg end)
   "Add region as an occurrence.
 The length of the region must the same as other occurrences if
@@ -442,18 +463,22 @@ there are."
   ;; unset.
   (setq iedit-skip-modification-once t)
   (setq iedit-lib-quit-func mode-exit-func)
-  (add-hook 'post-command-hook 'iedit-update-occurrences-2 nil t)
+  (add-hook 'post-command-hook 'iedit-update-occurrences nil t)
   (add-hook 'before-revert-hook iedit-lib-quit-func nil t)
-  (add-hook 'kbd-macro-termination-hook iedit-lib-quit-func nil t)
+;;  (add-hook 'kbd-macro-termination-hook iedit-lib-quit-func nil t)
   (add-hook 'change-major-mode-hook iedit-lib-quit-func nil t)
   (setq iedit-after-change-list nil))
 
 (defun iedit-lib-cleanup ()
   "Clean up occurrence overlay, invisible overlay and local variables."
+  (when iedit-buffering
+	(if defining-kbd-macro
+		(iedit-end-and-call-kmacro nil)
+	  (iedit-stop-buffering)))
   (iedit-cleanup-occurrences-overlays)
-  (remove-hook 'post-command-hook 'iedit-update-occurrences-2 t)
+  (remove-hook 'post-command-hook 'iedit-update-occurrences t)
   (remove-hook 'before-revert-hook iedit-lib-quit-func t)
-  (remove-hook 'kbd-macro-termination-hook iedit-lib-quit-func t)
+  ;; (remove-hook 'kbd-macro-termination-hook iedit-lib-quit-func t)
   (remove-hook 'change-major-mode-hook iedit-lib-quit-func t)
   (setq iedit-lib-quit-func nil)
   (setq iedit-occurrences-overlays nil)
@@ -472,9 +497,9 @@ occurrences if the user starts typing."
     (overlay-put occurrence iedit-occurrence-overlay-name t)
     (overlay-put occurrence 'face 'iedit-occurrence)
     (overlay-put occurrence 'keymap iedit-occurrence-keymap)
-    (overlay-put occurrence 'insert-in-front-hooks '(iedit-update-occurrences))
-    (overlay-put occurrence 'insert-behind-hooks '(iedit-update-occurrences))
-    (overlay-put occurrence 'modification-hooks '(iedit-update-occurrences))
+    (overlay-put occurrence 'insert-in-front-hooks '(iedit-record-changes))
+    (overlay-put occurrence 'insert-behind-hooks '(iedit-record-changes))
+    (overlay-put occurrence 'modification-hooks '(iedit-record-changes))
     (overlay-put occurrence 'priority iedit-overlay-priority)
 	;; Identify case pattern of the occurrence.
     (overlay-put occurrence 'category (if (and (not iedit-case-sensitive) case-replace)
@@ -513,7 +538,7 @@ in occurrences."
 
 This is added to `post-command-hook' when aborting Iedit mode is
 decided.  `iedit-lib-quit-func' is postponed after the current
-command is executed for avoiding `iedit-update-occurrences'
+command is executed for avoiding `iedit-record-changes'
 is called for a removed overlay."
   (iedit--quit)
   (remove-hook 'post-command-hook 'iedit-reset-aborting t)
@@ -522,13 +547,13 @@ is called for a removed overlay."
 ;; There are two ways to update all occurrences.  One is to redefine all key
 ;; stroke map for overlay, the other is to figure out three basic modifications
 ;; in the modification hook.  This function chooses the latter.
-(defun iedit-update-occurrences (occurrence after beg end &optional change)
-  "Update all occurrences.
+(defun iedit-record-changes (occurrence after beg end &optional change)
+  "Record the changes to the current occurrence.
 This modification hook is triggered when a user edits any
-occurrence and is responsible for updating all other
-occurrences. Refer to `modification-hooks' for more details.
-Current supported edits are insertion, yank, deletion and
-replacement.  If this modification is going out of the
+occurrence and is responsible for recording all the changes to
+the current occurrence.  Refer to `modification-hooks' for more
+details.  Current supported edits are insertion, yank, deletion
+and replacement.  If this modification is going out of the
 occurrence, it will abort Iedit mode."
   (if (and undo-in-progress (null iedit-after-change-list))
       ;; If the "undo" change (not part of another command) make occurrences
@@ -564,40 +589,39 @@ occurrence, it will abort Iedit mode."
 			  (let* ((inslen (- end beg))
 					 (dellen change))
 				(push (list occurrence
-							(- beg 1)			; From 1 to beg
-							(- (point-max) end) ; From end to point-max
+							(- beg (overlay-start occurrence))			; From 1 to beg
+							(- (overlay-end occurrence) end) ; From end to point-max
 							(- inslen dellen))	; changed number
 					  iedit-after-change-list)))))))))
 
-(defun iedit-update-occurrences-2 ()
-  "The second part of updating other occurrences.
-
+(defun iedit-update-occurrences ()
+  "Updating other occurrences.
 This part is running in `post-command-hook'. It combines
-`iedit-after-change-list' into one change and then call the third
-part to apply it to all the other occurrences."
+`iedit-after-change-list' into one change and apply it to all the
+other occurrences."
   (when (and (not iedit-updating) iedit-after-change-list)
-	(let ((beg (buffer-size))
+	(let ((occurrence (caar iedit-after-change-list))
+		  (beg (buffer-size))
 		  (end (buffer-size))
 		  (change 0))
 	  (dolist (mod iedit-after-change-list)
 		(setq beg (min beg (nth 1 mod)))
 		(setq end (min end (nth 2 mod)))
 		(setq change (+ change (nth 3 mod))))
-	  (let* ((begpos (1+ beg))
-			 (endpos (- (point-max) end))
+	  (let* ((begpos (+ (overlay-start occurrence) beg))
+			 (endpos (- (overlay-end occurrence) end))
 			 (inslen (- endpos begpos))
 			 (dellen (- inslen change))
 			 (endpos (+ begpos inslen)))
-		(iedit-update-occurrences-3
-		 (caar iedit-after-change-list)
+		(iedit-apply-change
+		 occurrence
 		 begpos
 		 endpos
 		 dellen)
 		(setq iedit-after-change-list nil)))))
 
-(defun iedit-update-occurrences-3 (occurrence beg end &optional change)
-  "The third part of updating occurrences.
-Apply the change to all the other occurrences. "
+(defun iedit-apply-change (occurrence beg end &optional change)
+  "Apply the change to all the other occurrences. "
   (let ((iedit-updating t)
         (offset (- beg (overlay-start occurrence)))
         (value (buffer-substring-no-properties beg end)))
@@ -890,7 +914,7 @@ FORMAT."
 			  (replace-match (format format-string counter) t)
 			(insert (format format-string counter)))
 		  (iedit-move-conjoined-overlays ov)
-		  ;; goto the beginning of the next occourrence overlay
+		  ;; goto the beginning of the next occurrence overlay
 		  (if (iedit-find-overlay-at-point (overlay-end ov) 'iedit-occurrence-overlay-name)
 			  (goto-char (overlay-end ov)) ; conjoined overlay
 			(when (< (point) (overlay-end ov))
@@ -941,7 +965,6 @@ FORMAT."
   (iedit-barf-if-buffering)
   (iedit-apply-on-occurrences 'delete-region))
 
-;; todo: add cancel buffering function
 (defun iedit-toggle-buffering ()
   "Toggle buffering.
 This is intended to improve iedit's response time.  If the number
@@ -952,11 +975,7 @@ be applied to other occurrences when buffering is off."
   (interactive "*")
   (if iedit-buffering
       (iedit-stop-buffering)
-    (iedit-start-buffering))
-  (message (concat "Modification Buffering "
-                   (if iedit-buffering
-                       "started."
-                     "stopped."))))
+    (iedit-start-buffering)))
 
 (defun iedit-start-buffering ()
   "Start buffering."
@@ -964,19 +983,71 @@ be applied to other occurrences when buffering is off."
   (setq iedit-before-buffering-string (iedit-current-occurrence-string))
   (setq iedit-before-buffering-undo-list buffer-undo-list)
   (setq iedit-before-buffering-point (point))
-  (buffer-disable-undo)
+  (setq iedit-buffering-overlay (iedit-find-current-occurrence-overlay))
   (message "Start buffering editing..."))
+
+(defun iedit-start-kmacro ()
+  "Start recording subsequent keyboard input, defining a keyboard macro.
+The relative position of the current occurrence is remembered."
+  (interactive)
+  (iedit-barf-if-buffering)
+  (setq iedit-buffering t)
+  (setq iedit-buffering-overlay (iedit-find-current-occurrence-overlay))
+  (setq iedit-start-kmacro-offset (- (point) (overlay-start iedit-buffering-overlay)))
+  (let ((map (make-sparse-keymap)))
+	(define-key map [remap kmacro-end-or-call-macro] 'iedit-end-and-call-kmacro)
+	(set-transient-map map (lambda () iedit-buffering)))
+  (kmacro-start-macro nil)
+  (message "Start recording keyboard input..."))
+
+(defun iedit-end-and-call-kmacro (arg &optional no-repeat)
+  "Call last keyboard macro, ending it first if currently being defined, apply it on all the occurrences.
+
+If iedit is buffering, call it only once.
+
+If the defining macro was not started from `iedit-start-macro',
+end it only.
+
+This command is intended to eliminate a restriction of other
+commands - modifications allowed only inside of occurrences.
+The recorded modifications can be outside of the occurrences.
+The cursor is moved to the relative position of every occurrence
+before calling the last keyboard macro."
+  (interactive "P")
+  (cond
+   ((and iedit-buffering (not defining-kbd-macro))
+	(kmacro-call-macro arg no-repeat))
+   ((and defining-kbd-macro (null iedit-buffering-overlay))
+	(kmacro-end-macro arg))
+   (t (if (and (not defining-kbd-macro) (null iedit-buffering-overlay))
+		  (setq iedit-start-kmacro-offset (- (point) (overlay-start (iedit-find-current-occurrence-overlay))))
+		;; (and defining-kbd-macro iedit-buffering-overlay) iedit-start-kmacro was called
+		(kmacro-end-macro nil)
+		(setq iedit-buffering nil))
+	  (let ((iedit-updating t))
+		(save-excursion
+		  (when iedit-buffering-overlay (iedit-move-conjoined-overlays iedit-buffering-overlay))
+		  (dolist (another-occurrence iedit-occurrences-overlays)
+			(when (not (eq another-occurrence iedit-buffering-overlay))
+			  (goto-char (+ (overlay-start another-occurrence) iedit-start-kmacro-offset))
+			  (kmacro-call-macro nil t)
+			  (iedit-move-conjoined-overlays another-occurrence)))))
+	  (setq iedit-buffering-overlay nil)
+	  (if (iedit-same-length)
+		  (message "Keyboard macro applied to the occurrences.")
+		(iedit--quit)
+		(message "Abort Iedit mode due to different change made to occurrences.")))))
 
 (defun iedit-case-pattern (beg end)
   "Distinguish the case pattern of the text between `beg' and `end'.
 
-These case ptterns are the same as the ones Emacs replace
+These case patterns are the same as the ones Emacs replace
 commands can recognized - three alternatives - all caps,
-captilized, the others.
+capitalized, the others.
 
 If the text has only capital letters and has at least one
-multiletter word, it is 'all caps'. If all words are capitalized,
-it is captilized.'"
+multi letter word, it is 'all caps'. If all words are capitalized,
+it is capitalized.'"
   (let ((some-word nil)
 		(some-lowercase nil)
 		(some-uppercase nil)
@@ -1012,11 +1083,8 @@ it is captilized.'"
 		  'no-change)))))
 
 (defun iedit-stop-buffering ()
-  "Stop buffering and apply the modification to other occurrences.
-If current point is not at any occurrence, the buffered
-modification is not going to be applied to other occurrences."
-  (let ((ov (iedit-find-current-occurrence-overlay)))
-    (when ov
+  "Stop buffering and apply the modification to other occurrences."
+  (let ((ov iedit-buffering-overlay))
       (let* ((beg (overlay-start ov))
              (end (overlay-end ov))
              (modified-string (buffer-substring-no-properties beg end))
@@ -1030,7 +1098,7 @@ modification is not going to be applied to other occurrences."
             (goto-char beg)
             (insert-and-inherit iedit-before-buffering-string)
 			(goto-char iedit-before-buffering-point)
-			(buffer-enable-undo)
+			;; (buffer-enable-undo)
             (setq buffer-undo-list iedit-before-buffering-undo-list)
 			;; go back here if undo
 			(push (point) buffer-undo-list)
@@ -1050,10 +1118,11 @@ modification is not going to be applied to other occurrences."
 						modified-string))
 				     (t modified-string))))
                 (iedit-move-conjoined-overlays occurrence))))
-          (goto-char (+ (overlay-start ov) offset))))))
+          (goto-char (+ (overlay-start ov) offset))
+	      (message "Buffered modification applied."))))
   (setq iedit-buffering nil)
-  (message "Buffered modification applied.")
-  (setq iedit-before-buffering-undo-list nil))
+  (setq iedit-before-buffering-undo-list nil)
+  (setq iedit-buffering-overlay nil))
 
 (defun iedit-move-conjoined-overlays (occurrence)
   "This function keeps overlays conjoined after modification.
@@ -1164,8 +1233,6 @@ Return nil if occurrence string is empty string."
 
 (defun iedit-cleanup-occurrences-overlays (&optional beg end inclusive)
   "Remove overlays from list `iedit-occurrences-overlays'."
-  (when iedit-buffering
-    (iedit-stop-buffering))
   ;; Close overlays opened by `isearch-range-invisible'
   (isearch-clean-overlays)
   (when iedit-hiding

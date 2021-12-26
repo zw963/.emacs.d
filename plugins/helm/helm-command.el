@@ -1,6 +1,6 @@
 ;;; helm-command.el --- Helm execute-exended-command. -*- lexical-binding: t -*-
 
-;; Copyright (C) 2012 ~ 2020 Thierry Volpiatto <thierry.volpiatto@gmail.com>
+;; Copyright (C) 2012 ~ 2021 Thierry Volpiatto <thierry.volpiatto@gmail.com>
 
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -102,7 +102,7 @@ Return nil if no mode-map found."
       (helm-M-x-get-major-mode-command-alist (symbol-value map-sym)))))
 
 
-(defun helm-M-x-transformer-1 (candidates &optional sort)
+(defun helm-M-x-transformer-1 (candidates &optional sort ignore-props)
   "Transformer function to show bindings in emacs commands.
 Show global bindings and local bindings according to current
 `major-mode'.
@@ -122,7 +122,7 @@ algorithm."
                                         (buffer-local-value sym helm-current-buffer)))
                                (propertize cand 'face 'helm-command-active-mode)
                              cand)
-          unless (or (get sym 'helm-only) (get sym 'no-helm-mx))
+          unless (and (null ignore-props) (or (get sym 'helm-only) (get sym 'no-helm-mx)))
           collect
           (cons (cond ((and (string-match "^M-x" key) local-key)
                        (format "%s %s"
@@ -147,6 +147,10 @@ algorithm."
 (defun helm-M-x-transformer-no-sort (candidates _source)
   "Transformer function for `helm-M-x' candidates."
   (helm-M-x-transformer-1 candidates))
+
+(defun helm-M-x-transformer-no-sort-no-props (candidates _source)
+  "Transformer function for `helm-M-x' candidates."
+  (helm-M-x-transformer-1 candidates nil t))
 
 (defun helm-M-x--notify-prefix-arg ()
   ;; Notify a prefix-arg set AFTER calling M-x.

@@ -14,7 +14,7 @@
  '(zoom-ignored-major-modes '(dired-mode markdown-mode minimap-mode))
  )
 
-;; (zoom-mode)
+(zoom-mode)
 
 (provide 'zoom_init)
 

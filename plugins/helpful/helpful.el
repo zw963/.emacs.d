@@ -1317,13 +1317,17 @@ If it fails, attempt to partially macroexpand FORM."
 (defun helpful--tree-any-p (pred tree)
   "Walk TREE, applying PRED to every subtree.
 Return t if PRED ever returns t."
-  (cond
-   ((null tree) nil)
-   ((funcall pred tree) t)
-   ((not (consp tree)) nil)
-   (t (or
-       (helpful--tree-any-p pred (car tree))
-       (helpful--tree-any-p pred (cdr tree))))))
+  (catch 'found
+    (let ((stack (list tree)))
+      (while stack
+        (let ((next (pop stack)))
+          (cond
+           ((funcall pred next)
+            (throw 'found t))
+           ((consp next)
+            (push (car next) stack)
+            (push (cdr next) stack))))))
+    nil))
 
 (defun helpful--find-by-macroexpanding (buf sym callable-p)
   "Search BUF for the definition of SYM by macroexpanding
@@ -1898,7 +1902,7 @@ OBJ may be a symbol or a compiled function object."
             'info-node "(elisp)Autoload"))
           (compiled-button
            (helpful--button
-            "compiled"
+            "byte-compiled"
             'helpful-info-button
             'info-node "(elisp)Byte Compilation"))
           (native-compiled-button
@@ -2253,7 +2257,7 @@ state of the current symbol."
           (insert (helpful--format-docstring docstring)))
         (when version-info
           (insert "\n\n" (s-word-wrap 70 version-info)))
-        (when (helpful--in-manual-p helpful--sym)
+        (when (and (symbolp helpful--sym) (helpful--in-manual-p helpful--sym))
           (insert "\n\n")
           (insert (helpful--make-manual-button helpful--sym)))))
 
@@ -2296,7 +2300,11 @@ state of the current symbol."
      "\n\n"
      (helpful--make-references-button helpful--sym helpful--callable-p))
 
-    (when (and helpful--callable-p source (not primitive-p))
+    (when (and
+           helpful--callable-p
+           (symbolp helpful--sym)
+           source
+           (not primitive-p))
       (insert
        " "
        (helpful--make-callees-button helpful--sym source)))
@@ -2462,7 +2470,14 @@ For example, \"(some-func FOO &optional BAR)\"."
              ((symbolp sym)
               (help-function-arglist sym))
              ((byte-code-function-p sym)
-              (aref sym 0))
+              ;; argdesc can be a list of arguments or an integer
+              ;; encoding the min/max number of arguments. See
+              ;; Byte-Code Function Objects in the elisp manual.
+              (let ((argdesc (aref sym 0)))
+                (if (consp argdesc)
+                    argdesc
+                  ;; TODO: properly handle argdesc values.
+                  nil)))
              (t
               ;; Interpreted function (lambda ...)
               (cadr sym))))

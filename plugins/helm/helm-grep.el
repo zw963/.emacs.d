@@ -1,6 +1,6 @@
 ;;; helm-grep.el --- Helm Incremental Grep. -*- lexical-binding: t -*-
 
-;; Copyright (C) 2012 ~ 2020 Thierry Volpiatto <thierry.volpiatto@gmail.com>
+;; Copyright (C) 2012 ~ 2021 Thierry Volpiatto <thierry.volpiatto@gmail.com>
 
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -1639,8 +1639,9 @@ returns if available with current AG version."
                  (assoc-default 'follow helm-source-grep-ag))
       (setf (slot-value source 'follow) it)))
 
-(defun helm-grep-ag-1 (directory &optional type)
-  "Start helm ag in DIRECTORY maybe searching in files of type TYPE."
+(defun helm-grep-ag-1 (directory &optional type input)
+  "Start helm ag in DIRECTORY maybe searching in files of type TYPE.
+If INPUT is provided, use it as the search string."
   (setq helm-source-grep-ag
         (helm-make-source (upcase (helm-grep--ag-command)) 'helm-grep-ag-class
           :header-name (lambda (name)
@@ -1652,6 +1653,7 @@ returns if available with current AG version."
   (helm :sources 'helm-source-grep-ag
         :keymap helm-grep-map
         :history 'helm-grep-ag-history
+        :input input
         :truncate-lines helm-grep-truncate-lines
         :buffer (format "*helm %s*" (helm-grep--ag-command))))
 
