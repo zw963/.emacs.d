@@ -11,8 +11,9 @@
 
 (custom-set-variables
  '(zoom-size 'size-callback)
- '(zoom-ignored-major-modes '(dired-mode markdown-mode))
- '(zoom-ignored-buffer-names '(" *MINIMAP*"))
+ '(zoom-ignored-major-modes '(dired-mode markdown-mode treemacs-mode helm-mode))
+ '(zoom-ignored-buffer-names '(" *MINIMAP*" " *Flutter Outline*"))
+ '(zoom-ignored-buffer-name-regexps '("Flutter Outline"))
  )
 
 (with-eval-after-load 'minimap

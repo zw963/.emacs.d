@@ -22,6 +22,7 @@
   (lsp-dart-flutter-daemon-mode)
   (require 'lsp-dart-test-support)
   (setq lsp-signature-auto-activate nil)
+  (setq lsp-dart-dap-flutter-hot-reload-on-save t)
   (add-hook 'dart-mode-hook 'lsp)
   )
 
