@@ -24,6 +24,9 @@
 ;; (setq server-host "127.0.0.1") ;指定本emacs server是否允许远程连接.
 (setq server-port 9299)
 
+(setq native-comp-async-report-warnings-errors nil)
+(setq warning-minimum-level :error)
+
 (setq custom-theme-directory (expand-file-name "plugins/themes" default-directory))
 
 (setq inhibit-startup-screen t)    ;关闭启动帮助画面
