@@ -7,14 +7,15 @@
 (setenv "https_proxy" "")
 (setenv "ftp_proxy" "")
 
-
-;; (setq read-process-output-max (* 1024 1024)) ;; 1M
 ;; (setq inhibit-compacting-font-caches t)  ; Don’t compact font caches during GC.
 
 ;; gc-cons-threshold controlled by gcmh.el
 ;; 注意，不要随便设置很大的 gc-cons-threshold, 否则会突然很卡。
 (require 'gcmh)
 (gcmh-mode)
+
+;; 根据 lsp-dart 的建议，这个应该设定大一点，性能会好很多。
+(setq read-process-output-max (* 1024 1024)) ;; 1M
 
 (require 'auto-compile_init)
 
@@ -56,6 +57,8 @@
   (indent-according-to-mode)
   )
 
+(defun hack-local-variables-confirm (all-vars unsafe-vars risky-vars dir-name)  t)
+
 (global-set-key [(meta k)] 'mark-next-line)
 (global-set-key [(control o)] 'open-line-and-indent)
 
@@ -69,3 +72,20 @@
   (setq no-byte-compile t)
   ;; (setq debug-on-signal t)
   )
+
+;; (require 'dart-mode)
+;; (require 'lsp-mode)
+;; (require 'lsp-dart)
+;; (require 'lsp-ui)
+;; (require 'lsp-modeline)
+;; (require 'lsp-headerline)
+;; (require 'lsp-treemacs)
+;; (require 'dap-mode)
+;; (require 'dap-ui)
+;; (require 'dap-mouse)
+;; (require 'flycheck)
+;; (require 'company)
+
+;; (setq lsp-dart-flutter-widget-guides nil)
+;; (add-hook 'dart-mode-hook 'lsp)
+;; (add-to-list 'auto-mode-alist '("\\.dart\\'" . dart-mode))

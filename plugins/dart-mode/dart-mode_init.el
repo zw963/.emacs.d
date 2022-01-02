@@ -64,6 +64,7 @@
   (setq lsp-signature-auto-activate nil)
   (setq lsp-dart-dap-flutter-hot-reload-on-save t)
   (add-hook 'dart-mode-hook 'lsp)
+  ;; (add-hook 'dart-mode-hook 'treemacs-select-window)
   )
 
 (require 'flutter)

@@ -2,7 +2,8 @@
 
 ;; (setq lsp-log-io t)
 
-(setq lsp-use-plists t)
+;; lsp-dart not support set this.
+;; (setq lsp-use-plists t)
 
 (require 'lsp-completion)
 (setq lsp-completion-provider :capf) ; 这是默认值, lsp 需要使用这个来 completion.
