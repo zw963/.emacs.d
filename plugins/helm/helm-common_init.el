@@ -8,7 +8,7 @@
 
 (setq
  helm-candidate-number-limit 25
- helm-buffer-max-length 30 ;; buffer 的名称长一点，否则看不到完整名字。
+ helm-buffer-max-length 50 ;; buffer 的名称长一点，否则看不到完整名字。
  ;; 似乎我的 (window-width) 值是 93, 这里设定小于 93, C-c o 将会在右侧 split.
  ;; (setq-default split-width-threshold 30)
  split-height-threshold nil
