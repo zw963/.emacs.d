@@ -22,8 +22,9 @@
 
 (setq vterm-clear-scrollback-when-clearing t)
 
-(setq vterm-use-vterm-prompt-detection-method nil)
-(setq term-prompt-regexp "╰─ $ ")
+;; (setq vterm-use-vterm-prompt-detection-method nil)
+;; (setq term-prompt-regexp "╰─ $ ")
+
 ;; (setq vterm-enable-manipulate-selection-data-by-osc52 t)
 
 ;; (add-hook 'shell-mode-hook
