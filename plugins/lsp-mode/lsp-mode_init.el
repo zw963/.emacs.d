@@ -59,7 +59,6 @@
 (require 'lsp-lens)
 (setq lsp-lens-enable t)
 
-(setq lsp-signature-render-documentation)
 (setq lsp-signature-function 'lsp-signature-posframe)
 
 ;; lsp-ui auto config completion, code-actions, breadcrumb, ‘flycheck’,
@@ -76,8 +75,6 @@
 
   ;; code actions 是问题的修复策略.
   (setq lsp-ui-sideline-show-code-actions t) ; 这是默认值
-
-  (setq lsp-ui-peek-fontify )
 
   (setq lsp-ui-doc-enable t) ; 这是默认值
   (setq lsp-ui-doc-delay 3)
