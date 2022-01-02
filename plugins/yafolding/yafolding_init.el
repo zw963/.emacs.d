@@ -91,6 +91,7 @@ Meant to be used as `hs-set-up-overlay'."
                                 (local-set-key [(control c) (/)] 'hs-hide-all)
                                 (local-set-key [(control c) (\\)] 'hs-show-all)
                                 (local-set-key [(control tab)] 'hs-toggle-hiding)
+                                (local-set-key [(mouse-2)] 'hs-toggle-hiding)
                                 ))
 
 ;; (require 'vimish-fold)
