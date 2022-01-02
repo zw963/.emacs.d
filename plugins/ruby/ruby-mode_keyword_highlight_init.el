@@ -12,7 +12,7 @@
   '("require" "load" "require_relative" "extend" "include" "prepend" "abort"
     "fail" "warn" "block_given?" "alias_method" "catch" "module_function"
     "public" "private" "protected" "raise" "throw" "pry!" "pry1" "pry2" "pry3"
-    "repry!" "pry?" "def_delegators" "def_delegator"
+    "repry!" "pry?" "def_delegators" "def_delegator" "irb1" "irb2" "irb!"
     )
   "List of keywords to highlight for spec."
   :group 'rinari

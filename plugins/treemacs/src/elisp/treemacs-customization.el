@@ -151,10 +151,17 @@ There are 2 options:
   :type 'boolean
   :group 'treemacs)
 
-(defcustom treemacs-eldoc-display t
+(defcustom treemacs-eldoc-display 'simple
   "Enables eldoc display of the file path at point.
+
+There are 2 options:
+ - `simple': shows the absolute path of the file at point
+ - `detailed': shows the absolute path, size, last modification time and
+   permissions of the file at point
+
 Requires eldoc mode to be enabled."
-  :type 'boolean
+  :type '(choice (const :tag "Simple" 'simple)
+                 (const :tag "Detailed" 'detailed))
   :group 'treemacs)
 
 (defcustom treemacs-indent-guide-style 'line
@@ -765,12 +772,12 @@ marking the selected line."
   :group 'treemacs-window)
 
 (defcustom treemacs-wide-toggle-width 70
-  "When resizing, this value is added or substracted from the window width."
+  "When resizing, this value is added or subtracted from the window width."
   :type 'integer
   :group 'treemacs-window)
 
 (defcustom treemacs-width-increment 1
-  "When resizing, this value is added or substracted from the window width."
+  "When resizing, this value is added or subtracted from the window width."
   :type 'integer
   :group 'treemacs-window)
 
@@ -882,6 +889,28 @@ the original file's location, and the copy's location, both as absolute paths."
 Will be called with the deleted project as the sole argument *after* it has been
 deleted."
   :type 'hook
+  :group 'treemacs-hooks)
+
+(defcustom treemacs-find-workspace-method 'find-for-file-or-pick-first
+  "The method by which treemacs selects a workspace when first starting.
+There are 3 options:
+ - `find-for-file-or-pick-first' means treemacs will select the first workspace
+   with a project that contains the current buffer's file.  If no such workspace
+   exists, or if the current buffer is not visiting a file, the first workspace
+   in the list (as seen in `treemacs-edit-workspaces' or picked with
+   `treemacs-set-fallback-workspace') is selected
+ - `find-for-file-or-manually-select' works the same, but an interactive
+   selection is used as fallback instead
+ - `always-ask' means the workspace *always* has to be manually selected
+
+Note that the selection process will be skipped if there is only one workspace."
+  :type '(choice (const
+                  :tag "Find workspace for current file, pick the first workspace as falback"
+                  find-for-file-or-pick-first)
+                 (const
+                  :tag "Find workspace for current file, interactively select workspace as falback"
+                  find-for-file-or-manually-select)
+                 (const :tag "Always ask" always-ask))
   :group 'treemacs-hooks)
 
 (defcustom treemacs-rename-project-functions nil

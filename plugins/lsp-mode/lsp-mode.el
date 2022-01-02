@@ -2376,7 +2376,7 @@ BINDINGS is a list of (key def desc cond)."
                             item))))
                     (when (stringp ,key)
                       (setq lsp--binding-descriptions
-                            (nconc lsp--binding-descriptions '(,key ,desc)))))))
+                            (append lsp--binding-descriptions '(,key ,desc)))))))
        macroexp-progn))
 
 (defvar lsp--describe-buffer nil)
@@ -8828,6 +8828,23 @@ This avoids overloading the server with many files when starting Emacs."
         (lsp--virtual-buffer-update-position)
         (lsp--info "Disconnected from buffer %s" file-name))
     (lsp--error "Nothing to disconnect from?")))
+
+
+
+;;;###autoload
+(defun lsp-start-plain ()
+  "Start `lsp-mode' using mininal configuration using the latest `melpa' version of the packages.
+
+In case the major-mode that you are using for "
+  (interactive)
+  (let ((start-plain (make-temp-file "plain" nil ".el")))
+    (url-copy-file "https://raw.githubusercontent.com/emacs-lsp/lsp-mode/master/scripts/lsp-start-plain.el"
+                   start-plain t)
+    (async-shell-command
+     (format "%s -q -l %s"
+             (expand-file-name invocation-name invocation-directory)
+             start-plain)
+     (generate-new-buffer " *lsp-start-plain*"))))
 
 
 
