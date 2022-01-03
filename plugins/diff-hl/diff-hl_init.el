@@ -13,9 +13,9 @@
 (require 'diff-hl-flydiff)
 (diff-hl-flydiff-mode 1)
 
-(setq diff-hl-show-staged-changes nil)
+;; (setq diff-hl-show-staged-changes t)
+;; (setq diff-hl-ask-before-revert-hunk t)
 
-(setq diff-hl-ask-before-revert-hunk t)
 ;; (defun diff-hl-revert-narrow-to-hunk (end)
 ;;   (if (fboundp 'fancy-narrow-to-region)
 ;;       (fancy-narrow-to-region (point) end)
