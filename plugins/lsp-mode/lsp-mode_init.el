@@ -1,7 +1,9 @@
 (require 'lsp-mode)
+
 (require 'lsp-headerline)
-(require 'lsp-ui)
-(require 'lsp-ivy)
+(require 'lsp-diagnostics)
+;; 必须手动 require headerline 和 diagnostics 两个，才会有 flycheck 的小红线提示错误信息。
+;; 如果没有小红线，可能很难发现一些错误。
 
 ;; (setq lsp-log-io t)
 
@@ -20,6 +22,7 @@
 
 (setq lsp-modeline-code-actions-segments '(count icon name))
 
+;; 这个默认不打开，尝试打开试试看
 (setq lsp-semantic-tokens-enable t)
 
 ;; lsp-dart not support set this.
@@ -37,21 +40,20 @@
 
 ;; lsp-ui auto config completion, code-actions, breadcrumb, ‘flycheck’,
 ;;‘flymake’, ‘imenu’, symbol highlighting, lenses, links, and so on.
+
+(require 'lsp-ui)
 (with-eval-after-load 'lsp-ui
   ;; 关闭这个，会让 diagnostics(从 lsp-server 返回的诊断信息) 和 flycheck 信息在 minibuffer 合并显示.
   ;; (setq lsp-ui-sideline-show-diagnostics t)
 
-  ;; 隐藏右边乱七八糟一大堆信息，暂时看不懂到底有什么用。
-  ;; (setq lsp-ui-sideline-show-hover nil) ; 这是默认值
-
-  ;; code actions 是问题的修复策略.
-  ;; (setq lsp-ui-sideline-show-code-actions t) ; 这是默认值
-
-  ;; (setq lsp-ui-doc-enable t) ; 这是默认值
+  ;; code actions 是问题的修复策略, 在右侧显示问题的修复策略。
+  (setq lsp-ui-sideline-show-code-actions t)
 
   (setq lsp-ui-doc-delay 3)
 
-  ;; (setq lsp-ui-imenu-enable t) ; 默认值
+  ;; (setq lsp-ui-sideline-show-hover nil) ; 这是默认值
+  ;; (setq lsp-ui-doc-enable t) ; 这是默认值
+  ;; (setq lsp-ui-imenu-enable t) ; 这是默认值
 
   ;; (require 'lsp-ui-flycheck)
   ;; (lsp-ui-flycheck-list-mode)
@@ -68,6 +70,7 @@
   (define-key lsp-mode-map [(control \;)] #'lsp-iedit-highlights)
   )
 
+(require 'lsp-ivy)
 (with-eval-after-load 'lsp-ivy
   ;; (define-key lsp-mode-map [(control c) (S)] #'lsp-ivy-global-workspace-symbol)
   ;; Ctrl+Alt+.
