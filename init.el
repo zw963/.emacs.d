@@ -171,5 +171,6 @@
 
 ;; 这个似乎要放到最后面？
 ;; (require 'workgroups_init)
+(require 'burly_init)
 
 (setenv "LOAD_INIT" "true")
