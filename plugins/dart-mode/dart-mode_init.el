@@ -19,6 +19,10 @@
   (add-hook 'dart-mode-hook 'lsp)
   )
 
+(with-eval-after-load 'lsp-treemacs
+  (add-hook 'dart-mode-hook 'treemacs-select-window)
+  )
+
 ;; (require 'flutter)
 ;; (setq flutter-l10n-arb-dir "lib/i10n")
 ;; (setq flutter-l10n-template-arb-file "intl_zh_Hans.arb")
