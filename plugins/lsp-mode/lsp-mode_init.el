@@ -13,53 +13,45 @@
 ;; (setq lsp-enable-file-watchers nil)
 (setq lsp-file-watch-threshold 3000)
 
-;; lsp-dart not support set this.
-;; (setq lsp-use-plists t)
-
-(add-hook 'lsp-mode-hook
-          (lambda ()
-            (setq-local company-format-margin-function #'company-vscode-dark-icons-margin))
-          )
-
-
 ;; for more customize, check lsp-headerline-breadcrumb-segments
 (setq lsp-headerline-breadcrumb-enable-symbol-numbers t)
 
 (setq lsp-signature-function 'lsp-signature-posframe)
 
-(with-eval-after-load 'which-key
-  (add-hook 'lsp-after-open-hook 'lsp-enable-which-key-integration))
-
 (setq lsp-modeline-code-actions-segments '(count icon name))
+
+(setq lsp-semantic-tokens-enable t)
+
+;; lsp-dart not support set this.
+;; (setq lsp-use-plists t)
+
+;; 下面是这些新的配置相对于老的配置的一些改动：
+
+;; 1. lsp-modeline-code-actions-enable 从 nil 改为默认值 t
+;; 2. lsp-ui-doc-position 从 at-point 改为默认值 top
+;; 3. lsp-modeline-diagnostics-enable 从 nil 改为默认值 t
+;; 4. lsp-ui-sideline-show-diagnostics 从 nil 改为默认值 t
 
 ;; (require 'lsp-dired)
 ;; (lsp-dired-mode t)
 
-;; (setq lsp-diagnostics-provider :flycheck) ; 硬编码为 flycheck.
-;; (setq lsp-modeline-diagnostics-scope :project)
-
-;; (setq lsp-enable-indentation nil)
-;; (setq lsp-enable-on-type-formatting nil)
-
 ;; lsp-ui auto config completion, code-actions, breadcrumb, ‘flycheck’,
 ;;‘flymake’, ‘imenu’, symbol highlighting, lenses, links, and so on.
-
 (with-eval-after-load 'lsp-ui
   ;; 关闭这个，会让 diagnostics(从 lsp-server 返回的诊断信息) 和 flycheck 信息在 minibuffer 合并显示.
-  ;; 默认在右侧显示 diagnostics 信息。
-  (setq lsp-ui-sideline-show-diagnostics t)
+  ;; (setq lsp-ui-sideline-show-diagnostics t)
 
   ;; 隐藏右边乱七八糟一大堆信息，暂时看不懂到底有什么用。
-  (setq lsp-ui-sideline-show-hover nil) ; 这是默认值
+  ;; (setq lsp-ui-sideline-show-hover nil) ; 这是默认值
 
   ;; code actions 是问题的修复策略.
-  (setq lsp-ui-sideline-show-code-actions t) ; 这是默认值
+  ;; (setq lsp-ui-sideline-show-code-actions t) ; 这是默认值
 
-  (setq lsp-ui-doc-enable t) ; 这是默认值
+  ;; (setq lsp-ui-doc-enable t) ; 这是默认值
+
   (setq lsp-ui-doc-delay 3)
-  ;; (setq lsp-ui-doc-position 'at-point)
 
-  (setq lsp-ui-imenu-enable t)
+  ;; (setq lsp-ui-imenu-enable t) ; 默认值
 
   ;; (require 'lsp-ui-flycheck)
   ;; (lsp-ui-flycheck-list-mode)
@@ -95,6 +87,14 @@
   ;; (add-hook 'treemacs-select-hook 'lsp-ui-imenu)
   ;; (add-hook 'treemacs-switch-workspace-hook 'lsp-ui-imenu)
   )
+
+(with-eval-after-load 'company
+  (add-hook 'lsp-mode-hook
+            (lambda ()
+              (setq-local company-format-margin-function #'company-vscode-dark-icons-margin))))
+
+(with-eval-after-load 'which-key
+  (add-hook 'lsp-after-open-hook 'lsp-enable-which-key-integration))
 
 (provide 'lsp-mode_init)
 
