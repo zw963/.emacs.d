@@ -53,7 +53,10 @@
 (require 'which-key_init)
 (require 'zoom-frm_init)
 ;; (require 'awesome-tray_init)
-(require 'smart-mode-line_init)
+;; (require 'smart-mode-line_init)
+(require 'doom-modeline_init)
+(require 'rich-minority_init)
+(require 'show-point-mode_init)
 ;; (require 'eyebrowse_init)
 (require 'winum_init)
 (require 'hydra_init);; depend by treemacs
