@@ -25,7 +25,7 @@
 
 ;; (add-to-list 'treemacs-ignored-file-predicates #'treemacs-ignore-example)
 
-;; (setq treemacs-width 30)
+(setq treemacs-width 42)
 
 (require 'treemacs-icons-dired)
 ;; 让 dired 使用 treemacs 图标。
