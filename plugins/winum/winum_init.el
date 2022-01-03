@@ -25,18 +25,18 @@
 (global-set-key (kbd "M-7") 'winum-select-window-7)
 (global-set-key (kbd "M-8") 'winum-select-window-8)
 
-(defun winum-assign-1-to-treemacs ()
-  (when (string-match-p " \\*Treemacs-Scoped-Buffer.*\\*" (buffer-name)) 1))
-(add-to-list 'winum-assign-functions #'winum-assign-1-to-treemacs)
+(defun winum-assign-0-to-treemacs ()
+  (when (string-match-p " \\*Treemacs-Scoped-Buffer.*\\*" (buffer-name)) 10))
+(add-to-list 'winum-assign-functions #'winum-assign-0-to-treemacs)
 
 (set-face-attribute 'winum-face nil :weight 'bold)
 
 (setq winum-format " wm[%s] ")
-(setq winum-scope 'frame-local)
-(add-hook 'winum-mode-hook (lambda ()
-                             (setq winum-ignored-buffers-regexp '())
-                             ;; (delete " \\*Treemacs-Scoped-Buffer-" winum-ignored-buffers-regexp)
-                             ))
+;; (setq winum-scope 'frame-local)
+;; (add-hook 'winum-mode-hook (lambda ()
+;;                              ;; (setq winum-ignored-buffers-regexp '())
+;;                              ;; (delete " \\*Treemacs-Scoped-Buffer-" winum-ignored-buffers-regexp)
+;;                              ))
 
 (winum-mode)
 
