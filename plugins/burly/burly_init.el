@@ -34,7 +34,7 @@
   (unless (> (length (frame-list)) 1)
               (run-with-idle-timer 0.5 nil 'burly-open-last-auto-saved-bookmark)))
 
-(add-hook 'window-setup-hook 'burly-open-last-auto-saved-bookmark)
+;; (add-hook 'window-setup-hook 'burly-open-last-auto-saved-bookmark)
 (if (and (fboundp 'daemonp) (daemonp))
     (add-hook 'after-make-frame-functions 'burly-open-last-auto-saved-bookmark-delay t)
   )
