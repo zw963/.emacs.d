@@ -70,6 +70,9 @@
 (advice-add #'keyboard-quit :before #'shackle-close-popup-window-hack)
 (advice-add #'shackle-display-buffer :around #'shackle-display-buffer-hack)
 
+;; 让 helm 的弹出窗口有类似于 popwin 的效果。
+(setq shackle-rules '(("\\`\\*helm.*?\\*\\'" :regexp t :align t :ratio 0.618)))
+
 (shackle-mode t)
 
 (provide 'shackle_init)

@@ -38,7 +38,6 @@
 (require 'dired_init)
 (require 'all-the-icons_init)
 (require 'shell_init)
-(require 'flycheck_init)
 ;; (require 'quickrun_init)
 (require 'treemacs_init)
 (require 'page-break-lines_init)
@@ -75,7 +74,6 @@
 (require 'helm-bindings_init) ; 和 ivy_init 冲突， 二者选其一.
 (require 'ivy_init)
 ;; (require 'snails_init)
-(require 'company_init)
 (require 'prescient_init) ;; 这个必须放在 ivy_init 后面.
 (require 'yasnippet_init)
 (require 'anzu_init)
@@ -111,6 +109,9 @@
 
 ;; ============================== 编程相关 ==============================
 
+(require 'lsp-mode_init)
+(require 'dap-mode_init)
+
 ;; (require 'color-identifiers-mode_init)
 (require 'minimap_init)
 ;; (require 'zoom_init)
@@ -139,9 +140,6 @@
 (require 'js2-mode_init)
 (require 'json-mode_init)
 ;; (require 'tree-sitter_init)
-(require 'dap-mode_init)
-(require 'lsp-mode_init)
-(require 'dart-mode_init)
 (require 'reformatter_init)
 (require 'rust-mode_init)
 ;; (require 'rustic_init)
@@ -150,8 +148,10 @@
 (require 'dpaste_init)
 (require 'ws-butler_init)
 (require 'solaire-mode_init)
-;; 这个老是运行失败。
 (require 'wakatime-mode_init)
+(require 'dart-mode_init)
+(require 'flycheck_init)
+(require 'company_init)
 
 ;; (require 'symbol-overlay_init)
 ;; (require 'feature-mode_init)
@@ -167,6 +167,6 @@
 ;;    (load ".emacs")))
 
 ;; 这个似乎要放到最后面？
-(require 'workgroups_init)
+;; (require 'workgroups_init)
 
 (setenv "LOAD_INIT" "true")

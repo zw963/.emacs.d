@@ -66,13 +66,6 @@
 ;; (global-set-key (kbd "C-x l") 'counsel-locate)
 ;; (global-set-key (kbd "C-S-o") 'counsel-rhythmbox)
 
-(with-eval-after-load 'all-the-icons
-  (require 'all-the-icons-ivy-rich)
-  (all-the-icons-ivy-rich-mode 1)
-  (ivy-rich-mode 1)
-  (setq ivy-rich-parse-remote-buffer nil)
-  )
-
 (with-eval-after-load 'hydra
   (setq ivy-read-action-function #'ivy-hydra-read-action)
   )
