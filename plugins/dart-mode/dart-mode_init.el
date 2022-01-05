@@ -19,9 +19,12 @@
   (add-hook 'dart-mode-hook 'lsp)
   )
 
-;; (with-eval-after-load 'lsp-treemacs
-;;   (add-hook 'dart-mode-hook 'treemacs-select-window)
-;;   )
+(with-eval-after-load 'treemacs
+  (add-hook
+   'dart-mode-hook
+   (lambda ()
+     (save-selected-window (treemacs-select-window))))
+  )
 
 (require 'flutter)
 (setq flutter-l10n-arb-dir "lib/i10n")
