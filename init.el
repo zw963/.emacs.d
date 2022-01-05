@@ -112,6 +112,8 @@
 
 ;; ============================== 编程相关 ==============================
 
+(require 'flycheck_init)
+(require 'company_init)
 (require 'lsp-mode_init)
 (require 'dap-mode_init)
 
@@ -153,8 +155,7 @@
 (require 'solaire-mode_init)
 (require 'wakatime-mode_init)
 (require 'dart-mode_init)
-(require 'flycheck_init)
-(require 'company_init)
+(require 'graphql-mode_init)
 
 ;; (require 'symbol-overlay_init)
 ;; (require 'feature-mode_init)

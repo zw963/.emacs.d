@@ -23,9 +23,5 @@
 (add-to-list 'auto-mode-alist '("access\\.conf\\'" . apache-mode))
 (add-to-list 'auto-mode-alist '("sites-\\(available\\|enabled\\)/" . apache-mode))
 
-;; graphql-mode
-(autoload 'graphql-mode "graphql-mode" nil t)
-(add-to-list 'auto-mode-alist '("\\.graphql\\'" . graphql-mode))
-
 (autoload 'systemd-mode "systemd" nil t)
 (add-to-list 'auto-mode-alist '("\\.service\\'"  . systemd-mode))
