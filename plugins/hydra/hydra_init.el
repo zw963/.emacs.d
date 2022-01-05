@@ -27,8 +27,8 @@
      :post (setq cursor-type 'bar)
      )
     "global mark ring"
-    ("n" back-button-global-forward "global next mark")
-    ("p" back-button-global-backward "global previous hunk"))
+    ("n" back-button-global-backword "global next mark")
+    ("p" back-button-global-forward "global previous hunk"))
   )
 
 (with-eval-after-load 'hydra
