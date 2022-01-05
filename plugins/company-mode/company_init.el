@@ -50,7 +50,8 @@
                                      (delete 'company-oddmuse
                                              (delete 'company-bbdb
                                                      (delete 'company-cmake
-                                                             (delete 'company-clang company-backends)))))
+                                                             (delete 'company-clang (delete '(company-dabbrev-code company-gtags company-etags company-keywords) company-backends))))))
+                               (add-to-list 'company-backends '(company-dabbrev-code company-keywords))
                                ))
 
 ;; C-n, C-s 如果可以自动打断 tooltip, 其实效果不错。
