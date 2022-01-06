@@ -7,6 +7,8 @@
 
 ;; (setq lsp-log-io t)
 
+(require 'lsp-modeline)
+
 ;; 尝试 guess root.
 (setq lsp-auto-guess-root t)
 
