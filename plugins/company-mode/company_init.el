@@ -45,14 +45,24 @@
         company-preview-frontend
         company-echo-metadata-frontend))
 
+;; company-backends 工厂默认值为
+;; (company-bbdb company-semantic company-cmake company-capf company-clang company-files
+;;            (company-dabbrev-code company-gtags company-etags company-keywords)
+;;            company-oddmuse company-dabbrev)
+
 (add-hook 'company-mode-hook (lambda ()
                                (setq company-backends
-                                     (delete 'company-oddmuse
-                                             (delete 'company-bbdb
-                                                     (delete 'company-cmake
-                                                             (delete 'company-clang (delete '(company-dabbrev-code company-gtags company-etags company-keywords) company-backends))))))
-                               (add-to-list 'company-backends '(company-dabbrev-code company-keywords))
+                                             (delete 'company-oddmuse
+                                                     (delete 'company-bbdb
+                                                             (delete 'company-cmake
+                                                                     (delete 'company-clang
+                                                                             (delete '(company-dabbrev-code company-gtags company-etags company-keywords) company-backends))))))
                                ))
+
+(dolist (hook '(sh-mode-hook graphql-mode-hook))
+  (add-hook hook (lambda ()
+                   (add-to-list (make-local-variable 'company-backends) '(company-dabbrev-code company-keywords))
+                   )))
 
 ;; C-n, C-s 如果可以自动打断 tooltip, 其实效果不错。
 ;; (define-key company-active-map (kbd "C-n") 'company-select-next)

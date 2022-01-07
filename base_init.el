@@ -74,6 +74,7 @@
                                       search-ring
                                       regexp-search-ring
                                       extended-command-history))
+
 (savehist-mode t)
 (add-hook 'delete-frame-functions (lambda (frame) (savehist-autosave)))
 (require 'saveplace)                    ; 打开文件时, 恢复光标位置

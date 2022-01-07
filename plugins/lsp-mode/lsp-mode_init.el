@@ -1,4 +1,8 @@
 (require 'lsp-mode)
+(require 'lsp-completion)
+
+;; 如果退出最后一个 lsp buffer, 自动 kill 掉 lsp-server，否则 Emacs 会很慢。
+(setq lsp-keep-workspace-alive nil)
 
 (require 'lsp-headerline)
 (require 'lsp-diagnostics)
@@ -7,7 +11,10 @@
 
 ;; (setq lsp-log-io t)
 
+;; 这个不开，跳转的时候可能也会出错。
 (require 'lsp-modeline)
+
+(require 'lsp-icons)
 
 ;; 尝试 guess root.
 (setq lsp-auto-guess-root t)
@@ -24,8 +31,8 @@
 
 (setq lsp-modeline-code-actions-segments '(count icon name))
 
-;; 这个默认不打开，尝试打开试试看
-(setq lsp-semantic-tokens-enable t)
+;; 这个默认不打开，怀疑打开会很慢，先关闭
+;; (setq lsp-semantic-tokens-enable t)
 
 ;; lsp-dart not support set this.
 ;; (setq lsp-use-plists t)
@@ -37,8 +44,8 @@
 ;; 3. lsp-modeline-diagnostics-enable 从 nil 改为默认值 t
 ;; 4. lsp-ui-sideline-show-diagnostics 从 nil 改为默认值 t
 
-;; (require 'lsp-dired)
-;; (lsp-dired-mode t)
+(require 'lsp-dired)
+(lsp-dired-mode t)
 
 ;; lsp-ui auto config completion, code-actions, breadcrumb, ‘flycheck’,
 ;;‘flymake’, ‘imenu’, symbol highlighting, lenses, links, and so on.
@@ -93,10 +100,10 @@
   ;; (add-hook 'treemacs-switch-workspace-hook 'lsp-ui-imenu)
   )
 
-(with-eval-after-load 'company
-  (add-hook 'lsp-mode-hook
-            (lambda ()
-              (setq-local company-format-margin-function #'company-vscode-dark-icons-margin))))
+;; (with-eval-after-load 'company
+;;   (add-hook 'lsp-mode-hook
+;;             (lambda ()
+;;               (setq-local company-format-margin-function #'company-vscode-dark-icons-margin))))
 
 (with-eval-after-load 'which-key
   (add-hook 'lsp-after-open-hook 'lsp-enable-which-key-integration))

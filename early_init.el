@@ -72,3 +72,5 @@
   (setq no-byte-compile t)
   ;; (setq debug-on-signal t)
   )
+
+(require 'company_init)

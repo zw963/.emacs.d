@@ -187,8 +187,8 @@ Use `font-lock-add-keywords' in case of `ruby-mode' or
     (forward-line)
     (looking-at "[[:space:]]*$")))
 
-  (defun my-find-file-check-make-large-file-read-only-hook ()
-    "If a file is over a given size (about 1M), make the buffer read only."
+(defun my-find-file-check-make-large-file-read-only-hook ()
+  "If a file is over a given size (about 1M), make the buffer read only."
   (when (> (buffer-size) (* 1024 1024 10))
     (setq buffer-read-only t)
     (buffer-disable-undo)
