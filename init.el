@@ -33,7 +33,7 @@
 ;; ==============================开启的功能==============================
 
 ;; (require 'flyspell_init)
-(require 'rime_init)
+;; (require 'rime_init)
 (require 'org-mode_init)
 (require 'ibuffer_init)
 (require 'dired_init)
@@ -117,6 +117,7 @@
 (require 'company_init)
 (require 'lsp-mode_init)
 (require 'dap-mode_init)
+(require 'dart-mode_init)
 
 ;; (require 'color-identifiers-mode_init)
 (require 'minimap_init)
@@ -150,12 +151,11 @@
 (require 'ws-butler_init)
 (require 'solaire-mode_init)
 (require 'wakatime-mode_init)
-(require 'dart-mode_init)
 (require 'graphql-mode_init)
 
 ;; 关闭一些有用，但最近不常用的 mode
 ;; (require 'go-mode_init)
-;; (require 'rust-mode_init)
+(require 'rust-mode_init)
 ;; (require 'js2-mode_init)
 ;; (require 'lua-mode_init)
 ;; (require 'toml-mode_init)
