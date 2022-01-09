@@ -11,7 +11,7 @@
 ;; (setq rustic-compile-backtrace)
 ;; (setq rustic-compile-command)
 (setq rustic-lsp-format t)
-;; (setq rustic-format-trigger 'on-compile)
+(setq rustic-format-trigger 'on-compile)
 (setq compilation-read-command nil) ;; not prompt on minibuffer when do compile.
 (setq lsp-rust-analyzer-cargo-watch-command "clippy")
 

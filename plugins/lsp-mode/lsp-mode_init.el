@@ -53,7 +53,7 @@
 (require 'lsp-ui)
 (with-eval-after-load 'lsp-ui
   ;; 关闭这个，会让 diagnostics(从 lsp-server 返回的诊断信息) 和 flycheck 信息在 minibuffer 合并显示.
-  ;; (setq lsp-ui-sideline-show-diagnostics t)
+  ;; (setq lsp-ui-sideline-show-diagnostics nil)
 
   ;; code actions 是问题的修复策略, 在右侧显示问题的修复策略。
   (setq lsp-ui-sideline-show-code-actions t)
