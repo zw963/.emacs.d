@@ -9,8 +9,8 @@
                         (rvm-activate-corresponding-ruby))
                       ))
 
-(add-hook 'ruby-mode-hook 'rbtagger-mode)
-(add-hook 'enh-ruby-mode-hook 'rbtagger-mode)
+;; (add-hook 'ruby-mode-hook 'rbtagger-mode)
+;; (add-hook 'enh-ruby-mode-hook 'rbtagger-mode)
 
 (add-hook 'after-save-hook
           (lambda ()
