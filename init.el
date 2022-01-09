@@ -155,7 +155,7 @@
 
 ;; 关闭一些有用，但最近不常用的 mode
 ;; (require 'go-mode_init)
-(require 'rust-mode_init)
+(require 'rust_init)
 ;; (require 'js2-mode_init)
 ;; (require 'lua-mode_init)
 ;; (require 'toml-mode_init)
