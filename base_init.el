@@ -74,7 +74,6 @@
                                       search-ring
                                       regexp-search-ring
                                       extended-command-history))
-
 (savehist-mode t)
 (add-hook 'delete-frame-functions (lambda (frame) (savehist-autosave)))
 (require 'saveplace)                    ; 打开文件时, 恢复光标位置
@@ -334,7 +333,7 @@
       tab-width 4                               ;设置默认TAB间隔为4个空格.
       tab-stop-list '(4 8 12 16 20 24 28 32 36 40 44 48 52 56 60 64 68 72 76 80 84 88 92 96 100 104 108 112 116 120)
       colon-double-space t                      ;重排文本时, 在冒号后面新加入两个空格.
-      truncate-partial-width-windows t          ;不能在一行显示时，自动截断。
+      ;; truncate-partial-width-windows t          ;不能在一行显示时，自动截断, this will cause lsp the first candidate is blank.
       ;; create-lockfiles nil                      ; 禁用锁定文件, .# 开头的文件, 例如：.#ruby.rb
       mouse-yank-at-point t                     ;而是使用鼠标中键在光标处 yank.
       browse-url-browser-function 'browse-url-generic
