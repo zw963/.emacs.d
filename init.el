@@ -33,6 +33,7 @@
 ;; ==============================开启的功能==============================
 
 ;; (require 'flyspell_init)
+(require 'rime_init)
 (require 'org-mode_init)
 (require 'ibuffer_init)
 (require 'dired_init)
