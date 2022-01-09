@@ -73,4 +73,32 @@
   ;; (setq debug-on-signal t)
   )
 
-(require 'company_init)
+;; (setq truncate-partial-width-windows t)
+;; ;; (require 'flycheck_init)
+;; (require 'company_init)
+;; (setq company-show-quick-access t)
+;; (require 'treemacs)
+
+;; (require 'dap-mode)
+;; (require 'dap-ui)
+;; (require 'dap-mouse)
+
+;; (require 'lsp-mode)
+;; (require 'lsp-modeline)
+;; (require 'lsp-headerline)
+;; (require 'lsp-diagnostics)
+
+;; (require 'lsp-ui)
+;; (setq lsp-ui-sideline-show-code-actions t)
+
+;; (require 'lsp-dart)
+;; (require 'dart-mode)
+;; (add-hook 'dart-mode-hook 'lsp)
+;; (add-to-list 'auto-mode-alist '("\\.dart\\'" . dart-mode))
+;; (with-eval-after-load 'treemacs
+;;   (add-hook
+;;    'dart-mode-hook
+;;    (lambda ()
+;;      (save-selected-window (treemacs-select-window))))
+;;   )
+
