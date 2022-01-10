@@ -12,10 +12,13 @@
 
 (require 'dart-mode)
 (add-to-list 'auto-mode-alist '("\\.dart\\'" . dart-mode))
+;; disable treemacs-follow-mode when run lsp-dart-run
+(advice-add #'lsp-dart-run :after (lambda (&rest _) (setq-local treemacs-follow-mode nil)))
 
 (with-eval-after-load 'lsp-mode
   (setq lsp-signature-auto-activate nil)
-  (setq lsp-dart-dap-flutter-hot-reload-on-save t)
+  ;; (setq lsp-dart-dap-flutter-hot-reload-on-save t)
+  (define-key dart-mode-map (kbd "C-M-x") 'lsp-dart-dap-flutter-hot-reload)
   (add-hook 'dart-mode-hook 'lsp)
   )
 
@@ -31,7 +34,7 @@
 (setq flutter-l10n-template-arb-file "intl_zh_Hans.arb")
 
 ;; (add-hook 'dart-mode-hook 'flutter-test-mode)
-(define-key dart-mode-map (kbd "C-M-x") 'flutter-run-or-hot-reload)
+;; (define-key dart-mode-map (kbd "C-M-x") 'flutter-run-or-hot-reload)
 
 (require 'hover)
 
