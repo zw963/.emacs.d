@@ -2,7 +2,7 @@
 (require 'lsp-completion)
 
 ;; 如果退出最后一个 lsp buffer, 自动 kill 掉 lsp-server，否则 Emacs 会很慢。
-(setq lsp-keep-workspace-alive nil)
+;; (setq lsp-keep-workspace-alive nil)
 
 (require 'lsp-headerline)
 (require 'lsp-diagnostics)
