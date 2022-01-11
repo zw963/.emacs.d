@@ -66,7 +66,7 @@
 ;; (require 'aggressive-indent_init)
 (require 'edit-server_init)
 ;; (require 'fanyi_init)
-(require 'markdown-mode_init)
+;; (require 'markdown-mode_init)
 (require 'iedit_init)
 (require 'multiple-cursors_init)
 (require 'undo-tree_init)
@@ -132,7 +132,7 @@
 ;; git related packages
 (require 'git-emacs_init)
 (require 'git-timemachine_init)
-(require 'diff-hl_init)
+;; (require 'diff-hl_init)
 ;; (require 'git-gutter_init)
 (require 'git-messenger_init)
 (require 'gist_init)
