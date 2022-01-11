@@ -1,6 +1,6 @@
 (require 'bm)
 
-(setq bm-cycle-all-buffers  t)
+(setq bm-cycle-all-buffers t)
 (setq temporary-bookmark-p t)
 (setq-default bm-buffer-persistence t)
 (setq bm-highlight-style 'bm-highlight-only-fringe)

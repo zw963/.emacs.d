@@ -101,4 +101,3 @@
 ;;    (lambda ()
 ;;      (save-selected-window (treemacs-select-window))))
 ;;   )
-

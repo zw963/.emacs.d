@@ -34,12 +34,20 @@
 
 ;; FIXME: 这个是干嘛的?
 (add-to-list 'helm-buffers-favorite-modes 'ruby-mode)
+(add-to-list 'helm-buffers-favorite-modes 'enh-ruby-mode)
 
 ;; FIXME: 这里没有用 remap, 因为要改写 ido-find-file 的 hack.
 (define-key global-map [(control x) (control f)] 'helm-find-files)
 ;; 替换 helm-buffer-list 为 helm-resume
 (global-set-key [(control x) (control b)] 'helm-resume)
 (global-set-key [(control x) (b)] 'helm-mini)
+
+(add-hook 'helm-mode-hook '(lambda ()
+                             (define-key helm-map (kbd "TAB") #'helm-execute-persistent-action)
+                             (define-key helm-map (kbd "<tab>") #'helm-execute-persistent-action)
+                             (define-key helm-map (kbd "C-i") #'helm-select-action)
+                             (define-key helm-map (kbd "C-z") #'helm-select-action)
+                             ))
 
 ;; ;; because we map control j to super j.
 ;; (define-key helm-map [(super j)] 'helm-execute-persistent-action)
@@ -60,17 +68,6 @@
 ;;           #'(lambda ()
 ;;               (global-set-key [(control c) (j)] 'helm-imenu)
 ;;               ))
-
-(defun turn-on-helm-etags-for-ruby ()
-  (local-set-key "\M-." 'helm-etags-select)
-  ;; (local-set-key "\M-," 'helm-etags-plus-history-go-back)
-  ;; ;; list all visited tags
-  ;; (local-set-key "\M-*" 'helm-etags-plus-history)
-  ;; ;; go forward directly
-  ;; (global-set-key "\M-/" 'helm-etags-plus-history-go-forward)
-  )
-(add-hook 'ruby-mode-hook 'turn-on-helm-etags-for-ruby)
-(add-hook 'enh-ruby-mode-hook 'turn-on-helm-etags-for-ruby)
 
 (provide 'helm-common_init)
 ;;; helm-common_init.el ends here
