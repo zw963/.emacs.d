@@ -38,10 +38,19 @@
 
 (require 'hover)
 
-(setq hover-command-path "hover")
-(setq hover-hot-reload-on-save t)
-(setq hover-clear-buffer-on-hot-restart t)
-(setq hover-screenshot-path "$HOME/Pictures")
+(with-eval-after-load 'hover
+  (define-key dart-mode-map (kbd "C-M-x") 'hover-run-or-hot-reload)
+  (define-key dart-mode-map (kbd "C-M-z") 'hover-run-or-hot-restart)
+  (define-key dart-mode-map (kbd "C-M-p") 'hover-take-screenshot)
+
+  (setq
+   hover-screenshot-path (concat (getenv "HOME") "/Pictures")
+   hover-screenshot-prefix "magpie-"
+   hover-observatory-uri "http://127.0.0.1:50300"
+   hover-clear-buffer-on-hot-restart t
+   hover-hot-reload-on-save t
+        )
+  )
 
 (provide 'dart-mode_init)
 
