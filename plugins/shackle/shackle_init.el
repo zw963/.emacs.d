@@ -1,11 +1,13 @@
 (require 'shackle)
 
 (setq shackle-default-alignment 'below)
+(setq shackle-default-rule '(:select t))
 
 (setq shackle-rules
       '(
         (("*Help*") :select t :size 0.3 :autoclose t)
-        ;; (hover-mode :noselect t :size 0.3)
+        (helpful-mode :select t :size 0.3 :autoclose t)
+        (hover-mode :noselect t :popup t :size 0.3 :autoclose t)
         (( "*Apropos*" "*Warnings*" "*Messages*") :noselect t :size 0.3 :autoclose t)
         ("^\\*.*Shell Command.*\\*$" :regexp t :size 0.3 :autoclose t)
         (compilation-mode :select t :size 0.3 :autoclose t)
@@ -27,8 +29,6 @@
         ("^\\*vc-.*\\*$" :regexp t :size 0.3 :autoclose t)
         (("*shell*" "*eshell*" "*ielm*") :popup t :size 0.3)
         ))
-
-;; (setq shackle-default-rule '(:select t))
 
 (defvar shackle--popup-window-list nil) ; all popup windows
 (defvar-local shackle--current-popup-window nil) ; current popup window
@@ -72,7 +72,8 @@
 (advice-add #'shackle-display-buffer :around #'shackle-display-buffer-hack)
 
 ;; 让 helm 的弹出窗口有类似于 popwin 的效果。
-(setq shackle-rules '(("\\`\\*helm.*?\\*\\'" :regexp t :align t :ratio 0.618)))
+(setq helm-display-function 'pop-to-buffer) ; make helm play nice
+(setq shackle-rules '(("\\`\\*helm.*?\\*\\'" :regexp t :align t :size 0.618)))
 
 (shackle-mode t)
 
