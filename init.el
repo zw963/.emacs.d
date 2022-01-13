@@ -8,6 +8,7 @@
 ;; (load-theme 'zenburn t)
 
 (load-theme 'material t) ;; 这个是原来的
+(load-theme 'vscode-dark-plus t)
 ;; (load-theme 'material-light t) ;; 这个是原来的
 ;; (require 'spacemacs-common)
 ;; (load-theme 'spacemacs-dark t)
@@ -98,7 +99,6 @@
 ;; (require 'awesome-tab_init)
 ;; (require 'awesome-pair_init)
 ;; (require 'super-save_init)
-;; (require 'workgroups_init)
 ;; (require 'pdf-tools_init)
 ;; (require 'valign_init)
 (require 'cnfonts_init)
@@ -177,5 +177,6 @@
 ;; 这个似乎要放到最后面？
 ;; (require 'workgroups_init)
 (require 'burly_init)
+(require 'popper_init)
 
 (setenv "LOAD_INIT" "true")
