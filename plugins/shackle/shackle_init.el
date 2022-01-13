@@ -5,6 +5,7 @@
 (setq shackle-rules
       '(
         (("*Help*") :select t :size 0.3 :autoclose t)
+        ;; (hover-mode :noselect t :size 0.3)
         (( "*Apropos*" "*Warnings*" "*Messages*") :noselect t :size 0.3 :autoclose t)
         ("^\\*.*Shell Command.*\\*$" :regexp t :size 0.3 :autoclose t)
         (compilation-mode :select t :size 0.3 :autoclose t)

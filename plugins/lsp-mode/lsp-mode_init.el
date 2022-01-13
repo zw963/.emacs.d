@@ -74,10 +74,10 @@
   )
 
 ;; 这个不是每个 backend 都支持
-(require 'lsp-iedit)
-(with-eval-after-load 'lsp-iedit
-  (define-key lsp-mode-map [(control \;)] #'lsp-iedit-highlights)
-  )
+;; (require 'lsp-iedit)
+;; (with-eval-after-load 'lsp-iedit
+;;   (define-key lsp-mode-map [(control \;)] #'lsp-iedit-highlights)
+;;   )
 
 (require 'lsp-ivy)
 (with-eval-after-load 'lsp-ivy
