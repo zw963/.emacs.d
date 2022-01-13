@@ -92,12 +92,7 @@
 ;; (setq lsp-ui-sideline-show-code-actions t)
 
 ;; (require 'lsp-dart)
+;; (require 'dart-mode_init)
+
 ;; (require 'dart-mode)
 ;; (add-hook 'dart-mode-hook 'lsp)
-;; (add-to-list 'auto-mode-alist '("\\.dart\\'" . dart-mode))
-;; (with-eval-after-load 'treemacs
-;;   (add-hook
-;;    'dart-mode-hook
-;;    (lambda ()
-;;      (save-selected-window (treemacs-select-window))))
-;;   )
