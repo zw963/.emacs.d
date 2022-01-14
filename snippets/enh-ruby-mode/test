@@ -1,0 +1,6 @@
+# -*- mode: snippet -*-
+# name: test
+# key: test
+# condition: (ruby-testfile-p)
+# --
+test '$1'`(ruby-do-block)`
