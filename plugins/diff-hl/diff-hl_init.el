@@ -3,15 +3,15 @@
 ;; (add-hook 'prog-mode-hook 'turn-on-diff-hl-mode)
 (global-diff-hl-mode 1)
 
+(require 'diff-hl-flydiff)
+(diff-hl-flydiff-mode 1)
+
 (require 'diff-hl-dired)
 (add-hook 'dired-mode-hook 'diff-hl-dired-mode)
 
 (require 'diff-hl-show-hunk)
 ;; Ctrl v * active diff-hl-show-hunk, or use mouse
 (global-diff-hl-show-hunk-mouse-mode 1)
-
-(require 'diff-hl-flydiff)
-(diff-hl-flydiff-mode 1)
 
 ;; (setq diff-hl-show-staged-changes t)
 ;; (setq diff-hl-ask-before-revert-hunk t)
