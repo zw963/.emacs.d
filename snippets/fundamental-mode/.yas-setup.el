@@ -468,6 +468,11 @@ after-field-delimiter: 字段之后的标识符。例如： 结束双引号
 (yas-define-condition-cache yas-not-escaped-p (not (looking-back "\\\\")))
 (yas-define-condition-cache yas-ruby-test-p (ruby-testfile-p))
 (yas-define-condition-cache yas-ruby-not-test-p (not (ruby-testfile-p)))
+;; (yas-define-condition-cache
+;;  yas-rails-test-p
+;;  "Non-nil if the current buffer is a rails test."
+;;  (and (rinari-root)
+;;       (string-match "test/\\|spec/" default-directory)))
 
 ;; (yas-define-condition-cache
 ;;  yas-rails-routes-p

@@ -87,14 +87,21 @@
         (let ((path (find-if (lambda (path) (string-match (concat "^" (regexp-quote path)) file))
                              '("app/models/" "app/controllers/" "app/helpers/" "lib/"
                                "test/controllers/" "test/models/" "test/helpers/" "test/jobs" "test/integration"
-                               "spec/models/" "spec/controllers/" "spec/helpers/ spec/lib/"))))
+                               "spec/models/" "spec/controllers/" "spec/helpers/ spec/lib/" "test/graphql"))))
           (when path
-            (rails-refactoring:camelize
-             (replace-regexp-in-string path "" (replace-regexp-in-string "\\(_spec\\)?\\.rb$" "" file)))
+            (replace-regexp-in-string
+             "^::"
+             ""
+             (rails-refactoring:camelize
+              (replace-regexp-in-string path "" (replace-regexp-in-string "\\(_spec\\)?\\.rb$" "" file))))
             )
           )
-      (rails-refactoring:camelize
-       (file-name-sans-extension (file-name-nondirectory buffer-file-name))))))
+      (replace-regexp-in-string
+       "^::"
+       ""
+       (rails-refactoring:camelize
+        (file-name-sans-extension (file-name-nondirectory buffer-file-name)))
+       ))))
 
 ;; 下面的代码因为 company 中的那个 hack, 已经不再需要了。
 ;; (with-eval-after-load 'company
