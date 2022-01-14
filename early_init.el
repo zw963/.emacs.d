@@ -17,6 +17,8 @@
 ;; 根据 lsp-dart 的建议，这个应该设定大一点，性能会好很多。
 (setq read-process-output-max (* 1024 1024)) ;; 1M
 
+(setq package-enable-at-startup nil)
+
 (require 'auto-compile_init)
 
 (require 'server)
