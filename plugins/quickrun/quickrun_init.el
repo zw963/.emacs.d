@@ -4,7 +4,7 @@
 
 (setq quickrun-focus-p nil)
 
-(run-ruby-mode-hook '(local-set-key [(control x) (control e)] 'quickrun-region))
+(global-set-key [(control x) (control e)] 'quickrun-region)
 
 (provide 'quickrun_init)
 
