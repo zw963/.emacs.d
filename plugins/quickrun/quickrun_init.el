@@ -4,10 +4,7 @@
 
 (setq quickrun-focus-p nil)
 
-(add-hook 'enh-ruby-mode-hook
-          (lambda ()
-            (local-set-key [(control x) (control e)] 'quickrun-region)
-            ))
+(run-ruby-mode-hook '(local-set-key [(control x) (control e)] 'quickrun-region))
 
 (provide 'quickrun_init)
 
