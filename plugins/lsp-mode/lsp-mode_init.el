@@ -29,7 +29,7 @@
 
 (setq lsp-signature-function 'lsp-signature-posframe)
 
-(setq lsp-modeline-code-actions-segments '(count icon name))
+(setq lsp-enable-on-type-formatting nil)
 
 ;; 这个默认不打开，怀疑打开会很慢，先关闭
 ;; (setq lsp-semantic-tokens-enable t)
@@ -42,7 +42,6 @@
 ;; 1. lsp-modeline-code-actions-enable 从 nil 改为默认值 t
 ;; 2. lsp-ui-doc-position 从 at-point 改为默认值 top
 ;; 3. lsp-modeline-diagnostics-enable 从 nil 改为默认值 t
-;; 4. lsp-ui-sideline-show-diagnostics 从 nil 改为默认值 t
 
 (require 'lsp-dired)
 (lsp-dired-mode t)
@@ -53,7 +52,7 @@
 (require 'lsp-ui)
 (with-eval-after-load 'lsp-ui
   ;; 关闭这个，会让 diagnostics(从 lsp-server 返回的诊断信息) 和 flycheck 信息在 minibuffer 合并显示.
-  ;; (setq lsp-ui-sideline-show-diagnostics nil)
+  (setq lsp-ui-sideline-show-diagnostics nil)
 
   ;; code actions 是问题的修复策略, 在右侧显示问题的修复策略。
   (setq lsp-ui-sideline-show-code-actions t)
