@@ -279,15 +279,19 @@
   ;;                   (font-spec :family "等距更纱黑体 SC"
   ;;                              :size 24) nil 'prepend)
 
-  (unless (or
-           (eq this-command 'make-frame-command)
-           (eq this-command 'ace-window)
-           (eq this-command 'make-frame)
-           (eq this-command 'snails)
-           ;; (eq this-command 'diredc)
-           )
+  ;; (member this-command '(eval-last-sexp))
+  (unless (member
+           this-command
+           '(
+             make-frame-command
+             ace-window
+             make-frame
+             popper-toggle-latest
+             popper-cycle
+             ))
     (run-with-idle-timer 0 nil 'toggle-frame-maximized)
-    ))
+    )
+  )
 
 (add-hook 'window-setup-hook 'toggle-frame-maximized t)
 ;; NOTICE: 传送给aftar-make-frame-function的函数必须有且只能有一个参数用来表示新建立的frame.
