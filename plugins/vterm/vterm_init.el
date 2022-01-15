@@ -11,9 +11,7 @@
 ;; 按下 C-c C-t, 切换到 copy 模式，此时，直接按回车的话（没有添加选区），会拷贝整行。
 ;; 下面的参数，会跳过提示符。
 (setq vterm-copy-exclude-prompt t)
-(setq vterm-max-scrollback 10000)
-;; (setq vterm-kill-buffer-on-exit  nil)
-
+(setq vterm-max-scrollback 50000)
 (defun switch-vterm-and-back ()
   (interactive)
   (if (string= (buffer-name) "*vterm*")
@@ -53,12 +51,12 @@
 
 (advice-add 'counsel-yank-pop-action :around #'vterm-counsel-yank-pop-action)
 
-(require 'multi-vterm)
-(setq multi-vterm-dedicated-window-height 20)
+;; 这个不用了，使用 popper.el 管理。
+;; (require 'multi-vterm)
+;; (setq multi-vterm-dedicated-window-height 50)
 
-;; 可以使用 Ctrl+x j, Ctrl+x l 来切换 buffer 和 vterm.
-(global-set-key [(shift control t)] 'multi-vterm-dedicated-toggle)
-(define-key vterm-mode-map [(shift control t)] 'multi-vterm-dedicated-toggle)
+;; ;; 可以使用 Ctrl+x j, Ctrl+x l 来切换 buffer 和 vterm.
+;; (global-set-key [(shift control t)] 'multi-vterm-dedicated-toggle)
 
 (provide 'vterm_init)
 

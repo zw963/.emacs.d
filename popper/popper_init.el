@@ -5,6 +5,8 @@
       '("\\*Messages\\*"
         "Output\\*$"
         "\\*Async Shell Command\\*"
+        "Scratch.txt"
+        special-mode
         hover-mode
         help-mode
         compilation-mode))
