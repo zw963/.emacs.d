@@ -88,13 +88,12 @@
 (require 'bm_init)
 (require 'helpful_init)
 (require 'wgrep_init)
+(require 'quickrun_init)
 
 ;; (require 'ido_init)
 ;; (require 'popwin_init)
 ;; (require 'amx_init)
 ;; (require 'eglot_init) ----------
-;; (require 'solargraph_init) -----------
-;; (require 'quickrun_init)
 ;; (require 'spaceline_init)
 ;; (require 'awesome-tab_init)
 ;; (require 'awesome-pair_init)
