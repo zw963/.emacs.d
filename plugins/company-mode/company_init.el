@@ -59,6 +59,8 @@
                                                                              (delete '(company-dabbrev-code company-gtags company-etags company-keywords) company-backends))))))
                                ))
 
+(setq company-dabbrev-code-everywhere t)
+
 (dolist (hook '(sh-mode-hook graphql-mode-hook))
   (add-hook hook (lambda ()
                    (add-to-list (make-local-variable 'company-backends) '(company-dabbrev-code company-keywords))
