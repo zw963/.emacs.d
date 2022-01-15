@@ -14,10 +14,7 @@
 
 (global-anzu-mode t)
 
-(add-hook 'enh-ruby-mode-hook
-          (lambda ()
-            (setq anzu-replace-at-cursor-thing 'def)
-            ))
+(run-ruby-mode-hook '(setq anzu-replace-at-cursor-thing 'def))
 
 (defalias 'refactor 'anzu-query-replace-at-cursor-thing)
 

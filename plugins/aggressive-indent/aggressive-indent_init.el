@@ -1,6 +1,7 @@
 (require 'aggressive-indent)
 
-(dolist (hook '(ruby-mode-hook
+(dolist (hook '(
+                ruby-mode-hook
                 enh-ruby-mode-hook
                 emacs-lisp-mode-hook
                 rustic-mode-hook

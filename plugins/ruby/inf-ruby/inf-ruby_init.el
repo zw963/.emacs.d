@@ -3,8 +3,9 @@
 ;; ;; 启动 console 之前, 初始化 rvm.
 (advice-add 'inf-ruby-console-auto :before
             (lambda ()
-              (unless (and rvm--current-ruby rvm--current-gemset)
-                (rvm-activate-corresponding-ruby))
+              ;; (unless (and rvm--current-ruby rvm--current-gemset)
+                (rvm-activate-corresponding-ruby)
+                ;; )
               ))
 
 (add-hook 'after-init-hook 'inf-ruby-switch-setup)

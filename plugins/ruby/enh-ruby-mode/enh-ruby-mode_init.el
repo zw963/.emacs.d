@@ -6,24 +6,17 @@
   (setq enh-ruby-program "/home/zw963/utils/ruby_tools/bin/ruby-portable")
   ;; (setq enh-ruby-hanging-brace-deep-indent-level 4)
   ;; (setq enh-ruby-bounce-deep-indent t)
-
-  ;; (modify-syntax-entry ?/ "\"" enh-ruby-mode-syntax-table)
-  (modify-syntax-entry ?! "_"  enh-ruby-mode-syntax-table)
-  (modify-syntax-entry ?= "_"  enh-ruby-mode-syntax-table)
-  (modify-syntax-entry ?? "_"  enh-ruby-mode-syntax-table)
-  (modify-syntax-entry ?$  "'"  enh-ruby-mode-syntax-table)
-  (modify-syntax-entry ?:  "'"  enh-ruby-mode-syntax-table)
-  (modify-syntax-entry ?@  "'"  enh-ruby-mode-syntax-table)
-  (set-syntax-table enh-ruby-mode-syntax-table)
+  (setq enh-ruby-mode-syntax-table
+        (let ((table enh-ruby-mode-syntax-table))
+          ;; (modify-syntax-entry ?/ "\"" table)
+          (modify-syntax-entry ?! "_"  table)
+          (modify-syntax-entry ?= "_"  table)
+          (modify-syntax-entry ?? "_"  table)
+          (modify-syntax-entry ?$  "'"  table)
+          (modify-syntax-entry ?:  "'"  table)
+          (modify-syntax-entry ?@  "'"  table)
+          table))
   )
-
-;; (setq enh-ruby-mode-syntax-table
-;;       (let ((table enh-ruby-mode-syntax-table))
-;;         (modify-syntax-entry ?$  "'"  table)
-;;         (modify-syntax-entry ?:  "'"  table)
-;;         (modify-syntax-entry ?@  "'"  table)
-
-;;         table))
 
 (defun enh-ruby-end-of-defun-hacked (&optional arg)
   (interactive "^p")

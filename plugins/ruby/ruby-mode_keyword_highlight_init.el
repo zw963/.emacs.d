@@ -12,7 +12,7 @@
   '("require" "load" "require_relative" "extend" "include" "prepend" "abort"
     "fail" "warn" "block_given?" "alias_method" "catch" "module_function"
     "public" "private" "protected" "raise" "throw" "pry!" "pry1" "pry2" "pry3"
-    "repry!" "pry?" "def_delegators" "def_delegator" "irb1" "irb2" "irb!"
+    "repry!" "pry?" "def_delegators" "def_delegator" "irb1" "irb2" "irb!" "on"
     )
   "List of keywords to highlight for spec."
   :group 'rinari
@@ -24,10 +24,10 @@
   "Highlight the passed KEYWORDS FACE in current buffer.
 Use `font-lock-add-keywords' in case of `ruby-mode' or
 `ruby-extra-keywords' in case of Enhanced Ruby Mode."
-  (if (boundp 'ruby-extra-keywords)
+  (if (boundp 'enh-ruby-extra-keywords)
       (progn
-        (setq ruby-extra-keywords (append ruby-extra-keywords keywords))
-        (ruby-local-enable-extra-keywords))
+        (setq enh-ruby-extra-keywords (append enh-ruby-extra-keywords keywords))
+        (enh-ruby-local-enable-extra-keywords))
     (font-lock-add-keywords
      nil
      (list (list

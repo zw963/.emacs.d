@@ -27,8 +27,7 @@
   (global-set-key "\M-/" 'helm-etags-plus-history-go-forward)
   )
 
-(add-hook 'ruby-mode-hook 'turn-on-helm-etags-plus)
-(add-hook 'enh-ruby-mode-hook 'turn-on-helm-etags-plus)
+(run-ruby-mode-hook '(turn-on-helm-etags-plus))
 
 (provide 'helm-etags-plus_init)
 ;;; helm-etags-plus.el ends here

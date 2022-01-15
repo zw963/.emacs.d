@@ -9,8 +9,7 @@
                         (rvm-activate-corresponding-ruby))
                       ))
 
-(add-hook 'ruby-mode-hook 'rbtagger-mode)
-(add-hook 'enh-ruby-mode-hook 'rbtagger-mode)
+(run-ruby-mode-hook '(ritagger-mode 1))
 
 (add-hook 'after-save-hook
           (lambda ()
@@ -25,8 +24,8 @@
 ;;   ;; ;; go forward directly
 ;;   ;; (global-set-key "\M-/" 'helm-etags-plus-history-go-forward)
 ;;   )
-;; (add-hook 'ruby-mode-hook 'turn-on-helm-etags-for-ruby)
-;; (add-hook 'enh-ruby-mode-hook 'turn-on-helm-etags-for-ruby)
+
+(run-ruby-mode-hook '(turn-on-helm-etags-for-ruby))
 
 (provide 'rbtagger_init)
 

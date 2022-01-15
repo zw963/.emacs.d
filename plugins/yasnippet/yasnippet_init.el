@@ -155,8 +155,7 @@
     ;; (setq ac-sources (append ac-sources '(ac-source-yasnippet))
     )
 
-  (add-hook 'ruby-mode-hook 'ac-add-yas-source)
-  (add-hook 'enh-ruby-mode-hook 'ac-add-yas-source)
+  (run-ruby-mode-hook '(ac-add-yas-source))
   )
 
 (provide 'yasnippet_init)

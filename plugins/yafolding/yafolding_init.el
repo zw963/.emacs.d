@@ -1,7 +1,5 @@
 (require 'yafolding)
 
-;; (add-hook 'ruby-mode-hook 'yafolding-mode)
-;; (add-hook 'enh-ruby-mode-hook 'yafolding-mode)
 (add-hook 'nxml-mode-hook 'yafolding-mode)
 (add-hook 'yaml-mode-hook 'yafolding-mode)
 
