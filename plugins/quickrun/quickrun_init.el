@@ -2,9 +2,16 @@
 
 (add-to-list 'quickrun--major-mode-alist '(enh-ruby-mode . "ruby"))
 
-(setq quickrun-focus-p nil)
+;; (setq quickrun-focus-p nil)
 
-(global-set-key [(control x) (control e)] 'quickrun-region)
+(dolist (hook '(
+                ruby-mode-hook
+                enh-ruby-mode-hook
+                dart-mode-hook
+                ))
+  (add-hook hook (lambda ()
+                   (local-set-key [(control x) (control e)] 'quickrun-region)
+                   )))
 
 (provide 'quickrun_init)
 
