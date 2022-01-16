@@ -72,7 +72,7 @@
 (require 'multiple-cursors_init)
 (require 'undo-tree_init)
 (require 'toggle-quotes_init)
-(require 'shackle_init)
+;; (require 'shackle_init)
 (require 'posframe_init)
 (require 'beyond-compare_init)
 (require 'helm_init) ;; helm 放到 ivy 后面，可以覆盖某些 ivy 覆盖的快捷键。
