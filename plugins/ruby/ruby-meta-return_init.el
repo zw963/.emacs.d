@@ -45,6 +45,11 @@
         (just-one-space -1))
       (goto-char beg-marker))))
 
+(defun next-line-empty-p ()
+  (save-excursion
+    (forward-line)
+    (looking-at "[[:space:]]*$")))
+
 (defun ruby-toggle-block-fixed ()
   "Toggle block type from do-end to braces or back.
 The block must begin on the current line or above it and end after the point.
@@ -60,18 +65,20 @@ If the result is do-end block, it will always be multiline."
                    (save-match-data
                      (if (eql major-mode 'enh-ruby-mode)
                          (enh-ruby-forward-sexp)
-                       (ruby-forward-sexp)))
+                       (forward-sexp)))
                    (setq end (point))
                    (> end start)))
             (if (match-beginning 1)
                 (progn
                   (if (eql major-mode 'enh-ruby-mode)
                       (enh-ruby-brace-to-do-end beg end)
-                    (ruby-brace-to-do-end beg end)
-                    )
+                    (ruby-brace-to-do-end beg end))
                   (end-of-line)
-                  (if (next-line-empty-p) (progn (forward-line) (indent-for-tab-command)) (newline-and-indent))
-                  )
+                  (if (next-line-empty-p)
+                      (progn
+                        (forward-line)
+                        (indent-for-tab-command))
+                    (newline-and-indent)))
               (ruby-do-end-to-brace-fixed beg end)
               )))))
 

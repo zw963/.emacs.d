@@ -1,24 +1,22 @@
 ;; (require 'enh-ruby-mode_init)
 (require 'ruby-mode_init)
 (require 'ruby-ffap)
-;; (require 'yard-mode_init)
 (require 'ruby-meta-return_init)
 (require 'rvm_init)
 (require 'ruby-test-mode_init)
 (require 'ruby-mode_keyword_highlight_init)
-(require 'rbs-mode)
-
-;; 应该先 require info-ruby, 再 require robe-mode
-(require 'inf-ruby_init)
+(require 'rbs-mode_init)
 (require 'robe-mode_init)
+(require 'yard-mode_init)
 
 ;; rbtagger 和 ctags-update，lsp 冲突。
 ;; (require 'rbtagger_init)
 
 ;; (require 'ctags-update_init)
 ;; (require 'ruby-mode-lsp_init)
-(require 'rspec-mode_init)
-(require 'yari_init)
+
+;; (require 'rspec-mode_init)
+;; (require 'yari_init)
 
 (let ((preferred-ruby-mode (if (fboundp 'enh-ruby-mode) 'enh-ruby-mode 'ruby-mode)))
   (add-to-list 'auto-mode-alist
@@ -76,13 +74,9 @@ of seeing_is_believing."
 
   (local-set-key [(control meta ?\s)] 'ruby-mark-sexp-or-block)
   (local-set-key [(kbd "RET")] 'reindent-then-newline-and-indent)
-  ;; (local-set-key [(return)] 'reindent-then-newline-and-indent)
-  ;; (local-set-key [(control meta d)] 'smie-down-list)
+  (local-set-key [(return)] 'reindent-then-newline-and-indent)
 
-  ;; 已经是默认值了
-  ;; (local-set-key [(control meta f)] 'ruby-forward-sexp)
-  ;; (local-set-key [(control meta b)] 'ruby-backward-sexp)
-
+  ;; (local-set-key [(control meta d)] 'smie-down-list) ;; 这个是默认
   (local-set-key [remap ruby-send-last-sexp] 'seeing-is-believing)
   )
 

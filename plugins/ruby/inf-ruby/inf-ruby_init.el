@@ -1,14 +1,14 @@
 (require 'inf-ruby)
 
-;; FIXME: 似乎 inf-ruby 不需要 rvm 插件？
-;; (with-eval-after-load 'rvm
-;;   ;; 启动 console 之前, 初始化 rvm.
-;;   (advice-add 'inf-ruby-console-auto :before
-;;               (lambda ()
-;;                 ;; (unless (and rvm--current-ruby rvm--current-gemset)
-;;                 (rvm-activate-corresponding-ruby)
-;;                 ;; )
-;;                 )))
+;; FIXME: 似乎 inf-ruby 还是需要 RVM 插件，否则，在没有 ruby 的地方启动 emacs, 甚至找不到 irb
+(with-eval-after-load 'rvm
+  ;; 启动 console 之前, 初始化 rvm.
+  (advice-add 'inf-ruby-console-auto :before
+              (lambda ()
+                ;; (unless (and rvm--current-ruby rvm--current-gemset)
+                (rvm-activate-corresponding-ruby)
+                ;; )
+                )))
 
 (add-hook 'after-init-hook 'inf-ruby-switch-setup)
 

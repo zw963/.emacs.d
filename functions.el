@@ -182,11 +182,6 @@ Use `font-lock-add-keywords' in case of `ruby-mode' or
 ;;       (shell-command-to-string (concat "add_webpack_watch_dog " watch-dog-file)))))
 ;; (add-hook 'before-save-hook 'set-webpack-watch-dog nil t)
 
-(defun next-line-empty-p ()
-  (save-excursion
-    (forward-line)
-    (looking-at "[[:space:]]*$")))
-
 (defun my-find-file-check-make-large-file-read-only-hook ()
   "If a file is over a given size (about 1M), make the buffer read only."
   (when (> (buffer-size) (* 1024 1024 10))

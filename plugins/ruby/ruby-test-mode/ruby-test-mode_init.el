@@ -1,4 +1,5 @@
 ;; 注意: ruby-test-mode 是高度 hack 的一个 model, 不要随便删除.
+;; 这个需要重构！
 
 (require 'ruby-test-mode)
 
