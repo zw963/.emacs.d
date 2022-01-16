@@ -20,6 +20,7 @@
  )
 
 ;; 让 helm 弹出的窗口, 总在最下面, 当开启 follow-mode 时, 这个和 neotree 不工作.
+(setq helm-always-two-windows nil) ;; this is default
 (setq-default helm-display-buffer-default-height (* (frame-height) 0.618))
 (setq helm-default-display-buffer-functions '(display-buffer-in-side-window))
 
