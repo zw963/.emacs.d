@@ -1,11 +1,12 @@
-;;; rbs-mode.el --- Major mode for Ruby::Signature  -*- lexical-binding: t; -*-
+;;; rbs-mode.el --- A major mode for RBS -*- lexical-binding: t; -*-
 
 ;; Copyright (C) 2020  Masafumi Koba
 
 ;; Author: Masafumi Koba
+;; Version: 0.3.1
+;; Package-Requires: ((emacs "24.5"))
 ;; Keywords: languages
 ;; URL: https://github.com/ybiquitous/rbs-mode
-;; Package-Requires: ((emacs "24.3"))
 
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -21,13 +22,56 @@
 ;; along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 ;;; Commentary:
-;;
-;; Usage:
-;;
-;;   (require 'rbs-mode)
+
+;; `rbs-mode' is a major mode for RBS (a type signature language for Ruby).
+;; See also <https://github.com/ruby/rbs> for details about RBS.
 
 ;;; Code:
 (require 'rx)
+
+(defgroup rbs nil
+  "Major mode for editing RBS code."
+  :group 'languages
+  :prefix "rbs-")
+
+(defcustom rbs-indent-level 2
+  "Indentation of RBS statements."
+  :group 'rbs
+  :type 'integer
+  :safe 'integerp)
+
+(defun rbs-indent-line ()
+  "Correct the indentation of the current RBS line."
+  (indent-line-to (rbs-calculate-indent-level)))
+
+(defun rbs-calculate-indent-level ()
+  "Return the proper indentation level of the current line."
+  (save-excursion
+    (let* ((prev-level (rbs-previous-indent-level))
+           (block-start-line-re (concat "^[[:space:]]*" (regexp-opt '("class" "module" "interface") 'symbols)))
+           (block-end-line-re (concat "^[[:space:]]*" (regexp-opt '("end") 'symbols))))
+      (cond
+        ((string-match-p block-start-line-re (rbs-previous-line))
+          (+ prev-level rbs-indent-level))
+        ((string-match-p block-end-line-re (rbs-current-line))
+          (max 0 (- prev-level rbs-indent-level)))
+        (t prev-level)))))
+
+(defun rbs-current-line ()
+  "Return the current line."
+  (string-trim-right (thing-at-point 'line t)))
+
+(defun rbs-previous-line ()
+  "Return the previous line."
+  (save-excursion
+    (forward-line -1)
+    (string-trim-right (thing-at-point 'line t))))
+
+(defun rbs-previous-indent-level ()
+  "Return the previous indent level."
+  (save-excursion
+    (forward-line -1)
+    (current-indentation)))
 
 (defconst rbs-mode--keyword-regexp
   (regexp-opt
@@ -209,6 +253,13 @@
     ":"
     (1+ space)))
 
+(defconst rbs-mode--instance-variable-regexp
+  (rx
+    (or space line-start)
+    (group "@" (1+ (not space)))
+    ":"
+    (1+ space)))
+
 (defconst rbs-mode--font-lock-keywords
   `((,rbs-mode--keyword-regexp (1 font-lock-keyword-face))
     (,rbs-mode--type-definition-regexp (1 font-lock-type-face))
@@ -216,6 +267,7 @@
     (,rbs-mode--method-name-regexp (1 font-lock-function-name-face))
     (,rbs-mode--alias-name-regexp (1 font-lock-function-name-face) (2 font-lock-function-name-face))
     (,rbs-mode--constant-regexp (1 font-lock-constant-face))
+    (,rbs-mode--instance-variable-regexp (1 font-lock-variable-name-face))
     (,rbs-mode--builtin-type-regexp (1 font-lock-builtin-face))
     (,rbs-mode--core-type-regexp (1 font-lock-type-face))))
 
@@ -230,12 +282,14 @@
 
 ;;;###autoload
 (define-derived-mode rbs-mode prog-mode "RBS"
-  "Major mode for Ruby::Signature."
-  ;; (setq-local indent-line-function 'ruby-indent-line)
+  "Major mode for editing RBS code."
   :syntax-table rbs-mode--syntax-table
   (setq-local comment-start "#")
+  (setq-local comment-start-skip "#+[ \t]*")
   (setq-local comment-end "")
-  (setq-local font-lock-defaults '(rbs-mode--font-lock-keywords)))
+  (setq-local comment-use-syntax t)
+  (setq-local font-lock-defaults '(rbs-mode--font-lock-keywords))
+  (setq-local indent-line-function #'rbs-indent-line))
 
 ;;;###autoload
 (add-to-list 'auto-mode-alist '("\\.rbs\\'" . rbs-mode))
