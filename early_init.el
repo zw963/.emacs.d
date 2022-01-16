@@ -1,5 +1,5 @@
-;; Emacs 默认只是在 shell, vterm, shell, term 下面设定这个环境变量.
-;; 这里全局增加这个环境变量.
+;; Emacs 默认只是在 shell, vterm, shell, term 下面设定这个环境变量为相应的值。
+;; 这里全局增加这个环境变量，设定为 true, 可以用来检测当前是否在 Emacs 中运行。
 (setenv "INSIDE_EMACS" "true")
 ;; (setenv "RUBYLIB" "") ;; 如果设置 RUBYLIB 为空，可能造成一些 ruby 工具无法使用
 (setenv "RUBYOPT" "")
