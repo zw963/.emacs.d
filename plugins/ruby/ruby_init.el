@@ -1,5 +1,5 @@
-;; (require 'enh-ruby-mode_init)
-(require 'ruby-mode_init)
+(require 'enh-ruby-mode_init)
+;; (require 'ruby-mode_init)
 (require 'ruby-ffap)
 ;; (require 'yard-mode_init)
 (require 'ruby-meta-return_init)
