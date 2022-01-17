@@ -45,8 +45,20 @@
 ;; #+END_EXAMPLE
 
 ;; ** Tips
+
+;; *** How to reduce flicker when scroll up and down?
+;; In windows or MacOS system, company candidates menu may flicker
+;; when scroll up and down, the reason is that the size of posframe
+;; changing rapid, user can set the minimum width of menu to limit
+;; flicker, for example:
+
+;; #+BEGIN_EXAMPLE
+;; (setq company-tooltip-minimum-width 40)
+;; #+END_EXAMPLE
+
 ;; *** Work better with desktop.el
 ;; The below code let desktop.el not record the company-posframe-mode
+
 ;; #+BEGIN_EXAMPLE
 ;; (require 'desktop) ;this line is needed.
 ;; (push '(company-posframe-mode . nil)
@@ -165,9 +177,9 @@ be triggered manually using `company-posframe-quickhelp-show'."
 
 (defvar company-posframe-quickhelp-show-params
   (list :poshandler #'company-posframe-quickhelp-right-poshandler
-        :internal-border-width 1
+        :border-width 1
+        :border-color "gray50"
         :timeout 60
-        :internal-border-color "gray50"
         :no-properties nil)
   "List of parameters passed to `posframe-show'.")
 
@@ -248,7 +260,7 @@ be triggered manually using `company-posframe-quickhelp-show'."
                        (- (plist-get info :position)
                           (plist-get info :company-prefix-length)
                           (plist-get info :company-margin)))))
-         (info (plist-put info :position-info (posn-at-point point parent-window))))
+         (info (plist-put info :position (posn-at-point point parent-window))))
     (posframe-poshandler-point-bottom-left-corner info)))
 
 (defun company-posframe-show ()
