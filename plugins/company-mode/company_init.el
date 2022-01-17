@@ -52,11 +52,11 @@
 
 (add-hook 'company-mode-hook (lambda ()
                                (setq company-backends
-                                             (delete 'company-oddmuse
-                                                     (delete 'company-bbdb
-                                                             (delete 'company-cmake
-                                                                     (delete 'company-clang
-                                                                             (delete '(company-dabbrev-code company-gtags company-etags company-keywords) company-backends))))))
+                                     (delete 'company-oddmuse
+                                             (delete 'company-bbdb
+                                                     (delete 'company-cmake
+                                                             (delete 'company-clang
+                                                                     (delete '(company-dabbrev-code company-gtags company-etags company-keywords) company-backends))))))
                                ))
 
 (setq company-dabbrev-code-everywhere t)
@@ -157,12 +157,13 @@ ac-auto-show-menu 为 nil 的情形, 这种模式比较适合在 yasnippet 正�
 ;; (require 'company-fuzzy)
 ;; (global-company-fuzzy-mode 1)
 
-(require 'company-posframe)
-(company-posframe-mode 1)
-
-(require 'desktop) ;this line is needed.
-(push '(company-posframe-mode . nil)
-      desktop-minor-mode-table)
+;; (require 'company-posframe)
+;; (with-eval-after-load 'company-posframe
+;;   (company-posframe-mode 1)
+;;   (require 'desktop) ;this line is needed.
+;;   (push '(company-posframe-mode . nil)
+;;         desktop-minor-mode-table)
+;;   )
 
 (require 'company-tabnine_init)
 
