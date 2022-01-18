@@ -9,12 +9,14 @@
                         (rvm-activate-corresponding-ruby))
                       ))
 
-(run-ruby-mode-hook '(ritagger-mode 1))
-
 (add-hook 'after-save-hook
           (lambda ()
-            (if (eq major-mode 'enh-ruby-mode)
+            (if (member major-mode '(ruby-mode enh-rub-mode))
                 (call-interactively 'rbtagger-generate-tags))))
+
+
+
+(run-ruby-mode-hook '(rbtagger-mode 1))
 
 ;; (defun turn-on-helm-etags-for-ruby ()
 ;;   (local-set-key "\M-." 'helm-etags-select)

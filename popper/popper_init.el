@@ -8,7 +8,8 @@
         ;; "LSP Error List\\*$"
         "\\*Async Shell Command\\*"
         "\\*quickrun\\*$"
-        "Scratch.txt"
+        ;; "Scratch.txt"
+        ("\\*Hover\\*" . hide)
         vterm-mode
         inf-ruby-mode
         (special-mode . hide)
@@ -17,15 +18,15 @@
         help-mode
         ))
 
-(defun popper-select-popup-at-top (buffer &optional _alist)
-  "Display popup-buffer BUFFER at the bottom of the screen."
-  (let ((win (display-buffer-in-side-window
-              buffer
-              `((window-height . ,popper-window-height)
-                (side . top)
-                (slot . 1)))))
-    (select-window win)))
-(setq popper-display-function #'popper-select-popup-at-top)
+;; (defun popper-select-popup-at-top (buffer &optional _alist)
+;;   "Display popup-buffer BUFFER at the bottom of the screen."
+;;   (let ((win (display-buffer-in-side-window
+;;               buffer
+;;               `((window-height . ,popper-window-height)
+;;                 (side . top)
+;;                 (slot . 1)))))
+;;     (select-window win)))
+;; (setq popper-display-function #'popper-select-popup-at-top)
 
 (global-set-key [(shift control t)] 'popper-toggle-latest)
 (with-eval-after-load 'vterm
@@ -34,7 +35,7 @@
 (global-set-key (kbd "C-M-`") 'popper-toggle-type)
 (popper-mode +1)
 (popper-echo-mode +1)
-(setq popper-window-height 50)
+;; (setq popper-window-height 50)
 
 (provide 'popper_init)
 
