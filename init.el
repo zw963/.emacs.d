@@ -72,8 +72,6 @@
 (require 'multiple-cursors_init)
 (require 'undo-tree_init)
 (require 'toggle-quotes_init)
-;; (require 'shackle_init)
-(require 'posframe_init)
 (require 'beyond-compare_init)
 (require 'helm_init) ;; helm 放到 ivy 后面，可以覆盖某些 ivy 覆盖的快捷键。
 (require 'helm-bindings_init) ; 和 ivy_init 冲突， 二者选其一.
@@ -175,7 +173,9 @@
 
 ;; 这个似乎要放到最后面？
 ;; (require 'workgroups_init)
+(require 'posframe_init)
 (require 'burly_init)
+(require 'shackle_init)
 (require 'popper_init)
 
 (setenv "LOAD_INIT" "true")
