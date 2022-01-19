@@ -35,7 +35,7 @@
 (require 'subr-x)
 (require 'seq)
 (require 'ruby-mode)
-(require 'enh-ruby-mode nil 'noerror)
+;; (require 'enh-ruby-mode nil 'noerror)
 
 (defconst rbtagger-module-regex "^[\s]*\\(class\\|module\\) \\([^\s<]+\\)"
   "The regex to match Ruby modules.")
