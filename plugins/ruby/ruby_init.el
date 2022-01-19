@@ -10,7 +10,7 @@
 (require 'yard-mode_init)
 
 ;; rbtagger 和 ctags-update，lsp 冲突。
-(require 'rbtagger_init)
+;; (require 'rbtagger_init)
 
 ;; (require 'ctags-update_init)
 ;; (require 'ruby-mode-lsp_init)
