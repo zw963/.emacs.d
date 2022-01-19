@@ -41,23 +41,15 @@
 (add-hook 'rustic-cargo-run-mode-hook 'rustic-compilation-mode-hack)
 (add-hook 'rustic-compilation-mode-hook 'rustic-compilation-mode-hack)
 
-(with-eval-after-load 'popwin
-  (setq rustic-compile-display-method 'pop-to-buffer)
-  (add-to-list 'popwin:special-display-config '(rustic-compilation-mode :noselect t)))
+;; 这个和 shackle 配合使用
+(setq rustic-compile-display-method 'pop-to-buffer)
 
-(with-eval-after-load 'shackle
-  (setq rustic-compile-display-method 'pop-to-buffer)
-  (add-to-list 'shackle-rules '(rustic-compilation-mode :select t :size 0.3 :autoclose t))
-  (add-to-list 'shackle-rules '(rustic-cargo-run-mode :select t :size 0.3 :autoclose t))
-  )
+;; (with-eval-after-load 'popwin
+;;   (add-to-list 'popwin:special-display-config '(rustic-compilation-mode :noselect t)))
 
-(with-eval-after-load 'company
-  (require 'company-tabnine)
-  (add-hook 'rustic-mode-hook
-            (lambda ()
-              (make-local-variable 'company-backends)
-              (add-to-list 'company-backends #'company-tabnine)
-              )))
+;; (with-eval-after-load 'shackle
+;;   (add-to-list 'shackle-rules '(rustic-cargo-run-mode :select t :size 0.3 :autoclose t))
+;;   )
 
 ;; 不使用 cargo, 直接用 rustc 编译。
 ;; (setq rustic-compile-command "rustc ./src/main.rs")
