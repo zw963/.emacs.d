@@ -7,7 +7,7 @@
 ;; (setq zenburn-scale-outline-headlines t)
 ;; (load-theme 'zenburn t)
 
-(load-theme 'material t) ;; 这个是原来的
+;; (load-theme 'material t) ;; 这个是原来的
 (load-theme 'vscode-dark-plus t)
 ;; (load-theme 'material-light t) ;; 这个是原来的
 ;; (require 'spacemacs-common)
