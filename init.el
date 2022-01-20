@@ -117,7 +117,7 @@
 (require 'dart-mode_init)
 
 ;; (require 'color-identifiers-mode_init)
-(require 'minimap_init)
+;; (require 'minimap_init)
 ;; (require 'zoom_init)
 (require 'smartparens_init)
 (require 'string-inflection_init)
@@ -148,9 +148,9 @@
 (require 'graphql-mode_init)
 
 ;; 关闭一些有用，但最近不常用的 mode
-;; (require 'haskell-mode_init)
 ;; (require 'go-mode_init)
-(require 'rust_init)
+;; (require 'rust_init)
+;; (require 'haskell-mode_init)
 
 ;; (require 'js2-mode_init)
 ;; (require 'lua-mode_init)
