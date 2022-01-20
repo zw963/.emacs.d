@@ -1,0 +1,12 @@
+# -*- mode: snippet -*-
+# name: GestureDetector
+# key: GestureDetector
+# contributor: Billy.Zheng vil963@gmail.com
+# --
+GestureDetector(
+          onTap: () => Application.router.navigateTo(
+            context,
+            ${1:PhotosPage}.routerPath,
+            ),
+          child: Placeholder(),
+        );

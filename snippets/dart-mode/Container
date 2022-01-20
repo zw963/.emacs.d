@@ -1,0 +1,7 @@
+mode: snippet -*-
+# name: Insert current selection into a Container
+# binding: C
+# condition: (yas-use-region-p)
+# contributor: Billy.Zheng vil963@gmail.com
+# --
+Container(color: Colors.${1:grey}, child: `(yas-selected-text)`$0)

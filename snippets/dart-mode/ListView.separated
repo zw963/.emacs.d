@@ -1,0 +1,13 @@
+mode: snippet -*-
+# name: ListView.separated
+# key: ListView.separated
+# contributor: Billy.Zheng vil963@gmail.com
+# --
+ListView.separated(
+      itemBuilder: (context, index) => _buildItem(_${1:items}[index]),
+      itemCount: $1.length,
+      separatorBuilder: (context, index) => const Divider(
+        height: 0,
+        indent: 16,
+      ),
+    )
