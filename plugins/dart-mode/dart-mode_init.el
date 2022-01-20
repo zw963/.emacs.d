@@ -18,8 +18,6 @@
   ;; (setq lsp-dart-dap-flutter-hot-reload-on-save t)
   (define-key dart-mode-map (kbd "C-M-x") 'lsp-dart-dap-flutter-hot-reload)
   (add-hook 'dart-mode-hook 'lsp)
-  ;; disable treemacs-follow-mode when run lsp-dart-run
-(advice-add #'lsp-dart-run :after (lambda (&rest _) (setq-local treemacs-follow-mode nil)))
   )
 
 (with-eval-after-load 'treemacs
