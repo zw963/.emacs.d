@@ -74,27 +74,3 @@
   (setq no-byte-compile t)
   ;; (setq debug-on-signal t)
   )
-
-;; (setq truncate-partial-width-windows t)
-;; ;; (require 'flycheck_init)
-;; (require 'company_init)
-;; (setq company-show-quick-access t)
-;; (require 'treemacs)
-
-;; (require 'dap-mode)
-;; (require 'dap-ui)
-;; (require 'dap-mouse)
-
-;; (require 'lsp-mode)
-;; (require 'lsp-modeline)
-;; (require 'lsp-headerline)
-;; (require 'lsp-diagnostics)
-
-;; (require 'lsp-ui)
-;; (setq lsp-ui-sideline-show-code-actions t)
-
-;; (require 'lsp-dart)
-;; (require 'dart-mode_init)
-
-;; (require 'dart-mode)
-;; (add-hook 'dart-mode-hook 'lsp)
