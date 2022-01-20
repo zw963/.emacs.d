@@ -2,6 +2,8 @@
 (require 'popper-echo)
 
 ;; 注意，有一些模式使用 mode-name 方式是无法生效的.
+;; 被这里管理的 mode, 应该都是在 shackle 中配置的 mode, 在需要的时候，希望随时可以通过快捷键调出来。
+;; 它和 shackle 并不冲突，shackle 管理所有，popper.el 只管理随时想看的。
 (setq popper-reference-buffers
       '("\\*Messages\\*$"
         "Output\\*$"
@@ -9,9 +11,9 @@
         "\\*quickrun\\*$"
         vterm-mode
         inf-ruby-mode
-        (special-mode . hide)
-        ;; (hover-mode . hide)
-        ;; (compilation-mode . hide)
+        special-mode
+        hover-mode
+        compilation-mode
         ;; help-mode
         ))
 
