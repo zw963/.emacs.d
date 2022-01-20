@@ -141,18 +141,17 @@
 (require 'json-mode_init)
 ;; (require 'tree-sitter_init)
 (require 'reformatter_init)
-;; (require 'rustic_init)
-(require 'haskell-mode_init)
 
 (require 'dpaste_init)
 (require 'ws-butler_init)
 (require 'solaire-mode_init)
-(require 'wakatime-mode_init)
 (require 'graphql-mode_init)
 
 ;; 关闭一些有用，但最近不常用的 mode
+;; (require 'haskell-mode_init)
 ;; (require 'go-mode_init)
 (require 'rust_init)
+
 ;; (require 'js2-mode_init)
 ;; (require 'lua-mode_init)
 ;; (require 'toml-mode_init)
@@ -165,6 +164,8 @@
 ;; (require 'disable-mouse_init)
 ;; (require 'telega_init)
 ;; (require 'eaf_init)
+;; 这个会造成 treemacs-follow-mode 当滚动时，也频繁的刷新文件列表，造成页面被 pull back.
+;; (require 'wakatime-mode_init)
 
 ;; 加载 dotfiles 时，阻止 gc.
 ;; (when (file-exists-p (expand-file-name ".emacs" config))
