@@ -3,7 +3,6 @@
 (setq minimap-window-location 'right)
 (setq minimap-width-fraction 0.07)
 (setq minimap-minimum-width 5)
-(setq minimap-max 5)
 
 (global-set-key [(f10)] 'minimap-mode)
 
