@@ -76,6 +76,7 @@
 (require 'dired-narrow)
 (setq dired-narrow-exit-when-1-left t)
 (define-key dired-mode-map  "/" 'dired-narrow-fuzzy)
+(define-key dired-mode-map  (kbd "<down-mouse-1>") 'dired-find-file)
 
 ;; (require 'diredc)
 
