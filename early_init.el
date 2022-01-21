@@ -3,9 +3,9 @@
 (setenv "INSIDE_EMACS" "true")
 ;; (setenv "RUBYLIB" "") ;; 如果设置 RUBYLIB 为空，可能造成一些 ruby 工具无法使用
 (setenv "RUBYOPT" "")
-(setenv "http_proxy" "")
-(setenv "https_proxy" "")
-(setenv "ftp_proxy" "")
+;; (setenv "http_proxy" "")
+;; (setenv "https_proxy" "")
+;; (setenv "ftp_proxy" "")
 
 ;; (setq inhibit-compacting-font-caches t)  ; Don’t compact font caches during GC.
 
