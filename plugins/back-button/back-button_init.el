@@ -1,6 +1,8 @@
+(setq back-button-local-keystrokes nil)
+
 (require 'back-button)
 
-(setq back-button-global-keystrokes '("C-x <C-@>"))
+;; (setq back-button-global-keystrokes '("C-x <C-@>"))
 
 ;; other useful keybinding: C-x left, C-x right, and hydra
 (global-set-key (kbd "C-x C-@") 'back-button-global)
