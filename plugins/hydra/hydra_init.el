@@ -31,7 +31,6 @@
     ("l" back-button-global-forward "global next hunk"))
   )
 
-
 ;; (defhydra hydra-block-nav
 ;;   (
 ;;    global-map "C-x m"
