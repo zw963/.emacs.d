@@ -25,14 +25,18 @@
 ;; 这种方案和 yas 完全不冲突。
 
 (defun set-company-tab ()
-  (define-key company-active-map [tab] 'company-select-next-if-tooltip-visible-or-complete-selection)
-  (define-key company-active-map (kbd "TAB") 'company-select-next-if-tooltip-visible-or-complete-selection)
+  ;; (define-key company-active-map [tab] 'company-select-next-if-tooltip-visible-or-complete-selection)
+  ;; (define-key company-active-map (kbd "TAB") 'company-select-next-if-tooltip-visible-or-complete-selection)
+  (define-key company-active-map [tab] 'company-complete-common-or-cycle)
+  (define-key company-active-map (kbd "TAB") 'company-complete-common-or-cycle)
+  (define-key company-active-map (kbd "<backtab>") 'company-select-previous)
+  (define-key company-active-map (kbd "S-TAB") 'company-select-previous)
   )
 
 (set-company-tab)
 
-(define-key company-active-map (kbd "<backtab>") 'company-select-previous)
-(define-key company-active-map (kbd "S-TAB") 'company-select-previous)
+;; emacs-lisp-compilation-mode "*Compile-Log*"
+
 (define-key company-active-map (kbd "C-s") 'company-filter-candidates)
 
 ;; Use M-1,2 ... to select a candidation.
@@ -166,6 +170,10 @@ ac-auto-show-menu 为 nil 的情形, 这种模式比较适合在 yasnippet 正�
 ;;   )
 
 (require 'company-tabnine_init)
+
+;; toggle-company-english-helper 来开启英文自动补全。
+;; 包含了一个 py 脚本，用来转化 stardict 的词库，模式是 KDict, 包含 11 万单词.
+(require 'company-english-helper)
 
 (provide 'company_init)
 
