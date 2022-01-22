@@ -93,15 +93,45 @@ Otherwise, forward to `goto-line' with ARG."
 (global-set-key [remap goto-char] 'goto-char-preview)
 
 (require 'ace-window)
+;; (setq aw-keys '(?a ?s ?d ?f ?g ?h ?j ?k ?l))
 (setq aw-scope 'visible)
-;; (setq aw-minibuffer-flag t)
-(setq aw-ignore-current t)
 (setq aw-dispatch-always t)
-
 ;; ace-window 激活后，有一个有用的快捷键 m, 用来交换当前 window 和指定的 window.
+;; 或者直接 C-u C-x o, 直接就是 swap window, C-u C-u C-x 0, 删除指定的 window.
 (global-set-key [remap other-window] 'ace-window)
 
-;; (setq aw-keys '(?a ?s ?d ?f ?g ?h ?j ?k ?l))
+(set-face-attribute
+ 'aw-leading-char-face nil
+ :foreground "deep sky blue"
+ :weight 'bold
+ :height 3.0)
+
+(set-face-attribute
+ 'aw-mode-line-face nil
+ :inherit 'mode-line-buffer-id
+ :foreground "lawn green")
+
+;; (defhydra hydra-window-size (:color red)
+;;   "Windows size"
+;;   ("h" shrink-window-horizontally "shrink horizontal")
+;;   ("l" enlarge-window-horizontally "enlarge horizontal")
+;;   ("j" shrink-window "shrink vertical")
+;;   ("k" enlarge-window "enlarge vertical")
+;;   )
+
+;; (defhydra hydra-window-frame (:color red)
+;;   "Frame"
+;;   ("f" make-frame "new frame")
+;;   ("x" delete-frame "delete frame"))
+
+;; (defhydra hydra-window-scroll (:color red)
+;;   "Scroll other window"
+;;   ("n" joe-scroll-other-window "scroll")
+;;   ("p" joe-scroll-other-window-down "scroll down"))
+
+;; (add-to-list 'aw-dispatch-alist '(?w hydra-window-size/body) t)
+;; (add-to-list 'aw-dispatch-alist '(?o hydra-window-scroll/body) t)
+;; (add-to-list 'aw-dispatch-alist '(?\; hydra-window-frame/body) t)
 
 ;; 这个和 treemacs rightclick menu 冲突.
 (require 'ace-popup-menu)
