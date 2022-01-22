@@ -111,28 +111,6 @@ Otherwise, forward to `goto-line' with ARG."
  :inherit 'mode-line-buffer-id
  :foreground "lawn green")
 
-;; (defhydra hydra-window-size (:color red)
-;;   "Windows size"
-;;   ("h" shrink-window-horizontally "shrink horizontal")
-;;   ("l" enlarge-window-horizontally "enlarge horizontal")
-;;   ("j" shrink-window "shrink vertical")
-;;   ("k" enlarge-window "enlarge vertical")
-;;   )
-
-;; (defhydra hydra-window-frame (:color red)
-;;   "Frame"
-;;   ("f" make-frame "new frame")
-;;   ("x" delete-frame "delete frame"))
-
-;; (defhydra hydra-window-scroll (:color red)
-;;   "Scroll other window"
-;;   ("n" joe-scroll-other-window "scroll")
-;;   ("p" joe-scroll-other-window-down "scroll down"))
-
-;; (add-to-list 'aw-dispatch-alist '(?w hydra-window-size/body) t)
-;; (add-to-list 'aw-dispatch-alist '(?o hydra-window-scroll/body) t)
-;; (add-to-list 'aw-dispatch-alist '(?\; hydra-window-frame/body) t)
-
 ;; 这个和 treemacs rightclick menu 冲突.
 (require 'ace-popup-menu)
 (ace-popup-menu-mode 1)

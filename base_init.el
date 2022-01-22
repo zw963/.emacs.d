@@ -58,8 +58,6 @@
 ;; (setq recentf-max-menu-items 10)
 ;; (setq recentf-exclude '("/tmp/" "/ssh:"))
 (setq recentf-exclude '(boring-file-regexp-list))
-;; 如果某个 window 没有激活，在那个 window 上不显示 cursor。
-(setq-default cursor-in-non-selected-windows nil)
 (add-hook 'delete-frame-functions (lambda (frame) (recentf-save-list)))
 (recentf-mode t) ;显示最近打开的文件列表
 ;; FIXME: 是否要删除 recentf?
@@ -355,6 +353,7 @@
  fill-column 82             ;设置默认 82 个字符为换行标记.
  left-fringe-width 10
  cursor-type 'bar
+ cursor-in-non-selected-windows 'hollow ; 在没有激活的 window 上显示一个空心正方形
  )
 
 (setq diff-switches "-Naur")                     ;Default to unified diffs
