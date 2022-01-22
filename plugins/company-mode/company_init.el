@@ -59,6 +59,7 @@
                                                                      (delete '(company-dabbrev-code company-gtags company-etags company-keywords) company-backends))))))
                                ))
 
+(require 'company-dabbrev-code)
 (setq company-dabbrev-code-everywhere t)
 
 (dolist (hook '(sh-mode-hook graphql-mode-hook))
@@ -105,12 +106,11 @@ ac-auto-show-menu 为 nil 的情形, 这种模式比较适合在 yasnippet 正�
   (advice-add #'company-complete-common-or-cycle :around #'advice-always-trigger-yas)
   )
 
-(setq company-auto-commit nil)
-;; 32 空格, 41 右圆括号, 46 是 dot 字符
-;; 这里我们移除空格，添加逗号(44), 分号(59)
-;; 注意： C-x = 用来检测光标下字符的数字，(insert 数字) 用来测试数字对应的字符。
-(setq company-auto-commit-chars '(41 46))
-;; (setq company-require-match nil)
+;; (setq company-insertion-on-trigger t)
+;; ;; 注意： C-x = 用来检测光标下字符的数字，(insert 数字) 用来测试数字对应的字符。
+;; ;; 32 空格, 41 右圆括号, 46 是 dot 字符
+;; ;; 这里我们移除空格，添加逗号(44), 分号(59)
+;; (setq company-insertion-triggers '(41 46))
 
 ;; (add-hook 'after-init-hook 'global-company-mode)
 (global-company-mode 1)
