@@ -4,4 +4,6 @@ mode: snippet -*-
 # condition: (yas-use-region-p)
 # contributor: Billy.Zheng vil963@gmail.com
 # --
-Container(color: Colors.${1:grey}, child: `(yas-selected-text)`$0)
+${1:Container}(
+  `(field "2" "grey" "color: Colors." ",\n")`child: `(yas-selected-text)`$0
+  )
