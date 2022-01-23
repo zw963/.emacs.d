@@ -1,9 +1,9 @@
 mode: snippet -*-
 # name: Insert current selection into a Container
-# binding: C
+# binding: W
 # condition: (yas-use-region-p)
 # contributor: Billy.Zheng vil963@gmail.com
 # --
-${1:Container}(
+${1:$$(yas-choose-value '("Container" "SizedBox" "FractionalSizedBox" "Center" "Padding"))}(
   `(field "2" "grey" "color: Colors." ",\n")`child: `(yas-selected-text)`$0
   )

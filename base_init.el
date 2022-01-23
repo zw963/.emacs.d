@@ -201,7 +201,7 @@
  echo-keystrokes 0.1                       ;快速在minibuffer显示按键提示，间隔0.1秒
  display-time-day-and-date t               ;显示时间包含当前日期
  blink-matching-paren nil                  ;关闭括号匹配自动跳转
- visible-bell t                            ;开启屏幕闪屏提示
+ ;; visible-bell t                            ;开启屏幕闪屏提示
  display-time-24hr-format t                ;使用24小时形式显示时间.
  display-buffer-reuse-frames t             ;切换到已有的frame
  dabbrev-case-fold-search nil              ;自动完成大小写敏感.
