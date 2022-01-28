@@ -2,7 +2,11 @@
 
 ;; 对应于 enh-ruby-mode 的配置.
 (with-eval-after-load 'ruby-mode
-  (setq ruby-deep-indent-paren-style nil)
+  (setq ruby-toggle-block-space-before-parameters nil)
+  ;; (setq ruby-use-smie nil)
+  ;; (setq ruby-deep-arglist nil)
+  ;; (setq ruby-deep-indent-paren nil)
+  ;; (setq ruby-deep-indent-paren-style t)
   (setq ruby-insert-encoding-magic-comment nil)
   ) ; 无需插入 encoding comment.
 
