@@ -62,7 +62,7 @@
          ("/gmail/[Gmail].Sent Mail"   . ?s)
          ("/gmail/[Gmail].Drafts"   . ?s)
          ("/gmail/[Gmail].Trash"       . ?t)
-         ("/gmail/[Gmail].All Mail"    . ?a)
+         ;; ("/gmail/[Gmail].All Mail"    . ?a)
          ))
 
 (setq mu4e-headers-fields '(

@@ -40,6 +40,7 @@
 (with-eval-after-load 'hover
   ;; (define-key dart-mode-map (kbd "C-M-x") 'hover-run-or-hot-reload)
   (define-key dart-mode-map (kbd "C-M-x") 'hover-run-or-hot-restart)
+  (define-key hover-mode-map (kbd "C-M-x") 'hover-run-or-hot-reload)
   ;; (define-key dart-mode-map (kbd "C-M-p") 'hover-take-screenshot)
 
   (setq
