@@ -1,11 +1,11 @@
 mode: snippet -*-
-# name: Insert current selection into a Container
-# binding: LB
+# name: Wrap current selection with a Layout Builder
+# binding: L
 # condition: (yas-use-region-p)
 # contributor: Billy.Zheng vil963@gmail.com
 # --
 LayoutBuilder(
-  builder: (BuildContext context, BoxConstraints constraints) {
+  builder: (BuildContext context, BoxConstraints constraints,) {
   print("constraints: $constraints");
   return `(yas-selected-text)`;
   },
