@@ -76,7 +76,9 @@ Use `font-lock-add-keywords' in case of `ruby-mode' or
     "validates_numericality_of" "validates_presence_of" "validates_size_of"
     "validates_uniqueness_of" "validates_with" "store" "store_accessor"
     "enum" "delegate" "has_secure_password" "has_secure_token" "after_create_commit"
-    "after_update_commit" "thread_mattr_accessor" "class_attribute")
+    "after_update_commit" "thread_mattr_accessor" "class_attribute"
+    "has_many_attached" "has_one_attached"
+    )
   "List of keywords to highlight for models."
   :group 'rinari
   :type '(repeat string))
