@@ -1,9 +1,5 @@
 (require 'shackle)
 
-;; ;; 让 helm 的弹出窗口有类似于 popwin 的效果。
-;; (setq helm-display-function 'pop-to-buffer) ; make helm play nice
-;; (setq shackle-rules '(("\\`\\*helm.*?\\*\\'" :regexp t :align t :size 0.618)))
-
 (setq shackle-default-size 0.4
       shackle-default-alignment 'below
       shackle-default-rule nil
@@ -116,6 +112,10 @@
             (delete-window window)
             (pop shackle--popup-window-list))))))
   (advice-add #'keyboard-quit :before #'shackle-close-popup-window-hack))
+
+;; 让 helm 的弹出窗口有类似于 popwin 的效果。
+(setq helm-display-function 'pop-to-buffer) ; make helm play nice
+(add-to-list 'shackle-rules '("\\`\\*helm.*?\\*\\'" :regexp t :align t :size 0.618))
 
 (shackle-mode t)
 
