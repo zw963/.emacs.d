@@ -1,22 +1,15 @@
 mode: snippet -*-
-# name: Insert current selection into a Container
+# name: wrap a Widget
 # binding: W
 # condition: (yas-use-region-p)
 # contributor: Billy.Zheng vil963@gmail.com
 # --
 ${1:$$(yas-choose-value '(
-"Container"
-"SizedBox"
 "Spacer"
 "FractionalSizedBox"
 "Flexible"
-"Center"
 "Padding"
-"Row"
-"Column"
 "Align"
-"Expanded"
 ))}(
-  `(field "2" "grey" "color: Colors." ",")`
-  child: `(yas-selected-text)`$0
+  child: `(yas-selected-text)`,$0
   )

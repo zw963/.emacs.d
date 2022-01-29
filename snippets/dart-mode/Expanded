@@ -1,0 +1,9 @@
+mode: snippet -*-
+# name: wrap a Expanded
+# binding: E
+# condition: (yas-use-region-p)
+# contributor: Billy.Zheng vil963@gmail.com
+# --
+Expanded(
+  child: `(yas-selected-text)`$0
+  )

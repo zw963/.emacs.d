@@ -1,0 +1,9 @@
+mode: snippet -*-
+# name: Wrap a Center
+# binding: C
+# condition: (yas-use-region-p)
+# contributor: Billy.Zheng vil963@gmail.com
+# --
+Center(
+  child: `(yas-selected-text)`$0
+  )

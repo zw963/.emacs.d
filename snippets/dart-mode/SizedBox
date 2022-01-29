@@ -1,0 +1,11 @@
+mode: snippet -*-
+# name: wrap a SizedBox
+# binding: S
+# condition: (yas-use-region-p)
+# contributor: Billy.Zheng vil963@gmail.com
+# --
+SizedBox(
+  `(field "1" "20" "width: " ",")`
+  `(field "2" "20" "height: " ",")`
+  child: `(yas-selected-text)`$0
+  )

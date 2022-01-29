@@ -1,0 +1,9 @@
+mode: snippet -*-
+# name: Wrap a Row
+# binding: R
+# condition: (yas-use-region-p)
+# contributor: Billy.Zheng vil963@gmail.com
+# --
+Row(
+  children: [`(yas-selected-text)`,$0]
+  )

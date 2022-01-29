@@ -1,0 +1,9 @@
+mode: snippet -*-
+# name: wrap a Column
+# binding: C
+# condition: (yas-use-region-p)
+# contributor: Billy.Zheng vil963@gmail.com
+# --
+Column(
+  children: [`(yas-selected-text)`,]$0
+  )

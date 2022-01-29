@@ -1,0 +1,16 @@
+mode: snippet -*-
+# name: Wrap a TextButton
+# binding: T
+# condition: (yas-use-region-p)
+# contributor: Billy.Zheng vil963@gmail.com
+# --
+TextButton(
+onPressed: () async {
+            await Application.router.navigateTo(
+              context,
+              ${1:MyPage}.routerPath,
+            );
+            setState(() {});
+          },
+  child: `(yas-selected-text)`$0
+  )
