@@ -11,7 +11,7 @@
 (treemacs-filewatch-mode t)
 (treemacs-indent-guide-mode t)
 (setq treemacs-file-event-delay 1000)
-;; (treemacs-follow-mode t)
+(treemacs-follow-mode t)
 ;; (require 'treemacs-project-follow-mode)
 ;; (treemacs-project-follow-mode t)
 (setq treemacs-is-never-other-window t)
@@ -26,6 +26,7 @@
 ;; (add-to-list 'treemacs-ignored-file-predicates #'treemacs-ignore-example)
 
 (setq treemacs-width 42)
+(setq treemacs-width-is-initially-locked nil)
 
 (require 'treemacs-icons-dired)
 ;; 让 dired 使用 treemacs 图标。
