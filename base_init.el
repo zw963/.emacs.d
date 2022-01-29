@@ -190,10 +190,9 @@
 ;; TODO: 奇怪，取消某个设置, 会导致 next-line 到最后, 有奇怪的提示音.
 
 (setq
- ;; 默认值 true, 表示如果用鼠标操作时，使用当前操作系统的 GUI 对话框来创建文件。
- ;; use-file-dialog nil
-
- ;; use-dialog-box nil
+ ;; 默认值 t, 表示如果用鼠标操作时，使用当前操作系统的 GUI 对话框来创建文件。
+ use-file-dialog nil
+ use-dialog-box nil
  inhibit-startup-echo-area-message t
  scroll-preserve-screen-position t         ;移动屏幕时，保持光标相对屏幕的位置不变。
  revert-without-query '(".*")              ;设定那些 buffer 执行 revert 时, 不提示确认.
