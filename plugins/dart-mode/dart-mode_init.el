@@ -31,6 +31,7 @@
 (require 'flutter)
 (setq flutter-l10n-arb-dir "lib/i10n")
 (setq flutter-l10n-template-arb-file "intl_zh_Hans.arb")
+(setq flutter-l10n-output-localization-file "l10n.dart")
 
 ;; (add-hook 'dart-mode-hook 'flutter-test-mode)
 ;; (define-key dart-mode-map (kbd "C-M-x") 'flutter-run-or-hot-reload)
@@ -38,18 +39,15 @@
 (require 'hover)
 
 (with-eval-after-load 'hover
-  ;; (define-key dart-mode-map (kbd "C-M-x") 'hover-run-or-hot-reload)
-  (define-key dart-mode-map (kbd "C-M-x") 'hover-run-or-hot-restart)
-  (define-key hover-mode-map (kbd "C-M-x") 'hover-run-or-hot-reload)
-  ;; (define-key dart-mode-map (kbd "C-M-p") 'hover-take-screenshot)
-
+  (define-key hover-minor-mode-map (kbd "C-M-x") 'hover-run-or-hot-restart)
   (setq
    hover-screenshot-path (concat (getenv "HOME") "/Pictures")
    hover-screenshot-prefix "magpie-"
    hover-observatory-uri "http://127.0.0.1:50300"
    hover-clear-buffer-on-hot-restart t
    hover-hot-reload-on-save t
-        )
+   )
+  (hover-global-minor-mode t)
   )
 
 (provide 'dart-mode_init)

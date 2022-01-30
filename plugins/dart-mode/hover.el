@@ -282,5 +282,28 @@ args."
     (add-hook 'after-save-hook 'hover--hot-reload))
   (define-key hover-mode-map (kbd "C-x q") #'hover-kill))
 
+(defvar hover-minor-mode-map
+  (let ((map (make-sparse-keymap)))
+    map)
+  "Keymap for function `hover-minor-mode'.")
+
+;;;###autoload
+(define-minor-mode hover-minor-mode
+  "Keybinding for running the `hover' binary tool commands."
+  :lighter " hover"
+  :keymap hover-minor-mode-map
+  :group 'hover)
+
+(defun hover-turn-on-hover-minor-mode ()
+  "Turn on `hover-minor-mode'."
+    (hover-minor-mode t))
+
+;;;###autoload
+(define-globalized-minor-mode hover-global-minor-mode
+  hover-minor-mode hover-turn-on-hover-minor-mode
+  :group 'hover
+  :require 'hover-minor-mode
+  )
+
 (provide 'hover)
 ;;; hover.el ends here
