@@ -4,6 +4,9 @@
   "switching by major-mode"
   (interactive)
   (cond
+   ;; for ruby
+   ((member major-mode '(ruby-mode enh-ruby-mode))
+    (string-inflection-ruby-style-cycle))
    ;; for emacs-lisp-mode
    ((eq major-mode 'emacs-lisp-mode)
     (string-inflection-all-cycle))
@@ -11,11 +14,12 @@
    ((eq major-mode 'python-mode)
     (string-inflection-python-style-cycle))
    ;; for java
-   ((eq major-mode 'java-mode)
+   ((member major-mode '(java-mode dart-mode js2-mode))
     (string-inflection-java-style-cycle))
    (t
     ;; default
-    (string-inflection-ruby-style-cycle))))
+    (string-inflection-all-cycle)
+    )))
 
 (global-set-key [(meta u)] 'my-string-inflection-cycle-auto)
 
