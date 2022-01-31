@@ -1,11 +1,10 @@
 mode: snippet -*-
-# name: wrap a SizedBox
-# binding: S
+# name: wrap a Padding
+# binding: P
 # condition: (yas-use-region-p)
 # contributor: Billy.Zheng vil963@gmail.com
 # --
-SizedBox(
-  `(field "1" "20" "width: " ",")`
-  `(field "2" "20" "height: " ",")`
+Padding(
+  `(field "1" "16" "padding: EdgeInsets.all(" "),")`
   child: `(yas-selected-text)`,$0
   )

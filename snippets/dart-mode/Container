@@ -6,5 +6,7 @@ mode: snippet -*-
 # --
 Container(
   `(field "1" "grey" "color: Colors." ",")`
-  child: `(yas-selected-text)`$0
+  `(field "2" "80" "height: " ",")`
+  `(field "3" "80" "width: " ",")`
+  child: `(yas-selected-text)`,$0
   )

@@ -1,11 +1,10 @@
 mode: snippet -*-
-# name: wrap a SizedBox
-# binding: S
+# name: wrap a Align
+# binding: A
 # condition: (yas-use-region-p)
 # contributor: Billy.Zheng vil963@gmail.com
 # --
-SizedBox(
-  `(field "1" "20" "width: " ",")`
-  `(field "2" "20" "height: " ",")`
+Align(
+  `(field "1" "topRight" "alignment: Alignment." ",")`
   child: `(yas-selected-text)`,$0
   )

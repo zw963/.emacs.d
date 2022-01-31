@@ -6,10 +6,6 @@ mode: snippet -*-
 # --
 ${1:$$(yas-choose-value '(
 "Spacer"
-"FractionalSizedBox"
-"Flexible"
-"Padding"
-"Align"
 ))}(
   child: `(yas-selected-text)`,$0
   )

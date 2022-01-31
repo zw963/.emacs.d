@@ -5,5 +5,5 @@ mode: snippet -*-
 # contributor: Billy.Zheng vil963@gmail.com
 # --
 Expanded(
-  child: `(yas-selected-text)`$0
+  child: `(yas-selected-text)`,$0
   )

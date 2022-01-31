@@ -1,0 +1,12 @@
+mode: snippet -*-
+# name: wrap a FractionalSizedBox
+# binding: F
+# condition: (yas-use-region-p)
+# contributor: Billy.Zheng vil963@gmail.com
+# --
+FractionalSizedBox(
+  `(field "1" "0.5" "widthFactor: " ",")`
+  `(field "2" "0.5" "heightFactor: " ",")`
+  `(field "3" "center" "alignment: FractionalOffset." ",")`
+  child: `(yas-selected-text)`,$0
+  )

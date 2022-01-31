@@ -5,5 +5,7 @@ mode: snippet -*-
 # contributor: Billy.Zheng vil963@gmail.com
 # --
 Column(
-  children: [`(yas-selected-text)`,]$0
+ `(field "1" "center" "mainAxisAlignment: MainAxisAlignment." ",")`
+ `(field "2" "center" "crossAxisAlignment: CrossAxisAlignment." ",")`
+  children: [`(yas-selected-text)`,],$0
   )

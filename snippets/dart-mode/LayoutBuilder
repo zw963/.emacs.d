@@ -1,5 +1,5 @@
 mode: snippet -*-
-# name: Wrap current selection with a Layout Builder
+# name: Wrap a Layout Builder
 # binding: L
 # condition: (yas-use-region-p)
 # contributor: Billy.Zheng vil963@gmail.com
