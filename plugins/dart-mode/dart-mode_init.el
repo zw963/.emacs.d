@@ -18,7 +18,7 @@
   ;; (setq lsp-dart-dap-flutter-hot-reload-on-save t)
   (define-key dart-mode-map (kbd "C-M-x") 'lsp-dart-dap-flutter-hot-reload)
   (define-key dart-mode-map (kbd "<escape>") 'lsp-dart-show-flutter-outline)
-  (add-hook 'dart-mode-hook 'lsp)
+  (add-hook 'dart-mode-hook 'lsp-deferred)
   )
 
 (with-eval-after-load 'treemacs

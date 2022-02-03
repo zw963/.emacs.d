@@ -415,13 +415,6 @@
 (setq uniquify-separator "/"               ;; The separator in buffer names.
       uniquify-buffer-name-style 'forward) ;; names/in/this/style
 
-;; (add-hook 'prog-mode-hook (lambda ()
-;;                             (add-hook 'before-save-hook 'delete-trailing-whitespace)
-;;                             ))
-;; (add-hook 'org-mode-hook (lambda ()
-;;                            (remove-hook 'before-save-hook 'delete-trailing-whitespace)
-;;                            ))
-
 ;; 这个到底是否需要？ 不确定，先注释看看效果。
 ;; (turn-on-eldoc-mode)
 

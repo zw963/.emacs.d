@@ -31,8 +31,13 @@
 
 (setq lsp-enable-on-type-formatting t)
 
-(add-hook 'before-save-hook #'lsp-format-buffer t t)
-(add-hook 'before-save-hook #'lsp-organize-imports t t)
+(defun lsp-install-save-hooks ()
+    (add-hook 'before-save-hook #'lsp-format-buffer t t)
+    (add-hook 'before-save-hook #'lsp-organize-imports t t)
+    )
+
+(add-hook 'go-mode-hook 'lsp-install-save-hooks)
+(add-hook 'dart-mode-hook 'lsp-install-save-hooks)
 
 ;; 这个默认不打开，怀疑打开会很慢，先关闭
 ;; (setq lsp-semantic-tokens-enable t)
