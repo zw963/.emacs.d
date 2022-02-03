@@ -110,6 +110,7 @@
 
 ;; ============================== 编程相关 ==============================
 
+;; (require 'apheleia_init)
 (require 'flycheck_init)
 (require 'company_init)
 (require 'lsp-mode_init)
@@ -140,7 +141,7 @@
 (require 'scss-css-mode_init)
 (require 'json-mode_init)
 ;; (require 'tree-sitter_init)
-(require 'reformatter_init)
+;; (require 'reformatter_init)
 
 (require 'dpaste_init)
 (require 'ws-butler_init)
