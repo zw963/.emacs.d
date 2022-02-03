@@ -107,6 +107,7 @@
 (require 'mu4e_init)
 (require 'volatile-highlights_init)
 (require 'buffer-move_init)
+(require 'goto-chg_init)
 
 ;; ============================== 编程相关 ==============================
 

@@ -41,7 +41,6 @@
 (global-set-key [(control c) (control o)] 'browse-url-at-point) ;C-c C-o 自动打开链接.
 (global-set-key [(meta \=)] 'ediff-windows-linewise) ;使用ediff逐行对比buffer内容
 (global-set-key [(shift f2)] 'rename-current-buffer-file)
-(global-set-key [(control ?\.)] 'input-rocket-with-space)
 (global-set-key [(control s)] 'isearch-forward-regexp) ;更改Ctrl-s为正则搜索
 (global-set-key [(control f11)] 'bc1-current-file) ; Ctrl-F11 bc1
 (global-set-key [(meta f11)] 'bc2-current-file) ; Meta-F11 bc2
@@ -52,7 +51,7 @@
 (global-set-key [(control x) (j)] 'previous-buffer)
 (global-set-key [(control x) (l)] 'next-buffer)
 
-(global-set-key [(meta c) (\.)] 'input-comment-with-rocket)
+(global-set-key [(meta c) (\.)] 'input-rocket-with-space)
 (global-set-key [(meta c) (=)] 'input-add-equal)
 
 (global-set-key [(control c ) (a)] 'align-regexp)
