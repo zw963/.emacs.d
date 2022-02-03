@@ -242,6 +242,7 @@
                  (right-fringe . 1)
                  ;; 当以 daemon 启动时， 光标使用系统光标黑色， 这里改为浅白色。
                  ;; (cursor-color . "AntiqueWhite3")
+                 (cursor-color . "#00FF00")
                  ;; (fullscreen . nil)
                  ))
   (add-to-list 'default-frame-alist param)
