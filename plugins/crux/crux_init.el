@@ -4,7 +4,9 @@
 (global-set-key [(control k)] 'crux-smart-kill-line)
 (global-set-key [(control shift return)] 'crux-smart-open-line-above)
 (global-set-key [(control return)] 'crux-smart-open-line)
-(global-set-key [(control c) (r)] 'crux-rename-file-and-buffer)
+;; (global-set-key [(control c) (r)] 'crux-rename-file-and-buffer)
+(global-set-key [(shift f2)] 'rename-current-buffer-file)
+(global-set-key [(meta t)] 'translate-this-word-or-region)
 (global-set-key [(control c) (D)] 'crux-delete-file-and-buffer)
 (global-set-key [(control c) (c)] 'crux-copy-file-preserve-attributes)
 (global-set-key [(control c) (b)] 'crux-switch-to-previous-buffer)
@@ -14,9 +16,33 @@
 (global-set-key [(control ?^)] 'crux-top-join-line)
 (global-set-key [(control backspace)] 'crux-kill-line-backwards)
 (global-set-key [(control ?\d)] 'crux-kill-line-backwards)
+(global-set-key [(control c) (control k)] 'save-buffer-and-kill-buffer-and-window)
+(global-set-key [(control meta c)] 'copy-current-buffer-file-name)
+(global-set-key '[(backtab)] 'backtab-space)
+(global-set-key [(meta P)] 'other-window-move-down) ;下一个窗口向下移动两行
+(global-set-key [(meta N)] 'other-window-move-up) ;下一个窗口向上移动一行
+(global-set-key [(control x) (\2)] 'split-window-below-then-switch-to)
+(global-set-key [(control x) (\3)] 'split-window-right-then-switch-to)
+
 (global-set-key [remap move-beginning-of-line] #'crux-move-beginning-of-line)
 (global-set-key [remap kill-whole-line] #'crux-kill-whole-line)
-(global-set-key [(control c) (control k)] 'save-buffer-and-kill-buffer-and-window)
+
+(define-key key-translation-map [(meta n)] [(super n)])
+(define-key key-translation-map [(meta p)] [(super p)])
+(global-set-key [(super n)] 'window-move-up) ;光标位置不变，窗口向上移动四行
+(global-set-key [(super p)] 'window-move-down) ;光标位置不变，窗口向下移动两行
+
+(add-hook 'compilation-mode-hook
+          (lambda ()
+            (define-key compilation-mode-map [(super n)] 'compilation-next-error)
+            (define-key compilation-mode-map [(super p)] 'compilation-previous-error)
+            ))
+
+(add-hook 'minibuffer-setup-hook
+          (lambda ()
+            (define-key minibuffer-local-map [(super n)] 'next-history-element)
+            (define-key minibuffer-local-map [(super p)] 'previous-history-element)
+            ))
 
 (dolist (hook '(prog-mode-hook
                 yaml-mode-hook
@@ -35,6 +61,52 @@
 (crux-reopen-as-root-mode 1)
 
 ;; functions
+
+(defun split-window-below-then-switch-to (&optional size)
+  (interactive)
+  (split-window-below size) (other-window 1))
+(defun split-window-right-then-switch-to (&optional size)
+  (interactive)
+  (split-window-right size) (other-window 1))
+
+(defun other-window-move-up (&optional arg)
+  "Other window move-up 1 lines."
+  (interactive "p")
+  (scroll-other-window arg))
+
+(defun other-window-move-down (&optional arg)
+  "Other window move-down 2 lines."
+  (interactive "P")
+  (if arg
+      (scroll-other-window-down arg)
+    (scroll-other-window-down 2)))
+
+(defun window-move-up (&optional arg)
+  "Window move-up 2 lines."
+  (interactive "P")
+  (if arg
+      (scroll-up arg)
+    (scroll-up 2)))
+
+(defun window-move-down (&optional arg)
+  "Window move-down 3 lines."
+  (interactive "P")
+  (if arg
+      (scroll-down arg)
+    (scroll-down 3)))
+
+
+(defun backtab-space (&optional indent-count)
+  "remove 4 spaces from beginning of of line"
+  (interactive)
+  (save-excursion
+    (save-match-data
+      (beginning-of-line)
+      ;; get rid of tabs at beginning of line
+      (when (looking-at "^\\s-+")
+        (untabify (match-beginning 0) (match-end 0)))
+      (when (looking-at (concat "^" (make-string (or indent-count 2) ? )))
+        (replace-match "")))))
 
 (defun crux-insert-date ()
   "Insert a timestamp according to locale's date and time format."
@@ -93,6 +165,41 @@
   (interactive)
   (save-buffer)
   (kill-buffer-and-window))
+
+(defun rename-current-buffer-file ()
+  "Renames current buffer and file it is visiting."
+  (interactive)
+  (let* ((name (buffer-name))
+         (filename (buffer-file-name))
+         (basename (file-name-nondirectory filename)))
+    (if (not (and filename (file-exists-p filename)))
+        (error "Buffer '%s' is not visiting a file!" name)
+      (let ((new-name (read-file-name "New name: " (file-name-directory filename) basename nil basename)))
+        (if (get-buffer new-name)
+            (error "A buffer named '%s' already exists!" new-name)
+          (rename-file filename new-name 1)
+          (rename-buffer new-name)
+          (set-visited-file-name new-name)
+          (set-buffer-modified-p nil)
+          (message "File '%s' successfully renamed to '%s'"
+                   name (file-name-nondirectory new-name)))))))
+
+(defun translate-this-word-or-region ()
+  (interactive)
+  (if (use-region-p)
+      (run-process "trans" "-b" "en:zh-CN" (buffer-substring (region-beginning) (region-end)))
+    (run-process "dict1" (current-word t t))
+    ))
+
+(defun copy-current-buffer-file-name ()
+  (interactive)
+  (if (eq major-mode 'dired-mode)
+      (dired-copy-filename-as-kill 0)
+    (let ((root (if (locate-dominating-file default-directory ".git")
+                    (expand-file-name (locate-dominating-file default-directory ".git"))
+                  "")))
+      (kill-new (replace-regexp-in-string (regexp-quote root) "" (concat (buffer-file-name) ":" (number-to-string (line-number-at-pos)))))
+      )))
 
 ;; (defun textmate-next-line ()
 ;;   "Inserts an indented newline after the current line and moves the point to it."

@@ -37,53 +37,7 @@ Use `font-lock-add-keywords' in case of `ruby-mode' or
     (dired-do-kill-lines nil (concat "Filter:'" filter-regexp "' omitted %d line%s"))
     (dired-move-to-filename)))
 
-(defun translate-this-word-or-region ()
-  (interactive)
-  (if (use-region-p)
-      (run-process "trans" "-b" "en:zh-CN" (buffer-substring (region-beginning) (region-end)))
-    (run-process "dict1" (current-word t t))
-    ))
-
 ;; ============================== 快捷键相关 ==============================
-(defun backtab-space (&optional indent-count)
-  "remove 4 spaces from beginning of of line"
-  (interactive)
-  (save-excursion
-    (save-match-data
-      (beginning-of-line)
-      ;; get rid of tabs at beginning of line
-      (when (looking-at "^\\s-+")
-        (untabify (match-beginning 0) (match-end 0)))
-      (when (looking-at (concat "^" (make-string (or indent-count 2) ? )))
-        (replace-match "")))))
-
-(defun copy-current-buffer-file-name ()
-  (interactive)
-  (if (eq major-mode 'dired-mode)
-      (dired-copy-filename-as-kill 0)
-    (let ((root (if (locate-dominating-file default-directory ".git")
-                    (expand-file-name (locate-dominating-file default-directory ".git"))
-                  "")))
-      (kill-new (replace-regexp-in-string (regexp-quote root) "" (concat (buffer-file-name) ":" (number-to-string (line-number-at-pos)))))
-      )))
-
-(defun rename-current-buffer-file ()
-  "Renames current buffer and file it is visiting."
-  (interactive)
-  (let* ((name (buffer-name))
-         (filename (buffer-file-name))
-         (basename (file-name-nondirectory filename)))
-    (if (not (and filename (file-exists-p filename)))
-        (error "Buffer '%s' is not visiting a file!" name)
-      (let ((new-name (read-file-name "New name: " (file-name-directory filename) basename nil basename)))
-        (if (get-buffer new-name)
-            (error "A buffer named '%s' already exists!" new-name)
-          (rename-file filename new-name 1)
-          (rename-buffer new-name)
-          (set-visited-file-name new-name)
-          (set-buffer-modified-p nil)
-          (message "File '%s' successfully renamed to '%s'"
-                   name (file-name-nondirectory new-name)))))))
 
 (defun transpose-current-char-backward (&optional arg)
   "Move current word left."
@@ -98,37 +52,6 @@ Use `font-lock-add-keywords' in case of `ruby-mode' or
   (forward-char 1)
   (transpose-chars 1)
   (forward-char -1))
-
-(defun other-window-move-up (&optional arg)
-  "Other window move-up 1 lines."
-  (interactive "p")
-  (scroll-other-window arg))
-(defun other-window-move-down (&optional arg)
-  "Other window move-down 2 lines."
-  (interactive "P")
-  (if arg
-      (scroll-other-window-down arg)
-    (scroll-other-window-down 2)))
-
-(defun window-move-up (&optional arg)
-  "Window move-up 2 lines."
-  (interactive "P")
-  (if arg
-      (scroll-up arg)
-    (scroll-up 2)))
-(defun window-move-down (&optional arg)
-  "Window move-down 3 lines."
-  (interactive "P")
-  (if arg
-      (scroll-down arg)
-    (scroll-down 3)))
-
-(defun split-window-below-then-switch-to (&optional size)
-  (interactive)
-  (split-window-below size) (other-window 1))
-(defun split-window-right-then-switch-to (&optional size)
-  (interactive)
-  (split-window-right size) (other-window 1))
 
 (defun kill-buffer-enhanced ()
   (interactive)

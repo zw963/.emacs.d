@@ -38,8 +38,37 @@
 (normal-top-level-add-subdirs-to-load-path)
 ")
 
+;; 添加几个需要的前缀。
+(define-prefix-command 'meta-c-map)
+(global-set-key [(meta c)] 'meta-c-map)
+
+;;  在命令行下, 貌似 C-2 默认等价于: C-@，这里使用同样的绑定。
+(define-key key-translation-map [(control \2)] [(control \@)])
+(global-set-key [(control c) (j)] 'imenu)
+
+(global-set-key [(meta D)] (lambda () (interactive) (dired "./"))) ; 打开 dired buffer.
+(global-set-key [(control s)] 'isearch-forward-regexp) ;更改Ctrl-s为正则搜索
+
+(define-key indent-rigidly-map [(control b)] 'indent-rigidly-left)
+(define-key indent-rigidly-map [(control f)] 'indent-rigidly-right)
+(define-key indent-rigidly-map [(meta b)]  'indent-rigidly-left-to-tab-stop)
+(define-key indent-rigidly-map [(meta f)] 'indent-rigidly-right-to-tab-stop)
+
+(add-hook 'isearch-mode-hook
+          (lambda ()
+            (define-key isearch-mode-map [(control b)] 'isearch-delete-char)
+            (define-key isearch-mode-map [(control f)] 'isearch-yank-char)
+            (define-key isearch-mode-map [(meta f)] 'isearch-yank-word)
+            (define-key isearch-mode-map [(control e)] 'isearch-yank-line)
+            (define-key isearch-mode-map [(control y)] 'isearch-yank-kill)
+            (define-key isearch-mode-map [(meta \')] 'expand-abbrev)
+            (define-key isearch-mode-map [(super n)] 'isearch-repeat-forward)
+            (define-key isearch-mode-map [(super p)] 'isearch-repeat-backward)
+            (define-key isearch-mode-map [(meta \5)] 'isearch-query-replace-regexp)
+            ))
+
 (relative-load "functions.el")
-(relative-load "keybindings.el")
+;; (relative-load "keybindings.el")
 
 (require 'mark-lines)
 
