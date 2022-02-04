@@ -331,9 +331,10 @@ Return the created process."
   ;; If emacs version >= 26.2, we can use replace-buffer-contents to
   ;; preserve location and markers in buffer, otherwise we can try to
   ;; save locations as best we can, though we still lose markers.
-  (if (version<= "26.2" emacs-version)
-      (rust--format-buffer-using-replace-buffer-contents)
-    (rust--format-buffer-saving-position-manually)))
+  (save-excursion
+    (if (version<= "26.2" emacs-version)
+        (rust--format-buffer-using-replace-buffer-contents)
+      (rust--format-buffer-saving-position-manually))))
 
 (defun rust-enable-format-on-save ()
   "Enable formatting using rustfmt when saving buffer."
@@ -351,7 +352,7 @@ Return the created process."
   (when rust-format-on-save
     (condition-case e
         (rust-format-buffer)
-      (error (format "rust-before-save-hook: %S %S"
+      (message (format "rust-before-save-hook: %S %S"
                      (car e)
                      (cdr e))))))
 

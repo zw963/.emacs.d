@@ -1,6 +1,6 @@
 ;;; rustic.el --- Rust development environment -*-lexical-binding: t-*-
 
-;; Version: 2.2
+;; Version: 2.6
 ;; Author: Mozilla
 ;;
 ;; Keywords: languages
@@ -55,7 +55,6 @@
 (defvaralias 'rustic-match-angle-brackets 'rust-match-angle-brackets)
 (defvaralias 'rustic-indent-return-type-to-arguments 'rust-indent-return-type-to-arguments)
 (defalias 'rustic-indent-line #'rust-mode-indent-line)
-(defalias 'rustic-beginning-of-defun #'rust-beginning-of-defun)
 (defalias 'rustic-end-of-defun #'rust-end-of-defun)
 
 ;;; Workspace
@@ -167,6 +166,9 @@ This variable might soon be remove again.")
   (require 'rustic-compile)
   (require 'rustic-popup)
   (require 'rustic-cargo)
+  (require 'rustic-doc)
+  (require 'rustic-clippy)
+  (require 'rustic-comint)
   (require 'rustic-babel)
   (require 'rustic-racer)
   (require 'rustic-rustfmt)
