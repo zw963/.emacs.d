@@ -30,7 +30,6 @@
 ;; (require 'eyebrowse_init)
 (require 'winum_init)
 (require 'hydra_init);; depend by treemacs
-(require 'move-dup_init)
 (require 'crux_init)
 ;; (require 'auto-indent-mode_init)
 ;; (require 'aggressive-indent_init)

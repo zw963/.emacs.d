@@ -39,6 +39,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (require 'crux)
+(require 'move-dup)
 
 (global-set-key [(control x) (\4) (t)] 'crux-transpose-windows)
 (global-set-key [(control k)] 'crux-smart-kill-line)
@@ -50,6 +51,14 @@
 (global-set-key [(control c) (D)] 'crux-delete-file-and-buffer)
 (global-set-key [(control c) (c)] 'crux-copy-file-preserve-attributes)
 (global-set-key [(control c) (b)] 'crux-switch-to-previous-buffer)
+
+;; (global-set-key [(shift return)] 'crux-duplicate-current-line-or-region)
+;; (global-set-key [(shift ?\r)] 'crux-duplicate-current-line-or-region)
+;; (global-set-key [(shift meta return)] 'crux-duplicate-and-comment-current-line-or-region)
+(global-set-key [(control c) (d)] 'crux-duplicate-current-line-or-region)
+(global-set-key [(control c) (meta d)] 'crux-duplicate-and-comment-current-line-or-region)
+(global-set-key [(meta up)] 'move-dup-move-lines-up)
+(global-set-key [(meta down)] 'move-dup-move-lines-down)
 (global-set-key [(meta o)] 'crux-other-window-or-switch-buffer)
 (global-set-key [(control c) (k)] 'crux-kill-other-buffers)
 (global-set-key [(control c) (tab)] 'crux-indent-rigidly-and-copy-to-clipboard)
@@ -287,6 +296,12 @@
 ;;   )
 
 ;; (global-set-key [(control o)] 'open-line-and-indent)
+
+;; (defun move-dup-duplicate-up-then-comment ()
+;;   (interactive)
+;;   (move-dup-duplicate-up 1)
+;;   (comment-region (line-beginning-position) (line-end-position))
+;;   (forward-line 1))
 
 (provide 'crux_init)
 
