@@ -9,15 +9,19 @@
 ;;       "rg -i -M 120 --no-heading --line-number --color never '%s' %s")
 
 (setq counsel-find-file-ignore-regexp
-      (concat
-       ;; filename begins with #
-       "\\(?:\\`[#.]\\)"
-       ;; filename ends with # or ~
-       "\\|\\(?:\\`.+?[#~]\\'\\)"
-       "\\|\\.elc\\'"
-       "\\|\\.pyc\\'"
-       "\\|\\.meta\\'"
-       ))
+      (string-join boring-file-regexp-list "\\|")
+      ;; (concat
+      ;;  ;; filename begins with #
+      ;;  "\\(?:\\`[#.]\\)"
+      ;;  ;; filename ends with # or ~
+      ;;  "\\|\\(?:\\`.+?[#~]\\'\\)"
+      ;;  "\\|\\.elc\\'"
+      ;;  "\\|\\.pyc\\'"
+      ;;  "\\|\\.meta\\'"
+      ;;  )
+      )
+
+(add-list-to-list 'ivy-ignore-buffers boring-buffer-regexp-list)
 
 (ivy-mode 1)
 
