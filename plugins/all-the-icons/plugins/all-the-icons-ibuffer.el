@@ -13,7 +13,7 @@
 ;;
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
-;; published by the Free Software Foundation; either version 2, or
+;; published by the Free Software Foundation; either version 3, or
 ;; (at your option) any later version.
 ;;
 ;; This program is distributed in the hope that it will be useful,
@@ -91,12 +91,12 @@ It respects `all-the-icons-color-icons'."
 (defcustom all-the-icons-ibuffer-icon-size 1.0
   "The default icon size in ibuffer."
   :group 'all-the-icons-ibuffer
-  :type 'number)
+  :type 'float)
 
 (defcustom all-the-icons-ibuffer-icon-v-adjust 0.0
   "The default vertical adjustment of the icon in ibuffer."
   :group 'all-the-icons-ibuffer
-  :type 'number)
+  :type 'float)
 
 (defcustom all-the-icons-ibuffer-human-readable-size t
   "Use human readable file size in ibuffer."
