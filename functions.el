@@ -21,37 +21,7 @@ Use `font-lock-add-keywords' in case of `ruby-mode' or
     (sgml-pretty-print (point-min) (point-max))
     (indent-region (point-min) (point-max))))
 
-(defun dired-filter-by-name(filter-regexp)
-  (interactive "s(only show matched):")
-  (let ((dired-marker-char 16)
-        (files (directory-files default-directory t)))
-    ;;(dired-unmark-all-files dired-marker-char)
-    (save-excursion
-      (dolist (file files)
-        (when (and (dired-goto-file (expand-file-name file))
-                   (not (string= "" filter-regexp))
-                   (string-match filter-regexp (file-name-nondirectory file)))
-          (dired-mark 1)
-          )))
-    (dired-toggle-marks)
-    (dired-do-kill-lines nil (concat "Filter:'" filter-regexp "' omitted %d line%s"))
-    (dired-move-to-filename)))
-
 ;; ============================== 快捷键相关 ==============================
-
-(defun transpose-current-char-backward (&optional arg)
-  "Move current word left."
-  (interactive "p")
-  (forward-char 1)
-  (transpose-chars (- 1))
-  (forward-char -1))
-
-(defun transpose-current-char (&optional arg)
-  "Move current char right."
-  (interactive "p")
-  (forward-char 1)
-  (transpose-chars 1)
-  (forward-char -1))
 
 (defun kill-buffer-enhanced ()
   (interactive)
