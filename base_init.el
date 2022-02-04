@@ -194,20 +194,23 @@
  use-file-dialog nil
  use-dialog-box nil
  inhibit-startup-echo-area-message t
- scroll-preserve-screen-position t         ;移动屏幕时，保持光标相对屏幕的位置不变。
- revert-without-query '(".*")              ;设定那些 buffer 执行 revert 时, 不提示确认.
- read-quoted-char-radix 10                 ;字符代码以十进制显示
- echo-keystrokes 0.1                       ;快速在minibuffer显示按键提示，间隔0.1秒
- display-time-day-and-date t               ;显示时间包含当前日期
- blink-matching-paren nil                  ;关闭括号匹配自动跳转
- ;; visible-bell t                            ;开启屏幕闪屏提示
- ring-bell-function 'ignore                 ; 即使没有 visible-bell, 也不会有语音提示。
- display-time-24hr-format t                ;使用24小时形式显示时间.
- display-buffer-reuse-frames t             ;切换到已有的frame
- dabbrev-case-fold-search nil              ;自动完成大小写敏感.
- ;; initial-major-mode 'org-mode           ;初始的 scratch 使用 org-mode.
- truncate-lines t                          ;关闭自动折行.
- load-prefer-newer t                       ;总首选较新的那个。(即使 el 比elc 新)
+ scroll-preserve-screen-position t              ;移动屏幕时，保持光标相对屏幕的位置不变。
+ revert-without-query '(".*")                   ;设定那些 buffer 执行 revert 时, 不提示确认.
+ read-quoted-char-radix 10                      ;字符代码以十进制显示
+ echo-keystrokes 0.1                            ;快速在minibuffer显示按键提示，间隔0.1秒
+ display-time-day-and-date t                    ;显示时间包含当前日期
+ blink-matching-paren nil                       ;关闭括号匹配自动跳转
+ ;; visible-bell t                              ;开启屏幕闪屏提示
+ ring-bell-function 'ignore                     ; 即使没有 visible-bell, 也不会有语音提示。
+ display-time-24hr-format t                     ;使用24小时形式显示时间.
+ display-buffer-reuse-frames t                  ;切换到已有的frame
+ dabbrev-case-fold-search nil                   ;自动完成大小写敏感.
+ ;; initial-major-mode 'org-mode                ;初始的 scratch 使用 org-mode.
+ truncate-lines t                               ;关闭自动折行.
+ load-prefer-newer t                            ;总首选较新的那个。(即使 el 比elc 新)
+ package-enable-at-startup nil                  ; 性能好一点？
+ native-comp-async-report-warnings-errors nil   ; 抑制 native-comp 的警告
+ warning-minimum-level :error                   ; 只显示错误级别的警告
  )
 
 (require 'whitespace)

@@ -1,3 +1,42 @@
+;;;;;;;;;;;;;;;;;;;;;;;
+;; builtin functions ;;
+;;;;;;;;;;;;;;;;;;;;;;;
+
+;; 添加几个需要的前缀。
+(define-prefix-command 'meta-c-map)
+(global-set-key [(meta c)] 'meta-c-map)
+
+;;  在命令行下, 貌似 C-2 默认等价于: C-@，这里使用同样的绑定。
+(define-key key-translation-map [(control \2)] [(control \@)])
+(global-set-key [(control c) (j)] 'imenu)
+
+(global-set-key [(meta D)] (lambda () (interactive) (dired "./"))) ; 打开 dired buffer.
+(global-set-key [(control s)] 'isearch-forward-regexp) ;更改Ctrl-s为正则搜索
+
+(define-key indent-rigidly-map [(control b)] 'indent-rigidly-left)
+(define-key indent-rigidly-map [(control f)] 'indent-rigidly-right)
+(define-key indent-rigidly-map [(meta b)]  'indent-rigidly-left-to-tab-stop)
+(define-key indent-rigidly-map [(meta f)] 'indent-rigidly-right-to-tab-stop)
+
+(add-hook 'isearch-mode-hook
+          (lambda ()
+            (define-key isearch-mode-map [(control b)] 'isearch-delete-char)
+            (define-key isearch-mode-map [(control f)] 'isearch-yank-char)
+            (define-key isearch-mode-map [(meta f)] 'isearch-yank-word)
+            (define-key isearch-mode-map [(control e)] 'isearch-yank-line)
+            (define-key isearch-mode-map [(control y)] 'isearch-yank-kill)
+            (define-key isearch-mode-map [(meta \')] 'expand-abbrev)
+            (define-key isearch-mode-map [(super n)] 'isearch-repeat-forward)
+            (define-key isearch-mode-map [(super p)] 'isearch-repeat-backward)
+            (define-key isearch-mode-map [(meta \5)] 'isearch-query-replace-regexp)
+            ))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; self-defined functions ;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
 (require 'crux)
 
 (global-set-key [(control x) (\4) (t)] 'crux-transpose-windows)
@@ -23,6 +62,9 @@
 (global-set-key [(meta N)] 'other-window-move-up) ;下一个窗口向上移动一行
 (global-set-key [(control x) (\2)] 'split-window-below-then-switch-to)
 (global-set-key [(control x) (\3)] 'split-window-right-then-switch-to)
+(global-set-key [(control right)] 'transpose-current-char) ;光标前所在字母右移
+(global-set-key [(control left)] 'transpose-current-char-backward) ;光标前所在字母左移
+(global-set-key [(meta k)] 'mark-next-line)
 
 (global-set-key [remap move-beginning-of-line] #'crux-move-beginning-of-line)
 (global-set-key [remap kill-whole-line] #'crux-kill-whole-line)
@@ -59,8 +101,6 @@
                    )))
 
 (crux-reopen-as-root-mode 1)
-
-;; functions
 
 (defun split-window-below-then-switch-to (&optional size)
   (interactive)
@@ -223,8 +263,43 @@
 ;;    ((member major-mode '(js2-mode cc-mode rust-mode rustic-mode)) (insert "// => ")))
 ;;   )
 
+(defun transpose-current-char (&optional arg)
+  "Move current char right."
+  (interactive "p")
+  (forward-char 1)
+  (transpose-chars 1)
+  (forward-char -1))
+
+(defun transpose-current-char-backward (&optional arg)
+  "Move current word left."
+  (interactive "p")
+  (forward-char 1)
+  (transpose-chars (- 1))
+  (forward-char -1))
+
 (setq save-abbrevs 'silently)
 (setq-default abbrev-mode t)
+
+(require 'mark-lines)
+
+(defun mark-next-line ()
+  "Mark next line continuously."
+  (interactive)
+  (if (use-region-p)
+      (next-line nil)
+    (if (eql (point-max) (line-end-position))
+        (mark-lines-next-line nil)
+      (mark-lines-previous-line nil)
+      )))
+
+;; (defun open-line-and-indent (n)
+;;   (interactive "*p")
+;;   (call-interactively 'open-line)
+;;   (indent-according-to-mode)
+;;   )
+
+;; (global-set-key [(control o)] 'open-line-and-indent)
+
 
 (provide 'crux_init)
 
