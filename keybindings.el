@@ -45,14 +45,10 @@
 (global-set-key [(control f11)] 'bc1-current-file) ; Ctrl-F11 bc1
 (global-set-key [(meta f11)] 'bc2-current-file) ; Meta-F11 bc2
 (global-set-key [(meta t)] 'translate-this-word-or-region)
-(global-set-key [(?\,)] 'input-comma-with-space)
 (global-set-key '[(backtab)] 'backtab-space)
 
 (global-set-key [(control x) (j)] 'previous-buffer)
 (global-set-key [(control x) (l)] 'next-buffer)
-
-(global-set-key [(meta c) (\.)] 'input-rocket-with-space)
-(global-set-key [(meta c) (=)] 'input-add-equal)
 
 (global-set-key [(control c ) (a)] 'align-regexp)
 
@@ -72,84 +68,16 @@
 ;;  在命令行下, 貌似 C-2 默认等价于: C-@，这里使用同样的绑定。
 (define-key key-translation-map [(control \2)] [(control \@)])
 
-(defun backward-kill-line (arg)
-  "Kill ARG lines backward."
-  (interactive "p")
-  (kill-line (- 1 arg)))
+;; (defun backward-kill-line (arg)
+;;   "Kill ARG lines backward."
+;;   (interactive "p")
+;;   (kill-line (- 1 arg)))
 
-(global-set-key [(control backspace)] 'backward-kill-line)
-(global-set-key [(control ?\d)] 'backward-kill-line)
+;; (global-set-key [(control backspace)] 'backward-kill-line)
+;; (global-set-key [(control ?\d)] 'backward-kill-line)
 
 ;; (define-prefix-command 'control-c-control-c-map)
 ;; (global-set-key [(control c) (control c)] 'control-c-control-c-map)
-
-(dolist (hook '(prog-mode-hook
-                yaml-mode-hook
-                elixir-mode-hook
-                nxml-mode-hook
-                html-mode-hook
-                rhtml-mode-hook
-                handlebars-mode-hook
-                slim-mode-hook
-                feature-mode-hook
-                conf-mode-hook))
-  (add-hook hook (lambda ()
-                   (local-set-key [(control c) (control c)] 'format-buffer)
-                   (local-set-key [(?\,)] 'input-comma-with-space)
-                   ;; (local-set-key [(?\;)] 'input-semicolon-with-space)
-                   (local-set-key [(control return)] 'textmate-next-line)
-                   )))
-
-(defun format-buffer ()
-  "Perform a bunch of operations of a buffer."
-  (interactive)
-  (untabify (point-min) (point-max))
-  (delete-trailing-whitespace)
-  (indent-region (point-min) (point-max))
-  ;; (unless dont-indent-line
-  ;;   )
-  )
-
-(defun input-semicolon-with-space ()
-  (interactive)
-  (if (fourth (syntax-ppss))
-      (insert ";")
-    (if (not (looking-back "; " (line-beginning-position)))
-        (insert "; ")
-      (progn
-        (backward-delete-char 1)
-        (insert ";")))))
-
-(defun textmate-next-line ()
-  "Inserts an indented newline after the current line and moves the point to it."
-  (interactive)
-  (end-of-line)
-  (cond
-   ((member major-mode '(rust-mode rustic-mode)) (insert ";")
-    ))
-  ;; (electric-newline-and-maybe-indent)
-  ;; (newline-and-indent)
-
-  (if (fifth (syntax-ppss))
-      ;; 记住: 总可以通过Ctrl+Alt+j 执行下面的功能.(注释中新行自动注释)
-      (default-indent-new-line)
-    (reindent-then-newline-and-indent)))
-
-(defun input-comma-with-space ()
-  (interactive)
-  (if (or
-       ;; (fourth (syntax-ppss))
-       ;; (member (fourth (syntax-ppss)) (list ?\/))
-       (and (member major-mode '(sh-mode
-                                 conf-space-mode
-                                 conf-unix-mode
-                                 emacs-lisp-mode
-                                 lisp-interaction-mode
-                                 snippet-mode))
-            ;; (fifth (syntax-ppss)) is comment
-            (not (fifth (syntax-ppss)))))
-      (insert ",")
-    (insert ", ")))
 
 (defun nxml-mark-sexp-tag (&optional arg)
   (interactive "p")

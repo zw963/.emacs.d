@@ -57,21 +57,6 @@ Use `font-lock-add-keywords' in case of `ruby-mode' or
       (when (looking-at (concat "^" (make-string (or indent-count 2) ? )))
         (replace-match "")))))
 
-(defun input-rocket-with-space ()
-  (interactive)
-  (insert " => "))
-
-(defun input-add-equal ()
-  (interactive)
-  (insert " += "))
-
-(defun input-comment-with-rocket ()
-  (interactive)
-  (cond
-   ((member major-mode '(ruby-mode enh-ruby-mode)) (insert "# => "))
-   ((member major-mode '(js2-mode cc-mode rust-mode rustic-mode)) (insert "// => ")))
-  )
-
 (defun copy-current-buffer-file-name ()
   (interactive)
   (if (eq major-mode 'dired-mode)
@@ -81,16 +66,6 @@ Use `font-lock-add-keywords' in case of `ruby-mode' or
                   "")))
       (kill-new (replace-regexp-in-string (regexp-quote root) "" (concat (buffer-file-name) ":" (number-to-string (line-number-at-pos)))))
       )))
-
-(defun save-buffer-and-kill-buffer-and-window ()
-  "Simple convenience function.
-  Saves the buffer of the current day's entry and kills the window
-  Similar to org-capture like behavior"
-  (interactive)
-  (save-buffer)
-  (kill-buffer-and-window))
-
-(global-set-key [(control c) (control k)] 'save-buffer-and-kill-buffer-and-window)
 
 (defun rename-current-buffer-file ()
   "Renames current buffer and file it is visiting."
