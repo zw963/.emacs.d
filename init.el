@@ -78,6 +78,7 @@
 (require 'buffer-move_init)
 (require 'goto-chg_init)
 ;; (require 'sunrise_init)
+;; (require 'ctrlf_init)
 
 ;; ============================== 编程相关 ==============================
 
