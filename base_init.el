@@ -375,8 +375,6 @@
           (lambda ()
             (define-key diff-mode-map [(meta backspace)] 'backward-kill-word)
             (define-key diff-mode-map [(meta ?\d)] 'backward-kill-word)
-            (define-key diff-mode-map [(super n)] 'diff-hunk-next)
-            (define-key diff-mode-map [(super p)] 'diff-hunk-prev)
             (update-diff-colors)
             ))
 

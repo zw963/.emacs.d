@@ -1,7 +1,4 @@
 (require 'ibuffer)
-(define-key ibuffer-mode-map [(super n)] 'window-move-up)
-(define-key ibuffer-mode-map [(super p)] 'window-move-down)
-
 (require 'ibuf-ext)                     ;隐藏系统 buffer.
 (setq ibuffer-expert t                  ;ibuffer 危险操作不确认提示.
       ibuffer-show-empty-filter-groups nil ;隐藏空组

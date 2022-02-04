@@ -33,7 +33,8 @@
 
 ;; (counsel-mode 1)
 
-(define-key minibuffer-local-map (kbd "C-r") 'counsel-minibuffer-history)
+;; 暂时关闭，因为和 ctrlf 冲突
+;; (define-key minibuffer-local-map (kbd "C-r") 'counsel-minibuffer-history)
 
 ;; 下面是 counsel 下面的一些绑定, 仅供了解
 ;; (global-set-key [remap switch-to-buffer] 'ivy-switch-buffer)

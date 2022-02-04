@@ -20,14 +20,15 @@
 
 (add-hook 'isearch-mode-hook
           (lambda ()
-            (define-key isearch-mode-map [(control b)] 'isearch-delete-char)
             (define-key isearch-mode-map [(control f)] 'isearch-yank-char)
-            (define-key isearch-mode-map [(meta f)] 'isearch-yank-word)
+            (define-key isearch-mode-map [(control b)] 'isearch-delete-char)
+            (define-key isearch-mode-map [(meta f)] 'isearch-yank-word-or-char)
             (define-key isearch-mode-map [(control e)] 'isearch-yank-line)
+            (define-key isearch-mode-map [(control j)] 'isearch-yank-until-char)
             (define-key isearch-mode-map [(control y)] 'isearch-yank-kill)
             (define-key isearch-mode-map [(meta \')] 'expand-abbrev)
-            (define-key isearch-mode-map [(super n)] 'isearch-repeat-forward)
-            (define-key isearch-mode-map [(super p)] 'isearch-repeat-backward)
+            (define-key isearch-mode-map [(meta n)] 'isearch-repeat-forward)
+            (define-key isearch-mode-map [(meta p)] 'isearch-repeat-backward)
             (define-key isearch-mode-map [(meta \5)] 'isearch-query-replace-regexp)
             ))
 
@@ -58,8 +59,6 @@
 (global-set-key [(control c) (control k)] 'save-buffer-and-kill-buffer-and-window)
 (global-set-key [(control meta c)] 'copy-current-buffer-file-name)
 (global-set-key '[(backtab)] 'backtab-space)
-(global-set-key [(meta P)] 'other-window-move-down) ;下一个窗口向下移动两行
-(global-set-key [(meta N)] 'other-window-move-up) ;下一个窗口向上移动一行
 (global-set-key [(control x) (\2)] 'split-window-below-then-switch-to)
 (global-set-key [(control x) (\3)] 'split-window-right-then-switch-to)
 (global-set-key [(control right)] 'transpose-current-char) ;光标前所在字母右移
@@ -69,22 +68,11 @@
 (global-set-key [remap move-beginning-of-line] #'crux-move-beginning-of-line)
 (global-set-key [remap kill-whole-line] #'crux-kill-whole-line)
 
-(define-key key-translation-map [(meta n)] [(super n)])
-(define-key key-translation-map [(meta p)] [(super p)])
-(global-set-key [(super n)] 'window-move-up) ;光标位置不变，窗口向上移动四行
-(global-set-key [(super p)] 'window-move-down) ;光标位置不变，窗口向下移动两行
-
-(add-hook 'compilation-mode-hook
-          (lambda ()
-            (define-key compilation-mode-map [(super n)] 'compilation-next-error)
-            (define-key compilation-mode-map [(super p)] 'compilation-previous-error)
-            ))
-
-(add-hook 'minibuffer-setup-hook
-          (lambda ()
-            (define-key minibuffer-local-map [(super n)] 'next-history-element)
-            (define-key minibuffer-local-map [(super p)] 'previous-history-element)
-            ))
+(global-set-key [(meta P)] 'other-window-move-down) ;下一个窗口向下移动两行
+(global-set-key [(meta N)] 'other-window-move-up) ;下一个窗口向上移动一行
+(global-set-key [(meta n)] 'window-move-up) ;光标位置不变，窗口向上移动四行
+(global-set-key [(meta p)] 'window-move-down) ;光标位置不变，窗口向下移动两行
+;; (require 'window-move-hack_init)
 
 (dolist (hook '(prog-mode-hook
                 yaml-mode-hook
@@ -299,7 +287,6 @@
 ;;   )
 
 ;; (global-set-key [(control o)] 'open-line-and-indent)
-
 
 (provide 'crux_init)
 

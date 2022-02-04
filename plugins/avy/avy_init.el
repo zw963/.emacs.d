@@ -1,7 +1,7 @@
 (require 'avy)
-;; (global-set-key [(control c) (j)] 'avy-goto-char)
-(global-set-key (kbd "M-o") 'avy-goto-word-1)
-(global-set-key (kbd "C-:") 'avy-goto-char-2)
+;; avy-goto-word-1 avy-goto-char
+;; (global-set-key (kbd "C-:") 'avy-goto-char-2)
+(global-set-key (kbd "C-j") 'avy-goto-char-timer)
 ;; (global-set-key [(control c) (r)] 'avy-resume)
 (define-key isearch-mode-map [(control \')] 'avy-isearch)
 
