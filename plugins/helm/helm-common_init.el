@@ -40,8 +40,12 @@
 ;; FIXME: 这里没有用 remap, 因为要改写 ido-find-file 的 hack.
 (define-key global-map [(control x) (control f)] 'helm-find-files)
 ;; 替换 helm-buffer-list 为 helm-resume
-(global-set-key [(control x) (control b)] 'helm-resume)
-(global-set-key [(control x) (b)] 'helm-mini)
+
+;; list-buffers C-x C-b switch-to-buffer C-x b
+(global-set-key [(control x) (f)] 'helm-recentf)
+(global-set-key [(control x) (control b)] 'helm-buffers-list)
+(global-set-key [(control x) (control n)] 'helm-mini)
+(global-set-key [(control x) (control p)] 'helm-resume)
 
 (add-hook 'helm-mode-hook '(lambda ()
                              (define-key helm-map (kbd "TAB") #'helm-execute-persistent-action)

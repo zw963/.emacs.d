@@ -91,7 +91,8 @@ _SPC_ cancel	_o_nly this   	_d_elete
    ("Z" winner-redo)
    ("SPC" nil)
    )
-(global-set-key [(control x) (f)] 'hydra-window/body)
+;; FIXME: 这个和 helm-recentf 冲突。
+;; (global-set-key [(control x) (f)] 'hydra-window/body)
 
 ;; (defhydra hydra-block-nav
 ;;   (

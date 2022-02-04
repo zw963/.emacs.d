@@ -9,6 +9,7 @@
         "Output\\*$"
         "\\*Async Shell Command\\*"
         "\\*quickrun\\*$"
+        "\\*ansi-term\\*"
         vterm-mode
         inf-ruby-mode
         special-mode
