@@ -1,5 +1,23 @@
 ;; ============================== Beyond Comapre 集成 ==============================
 
+(require 'dired)
+
+(add-hook 'dired-mode-hook
+          (lambda ()
+            (define-key dired-mode-map [(control f12)] 'dired-bc1-current-file)
+            (define-key dired-mode-map [(meta f12)] 'dired-bc2-current-file)
+            ))
+
+(require 'ibuffer)
+(add-hook 'ibuffer-mode-hook
+          (lambda ()
+            (define-key ibuffer-mode-map [(control f12)] 'ibuffer-bc1-current-file)
+            (define-key ibuffer-mode-map [(meta f12)] 'ibuffer-bc2-current-file)
+            ))
+
+(global-set-key [(control f11)] 'bc1-current-file) ; Ctrl-F11 bc1
+(global-set-key [(meta f11)] 'bc2-current-file) ; Meta-F11 bc2
+
 (require 'ansi-color)
 ;; beyond compare integration
 (defun run-process (proc &rest arg)
@@ -60,21 +78,6 @@
   (interactive)
   (let ((fn (buffer-file-name (ibuffer-current-buffer t))))
     (run-process "bc2" fn)))
-
-(require 'dired)
-
-(add-hook 'dired-mode-hook
-          (lambda ()
-            (define-key dired-mode-map [(control f12)] 'dired-bc1-current-file)
-            (define-key dired-mode-map [(meta f12)] 'dired-bc2-current-file)
-            ))
-
-(require 'ibuffer)
-(add-hook 'ibuffer-mode-hook
-          (lambda ()
-            (define-key ibuffer-mode-map [(control f12)] 'ibuffer-bc1-current-file)
-            (define-key ibuffer-mode-map [(meta f12)] 'ibuffer-bc2-current-file)
-            ))
 
 (provide 'beyond-compare_init)
 
