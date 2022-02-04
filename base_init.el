@@ -520,6 +520,12 @@
 (require 'abbrev)
 (setq abbrev-file-name (expand-file-name "abbrev_defs" default-directory))
 
+(defun run-ruby-mode-hook (func)
+  (dolist (hook '(ruby-mode-hook enh-ruby-mode-hook))
+    (add-hook hook `(lambda ()
+                      ,func
+                      ))))
+
 (provide 'base_init)
 
 ;;; base_init.el ends here

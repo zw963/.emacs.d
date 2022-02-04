@@ -77,6 +77,7 @@
 (require 'volatile-highlights_init)
 (require 'buffer-move_init)
 (require 'goto-chg_init)
+;; (require 'sunrise_init)
 
 ;; ============================== 编程相关 ==============================
 

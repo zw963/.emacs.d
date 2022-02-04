@@ -33,12 +33,6 @@ Use `font-lock-add-keywords' in case of `ruby-mode' or
       (setq menu-updating-frame nil)
       (kill-buffer (current-buffer)))))
 
-(defun run-ruby-mode-hook (func)
-  (dolist (hook '(ruby-mode-hook enh-ruby-mode-hook))
-    (add-hook hook `(lambda ()
-                      ,func
-                      ))))
-
 ;; (defun set-webpack-watch-dog ()
 ;;   (let ((watch-dog-file (getenv "WEBPACK_WATCH_DOG")))
 ;;     (print watch-dog-file)
