@@ -15,11 +15,6 @@
 (setq compilation-read-command nil) ;; not prompt on minibuffer when do compile.
 (setq lsp-rust-analyzer-cargo-watch-command "clippy")
 
-(define-key rustic-compilation-mode-map [(super n)] 'compilation-next-error)
-(define-key rustic-compilation-mode-map [(super p)] 'compilation-previous-error)
-(define-key rustic-compilation-mode-map [(n)] 'compilation-next-error)
-(define-key rustic-compilation-mode-map [(p)] 'compilation-previous-error)
-
 (defun my-rustic-hook ()
   (setq-local company-idle-delay 0.2)
   (setq-local company-minimum-prefix-length 1)
