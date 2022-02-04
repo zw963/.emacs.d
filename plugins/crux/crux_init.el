@@ -40,6 +40,7 @@
 
 (require 'crux)
 (require 'move-dup)
+(require 'mark-lines)
 
 (global-set-key [(control x) (\4) (t)] 'crux-transpose-windows)
 (global-set-key [(control k)] 'crux-smart-kill-line)
@@ -276,8 +277,6 @@
 
 (setq save-abbrevs 'silently)
 (setq-default abbrev-mode t)
-
-(require 'mark-lines)
 
 (defun mark-next-line ()
   "Mark next line continuously."
