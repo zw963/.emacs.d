@@ -1,6 +1,6 @@
 (require 'minimap)
 
-(setq minimap-window-location 'right)
+;; (setq minimap-window-location 'right)
 (setq minimap-width-fraction 0.07)
 (setq minimap-minimum-width 5)
 

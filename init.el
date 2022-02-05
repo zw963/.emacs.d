@@ -90,7 +90,7 @@
 (require 'dart-mode_init)
 
 ;; (require 'color-identifiers-mode_init)
-;; (require 'minimap_init)
+(require 'minimap_init)
 ;; (require 'zoom_init)
 (require 'smartparens_init)
 (require 'string-inflection_init)
