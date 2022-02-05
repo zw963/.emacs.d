@@ -10,6 +10,7 @@
 (require 'gcmh_init)
 (require 'auto-compile_init)
 (require 'crux_init)
+;; (require 'exec-path-from-shell_init)
 (require 'themes_init)
 
 (require 'server)
