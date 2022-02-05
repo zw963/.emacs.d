@@ -33,6 +33,13 @@
 (setq flutter-l10n-template-arb-file "intl_zh_Hans.arb")
 (setq flutter-l10n-output-localization-file "l10n.dart")
 
+(defun use-charles-proxy ()
+  (interactive)
+  (setenv "http_proxy" "http://127.0.0.1:8888")
+  (setenv "https_proxy" "http://127.0.0.1:8888")
+  (message "set http_proxy https_proxy to http://127.0.0.1:8888")
+    )
+
 ;; (add-hook 'dart-mode-hook 'flutter-test-mode)
 ;; (define-key dart-mode-map (kbd "C-M-x") 'flutter-run-or-hot-reload)
 
