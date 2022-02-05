@@ -82,6 +82,7 @@
 ;; ============================== 编程相关 ==============================
 
 ;; (require 'apheleia_init)
+(require 'git_init)
 (require 'flycheck_init)
 (require 'company_init)
 (require 'lsp-mode_init)
@@ -98,13 +99,6 @@
 (require 'rainbow-delimiters_init)
 (require 'yaml-mode_init)
 (require 'expand-region_init)
-;; git related packages
-(require 'git-emacs_init)
-(require 'git-timemachine_init)
-(require 'diff-hl_init)
-;; (require 'git-gutter_init)
-(require 'git-messenger_init)
-(require 'gist_init)
 (require 'ruby_init)
 (require 'web-mode_init)
 (require 'rainbow-mode_init)

@@ -18,6 +18,11 @@
 (global-set-key [(control f11)] 'bc1-current-file) ; Ctrl-F11 bc1
 (global-set-key [(meta f11)] 'bc2-current-file) ; Meta-F11 bc2
 
+(add-hook 'mo-git-blame-mode-hook
+          (lambda ()
+            (define-key mo-git-blame-mode-map [(d)] 'bc3-gd1-file-at-point)
+            ))
+
 (require 'ansi-color)
 ;; beyond compare integration
 (defun run-process (proc &rest arg)

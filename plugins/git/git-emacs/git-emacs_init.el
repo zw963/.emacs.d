@@ -82,7 +82,7 @@
           (lambda ()
             (define-key vc-annotate-mode-map [(n)] 'next-line)
             (define-key vc-annotate-mode-map [(p)] 'previous-line)
-            (define-key vc-annotate-mode-map [(meta g)] 'vc-annotate-goto-line)
+            (define-key vc-annotate-mode-map [(meta g) (meta g)] 'vc-annotate-goto-line)
             (define-key vc-annotate-mode-map [(d)] 'bc3-gd1-file-at-point)
             ))
 
