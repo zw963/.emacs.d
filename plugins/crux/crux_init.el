@@ -52,7 +52,6 @@
 (global-set-key [(control c) (D)] 'crux-delete-file-and-buffer)
 (global-set-key [(control c) (c)] 'crux-copy-file-preserve-attributes)
 (global-set-key [(control c) (b)] 'crux-switch-to-previous-buffer)
-
 ;; (global-set-key [(shift return)] 'crux-duplicate-current-line-or-region)
 ;; (global-set-key [(shift ?\r)] 'crux-duplicate-current-line-or-region)
 ;; (global-set-key [(shift meta return)] 'crux-duplicate-and-comment-current-line-or-region)
@@ -77,6 +76,7 @@
 
 (global-set-key [remap move-beginning-of-line] #'crux-move-beginning-of-line)
 (global-set-key [remap kill-whole-line] #'crux-kill-whole-line)
+(global-set-key [remap backward-kill-word] #'sp-backward-delete-word)
 
 (global-set-key [(meta P)] 'other-window-move-down) ;下一个窗口向下移动两行
 (global-set-key [(meta N)] 'other-window-move-up) ;下一个窗口向上移动一行
