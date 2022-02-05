@@ -90,7 +90,7 @@
                 web-mode-hook
                 conf-mode-hook))
   (add-hook hook (lambda ()
-                   (local-set-key [(control c) (control c)] 'crux-cleanup-buffer-or-region)
+                   (local-set-key [(control c) (n)] 'format-buffer)
                    (local-set-key [(?\,)] 'input-comma-with-space)
                    (local-set-key [(?\;)] 'input-semicolon-with-space)
                    (local-set-key [(control c) (?\t)] 'crux-indent-rigidly-and-copy-to-clipboard)
