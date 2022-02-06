@@ -47,7 +47,9 @@
 (global-set-key [(control shift return)] 'crux-smart-open-line-above)
 (global-set-key [(control return)] 'crux-smart-open-line)
 ;; (global-set-key [(control c) (r)] 'crux-rename-file-and-buffer)
-(global-set-key [(shift f2)] 'rename-current-buffer-file)
+;; (global-set-key [(shift f2)] 'rename-current-buffer-file)
+(global-set-key [(control c) (r)] 'rename-current-buffer-file)
+
 (global-set-key [(meta t)] 'translate-this-word-or-region)
 (global-set-key [(control c) (D)] 'crux-delete-file-and-buffer)
 (global-set-key [(control c) (c)] 'crux-copy-file-preserve-attributes)
