@@ -9,11 +9,11 @@
 (require 'dap-mouse)
 (dap-tooltip-mode 1)
 
-(require 'dap-ruby)
-(dap-ruby-setup)
+;; (require 'dap-ruby)
+;; (dap-ruby-setup)
 
-(require 'dap-go)
-(dap-go-setup)
+;; (require 'dap-go)
+;; (dap-go-setup)
 
 ;; Try to connect to ruby-debug-ide, but still working.
 
