@@ -29,11 +29,11 @@
 
 (setq lsp-signature-function 'lsp-signature-posframe)
 
-(setq lsp-enable-on-type-formatting t)
+;; (setq lsp-enable-on-type-formatting nil)
 
 (defun lsp-install-save-hooks ()
     (add-hook 'before-save-hook #'lsp-format-buffer t t)
-    (add-hook 'before-save-hook #'lsp-organize-imports t t)
+    ;; (add-hook 'before-save-hook #'lsp-organize-imports t t)
     )
 
 (add-hook 'go-mode-hook 'lsp-install-save-hooks)

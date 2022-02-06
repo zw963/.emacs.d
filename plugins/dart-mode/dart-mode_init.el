@@ -13,13 +13,12 @@
 (require 'dart-mode)
 (add-to-list 'auto-mode-alist '("\\.dart\\'" . dart-mode))
 
-(with-eval-after-load 'lsp-mode
-  (setq lsp-signature-auto-activate nil)
-  ;; (setq lsp-dart-dap-flutter-hot-reload-on-save t)
-  (define-key dart-mode-map (kbd "C-M-x") 'lsp-dart-dap-flutter-hot-reload)
-  (define-key dart-mode-map (kbd "<escape>") 'lsp-dart-show-flutter-outline)
-  (add-hook 'dart-mode-hook 'lsp-deferred)
-  )
+(require 'lsp-dart)
+(setq lsp-signature-auto-activate nil)
+;; (setq lsp-dart-dap-flutter-hot-reload-on-save t)
+(define-key dart-mode-map (kbd "C-M-x") 'lsp-dart-dap-flutter-hot-reload)
+(define-key dart-mode-map (kbd "<escape>") 'lsp-dart-show-flutter-outline)
+(add-hook 'dart-mode-hook 'lsp-deferred)
 
 (with-eval-after-load 'treemacs
   (add-hook
@@ -38,7 +37,7 @@
   (setenv "http_proxy" "http://127.0.0.1:8888")
   (setenv "https_proxy" "http://127.0.0.1:8888")
   (message "set http_proxy https_proxy to http://127.0.0.1:8888")
-    )
+  )
 
 ;; (add-hook 'dart-mode-hook 'flutter-test-mode)
 ;; (define-key dart-mode-map (kbd "C-M-x") 'flutter-run-or-hot-reload)
