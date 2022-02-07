@@ -86,17 +86,19 @@
 ;;   (define-key lsp-mode-map [(control \;)] #'lsp-iedit-highlights)
 ;;   )
 
-(require 'lsp-ivy)
+;; (require 'lsp-ivy)
 (with-eval-after-load 'lsp-ivy
-  ;; (define-key lsp-mode-map [(control c) (S)] #'lsp-ivy-global-workspace-symbol)
+  (define-key lsp-mode-map [(control c) (S)] #'lsp-ivy-global-workspace-symbol)
   ;; Ctrl+Alt+.
   (define-key lsp-mode-map [remap xref-find-apropos] #'lsp-ivy-workspace-symbol)
   )
 
-;; (require 'helm-lsp)
-;; (with-eval-after-load 'helm-lsp
-;;   (define-key lsp-mode-map [remap xref-find-apropos] #'helm-lsp-workspace-symbol)
-;;   )
+(require 'helm-lsp)
+(with-eval-after-load 'helm-lsp
+  (define-key lsp-mode-map [(control c) (S)] #'lsp-ivy-global-workspace-symbol)
+  ;; Ctrl+Alt+.
+  (define-key lsp-mode-map [remap xref-find-apropos] #'helm-lsp-workspace-symbol)
+  )
 
 (with-eval-after-load 'treemacs
   (require 'lsp-treemacs)
