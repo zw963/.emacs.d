@@ -43,8 +43,8 @@
 
 ;; list-buffers C-x C-b switch-to-buffer C-x b
 (global-set-key [(control x) (f)] 'helm-recentf)
-(global-set-key [(control x) (control b)] 'helm-buffers-list)
-(global-set-key [(control x) (control n)] 'helm-mini)
+(global-set-key [(control x) (b)] 'helm-buffers-list)
+(global-set-key [(control x) (control b)] 'helm-mini)
 (global-set-key [(control x) (control p)] 'helm-resume)
 
 (add-hook 'helm-mode-hook '(lambda ()

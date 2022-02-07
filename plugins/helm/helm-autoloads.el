@@ -1,10 +1,200 @@
-;;; helm-autoloads.el --- automatically extracted autoloads
+;;; helm-autoloads.el --- automatically extracted autoloads  -*- lexical-binding: t -*-
 ;;
 ;;; Code:
 
 
-;;;### (autoloads nil "helm" "helm.el" (23287 1499 597139 59000))
+;;;### (autoloads nil "async" "async.el" (0 0 0 0))
+;;; Generated autoloads from async.el
+
+(autoload 'async-start-process "async" "\
+Start the executable PROGRAM asynchronously named NAME.  See `async-start'.
+PROGRAM is passed PROGRAM-ARGS, calling FINISH-FUNC with the
+process object when done.  If FINISH-FUNC is nil, the future
+object will return the process object when the program is
+finished.  Set DEFAULT-DIRECTORY to change PROGRAM's current
+working directory.
+
+\(fn NAME PROGRAM FINISH-FUNC &rest PROGRAM-ARGS)" nil nil)
+
+(autoload 'async-start "async" "\
+Execute START-FUNC (often a lambda) in a subordinate Emacs process.
+When done, the return value is passed to FINISH-FUNC.  Example:
+
+    (async-start
+       ;; What to do in the child process
+       (lambda ()
+         (message \"This is a test\")
+         (sleep-for 3)
+         222)
+
+       ;; What to do when it finishes
+       (lambda (result)
+         (message \"Async process done, result should be 222: %s\"
+                  result)))
+
+If FINISH-FUNC is nil or missing, a future is returned that can
+be inspected using `async-get', blocking until the value is
+ready.  Example:
+
+    (let ((proc (async-start
+                   ;; What to do in the child process
+                   (lambda ()
+                     (message \"This is a test\")
+                     (sleep-for 3)
+                     222))))
+
+        (message \"I'm going to do some work here\") ;; ....
+
+        (message \"Waiting on async process, result should be 222: %s\"
+                 (async-get proc)))
+
+If you don't want to use a callback, and you don't care about any
+return value from the child process, pass the `ignore' symbol as
+the second argument (if you don't, and never call `async-get', it
+will leave *emacs* process buffers hanging around):
+
+    (async-start
+     (lambda ()
+       (delete-file \"a remote file on a slow link\" nil))
+     \\='ignore)
+
+Special case:
+If the output of START-FUNC is a string with properties
+e.g. (buffer-string) RESULT will be transformed in a list where the
+car is the string itself (without props) and the cdr the rest of
+properties, this allows using in FINISH-FUNC the string without
+properties and then apply the properties in cdr to this string (if
+needed).
+Properties handling special objects like markers are returned as
+list to allow restoring them later.
+See <https://github.com/jwiegley/emacs-async/issues/145> for more infos.
+
+Note: Even when FINISH-FUNC is present, a future is still
+returned except that it yields no value (since the value is
+passed to FINISH-FUNC).  Call `async-get' on such a future always
+returns nil.  It can still be useful, however, as an argument to
+`async-ready' or `async-wait'.
+
+\(fn START-FUNC &optional FINISH-FUNC)" nil nil)
+
+(register-definition-prefixes "async" '("async-"))
+
+;;;***
+
+;;;### (autoloads nil "async-bytecomp" "async-bytecomp.el" (0 0 0
+;;;;;;  0))
+;;; Generated autoloads from async-bytecomp.el
+
+(autoload 'async-byte-recompile-directory "async-bytecomp" "\
+Compile all *.el files in DIRECTORY asynchronously.
+All *.elc files are systematically deleted before proceeding.
+
+\(fn DIRECTORY &optional QUIET)" nil nil)
+
+(defvar async-bytecomp-package-mode nil "\
+Non-nil if Async-Bytecomp-Package mode is enabled.
+See the `async-bytecomp-package-mode' command
+for a description of this minor mode.
+Setting this variable directly does not take effect;
+either customize it (see the info node `Easy Customization')
+or call the function `async-bytecomp-package-mode'.")
+
+(custom-autoload 'async-bytecomp-package-mode "async-bytecomp" nil)
+
+(autoload 'async-bytecomp-package-mode "async-bytecomp" "\
+Byte compile asynchronously packages installed with package.el.
+Async compilation of packages can be controlled by
+`async-bytecomp-allowed-packages'.
+
+This is a minor mode.  If called interactively, toggle the
+`Async-Bytecomp-Package mode' mode.  If the prefix argument is
+positive, enable the mode, and if it is zero or negative, disable
+the mode.
+
+If called from Lisp, toggle the mode if ARG is `toggle'.  Enable
+the mode if ARG is nil, omitted, or is a positive number.
+Disable the mode if ARG is a negative number.
+
+To check whether the minor mode is enabled in the current buffer,
+evaluate `(default-value \\='async-bytecomp-package-mode)'.
+
+The mode's hook is called both when the mode is enabled and when
+it is disabled.
+
+\(fn &optional ARG)" t nil)
+
+(autoload 'async-byte-compile-file "async-bytecomp" "\
+Byte compile Lisp code FILE asynchronously.
+
+Same as `byte-compile-file' but asynchronous.
+
+\(fn FILE)" t nil)
+
+(register-definition-prefixes "async-bytecomp" '("async-"))
+
+;;;***
+
+;;;### (autoloads nil "dired-async" "dired-async.el" (0 0 0 0))
+;;; Generated autoloads from dired-async.el
+
+(defvar dired-async-mode nil "\
+Non-nil if Dired-Async mode is enabled.
+See the `dired-async-mode' command
+for a description of this minor mode.
+Setting this variable directly does not take effect;
+either customize it (see the info node `Easy Customization')
+or call the function `dired-async-mode'.")
+
+(custom-autoload 'dired-async-mode "dired-async" nil)
+
+(autoload 'dired-async-mode "dired-async" "\
+Do dired actions asynchronously.
+
+This is a minor mode.  If called interactively, toggle the
+`Dired-Async mode' mode.  If the prefix argument is positive,
+enable the mode, and if it is zero or negative, disable the mode.
+
+If called from Lisp, toggle the mode if ARG is `toggle'.  Enable
+the mode if ARG is nil, omitted, or is a positive number.
+Disable the mode if ARG is a negative number.
+
+To check whether the minor mode is enabled in the current buffer,
+evaluate `(default-value \\='dired-async-mode)'.
+
+The mode's hook is called both when the mode is enabled and when
+it is disabled.
+
+\(fn &optional ARG)" t nil)
+
+(autoload 'dired-async-do-copy "dired-async" "\
+Run ‘dired-do-copy’ asynchronously.
+
+\(fn &optional ARG)" t nil)
+
+(autoload 'dired-async-do-symlink "dired-async" "\
+Run ‘dired-do-symlink’ asynchronously.
+
+\(fn &optional ARG)" t nil)
+
+(autoload 'dired-async-do-hardlink "dired-async" "\
+Run ‘dired-do-hardlink’ asynchronously.
+
+\(fn &optional ARG)" t nil)
+
+(autoload 'dired-async-do-rename "dired-async" "\
+Run ‘dired-do-rename’ asynchronously.
+
+\(fn &optional ARG)" t nil)
+
+(register-definition-prefixes "dired-async" '("dired-async-"))
+
+;;;***
+
+;;;### (autoloads nil "helm" "helm.el" (0 0 0 0))
 ;;; Generated autoloads from helm.el
+
+(autoload 'helm-configuration "helm" "\
+Customize Helm." t nil)
 
 (autoload 'helm-define-multi-key "helm" "\
 In KEYMAP, define key sequence KEY for function list FUNCTIONS.
@@ -12,7 +202,7 @@ Each function runs sequentially for each KEY press.
 If DELAY is specified, switch back to initial function of FUNCTIONS list
 after DELAY seconds.
 The functions in FUNCTIONS list take no args.
-e.g
+E.g.
     (defun foo ()
       (interactive)
       (message \"Run foo\"))
@@ -25,9 +215,9 @@ e.g
 
 \(helm-define-multi-key global-map (kbd \"<f5> q\") '(foo bar baz) 2)
 
-Each time \"<f5> q\" is pressed, the next function is executed. Waiting
-more than 2 seconds between key presses switches back to executing the first
-function on the next hit.
+Each time \"<f5> q\" is pressed, the next function is executed.
+Waiting more than 2 seconds between key presses switches back to
+executing the first function on the next hit.
 
 \(fn KEYMAP KEY FUNCTIONS &optional DELAY)" nil nil)
 
@@ -41,43 +231,43 @@ See `helm-define-multi-key'.
 (function-put 'helm-multi-key-defun 'lisp-indent-function '2)
 
 (autoload 'helm-define-key-with-subkeys "helm" "\
-Defines in MAP a KEY and SUBKEY to COMMAND.
+Define in MAP a KEY and SUBKEY to COMMAND.
 
 This allows typing KEY to call COMMAND the first time and
 type only SUBKEY on subsequent calls.
 
-Arg MAP is the keymap to use, SUBKEY is the initial short key-binding to
-call COMMAND.
+Arg MAP is the keymap to use, SUBKEY is the initial short
+key binding to call COMMAND.
 
-Arg OTHER-SUBKEYS is an alist specifying other short key-bindings
-to use once started e.g:
+Arg OTHER-SUBKEYS is an alist specifying other short key bindings
+to use once started, e.g.:
 
     (helm-define-key-with-subkeys global-map
-       (kbd \"C-x v n\") ?n 'git-gutter:next-hunk '((?p . git-gutter:previous-hunk)))
-
+       (kbd \"C-x v n\") ?n 'git-gutter:next-hunk
+       '((?p . git-gutter:previous-hunk)))
 
 In this example, `C-x v n' will run `git-gutter:next-hunk'
-subsequent \"n\"'s run this command again
-and subsequent \"p\"'s run `git-gutter:previous-hunk'.
+subsequent \"n\" will run this command again and subsequent \"p\"
+will run `git-gutter:previous-hunk'.
 
-If specified PROMPT can be displayed in minibuffer to
-describe SUBKEY and OTHER-SUBKEYS.
-Arg EXIT-FN specifies a function to run on exit.
+If specified PROMPT can be displayed in minibuffer to describe
+SUBKEY and OTHER-SUBKEYS.  Arg EXIT-FN specifies a function to run
+on exit.
 
-For any other keys pressed, run their assigned command as defined
+For any other key pressed, run their assigned command as defined
 in MAP and then exit the loop running EXIT-FN, if specified.
 
-NOTE: SUBKEY and OTHER-SUBKEYS bindings support only char syntax and
-vectors, so don't use strings to define them.
+If DELAY an integer is specified exit after DELAY seconds.
 
-\(fn MAP KEY SUBKEY COMMAND &optional OTHER-SUBKEYS PROMPT EXIT-FN)" nil nil)
+NOTE: SUBKEY and OTHER-SUBKEYS bindings support only char syntax
+and vectors, so don't use strings to define them.
+
+\(fn MAP KEY SUBKEY COMMAND &optional OTHER-SUBKEYS PROMPT EXIT-FN DELAY)" nil nil)
 
 (function-put 'helm-define-key-with-subkeys 'lisp-indent-function '1)
 
 (autoload 'helm-debug-open-last-log "helm" "\
-Open helm log file or buffer of last helm session.
-
-\(fn)" t nil)
+Open Helm log file or buffer of last Helm session." t nil)
 
 (autoload 'helm "helm" "\
 Main function to execute helm sources.
@@ -169,9 +359,9 @@ the list items, starting with the first.
 
 If nil, `thing-at-point' is used.
 
-If `helm--maybe-use-default-as-input' is non-`nil', display is
-updated using this value, unless :input is specified, in which
-case that value is used instead.
+If `helm-maybe-use-default-as-input' is non-nil, display is
+updated using this value if this value matches, otherwise it is
+ignored. If :input is specified, it takes precedence on :default.
 
 *** :history
 
@@ -193,7 +383,7 @@ session. The `helm-' prefix can be omitted. For example,
        :buffer \"*helm buffers*\"
        :candidate-number-limit 10)
 
-starts a Helm session with the variable
+Starts a Helm session with the variable
 `helm-candidate-number-limit' set to 10.
 
 ** Backward compatibility
@@ -209,20 +399,19 @@ However, the use of non-keyword args is deprecated.
 \(fn &key SOURCES INPUT PROMPT RESUME PRESELECT BUFFER KEYMAP DEFAULT HISTORY ALLOW-NEST OTHER-LOCAL-VARS)" nil nil)
 
 (autoload 'helm-cycle-resume "helm" "\
-Cycle in `helm-buffers' list and resume when waiting more than 1.2s.
-
-\(fn)" t nil)
+Cycle in `helm-buffers' list and resume when waiting more than 1.2s." t nil)
 
 (autoload 'helm-other-buffer "helm" "\
-Simplified `helm' interface with other `helm-buffer'.
-Call `helm' only with ANY-SOURCES and ANY-BUFFER as args.
+Simplified Helm interface with other `helm-buffer'.
+Call `helm' only with SOURCES and BUFFER as args.
 
-\(fn ANY-SOURCES ANY-BUFFER)" nil nil)
+\(fn SOURCES BUFFER)" nil nil)
+
+(register-definition-prefixes "helm" '("helm-" "with-helm-"))
 
 ;;;***
 
-;;;### (autoloads nil "helm-adaptive" "helm-adaptive.el" (23287 1499
-;;;;;;  577138 852000))
+;;;### (autoloads nil "helm-adaptive" "helm-adaptive.el" (0 0 0 0))
 ;;; Generated autoloads from helm-adaptive.el
 
 (defvar helm-adaptive-mode nil "\
@@ -238,93 +427,108 @@ or call the function `helm-adaptive-mode'.")
 (autoload 'helm-adaptive-mode "helm-adaptive" "\
 Toggle adaptive sorting in all sources.
 
+This is a minor mode.  If called interactively, toggle the
+`Helm-Adaptive mode' mode.  If the prefix argument is positive,
+enable the mode, and if it is zero or negative, disable the mode.
+
+If called from Lisp, toggle the mode if ARG is `toggle'.  Enable
+the mode if ARG is nil, omitted, or is a positive number.
+Disable the mode if ARG is a negative number.
+
+To check whether the minor mode is enabled in the current buffer,
+evaluate `(default-value \\='helm-adaptive-mode)'.
+
+The mode's hook is called both when the mode is enabled and when
+it is disabled.
+
 \(fn &optional ARG)" t nil)
 
 (autoload 'helm-reset-adaptive-history "helm-adaptive" "\
 Delete all `helm-adaptive-history' and his file.
-Useful when you have a old or corrupted `helm-adaptive-history-file'.
+Useful when you have a old or corrupted
+`helm-adaptive-history-file'." t nil)
 
-\(fn)" t nil)
+(register-definition-prefixes "helm-adaptive" '("helm-adapt"))
 
 ;;;***
 
-;;;### (autoloads nil "helm-bookmark" "helm-bookmark.el" (23287 1499
-;;;;;;  581138 893000))
+;;;### (autoloads nil "helm-bookmark" "helm-bookmark.el" (0 0 0 0))
 ;;; Generated autoloads from helm-bookmark.el
 
 (autoload 'helm-bookmarks "helm-bookmark" "\
-Preconfigured `helm' for bookmarks.
-
-\(fn)" t nil)
+Preconfigured `helm' for bookmarks." t nil)
 
 (autoload 'helm-filtered-bookmarks "helm-bookmark" "\
-Preconfigured helm for bookmarks (filtered by category).
-Optional source `helm-source-bookmark-addressbook' is loaded
-only if external addressbook-bookmark package is installed.
+Preconfigured `helm' for bookmarks (filtered by category).
+Optional source `helm-source-bookmark-addressbook' is loaded only
+if external addressbook-bookmark package is installed." t nil)
 
-\(fn)" t nil)
+(register-definition-prefixes "helm-bookmark" '("bmkext-jump-" "bookmark" "helm-"))
 
 ;;;***
 
-;;;### (autoloads nil "helm-buffers" "helm-buffers.el" (23287 1499
-;;;;;;  581138 893000))
+;;;### (autoloads nil "helm-buffers" "helm-buffers.el" (0 0 0 0))
 ;;; Generated autoloads from helm-buffers.el
 
 (autoload 'helm-buffers-list "helm-buffers" "\
-Preconfigured `helm' to list buffers.
-
-\(fn)" t nil)
+Preconfigured `helm' to list buffers." t nil)
 
 (autoload 'helm-mini "helm-buffers" "\
-Preconfigured `helm' lightweight version (buffer -> recentf).
+Preconfigured `helm' displaying `helm-mini-default-sources'." t nil)
 
-\(fn)" t nil)
+(register-definition-prefixes "helm-buffers" '("helm-"))
 
 ;;;***
 
-;;;### (autoloads nil "helm-color" "helm-color.el" (23287 1499 581138
-;;;;;;  893000))
+;;;### (autoloads nil "helm-color" "helm-color.el" (0 0 0 0))
 ;;; Generated autoloads from helm-color.el
 
 (autoload 'helm-colors "helm-color" "\
-Preconfigured `helm' for color.
+Preconfigured `helm' for color." t nil)
 
-\(fn)" t nil)
+(register-definition-prefixes "helm-color" '("helm-"))
 
 ;;;***
 
-;;;### (autoloads nil "helm-command" "helm-command.el" (23287 1499
-;;;;;;  581138 893000))
+;;;### (autoloads nil "helm-comint" "helm-comint.el" (0 0 0 0))
+;;; Generated autoloads from helm-comint.el
+
+(autoload 'helm-comint-prompts "helm-comint" "\
+Pre-configured `helm' to browse the prompts of the current comint buffer." t nil)
+
+(autoload 'helm-comint-prompts-all "helm-comint" "\
+Pre-configured `helm' to browse the prompts of all comint sessions." t nil)
+
+(autoload 'helm-comint-input-ring "helm-comint" "\
+Preconfigured `helm' that provide completion of `comint' history." t nil)
+
+(register-definition-prefixes "helm-comint" '("helm-"))
+
+;;;***
+
+;;;### (autoloads nil "helm-command" "helm-command.el" (0 0 0 0))
 ;;; Generated autoloads from helm-command.el
 
 (autoload 'helm-M-x "helm-command" "\
 Preconfigured `helm' for Emacs commands.
-It is `helm' replacement of regular `M-x' `execute-extended-command'.
+It is `helm' replacement of regular `M-x'
+`execute-extended-command'.
 
-Unlike regular `M-x' emacs vanilla `execute-extended-command' command,
-the prefix args if needed, can be passed AFTER starting `helm-M-x'.
-When a prefix arg is passed BEFORE starting `helm-M-x', the first `C-u'
-while in `helm-M-x' session will disable it.
+Unlike regular `M-x' Emacs vanilla `execute-extended-command'
+command, the prefix args if needed, can be passed AFTER starting
+`helm-M-x'.  When a prefix arg is passed BEFORE starting
+`helm-M-x', the first `C-u' while in `helm-M-x' session will
+disable it.
 
 You can get help on each command by persistent action.
 
-\(fn ARG &optional COMMAND-NAME)" t nil)
+\(fn ARG)" t nil)
+
+(register-definition-prefixes "helm-command" '("helm-"))
 
 ;;;***
 
-;;;### (autoloads nil "helm-config" "helm-config.el" (23287 1499
-;;;;;;  581138 893000))
-;;; Generated autoloads from helm-config.el
-
-(autoload 'helm-configuration "helm-config" "\
-Customize `helm'.
-
-\(fn)" t nil)
-
-;;;***
-
-;;;### (autoloads nil "helm-dabbrev" "helm-dabbrev.el" (23287 1499
-;;;;;;  581138 893000))
+;;;### (autoloads nil "helm-dabbrev" "helm-dabbrev.el" (0 0 0 0))
 ;;; Generated autoloads from helm-dabbrev.el
 
 (autoload 'helm-dabbrev "helm-dabbrev" "\
@@ -332,162 +536,195 @@ Preconfigured helm for dynamic abbreviations.
 
 \(fn)" t nil)
 
+(register-definition-prefixes "helm-dabbrev" '("helm-dabbrev-"))
+
 ;;;***
 
-;;;### (autoloads nil "helm-elisp" "helm-elisp.el" (23287 1499 581138
-;;;;;;  893000))
+;;;### (autoloads nil "helm-elisp" "helm-elisp.el" (0 0 0 0))
 ;;; Generated autoloads from helm-elisp.el
 
 (autoload 'helm-lisp-completion-at-point "helm-elisp" "\
-Preconfigured helm for lisp symbol completion at point.
-
-\(fn)" t nil)
+Preconfigured Helm for Lisp symbol completion at point." t nil)
 
 (autoload 'helm-complete-file-name-at-point "helm-elisp" "\
-Preconfigured helm to complete file name at point.
+Preconfigured Helm to complete file name at point.
 
 \(fn &optional FORCE)" t nil)
 
-(autoload 'helm-lisp-indent "helm-elisp" "\
-
-
-\(fn)" t nil)
+(autoload 'helm-lisp-indent "helm-elisp" nil t nil)
 
 (autoload 'helm-lisp-completion-or-file-name-at-point "helm-elisp" "\
-Preconfigured helm to complete lisp symbol or filename at point.
-Filename completion happen if string start after or between a double quote.
-
-\(fn)" t nil)
+Preconfigured Helm to complete Lisp symbol or filename at point.
+Filename completion happens if string start after or between a
+double quote." t nil)
 
 (autoload 'helm-apropos "helm-elisp" "\
-Preconfigured helm to describe commands, functions, variables and faces.
-In non interactives calls DEFAULT argument should be provided as a string,
-i.e the `symbol-name' of any existing symbol.
+Preconfigured Helm to describe commands, functions, variables and faces.
+In non interactives calls DEFAULT argument should be provided as
+a string, i.e. the `symbol-name' of any existing symbol.
 
 \(fn DEFAULT)" t nil)
 
 (autoload 'helm-manage-advice "helm-elisp" "\
-Preconfigured `helm' to disable/enable function advices.
-
-\(fn)" t nil)
+Preconfigured `helm' to disable/enable function advices." t nil)
 
 (autoload 'helm-locate-library "helm-elisp" "\
-Preconfigured helm to locate elisp libraries.
-
-\(fn)" t nil)
+Preconfigured helm to locate elisp libraries." t nil)
 
 (autoload 'helm-timers "helm-elisp" "\
-Preconfigured `helm' for timers.
-
-\(fn)" t nil)
+Preconfigured `helm' for timers." t nil)
 
 (autoload 'helm-complex-command-history "helm-elisp" "\
-Preconfigured helm for complex command history.
+Preconfigured `helm' for complex command history." t nil)
 
-\(fn)" t nil)
+(register-definition-prefixes "helm-elisp" '("helm-" "with-helm-show-completion"))
 
 ;;;***
 
 ;;;### (autoloads nil "helm-elisp-package" "helm-elisp-package.el"
-;;;;;;  (23287 1499 581138 893000))
+;;;;;;  (0 0 0 0))
 ;;; Generated autoloads from helm-elisp-package.el
 
 (autoload 'helm-list-elisp-packages "helm-elisp-package" "\
-Preconfigured helm for listing and handling emacs packages.
+Preconfigured `helm' for listing and handling Emacs packages.
 
 \(fn ARG)" t nil)
 
 (autoload 'helm-list-elisp-packages-no-fetch "helm-elisp-package" "\
-Preconfigured helm for emacs packages.
+Preconfigured Helm for Emacs packages.
 
-Same as `helm-list-elisp-packages' but don't fetch packages on remote.
-Called with a prefix ARG always fetch packages on remote.
+Same as `helm-list-elisp-packages' but don't fetch packages on
+remote.  Called with a prefix ARG always fetch packages on
+remote.
 
 \(fn ARG)" t nil)
 
+(register-definition-prefixes "helm-elisp-package" '("helm-"))
+
 ;;;***
 
-;;;### (autoloads nil "helm-eshell" "helm-eshell.el" (23287 1499
-;;;;;;  581138 893000))
+;;;### (autoloads nil "helm-epa" "helm-epa.el" (0 0 0 0))
+;;; Generated autoloads from helm-epa.el
+
+(defvar helm-epa-mode nil "\
+Non-nil if Helm-Epa mode is enabled.
+See the `helm-epa-mode' command
+for a description of this minor mode.
+Setting this variable directly does not take effect;
+either customize it (see the info node `Easy Customization')
+or call the function `helm-epa-mode'.")
+
+(custom-autoload 'helm-epa-mode "helm-epa" nil)
+
+(autoload 'helm-epa-mode "helm-epa" "\
+Enable helm completion on gpg keys in epa functions.
+
+This is a minor mode.  If called interactively, toggle the
+`Helm-Epa mode' mode.  If the prefix argument is positive, enable
+the mode, and if it is zero or negative, disable the mode.
+
+If called from Lisp, toggle the mode if ARG is `toggle'.  Enable
+the mode if ARG is nil, omitted, or is a positive number.
+Disable the mode if ARG is a negative number.
+
+To check whether the minor mode is enabled in the current buffer,
+evaluate `(default-value \\='helm-epa-mode)'.
+
+The mode's hook is called both when the mode is enabled and when
+it is disabled.
+
+\(fn &optional ARG)" t nil)
+
+(autoload 'helm-epa-list-keys "helm-epa" "\
+List all gpg keys.
+This is the helm interface for `epa-list-keys'." t nil)
+
+(register-definition-prefixes "helm-epa" '("helm-epa"))
+
+;;;***
+
+;;;### (autoloads nil "helm-eshell" "helm-eshell.el" (0 0 0 0))
 ;;; Generated autoloads from helm-eshell.el
 
 (autoload 'helm-esh-pcomplete "helm-eshell" "\
-Preconfigured helm to provide helm completion in eshell.
-
-\(fn)" t nil)
+Preconfigured `helm' to provide Helm completion in Eshell." t nil)
 
 (autoload 'helm-eshell-history "helm-eshell" "\
-Preconfigured helm for eshell history.
-
-\(fn)" t nil)
+Preconfigured Helm for Eshell history." t nil)
 
 (autoload 'helm-eshell-prompts "helm-eshell" "\
-Pre-configured `helm' to browse the prompts of the current Eshell.
-
-\(fn)" t nil)
+Pre-configured `helm' to browse the prompts of the current Eshell." t nil)
 
 (autoload 'helm-eshell-prompts-all "helm-eshell" "\
-Pre-configured `helm' to browse the prompts of all Eshell sessions.
+Pre-configured `helm' to browse the prompts of all Eshell sessions." t nil)
 
-\(fn)" t nil)
+(register-definition-prefixes "helm-eshell" '("helm-e"))
 
 ;;;***
 
-;;;### (autoloads nil "helm-eval" "helm-eval.el" (23287 1499 581138
-;;;;;;  893000))
+;;;### (autoloads nil "helm-eval" "helm-eval.el" (0 0 0 0))
 ;;; Generated autoloads from helm-eval.el
 
 (autoload 'helm-eval-expression "helm-eval" "\
-Preconfigured helm for `helm-source-evaluation-result'.
+Preconfigured `helm' for `helm-source-evaluation-result'.
 
 \(fn ARG)" t nil)
 
 (autoload 'helm-eval-expression-with-eldoc "helm-eval" "\
-Preconfigured helm for `helm-source-evaluation-result' with `eldoc' support. 
-
-\(fn)" t nil)
+Preconfigured `helm' for `helm-source-evaluation-result' with `eldoc' support." t nil)
 
 (autoload 'helm-calcul-expression "helm-eval" "\
-Preconfigured helm for `helm-source-calculation-result'.
+Preconfigured `helm' for `helm-source-calculation-result'." t nil)
 
-\(fn)" t nil)
+(register-definition-prefixes "helm-eval" '("helm-"))
 
 ;;;***
 
-;;;### (autoloads nil "helm-external" "helm-external.el" (23287 1499
-;;;;;;  581138 893000))
+;;;### (autoloads nil "helm-external" "helm-external.el" (0 0 0 0))
 ;;; Generated autoloads from helm-external.el
 
 (autoload 'helm-run-external-command "helm-external" "\
 Preconfigured `helm' to run External PROGRAM asyncronously from Emacs.
-If program is already running exit with error.
-You can set your own list of commands with
-`helm-external-commands-list'.
+If program is already running try to run `helm-raise-command' if
+defined otherwise exit with error. You can set your own list of
+commands with `helm-external-commands-list'." t nil)
 
-\(fn PROGRAM)" t nil)
+(register-definition-prefixes "helm-external" '("helm-"))
 
 ;;;***
 
-;;;### (autoloads nil "helm-files" "helm-files.el" (23287 1499 585138
-;;;;;;  935000))
+;;;### (autoloads nil "helm-fd" "helm-fd.el" (0 0 0 0))
+;;; Generated autoloads from helm-fd.el
+
+(register-definition-prefixes "helm-fd" '("helm-fd-"))
+
+;;;***
+
+;;;### (autoloads nil "helm-files" "helm-files.el" (0 0 0 0))
 ;;; Generated autoloads from helm-files.el
+
+(autoload 'helm-ff-cleanup-image-dired-dir-and-cache "helm-files" "\
+Cleanup `image-dired-dir' directory.
+Delete all thumb files that are no more associated with an existing image file in
+`helm-ff-image-dired-thumbnails-cache'." t nil)
 
 (autoload 'helm-projects-history "helm-files" "\
 
 
-\(fn)" t nil)
+\(fn ARG)" t nil)
 
 (autoload 'helm-browse-project "helm-files" "\
 Preconfigured helm to browse projects.
-Browse files and see status of project with its vcs.
+Browse files and see status of project with its VCS.
 Only HG and GIT are supported for now.
-Fall back to `helm-browse-project-find-files'
-if current directory is not under control of one of those vcs.
+Fall back to `helm-browse-project-find-files' if current
+directory is not under control of one of those VCS.
 With a prefix ARG browse files recursively, with two prefix ARG
 rebuild the cache.
 If the current directory is found in the cache, start
 `helm-browse-project-find-files' even with no prefix ARG.
-NOTE: The prefix ARG have no effect on the VCS controlled directories.
+NOTE: The prefix ARG have no effect on the VCS controlled
+directories.
 
 Needed dependencies for VCS:
 <https://github.com/emacs-helm/helm-ls-git>
@@ -500,24 +737,25 @@ and
 Preconfigured `helm' for helm implementation of `find-file'.
 Called with a prefix arg show history if some.
 Don't call it from programs, use `helm-find-files-1' instead.
-This is the starting point for nearly all actions you can do on files.
+This is the starting point for nearly all actions you can do on
+files.
 
 \(fn ARG)" t nil)
 
 (autoload 'helm-delete-tramp-connection "helm-files" "\
 Allow deleting tramp connection or marked tramp connections at once.
 
-This replace `tramp-cleanup-connection' which is partially broken in
-emacs < to 25.1.50.1 (See Emacs Bug#24432).
+This replace `tramp-cleanup-connection' which is partially broken
+in Emacs < to 25.1.50.1 (See Emacs bug http://debbugs.gnu.org/cgi/bugreport.cgi?bug=24432).
 
-It allows additionally to delete more than one connection at once.
+It allows additionally to delete more than one connection at
+once." t nil)
 
-\(fn)" t nil)
+(register-definition-prefixes "helm-files" '("eshell-command-aliases-list" "helm-"))
 
 ;;;***
 
-;;;### (autoloads nil "helm-find" "helm-find.el" (23287 1499 585138
-;;;;;;  935000))
+;;;### (autoloads nil "helm-find" "helm-find.el" (0 0 0 0))
 ;;; Generated autoloads from helm-find.el
 
 (autoload 'helm-find "helm-find" "\
@@ -540,148 +778,147 @@ are passed to \"find\" literally.
 
 \(fn ARG)" t nil)
 
+(register-definition-prefixes "helm-find" '("helm-"))
+
 ;;;***
 
-;;;### (autoloads nil "helm-font" "helm-font.el" (23287 1499 585138
-;;;;;;  935000))
+;;;### (autoloads nil "helm-font" "helm-font.el" (0 0 0 0))
 ;;; Generated autoloads from helm-font.el
 
 (autoload 'helm-select-xfont "helm-font" "\
-Preconfigured `helm' to select Xfont.
-
-\(fn)" t nil)
+Preconfigured `helm' to select Xfont." t nil)
 
 (autoload 'helm-ucs "helm-font" "\
-Preconfigured helm for `ucs-names'.
+Preconfigured `helm' for `ucs-names'.
 
 Called with a prefix arg force reloading cache.
 
 \(fn ARG)" t nil)
 
+(register-definition-prefixes "helm-font" '("helm-"))
+
 ;;;***
 
-;;;### (autoloads nil "helm-for-files" "helm-for-files.el" (23287
-;;;;;;  1499 585138 935000))
+;;;### (autoloads nil "helm-for-files" "helm-for-files.el" (0 0 0
+;;;;;;  0))
 ;;; Generated autoloads from helm-for-files.el
 
 (autoload 'helm-for-files "helm-for-files" "\
 Preconfigured `helm' for opening files.
-Run all sources defined in `helm-for-files-preferred-list'.
-
-\(fn)" t nil)
+Run all sources defined in `helm-for-files-preferred-list'." t nil)
 
 (autoload 'helm-multi-files "helm-for-files" "\
 Preconfigured helm like `helm-for-files' but running locate only on demand.
 
 Allow toggling back and forth from locate to others sources with
 `helm-multi-files-toggle-locate-binding' key.
-This avoid launching needlessly locate when what you search is already
-found.
-
-\(fn)" t nil)
+This avoids launching locate needlessly when what you are
+searching for is already found." t nil)
 
 (autoload 'helm-recentf "helm-for-files" "\
-Preconfigured `helm' for `recentf'.
+Preconfigured `helm' for `recentf'." t nil)
 
-\(fn)" t nil)
+(register-definition-prefixes "helm-for-files" '("helm-"))
 
 ;;;***
 
-;;;### (autoloads nil "helm-grep" "helm-grep.el" (23287 1499 589138
-;;;;;;  976000))
+;;;### (autoloads nil "helm-global-bindings" "helm-global-bindings.el"
+;;;;;;  (0 0 0 0))
+;;; Generated autoloads from helm-global-bindings.el
+
+(register-definition-prefixes "helm-global-bindings" '("helm-command-"))
+
+;;;***
+
+;;;### (autoloads nil "helm-grep" "helm-grep.el" (0 0 0 0))
 ;;; Generated autoloads from helm-grep.el
 
 (autoload 'helm-goto-precedent-file "helm-grep" "\
-Go to precedent file in helm grep/etags buffers.
-
-\(fn)" t nil)
+Go to previous file in Helm grep/etags buffers." t nil)
 
 (autoload 'helm-goto-next-file "helm-grep" "\
-Go to precedent file in helm grep/etags buffers.
-
-\(fn)" t nil)
+Go to previous file in Helm grep/etags buffers." t nil)
 
 (autoload 'helm-do-grep-ag "helm-grep" "\
-Preconfigured helm for grepping with AG in `default-directory'.
-With prefix-arg prompt for type if available with your AG version.
+Preconfigured `helm' for grepping with AG in `default-directory'.
+With prefix arg prompt for type if available with your AG
+version.
 
 \(fn ARG)" t nil)
 
 (autoload 'helm-grep-do-git-grep "helm-grep" "\
-Preconfigured helm for git-grepping `default-directory'.
+Preconfigured `helm' for git-grepping `default-directory'.
 With a prefix arg ARG git-grep the whole repository.
 
 \(fn ARG)" t nil)
 
+(register-definition-prefixes "helm-grep" '("helm-"))
+
 ;;;***
 
-;;;### (autoloads nil "helm-help" "helm-help.el" (23287 1499 589138
-;;;;;;  976000))
+;;;### (autoloads nil "helm-help" "helm-help.el" (0 0 0 0))
 ;;; Generated autoloads from helm-help.el
 
 (autoload 'helm-documentation "helm-help" "\
-Preconfigured Helm for Helm documentation.
+Preconfigured `helm' for Helm documentation.
 With a prefix arg refresh the documentation.
 
-Find here the documentation of all documented sources.
+Find here the documentation of all documented sources." t nil)
 
-\(fn)" t nil)
+(defvar helm-comp-read-mode-line "\\<helm-comp-read-map>C/\\[helm-cr-empty-string]:Empty \\<helm-map>\\[helm-help]:Help \\[helm-select-action]:Act \\[helm-maybe-exit-minibuffer]/f1/f2/f-n:NthAct \\[helm-toggle-suspend-update]:Tog.suspend \\[helm-customize-group]:Conf")
 
-(defvar helm-comp-read-mode-line "\\<helm-comp-read-map>C/\\[helm-cr-empty-string]:Empty \\<helm-map>\\[helm-help]:Help \\[helm-select-action]:Act \\[helm-maybe-exit-minibuffer]/f1/f2/f-n:NthAct \\[helm-toggle-suspend-update]:Tog.suspend")
-
-(defvar helm-read-file-name-mode-line-string "\\<helm-read-file-map>\\[helm-help]:Help C/\\[helm-cr-empty-string]:Empty \\<helm-map>\\[helm-select-action]:Act \\[helm-maybe-exit-minibuffer]/f1/f2/f-n:NthAct \\[helm-toggle-suspend-update]:Tog.suspend" "\
+(defvar helm-read-file-name-mode-line-string "\\<helm-read-file-map>\\[helm-help]:Help C/\\[helm-cr-empty-string]:Empty \\<helm-map>\\[helm-select-action]:Act \\[helm-maybe-exit-minibuffer]/f1/f2/f-n:NthAct \\[helm-toggle-suspend-update]:Tog.suspend \\[helm-customize-group]:Conf" "\
 String displayed in mode-line in `helm-source-find-files'.")
 
-(defvar helm-top-mode-line "\\<helm-top-map>\\[helm-help]:Help \\<helm-map>\\[helm-select-action]:Act \\[helm-maybe-exit-minibuffer]/f1/f2/f-n:NthAct \\[helm-toggle-suspend-update]:Tog.suspend")
+(defvar helm-top-mode-line "\\<helm-top-map>\\[helm-help]:Help \\<helm-map>\\[helm-select-action]:Act \\[helm-maybe-exit-minibuffer]/f1/f2/f-n:NthAct \\[helm-toggle-suspend-update]:Tog.suspend \\[helm-customize-group]:Conf")
+
+(register-definition-prefixes "helm-help" '("helm-"))
 
 ;;;***
 
-;;;### (autoloads nil "helm-id-utils" "helm-id-utils.el" (23287 1499
-;;;;;;  589138 976000))
+;;;### (autoloads nil "helm-id-utils" "helm-id-utils.el" (0 0 0 0))
 ;;; Generated autoloads from helm-id-utils.el
 
 (autoload 'helm-gid "helm-id-utils" "\
-Preconfigured helm for `gid' command line of `ID-Utils'.
-Need A database created with the command `mkid'
-above `default-directory'.
-Need id-utils as dependency which provide `mkid', `gid' etc...
-See <https://www.gnu.org/software/idutils/>.
+Preconfigured `helm' for `gid' command line of `ID-Utils'.
+Need A database created with the command `mkid' above
+`default-directory'.
+Need id-utils as dependency which provide `mkid', `gid' etc..
+See <https://www.gnu.org/software/idutils/>." t nil)
 
-\(fn)" t nil)
+(register-definition-prefixes "helm-id-utils" '("helm-gid-"))
 
 ;;;***
 
-;;;### (autoloads nil "helm-imenu" "helm-imenu.el" (23287 1499 589138
-;;;;;;  976000))
+;;;### (autoloads nil "helm-imenu" "helm-imenu.el" (0 0 0 0))
 ;;; Generated autoloads from helm-imenu.el
 
 (autoload 'helm-imenu "helm-imenu" "\
-Preconfigured `helm' for `imenu'.
-
-\(fn)" t nil)
+Preconfigured `helm' for `imenu'." t nil)
 
 (autoload 'helm-imenu-in-all-buffers "helm-imenu" "\
-Preconfigured helm for fetching imenu entries in all buffers with similar mode as current.
-A mode is similar as current if it is the same, it is derived i.e `derived-mode-p'
-or it have an association in `helm-imenu-all-buffer-assoc'.
+Preconfigured `helm' for fetching imenu entries in all buffers with similar mode as current.
+A mode is similar as current if it is the same, it is derived
+i.e. `derived-mode-p' or it have an association in
+`helm-imenu-all-buffer-assoc'." t nil)
 
-\(fn)" t nil)
+(register-definition-prefixes "helm-imenu" '("helm-"))
 
 ;;;***
 
-;;;### (autoloads nil "helm-info" "helm-info.el" (23287 1499 589138
-;;;;;;  976000))
+;;;### (autoloads nil "helm-info" "helm-info.el" (0 0 0 0))
 ;;; Generated autoloads from helm-info.el
 
 (autoload 'helm-info "helm-info" "\
 Preconfigured `helm' for searching Info files' indices.
 
-With a prefix argument \\[universal-argument], set REFRESH to non-nil.
+With a prefix argument \\[universal-argument], set REFRESH to
+non-nil.
 
-Optional parameter REFRESH, when non-nil, reevaluates
+Optional parameter REFRESH, when non-nil, re-evaluates
 `helm-default-info-index-list'.  If the variable has been
 customized, set it to its saved value.  If not, set it to its
-standard value.  See `custom-reevaluate-setting' for more.
+standard value. See `custom-reevaluate-setting' for more.
 
 REFRESH is useful when new Info files are installed.  If
 `helm-default-info-index-list' has not been customized, the new
@@ -690,14 +927,20 @@ Info files are made available.
 \(fn &optional REFRESH)" t nil)
 
 (autoload 'helm-info-at-point "helm-info" "\
-Preconfigured `helm' for searching info at point.
+Preconfigured `helm' for searching info at point." t nil)
 
-\(fn)" t nil)
+(register-definition-prefixes "helm-info" '("helm-"))
 
 ;;;***
 
-;;;### (autoloads nil "helm-locate" "helm-locate.el" (23287 1499
-;;;;;;  589138 976000))
+;;;### (autoloads nil "helm-lib" "helm-lib.el" (0 0 0 0))
+;;; Generated autoloads from helm-lib.el
+
+(register-definition-prefixes "helm-lib" '("helm-" "with-helm-"))
+
+;;;***
+
+;;;### (autoloads nil "helm-locate" "helm-locate.el" (0 0 0 0))
 ;;; Generated autoloads from helm-locate.el
 
 (autoload 'helm-projects-find-files "helm-locate" "\
@@ -712,8 +955,8 @@ Note: you can add locate options after entering pattern.
 See 'man locate' for valid options and also `helm-locate-command'.
 
 You can specify a local database with prefix argument ARG.
-With two prefix arg, refresh the current local db or create it
-if it doesn't exists.
+With two prefix arg, refresh the current local db or create it if
+it doesn't exists.
 
 To create a user specific db, use
 \"updatedb -l 0 -o db_path -U directory\".
@@ -722,10 +965,11 @@ Where db_path is a filename matched by
 
 \(fn ARG)" t nil)
 
+(register-definition-prefixes "helm-locate" '("helm-"))
+
 ;;;***
 
-;;;### (autoloads nil "helm-man" "helm-man.el" (23287 1499 589138
-;;;;;;  976000))
+;;;### (autoloads nil "helm-man" "helm-man.el" (0 0 0 0))
 ;;; Generated autoloads from helm-man.el
 
 (autoload 'helm-man-woman "helm-man" "\
@@ -734,47 +978,65 @@ With a prefix arg reinitialize the cache.
 
 \(fn ARG)" t nil)
 
+(register-definition-prefixes "helm-man" '("helm-"))
+
 ;;;***
 
-;;;### (autoloads nil "helm-misc" "helm-misc.el" (23287 1499 589138
-;;;;;;  976000))
+;;;### (autoloads nil "helm-misc" "helm-misc.el" (0 0 0 0))
 ;;; Generated autoloads from helm-misc.el
+
+(defvar helm-minibuffer-history-mode nil "\
+Non-nil if Helm-Minibuffer-History mode is enabled.
+See the `helm-minibuffer-history-mode' command
+for a description of this minor mode.
+Setting this variable directly does not take effect;
+either customize it (see the info node `Easy Customization')
+or call the function `helm-minibuffer-history-mode'.")
+
+(custom-autoload 'helm-minibuffer-history-mode "helm-misc" nil)
+
+(autoload 'helm-minibuffer-history-mode "helm-misc" "\
+Bind `helm-minibuffer-history-key' in al minibuffer maps.
+This mode is enabled by `helm-mode', so there is no need to enable it directly.
+
+This is a minor mode.  If called interactively, toggle the
+`Helm-Minibuffer-History mode' mode.  If the prefix argument is
+positive, enable the mode, and if it is zero or negative, disable
+the mode.
+
+If called from Lisp, toggle the mode if ARG is `toggle'.  Enable
+the mode if ARG is nil, omitted, or is a positive number.
+Disable the mode if ARG is a negative number.
+
+To check whether the minor mode is enabled in the current buffer,
+evaluate `(default-value \\='helm-minibuffer-history-mode)'.
+
+The mode's hook is called both when the mode is enabled and when
+it is disabled.
+
+\(fn &optional ARG)" t nil)
 
 (autoload 'helm-world-time "helm-misc" "\
 Preconfigured `helm' to show world time.
-Default action change TZ environment variable locally to emacs.
-
-\(fn)" t nil)
+Default action change TZ environment variable locally to emacs." t nil)
 
 (autoload 'helm-insert-latex-math "helm-misc" "\
-Preconfigured helm for latex math symbols completion.
-
-\(fn)" t nil)
+Preconfigured helm for latex math symbols completion." t nil)
 
 (autoload 'helm-ratpoison-commands "helm-misc" "\
-Preconfigured `helm' to execute ratpoison commands.
-
-\(fn)" t nil)
+Preconfigured `helm' to execute ratpoison commands." t nil)
 
 (autoload 'helm-stumpwm-commands "helm-misc" "\
-Preconfigured helm for stumpwm commands.
-
-\(fn)" t nil)
+Preconfigured helm for stumpwm commands." t nil)
 
 (autoload 'helm-minibuffer-history "helm-misc" "\
-Preconfigured `helm' for `minibuffer-history'.
+Preconfigured `helm' for `minibuffer-history'." t nil)
 
-\(fn)" t nil)
-
-(autoload 'helm-comint-input-ring "helm-misc" "\
-Preconfigured `helm' that provide completion of `comint' history.
-
-\(fn)" t nil)
+(register-definition-prefixes "helm-misc" '("helm-"))
 
 ;;;***
 
-;;;### (autoloads nil "helm-mode" "helm-mode.el" (23287 1499 589138
-;;;;;;  976000))
+;;;### (autoloads nil "helm-mode" "helm-mode.el" (0 0 0 0))
 ;;; Generated autoloads from helm-mode.el
 
 (autoload 'helm-comp-read "helm-mode" "\
@@ -784,7 +1046,9 @@ It is helm `completing-read' equivalent.
 
 - PROMPT is the prompt name to use.
 
-- COLLECTION can be a list, vector, obarray or hash-table.
+- COLLECTION can be a list, alist, vector, obarray or hash-table.
+  For alists and hash-tables their car are use as real value of
+  candidate unless ALISTP is non-nil.
   It can be also a function that receives three arguments:
   the values string, predicate and t. See `all-completions' for more details.
 
@@ -810,18 +1074,30 @@ Keys description:
 
 - REQUIRES-PATTERN: Same as helm attribute, default is 0.
 
-- HISTORY: A list containing specific history, default is nil.
-  When it is non--nil, all elements of HISTORY are displayed in
-  a special source before COLLECTION.
+- HISTORY: A symbol where each result will be saved.
+  If not specified as a symbol an error will popup.
+  When specified, all elements of HISTORY are displayed in
+  a special source before or after COLLECTION according to REVERSE-HISTORY.
+  The main difference with INPUT-HISTORY is that the result of the
+  completion is saved whereas in INPUT-HISTORY it is the minibuffer
+  contents which is saved when you exit.
+  Don't use the same symbol for INPUT-HISTORY and HISTORY.
+  NOTE: As mentionned above this has nothing to do with
+  `minibuffer-history-variable', therefore if you want to save this
+  history persistently, you will have to add this variable to the
+  relevant variable of your favorite tool for persistent emacs session
+  i.e. psession, desktop etc...
 
-- INPUT-HISTORY: A symbol. the minibuffer input history will be
+- RAW-HISTORY: When non-nil do not remove backslashs if some in
+  HISTORY candidates.
+
+- INPUT-HISTORY: A symbol. The minibuffer input history will be
   stored there, if nil or not provided, `minibuffer-history'
-  will be used instead.
+  will be used instead.  You can navigate in this history with
+  `M-p' and `M-n'.
+  Don't use the same symbol for INPUT-HISTORY and HISTORY.
 
 - CASE-FOLD: Same as `helm-case-fold-search'.
-
-- DEL-INPUT: Boolean, when non--nil (default) remove the partial
-  minibuffer input from HISTORY is present.
 
 - PERSISTENT-ACTION: A function called with one arg i.e candidate.
 
@@ -843,7 +1119,7 @@ Keys description:
 - VOLATILE: Use volatile attribute.
 
 - SORT: A predicate to give to `sort' e.g `string-lessp'
-  Use this only on small data as it is ineficient.
+  Use this only on small data as it is inefficient.
   If you want to sort faster add a sort function to
   FC-TRANSFORMER.
   Note that FUZZY when enabled is already providing a sort function.
@@ -858,7 +1134,12 @@ Keys description:
 
 - NOMARK: When non--nil don't allow marking candidates.
 
-- ALISTP: (default is non--nil) See `helm-comp-read-get-candidates'.
+- ALISTP:
+  When non-nil (default) pass the value of (DISPLAY . REAL)
+  candidate in COLLECTION to action when COLLECTION is an alist or a
+  hash-table, otherwise DISPLAY is always returned as result on exit,
+  which is the default when using `completing-read'.
+  See `helm-comp-read-get-candidates'.
 
 - CANDIDATES-IN-BUFFER: when non--nil use a source build with
   `helm-source-in-buffer' which is much faster.
@@ -867,18 +1148,25 @@ Keys description:
 - MATCH-PART: Allow matching only one part of candidate.
   See match-part documentation in `helm-source'.
 
+- MATCH-DYNAMIC: See match-dynamic in `helm-source-sync'
+  It has no effect when used with CANDIDATES-IN-BUFFER.
+
 - ALLOW-NEST: Allow nesting this `helm-comp-read' in a helm session.
   See `helm'.
 
 - MULTILINE: See multiline in `helm-source'.
 
+- COERCE: See coerce in `helm-source'.
+
+- GROUP: See group in `helm-source'.
+
 Any prefix args passed during `helm-comp-read' invocation will be recorded
 in `helm-current-prefix-arg', otherwise if prefix args were given before
 `helm-comp-read' invocation, the value of `current-prefix-arg' will be used.
-That's mean you can pass prefix args before or after calling a command
-that use `helm-comp-read' See `helm-M-x' for example.
+That means you can pass prefix args before or after calling a command
+that use `helm-comp-read'.  See `helm-M-x' for example.
 
-\(fn PROMPT COLLECTION &key TEST INITIAL-INPUT DEFAULT PRESELECT (buffer \"*Helm Completions*\") MUST-MATCH FUZZY REVERSE-HISTORY (requires-pattern 0) HISTORY INPUT-HISTORY (case-fold helm-comp-read-case-fold-search) (del-input t) (persistent-action nil) (persistent-help \"DoNothing\") (mode-line helm-comp-read-mode-line) HELP-MESSAGE (keymap helm-comp-read-map) (name \"Helm Completions\") HEADER-NAME CANDIDATES-IN-BUFFER MATCH-PART EXEC-WHEN-ONLY-ONE QUIT-WHEN-NO-CAND (volatile t) SORT FC-TRANSFORMER HIST-FC-TRANSFORMER MARKED-CANDIDATES NOMARK (alistp t) (candidate-number-limit helm-candidate-number-limit) MULTILINE ALLOW-NEST)" nil nil)
+\(fn PROMPT COLLECTION &key TEST INITIAL-INPUT DEFAULT PRESELECT (BUFFER \"*Helm Completions*\") MUST-MATCH FUZZY REVERSE-HISTORY (REQUIRES-PATTERN 0) (HISTORY nil shistory) RAW-HISTORY INPUT-HISTORY (CASE-FOLD helm-comp-read-case-fold-search) (PERSISTENT-ACTION nil) (PERSISTENT-HELP \"DoNothing\") (MODE-LINE helm-comp-read-mode-line) HELP-MESSAGE (KEYMAP helm-comp-read-map) (NAME \"Helm Completions\") HEADER-NAME CANDIDATES-IN-BUFFER MATCH-PART MATCH-DYNAMIC EXEC-WHEN-ONLY-ONE QUIT-WHEN-NO-CAND (VOLATILE t) SORT FC-TRANSFORMER HIST-FC-TRANSFORMER (MARKED-CANDIDATES helm-comp-read-use-marked) NOMARK (ALISTP t) (CANDIDATE-NUMBER-LIMIT helm-candidate-number-limit) MULTILINE ALLOW-NEST COERCE (GROUP \\='helm))" nil nil)
 
 (autoload 'helm-read-file-name "helm-mode" "\
 Read a file name with helm completion.
@@ -890,11 +1178,14 @@ Keys description:
 
 - NAME: Source name, default to \"Read File Name\".
 
-- INITIAL-INPUT: Where to start read file name, default to `default-directory'.
+- INITIAL-INPUT: Where to start reading file name, default to `default-directory' or $HOME.
 
-- BUFFER: `helm-buffer' name default to \"*Helm Completions*\".
+- BUFFER: `helm-buffer' name, defaults to \"*Helm Completions*\".
 
 - TEST: A predicate called with one arg 'candidate'.
+
+- NORET: Allow disabling helm-ff-RET (have no effect if helm-ff-RET
+                                      isn't bound to RET).
 
 - CASE-FOLD: Same as `helm-case-fold-search'.
 
@@ -918,7 +1209,7 @@ Keys description:
 
 - MODE-LINE: A mode line message, default is `helm-read-file-name-mode-line-string'.
 
-\(fn PROMPT &key (name \"Read File Name\") (initial-input default-directory) (buffer \"*Helm file completions*\") TEST (case-fold helm-file-name-case-fold-search) PRESELECT HISTORY MUST-MATCH (fuzzy t) DEFAULT MARKED-CANDIDATES (candidate-number-limit helm-ff-candidate-number-limit) NOMARK (alistp t) (persistent-action-if (quote helm-find-files-persistent-action-if)) (persistent-help \"Hit1 Expand Candidate, Hit2 or (C-u) Find file\") (mode-line helm-read-file-name-mode-line-string))" nil nil)
+\(fn PROMPT &key (NAME \"Read File Name\") INITIAL-INPUT (BUFFER \"*Helm file completions*\") TEST NORET (CASE-FOLD helm-file-name-case-fold-search) PRESELECT HISTORY MUST-MATCH (FUZZY t) DEFAULT MARKED-CANDIDATES (CANDIDATE-NUMBER-LIMIT helm-ff-candidate-number-limit) NOMARK (ALISTP t) (PERSISTENT-ACTION-IF \\='helm-find-files-persistent-action-if) (PERSISTENT-HELP \"Hit1 Expand Candidate, Hit2 or (C-u) Find file\") (MODE-LINE helm-read-file-name-mode-line-string))" nil nil)
 
 (defvar helm-mode nil "\
 Non-nil if Helm mode is enabled.
@@ -933,58 +1224,63 @@ or call the function `helm-mode'.")
 (autoload 'helm-mode "helm-mode" "\
 Toggle generic helm completion.
 
-All functions in Emacs that use `completing-read'
-or `read-file-name' and friends will use helm interface
-when this mode is turned on.
+All functions in Emacs that use `completing-read',
+`read-file-name', `completion-in-region' and friends will use helm
+interface when this mode is turned on.
+
 However you can modify this behavior for functions of your choice
 with `helm-completing-read-handlers-alist'.
 
 Called with a positive arg, turn on unconditionally, with a
 negative arg turn off.
-You can turn it on with `helm-mode'.
-
-Some crap emacs functions may not be supported,
-e.g `ffap-alternate-file' and maybe others
-You can add such functions to `helm-completing-read-handlers-alist'
-with a nil value.
+You can toggle it with M-x `helm-mode'.
 
 About `ido-mode':
-When you are using `helm-mode', DO NOT use `ido-mode', instead if you
-want some commands use `ido' add these commands to
-`helm-completing-read-handlers-alist' with ido as value.
+DO NOT enable `ido-everywhere' when using `helm-mode'.  Instead of
+using `ido-mode', add the commands where you want to use ido to
+`helm-completing-read-handlers-alist' with `ido' as value.
 
 Note: This mode is incompatible with Emacs23.
 
 \(fn &optional ARG)" t nil)
 
+(register-definition-prefixes "helm-mode" '("helm-"))
+
 ;;;***
 
-;;;### (autoloads nil "helm-net" "helm-net.el" (23287 1499 589138
-;;;;;;  976000))
+;;;### (autoloads nil "helm-multi-match" "helm-multi-match.el" (0
+;;;;;;  0 0 0))
+;;; Generated autoloads from helm-multi-match.el
+
+(register-definition-prefixes "helm-multi-match" '("helm-m"))
+
+;;;***
+
+;;;### (autoloads nil "helm-net" "helm-net.el" (0 0 0 0))
 ;;; Generated autoloads from helm-net.el
 
 (autoload 'helm-browse-url-firefox "helm-net" "\
-Same as `browse-url-firefox' but detach from emacs.
+Same as `browse-url-firefox' but detach from Emacs.
 
-So when you quit emacs you can keep your firefox session open
-and not be prompted to kill firefox process.
+So when you quit Emacs you can keep your Firefox session open and
+not be prompted to kill the Firefox process.
 
-NOTE: Probably not supported on some systems (e.g Windows).
+NOTE: Probably not supported on some systems (e.g., Windows).
 
 \(fn URL &optional IGNORE)" t nil)
 
 (autoload 'helm-browse-url-opera "helm-net" "\
-Browse URL with opera browser and detach from emacs.
+Browse URL with Opera browser and detach from Emacs.
 
-So when you quit emacs you can keep your opera session open
-and not be prompted to kill opera process.
+So when you quit Emacs you can keep your Opera session open and
+not be prompted to kill the Opera process.
 
-NOTE: Probably not supported on some systems (e.g Windows).
+NOTE: Probably not supported on some systems (e.g., Windows).
 
 \(fn URL &optional IGNORE)" t nil)
 
 (autoload 'helm-browse-url-chromium "helm-net" "\
-Browse URL with google chrome browser.
+Browse URL with Google Chrome browser.
 
 \(fn URL &optional IGNORE)" t nil)
 
@@ -998,81 +1294,27 @@ Browse URL with conkeror browser.
 
 \(fn URL &optional IGNORE)" t nil)
 
+(autoload 'helm-browse-url-nyxt "helm-net" "\
+Browse URL with nyxt browser.
+
+\(fn URL &optional IGNORE)" t nil)
+
 (autoload 'helm-surfraw "helm-net" "\
 Preconfigured `helm' to search PATTERN with search ENGINE.
 
 \(fn PATTERN ENGINE)" t nil)
 
 (autoload 'helm-google-suggest "helm-net" "\
-Preconfigured `helm' for google search with google suggest.
+Preconfigured `helm' for Google search with Google suggest." t nil)
 
-\(fn)" t nil)
-
-(autoload 'helm-wikipedia-suggest "helm-net" "\
-Preconfigured `helm' for Wikipedia lookup with Wikipedia suggest.
-
-\(fn)" t nil)
+(register-definition-prefixes "helm-net" '("helm-"))
 
 ;;;***
 
-;;;### (autoloads nil "helm-org" "helm-org.el" (23287 1499 593139
-;;;;;;  17000))
-;;; Generated autoloads from helm-org.el
+;;;### (autoloads nil "helm-occur" "helm-occur.el" (0 0 0 0))
+;;; Generated autoloads from helm-occur.el
 
-(autoload 'helm-org-agenda-files-headings "helm-org" "\
-Preconfigured helm for org files headings.
-
-\(fn)" t nil)
-
-(autoload 'helm-org-in-buffer-headings "helm-org" "\
-Preconfigured helm for org buffer headings.
-
-\(fn)" t nil)
-
-(autoload 'helm-org-parent-headings "helm-org" "\
-Preconfigured helm for org headings that are parents of the
-current heading.
-
-\(fn)" t nil)
-
-(autoload 'helm-org-capture-templates "helm-org" "\
-Preconfigured helm for org templates.
-
-\(fn)" t nil)
-
-(autoload 'helm-org-completing-read-tags "helm-org" "\
-Completing read function for Org tags.
-
-This function is used as a `completing-read' function in
-`helm-completing-read-handlers-alist' by `org-set-tags' and
-`org-capture'.
-
-NOTE: Org tag completion will work only if you disable org fast tag
-selection, see (info \"(org) setting tags\").
-
-\(fn PROMPT COLLECTION PRED REQ INITIAL HIST DEF INHERIT-INPUT-METHOD NAME BUFFER)" nil nil)
-
-;;;***
-
-;;;### (autoloads nil "helm-regexp" "helm-regexp.el" (23287 1499
-;;;;;;  593139 17000))
-;;; Generated autoloads from helm-regexp.el
-
-(autoload 'helm-moccur-mode "helm-regexp" "\
-Major mode to provide actions in helm moccur saved buffer.
-
-Special commands:
-\\{helm-moccur-mode-map}
-
-\(fn)" t nil)
-
-(autoload 'helm-regexp "helm-regexp" "\
-Preconfigured helm to build regexps.
-`query-replace-regexp' can be run from there against found regexp.
-
-\(fn)" t nil)
-
-(autoload 'helm-occur "helm-regexp" "\
+(autoload 'helm-occur "helm-occur" "\
 Preconfigured helm for searching lines matching pattern in `current-buffer'.
 
 When `helm-source-occur' is member of
@@ -1086,17 +1328,18 @@ buffers (i.e. a helm command using `helm-source-buffers-list' like
 `helm-mini') and use the multi occur buffers action.
 
 This is the helm implementation that collect lines matching pattern
-like vanilla emacs `occur' but have nothing to do with it, the search
-engine beeing completely different.
+like vanilla Emacs `occur' but have nothing to do with it, the search
+engine beeing completely different and also much faster." t nil)
 
-\(fn)" t nil)
+(autoload 'helm-occur-visible-buffers "helm-occur" "\
+Run helm-occur on all visible buffers in frame." t nil)
 
-(autoload 'helm-occur-from-isearch "helm-regexp" "\
+(autoload 'helm-occur-from-isearch "helm-occur" "\
 Invoke `helm-occur' from isearch.
 
-\(fn)" t nil)
+To use this bind it to a key in `isearch-mode-map'." t nil)
 
-(autoload 'helm-multi-occur-from-isearch "helm-regexp" "\
+(autoload 'helm-multi-occur-from-isearch "helm-occur" "\
 Invoke `helm-multi-occur' from isearch.
 
 With a prefix arg, reverse the behavior of
@@ -1104,59 +1347,60 @@ With a prefix arg, reverse the behavior of
 The prefix arg can be set before calling
 `helm-multi-occur-from-isearch' or during the buffer selection.
 
-\(fn &optional ARG)" t nil)
+To use this bind it to a key in `isearch-mode-map'." t nil)
+
+(register-definition-prefixes "helm-occur" '("helm-"))
 
 ;;;***
 
-;;;### (autoloads nil "helm-ring" "helm-ring.el" (23287 1499 593139
-;;;;;;  17000))
+;;;### (autoloads nil "helm-regexp" "helm-regexp.el" (0 0 0 0))
+;;; Generated autoloads from helm-regexp.el
+
+(autoload 'helm-regexp "helm-regexp" "\
+Preconfigured helm to build regexps.
+`query-replace-regexp' can be run from there against found regexp." t nil)
+
+(register-definition-prefixes "helm-regexp" '("helm-"))
+
+;;;***
+
+;;;### (autoloads nil "helm-ring" "helm-ring.el" (0 0 0 0))
 ;;; Generated autoloads from helm-ring.el
 
 (autoload 'helm-mark-ring "helm-ring" "\
-Preconfigured `helm' for `helm-source-mark-ring'.
-
-\(fn)" t nil)
+Preconfigured `helm' for `helm-source-mark-ring'." t nil)
 
 (autoload 'helm-global-mark-ring "helm-ring" "\
-Preconfigured `helm' for `helm-source-global-mark-ring'.
-
-\(fn)" t nil)
+Preconfigured `helm' for `helm-source-global-mark-ring'." t nil)
 
 (autoload 'helm-all-mark-rings "helm-ring" "\
-Preconfigured `helm' for `helm-source-global-mark-ring' and `helm-source-mark-ring'.
-
-\(fn)" t nil)
+Preconfigured `helm' for `helm-source-global-mark-ring' and `helm-source-mark-ring'." t nil)
 
 (autoload 'helm-register "helm-ring" "\
-Preconfigured `helm' for Emacs registers.
-
-\(fn)" t nil)
+Preconfigured `helm' for Emacs registers." t nil)
 
 (autoload 'helm-show-kill-ring "helm-ring" "\
 Preconfigured `helm' for `kill-ring'.
 It is drop-in replacement of `yank-pop'.
 
-First call open the kill-ring browser, next calls move to next line.
-
-\(fn)" t nil)
+First call open the kill-ring browser, next calls move to next line." t nil)
 
 (autoload 'helm-execute-kmacro "helm-ring" "\
 Preconfigured helm for keyboard macros.
 Define your macros with `f3' and `f4'.
 See (info \"(emacs) Keyboard Macros\") for detailed infos.
-This command is useful when used with persistent action.
+This command is useful when used with persistent action." t nil)
 
-\(fn)" t nil)
+(register-definition-prefixes "helm-ring" '("helm-"))
 
 ;;;***
 
-;;;### (autoloads nil "helm-semantic" "helm-semantic.el" (23287 1499
-;;;;;;  593139 17000))
+;;;### (autoloads nil "helm-semantic" "helm-semantic.el" (0 0 0 0))
 ;;; Generated autoloads from helm-semantic.el
 
 (autoload 'helm-semantic "helm-semantic" "\
 Preconfigured `helm' for `semantic'.
-If ARG is supplied, pre-select symbol at point instead of current
+If ARG is supplied, pre-select symbol at point instead of current.
 
 \(fn ARG)" t nil)
 
@@ -1171,10 +1415,27 @@ Fill in the symbol at point by default.
 
 \(fn ARG)" t nil)
 
+(register-definition-prefixes "helm-semantic" '("helm-s"))
+
 ;;;***
 
-;;;### (autoloads nil "helm-sys" "helm-sys.el" (23287 1499 593139
-;;;;;;  17000))
+;;;### (autoloads nil "helm-shell" "helm-shell.el" (0 0 0 0))
+;;; Generated autoloads from helm-shell.el
+
+(defalias 'helm-shell-prompts 'helm-comint-prompts)
+
+(defalias 'helm-shell-prompts-all 'helm-comint-prompts-all)
+
+;;;***
+
+;;;### (autoloads nil "helm-source" "helm-source.el" (0 0 0 0))
+;;; Generated autoloads from helm-source.el
+
+(register-definition-prefixes "helm-source" '("helm-"))
+
+;;;***
+
+;;;### (autoloads nil "helm-sys" "helm-sys.el" (0 0 0 0))
 ;;; Generated autoloads from helm-sys.el
 
 (defvar helm-top-poll-mode nil "\
@@ -1190,27 +1451,36 @@ or call the function `helm-top-poll-mode'.")
 (autoload 'helm-top-poll-mode "helm-sys" "\
 Refresh automatically helm top buffer once enabled.
 
+This is a minor mode.  If called interactively, toggle the
+`Helm-Top-Poll mode' mode.  If the prefix argument is positive,
+enable the mode, and if it is zero or negative, disable the mode.
+
+If called from Lisp, toggle the mode if ARG is `toggle'.  Enable
+the mode if ARG is nil, omitted, or is a positive number.
+Disable the mode if ARG is a negative number.
+
+To check whether the minor mode is enabled in the current buffer,
+evaluate `(default-value \\='helm-top-poll-mode)'.
+
+The mode's hook is called both when the mode is enabled and when
+it is disabled.
+
 \(fn &optional ARG)" t nil)
 
 (autoload 'helm-top "helm-sys" "\
-Preconfigured `helm' for top command.
-
-\(fn)" t nil)
+Preconfigured `helm' for top command." t nil)
 
 (autoload 'helm-list-emacs-process "helm-sys" "\
-Preconfigured `helm' for emacs process.
-
-\(fn)" t nil)
+Preconfigured `helm' for Emacs process." t nil)
 
 (autoload 'helm-xrandr-set "helm-sys" "\
-Preconfigured helm for xrandr.
+Preconfigured helm for xrandr." t nil)
 
-\(fn)" t nil)
+(register-definition-prefixes "helm-sys" '("helm-"))
 
 ;;;***
 
-;;;### (autoloads nil "helm-tags" "helm-tags.el" (23287 1499 593139
-;;;;;;  17000))
+;;;### (autoloads nil "helm-tags" "helm-tags.el" (0 0 0 0))
 ;;; Generated autoloads from helm-tags.el
 
 (autoload 'helm-etags-select "helm-tags" "\
@@ -1227,10 +1497,18 @@ This function aggregates three sources of tag files:
 
 \(fn REINIT)" t nil)
 
+(register-definition-prefixes "helm-tags" '("helm-"))
+
 ;;;***
 
-;;;### (autoloads nil "helm-utils" "helm-utils.el" (23287 1499 593139
-;;;;;;  17000))
+;;;### (autoloads nil "helm-types" "helm-types.el" (0 0 0 0))
+;;; Generated autoloads from helm-types.el
+
+(register-definition-prefixes "helm-types" '("helm-"))
+
+;;;***
+
+;;;### (autoloads nil "helm-utils" "helm-utils.el" (0 0 0 0))
 ;;; Generated autoloads from helm-utils.el
 
 (defvar helm-popup-tip-mode nil "\
@@ -1246,13 +1524,43 @@ or call the function `helm-popup-tip-mode'.")
 (autoload 'helm-popup-tip-mode "helm-utils" "\
 Show help-echo informations in a popup tip at end of line.
 
+This is a minor mode.  If called interactively, toggle the
+`Helm-Popup-Tip mode' mode.  If the prefix argument is positive,
+enable the mode, and if it is zero or negative, disable the mode.
+
+If called from Lisp, toggle the mode if ARG is `toggle'.  Enable
+the mode if ARG is nil, omitted, or is a positive number.
+Disable the mode if ARG is a negative number.
+
+To check whether the minor mode is enabled in the current buffer,
+evaluate `(default-value \\='helm-popup-tip-mode)'.
+
+The mode's hook is called both when the mode is enabled and when
+it is disabled.
+
 \(fn &optional ARG)" t nil)
+
+(register-definition-prefixes "helm-utils" '("helm-" "with-helm-display-marked-candidates"))
 
 ;;;***
 
-;;;### (autoloads nil nil ("helm-core-pkg.el" "helm-easymenu.el"
-;;;;;;  "helm-lib.el" "helm-multi-match.el" "helm-pkg.el" "helm-source.el"
-;;;;;;  "helm-types.el" "helm-x-files.el") (23287 1499 593139 17000))
+;;;### (autoloads nil "helm-x-files" "helm-x-files.el" (0 0 0 0))
+;;; Generated autoloads from helm-x-files.el
+
+(register-definition-prefixes "helm-x-files" '("helm-"))
+
+;;;***
+
+;;;### (autoloads nil "smtpmail-async" "smtpmail-async.el" (0 0 0
+;;;;;;  0))
+;;; Generated autoloads from smtpmail-async.el
+
+(register-definition-prefixes "smtpmail-async" '("async-smtpmail-"))
+
+;;;***
+
+;;;### (autoloads nil nil ("async_init.el" "helm-config.el" "helm-core.el"
+;;;;;;  "helm-easymenu.el") (0 0 0 0))
 
 ;;;***
 
