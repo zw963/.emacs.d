@@ -17,6 +17,8 @@
 (sp-local-pair
  '(markdown-mode gfm-mode) "*" "*" :unless '(sp-in-string-p) :actions '(insert wrap))
 
+(global-set-key [remap backward-kill-word] #'sp-backward-delete-word)
+
 (add-hook 'prog-mode-hook 'smartparens-global-mode)
 
 (provide 'smartparens_init)
