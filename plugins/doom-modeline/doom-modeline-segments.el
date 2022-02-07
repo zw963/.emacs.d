@@ -5,20 +5,18 @@
 ;; This file is not part of GNU Emacs.
 
 ;;
-;; This program is free software; you can redistribute it and/or
-;; modify it under the terms of the GNU General Public License as
-;; published by the Free Software Foundation; either version 2, or
+;; This program is free software; you can redistribute it and/or modify
+;; it under the terms of the GNU General Public License as published by
+;; the Free Software Foundation, either version 3 of the License, or
 ;; (at your option) any later version.
 ;;
 ;; This program is distributed in the hope that it will be useful,
 ;; but WITHOUT ANY WARRANTY; without even the implied warranty of
-;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-;; General Public License for more details.
+;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+;; GNU General Public License for more details.
 ;;
 ;; You should have received a copy of the GNU General Public License
-;; along with this program; see the file COPYING.  If not, write to
-;; the Free Software Foundation, Inc., 51 Franklin Street, Fifth
-;; Floor, Boston, MA 02110-1301, USA.
+;; along with this program.  If not, see <https://www.gnu.org/licenses/>.
 ;;
 
 ;;; Commentary:
@@ -104,7 +102,7 @@
 (defvar text-scale-mode-amount)
 (defvar tracking-buffers)
 (defvar winum-auto-setup-mode-line)
-(defvar xah-fly-insert-state-q)
+(defvar xah-fly-insert-state-p)
 
 (declare-function anzu--reset-status 'anzu)
 (declare-function anzu--where-is-here 'anzu)
@@ -166,10 +164,10 @@
 (declare-function flycheck-list-errors 'flycheck)
 (declare-function flycheck-next-error 'flycheck)
 (declare-function flycheck-previous-error 'flycheck)
-(declare-function flymake--state-diags 'flymake)
 (declare-function flymake--diag-type 'flymake)
 (declare-function flymake--handle-report 'flymake)
 (declare-function flymake--lookup-type-property 'flymake)
+(declare-function flymake--state-diags 'flymake)
 (declare-function flymake-disabled-backends 'flymake)
 (declare-function flymake-goto-next-error 'flymake)
 (declare-function flymake-goto-prev-error 'flymake)
@@ -177,6 +175,7 @@
 (declare-function flymake-running-backends 'flymake)
 (declare-function flymake-show-diagnostics-buffer 'flymake)
 (declare-function flymake-start 'flymake)
+(declare-function follow-all-followers 'follow)
 (declare-function gnus-demon-add-handler 'gnus-demon)
 (declare-function grip--preview-url 'grip-mode)
 (declare-function grip-browse-preview 'grip-mode)
@@ -1783,7 +1782,7 @@ TEXT is alternative if icon is not available."
 (defsubst doom-modeline--xah-fly-keys ()
   "The current `xah-fly-keys' state."
   (when (bound-and-true-p xah-fly-keys)
-    (if xah-fly-insert-state-q
+    (if xah-fly-insert-state-p
         (doom-modeline--modal-icon " <I> "
                                    'doom-modeline-evil-insert-state
                                    (format "Xah-fly insert mode"))

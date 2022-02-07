@@ -8,7 +8,7 @@
 
 (setq custom-theme-directory (expand-file-name "plugins/themes" default-directory))
 ;; (load-theme 'material t) ;; 这个是原来的
-(load-theme 'vscode-dark-plus t)
+;; (load-theme 'vscode-dark-plus t)
 ;; (load-theme 'material-light t) ;; 这个是原来的
 ;; (require 'spacemacs-common)
 ;; (load-theme 'spacemacs-dark t)
