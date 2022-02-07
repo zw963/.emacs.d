@@ -28,7 +28,7 @@
         (hover-mode :select t :size 0.2 :align 'below :autoclose t)
         (vterm-mode :select t :size 0.7)
         (vc-annotate-mode :select t :size 0.8 :align 'below :autoclose t)
-        (special-mode :select t :size 0.3 :align 'below :autoclose t)
+        (special-mode :select t :size 0.5 :align 'below :autoclose t)
         ;; ("*tldr*" :size 0.4 :align 'below :autoclose t)
         ;; ("*Finder*" :select t :size 0.3 :align 'below :autoclose t)
         ;; ("^\\*macro expansion\\**" :regexp t :size 0.4 :align 'below)
