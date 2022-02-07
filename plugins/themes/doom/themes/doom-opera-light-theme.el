@@ -1,9 +1,9 @@
-;;; doom-opera-light-theme.el --- Opera-Light theme -*- no-byte-compile: t; -*-
+;;; doom-opera-light-theme.el --- Opera-Light theme -*- lexical-binding: t; no-byte-compile: t; -*-
 
 (require 'doom-themes)
 
 (defgroup doom-opera-light-theme nil
-  "Options for doom-themes"
+  "Options for the `doom-opera-light' theme."
   :group 'doom-themes)
 
 (defcustom doom-opera-light-brighter-modeline nil
@@ -101,46 +101,37 @@ determine the exact padding."
 
    (modeline-bg
     (if -modeline-bright
-        (doom-darken blue 0.475)
-      `(,(doom-darken (car bg-alt) 0.15) ,@(cdr base0))))
-   (modeline-bg-l
-    (if -modeline-bright
         (doom-darken blue 0.45)
       `(,(doom-darken (car bg-alt) 0.1) ,@(cdr base0))))
-   (modeline-bg-inactive   (doom-darken bg-alt 0.1))
-   (modeline-bg-inactive-l `(,(car bg-alt) ,@(cdr base1))))
+   (modeline-bg-l
+    (if -modeline-bright
+        (doom-darken blue 0.475)
+      `(,(doom-darken (car bg-alt) 0.15) ,@(cdr base0))))
+   (modeline-bg-inactive   `(,(car bg-alt) ,@(cdr base1)))
+   (modeline-bg-inactive-l (doom-darken bg-alt 0.1)))
 
-  ;; --- extra faces ------------------------
-  (
-   ((lazy-highlight &override) :foreground base1 :weight 'bold)
+  ;;;; Base theme face overrides
+  (((font-lock-comment-face &override)
+    :background (if doom-opera-light-comment-bg (doom-lighten bg 0.05)))
+   (lazy-highlight :background (doom-blend bg highlight 0.7) :weight 'bold)
    ((line-number &override) :foreground fg-alt)
    ((line-number-current-line &override) :foreground fg)
-
-   (font-lock-comment-face
-    :foreground comments
-    :background (if doom-opera-light-comment-bg (doom-lighten bg 0.05)))
-   (font-lock-doc-face
-    :inherit 'font-lock-comment-face
-    :foreground doc-comments)
-
-   (doom-modeline-bar :background (if -modeline-bright modeline-bg highlight))
-
-   ;; ivy-posframe
-   (ivy-posframe :background bg-alt)
-   (ivy-posframe-border :background base1)
-
-   ;; ivy
-   (ivy-current-match :background base3)
-
    (mode-line
     :background modeline-bg :foreground modeline-fg
     :box (if -modeline-pad `(:line-width ,-modeline-pad :color ,modeline-bg)))
    (mode-line-inactive
     :background modeline-bg-inactive :foreground modeline-fg-alt
     :box (if -modeline-pad `(:line-width ,-modeline-pad :color ,modeline-bg-inactive)))
-   (mode-line-emphasis
-    :foreground (if -modeline-bright base8 highlight))
+   (mode-line-emphasis :foreground (if -modeline-bright base8 highlight))
 
+   ;;;; doom-modeline
+   (doom-modeline-bar :background (if -modeline-bright modeline-bg highlight))
+   ;;;; ivy
+   (ivy-current-match :background base3)
+   ;;;; ivy-posframe
+   (ivy-posframe :background bg-alt)
+   (ivy-posframe-border :background base1)
+   ;;;; solaire-mode
    (solaire-mode-line-face
     :inherit 'mode-line
     :background modeline-bg-l

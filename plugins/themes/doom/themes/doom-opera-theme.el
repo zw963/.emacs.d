@@ -1,9 +1,9 @@
-;;; doom-opera-theme.el --- Opera theme -*- no-byte-compile: t; -*-
+;;; doom-opera-theme.el --- Opera theme -*- lexical-binding: t; no-byte-compile: t; -*-
 
 (require 'doom-themes)
 
 (defgroup doom-opera-theme nil
-  "Options for doom-themes"
+  "Options for the `doom-opera' theme."
   :group 'doom-themes)
 
 (defcustom doom-opera-brighter-modeline nil
@@ -101,38 +101,31 @@ determine the exact padding."
 
    (modeline-bg
     (if -modeline-bright
-        (doom-darken blue 0.475)
-      `(,(doom-darken (car bg-alt) 0.15) ,@(cdr base0))))
-   (modeline-bg-l
-    (if -modeline-bright
         (doom-darken blue 0.45)
       `(,(doom-darken (car bg-alt) 0.1) ,@(cdr base0))))
-   (modeline-bg-inactive   (doom-darken bg-alt 0.1))
-   (modeline-bg-inactive-l `(,(car bg-alt) ,@(cdr base1))))
+   (modeline-bg-l
+    (if -modeline-bright
+        (doom-darken blue 0.475)
+      `(,(doom-darken (car bg-alt) 0.15) ,@(cdr base0))))
+   (modeline-bg-inactive   `(,(car bg-alt) ,@(cdr base1)))
+   (modeline-bg-inactive-l (doom-darken bg-alt 0.1)))
 
-  ;; --- extra faces ------------------------
-  (
-   ((line-number &override) :foreground fg-alt)
+  ;;;; Base theme face overrides
+  (((line-number &override) :foreground fg-alt)
    ((line-number-current-line &override) :foreground fg)
-
-   (font-lock-comment-face
-    :foreground comments
+   ((font-lock-comment-face &override)
     :background (if doom-opera-comment-bg (doom-lighten bg 0.05)))
-   (font-lock-doc-face
-    :inherit 'font-lock-comment-face
-    :foreground doc-comments)
-
-   (doom-modeline-bar :background (if -modeline-bright modeline-bg highlight))
-
    (mode-line
     :background modeline-bg :foreground modeline-fg
     :box (if -modeline-pad `(:line-width ,-modeline-pad :color ,modeline-bg)))
    (mode-line-inactive
     :background modeline-bg-inactive :foreground modeline-fg-alt
     :box (if -modeline-pad `(:line-width ,-modeline-pad :color ,modeline-bg-inactive)))
-   (mode-line-emphasis
-    :foreground (if -modeline-bright base8 highlight))
+   (mode-line-emphasis :foreground (if -modeline-bright base8 highlight))
 
+   ;;;; doom-modeline
+   (doom-modeline-bar :background (if -modeline-bright modeline-bg highlight))
+   ;;;; solaire-mode
    (solaire-mode-line-face
     :inherit 'mode-line
     :background modeline-bg-l
@@ -142,8 +135,7 @@ determine the exact padding."
     :background modeline-bg-inactive-l
     :box (if -modeline-pad `(:line-width ,-modeline-pad :color ,modeline-bg-inactive-l))))
 
-
-  ;; --- extra variables ---------------------
+  ;;;; Base theme variable overrides-
   ())
 
 ;;; doom-opera-theme.el ends here

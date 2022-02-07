@@ -1,9 +1,9 @@
-;;; doom-challenger-deep-theme.el --- inspired by VIM Challenger Deep -*- no-byte-compile: t; -*-
+;;; doom-challenger-deep-theme.el --- inspired by VIM Challenger Deep -*- lexical-binding: t; no-byte-compile: t; -*-
 (require 'doom-themes)
 
 ;;
 (defgroup doom-challenger-deep-theme nil
-  "Options for doom-themes"
+  "Options for the `doom-challenger-deep' theme."
   :group 'doom-themes)
 
 (defcustom doom-challenger-deep-brighter-modeline nil
@@ -97,41 +97,50 @@ determine the exact padding."
    (modeline-bg
     (if -modeline-bright
         base3
-      `(,(doom-darken (car bg) 0.15) ,@(cdr base0))))
+      `(,(doom-darken (car bg) 0.1) ,@(cdr base0))))
    (modeline-bg-l
     (if -modeline-bright
         base3
-      `(,(doom-darken (car bg) 0.1) ,@(cdr base0))))
-   (modeline-bg-inactive   (doom-darken bg 0.1))
-   (modeline-bg-inactive-l `(,(car bg) ,@(cdr base1))))
+      `(,(doom-darken (car bg) 0.15) ,@(cdr base0))))
+   (modeline-bg-inactive   `(,(car bg) ,@(cdr base1)))
+   (modeline-bg-inactive-l (doom-darken bg 0.1)))
 
 
-  ;; --- extra faces ------------------------
-  (((secondary-selection &override) :background base0)
-   (elscreen-tab-other-screen-face :background "#353a42" :foreground "#1e2022")
-
-   ((line-number &override) :foreground base4)
+  ;;;; Base theme face overrides
+  (((line-number &override) :foreground base4)
    ((line-number-current-line &override) :foreground fg)
-
-   (font-lock-comment-face
-    :foreground comments
+   ((font-lock-comment-face &override)
     :background (if doom-challenger-deep-comment-bg (doom-lighten bg 0.05)))
-   (font-lock-doc-face
-    :inherit 'font-lock-comment-face
-    :foreground doc-comments)
-
-   (doom-modeline-bar :background (if -modeline-bright modeline-bg highlight))
-
    (mode-line
     :background modeline-bg :foreground modeline-fg
     :box (if -modeline-pad `(:line-width ,-modeline-pad :color ,modeline-bg)))
    (mode-line-inactive
     :background modeline-bg-inactive :foreground modeline-fg-alt
     :box (if -modeline-pad `(:line-width ,-modeline-pad :color ,modeline-bg-inactive)))
-   (mode-line-emphasis
-    :foreground (if -modeline-bright base8 highlight))
-   (header-line :inherit 'mode-line :background "#23214b")
+   (mode-line-emphasis :foreground (if -modeline-bright base8 highlight))
+   ((secondary-selection &override) :background base0)
+   (tooltip :background base0 :foreground fg)
 
+   ;;;; css-mode <built-in> / scss-mode
+   (css-proprietary-property :foreground orange)
+   (css-property             :foreground green)
+   (css-selector             :foreground blue)
+   ;;;; doom-modeline
+   (doom-modeline-bar :background (if -modeline-bright modeline-bg highlight))
+   ;;;; elscreen
+   (elscreen-tab-other-screen-face :background "#353a42" :foreground "#1e2022")
+   ;;;; markdown-mode
+   (markdown-markup-face :foreground base5)
+   (markdown-header-face :inherit 'bold :foreground red)
+   ((markdown-code-face &override) :background (doom-lighten base3 0.05))
+   ;;;; outline <built-in>
+   ((outline-1 &override) :foreground blue :background nil)
+   ;;;; org <built-in>
+   ((org-block &override) :background base1)
+   ((org-block-begin-line &override) :background base1 :foreground comments)
+   (org-hide :foreground hidden)
+   (org-link :foreground orange :underline t :weight 'bold)
+   ;;;; solaire-mode
    (solaire-mode-line-face
     :inherit 'mode-line
     :background modeline-bg-l
@@ -139,32 +148,9 @@ determine the exact padding."
    (solaire-mode-line-inactive-face
     :inherit 'mode-line-inactive
     :background modeline-bg-inactive-l
-    :box (if -modeline-pad `(:line-width ,-modeline-pad :color ,modeline-bg-inactive-l)))
+    :box (if -modeline-pad `(:line-width ,-modeline-pad :color ,modeline-bg-inactive-l))))
 
-   ;; --- major-mode faces -------------------
-   ;; css-mode / scss-mode
-   (css-proprietary-property :foreground orange)
-   (css-property             :foreground green)
-   (css-selector             :foreground blue)
-
-   ;; markdown-mode
-   (markdown-markup-face :foreground base5)
-   (markdown-header-face :inherit 'bold :foreground red)
-   ((markdown-code-face &override) :background (doom-lighten base3 0.05))
-
-   ;; outline (affects org-mode)
-   ((outline-1 &override) :foreground blue :background nil)
-
-   ;; org-mode
-   ((org-block &override) :background base1)
-   ((org-block-begin-line &override) :background base1 :foreground comments)
-   (org-hide :foreground hidden)
-   (org-link :foreground orange :underline t :weight 'bold)
-
-   ;; tooltip
-   (tooltip              :background base0 :foreground fg))
-
-  ;; --- extra variables ---------------------
+  ;;;; Base theme variable overrides-
   ;; ()
   )
 

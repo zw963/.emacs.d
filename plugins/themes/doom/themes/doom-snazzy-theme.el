@@ -1,4 +1,4 @@
-;;; doom-snazzy-theme.el --- inspired by Hyper Snazzy -*- no-byte-compile: t; -*-
+;;; doom-snazzy-theme.el --- inspired by Hyper Snazzy -*- lexical-binding: t; no-byte-compile: t; -*-
 
 ;;; Commentary:
 ;;; Code:
@@ -9,7 +9,7 @@
 
 ;;
 (defgroup doom-snazzy-theme nil
-  "Options for doom-themes"
+  "Options for the `doom-snazzy' theme."
   :group 'doom-themes)
 
 ;;
@@ -51,16 +51,14 @@
 
    ;; face categories -- required for all themes
    (highlight      blue) ;; when searching with (/) ?
-   ;; (vertical-bar   (doom-darken base1 0.1)) ;; no idea what this is
-   (vertical-bar (doom-darken base1 0.1)) ;; the bar that separates modeline and
-                                          ;; minibuffer?
-   (selection      dark-blue) ;; for like company autocomplete and stuff
-   (builtin magenta) ;; saw this in company autocomplete if i moved my mouse
-                     ;; over it
+   (vertical-bar   (doom-darken base1 0.1)) ; the bar that separates modeline and minibuffer?
+   (selection      dark-blue)  ; for like company autocomplete and stuff
+   (builtin        magenta)    ; saw this in company autocomplete if i moved my mouse
+   ;; over it
    (comments       ui1) ;; comments
    (doc-comments (doom-lighten yellow 0.25)) ;; easy to test with elisp
-                                             ;; documentation or git commit
-                                             ;; first line thing
+   ;; documentation or git commit
+   ;; first line thing
    (constants      green)
    (functions      blue)
    (keywords       orange)
@@ -79,28 +77,26 @@
    (vc-added       green)
    (vc-deleted     red))
 
-  ;; extra faces
-  ;; i have no idea what im doing with the modeline
-  ((mode-line
-    :background (doom-darken bg-alt 0.15))
-   (mode-line-inactive
-    :background (doom-darken bg-alt 0.1)
-    :foreground base5)
-   (doom-modeline-bar :background highlight)
-   ;; line numbers
-   (line-number :foreground ui2)
+
+  ;;;; Base theme face overrides
+  ((line-number :foreground ui2)
    (line-number-current-line :foreground fg)
-   ;; rjsx stuff
-   (rjsx-text :foreground fg)
-   ;; tooltip
-   (tooltip              :background (doom-darken bg-alt 0.2) :foreground fg)
+   ;; i have no idea what im doing with the modeline
+   (mode-line :background (doom-darken bg-alt 0.15))
+   (mode-line-inactive :background (doom-darken bg-alt 0.1) :foreground base5)
+   (tooltip :background (doom-darken bg-alt 0.2) :foreground fg)
 
+   ;;;; doom-modeline
+   (doom-modeline-bar :background highlight)
+   ;;;; ivy-posframe
    (ivy-posframe-border :background ui3)
-
-   ;; org
+   ;;;; outline <built-in>
+   ((outline-3 &override) :foreground dark-blue)
+   ;;;; org <built-in>
    ((org-block &override) :background bg-alt)
    ((org-block-begin-line &override) :background bg-alt)
-   ((org-block-end-line &override) :background bg-alt)
-   ((outline-3 &override) :foreground dark-blue))) ; this is ff0000 from something above, dunno what
+   ((org-block-end-line &override)   :background bg-alt)
+   ;;;; rjsx-mode
+   (rjsx-text :foreground fg)))
 
 ;;; doom-snazzy-theme.el ends here

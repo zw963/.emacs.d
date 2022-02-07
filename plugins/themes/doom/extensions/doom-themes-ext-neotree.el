@@ -1,4 +1,16 @@
-;;; doom-themes-ext-neotree.el -*- lexical-binding: t; -*-
+;;; doom-themes-ext-neotree.el --- ... -*- lexical-binding: t; no-byte-compile: t -*-
+;;
+;; Copyright (C) 2021 Henrik Lissner
+;;
+;; Author: Henrik Lissner <https://github.com/hlissner>
+;; Maintainer: Henrik Lissner <contact@henrik.io>
+;; Created: August 3, 2017
+;; Homepage: https://github.com/hlissner/doom-themes-ext-org
+;;
+;; This file is not part of GNU Emacs.
+;;
+;;; Commentary:
+;;; Code:
 
 (defgroup doom-themes-neotree nil
   "Options for doom's neotree theme"
@@ -28,7 +40,6 @@
   :type 'symbol
   :group 'doom-themes-neotree)
 
-(define-obsolete-variable-alias 'doom-themes-neotree-enable-file-icons 'doom-themes-neotree-file-icons)
 (defcustom doom-themes-neotree-file-icons 'simple
   "The style to use for the file icons. Can be nil (disabled), non-nil (for a
 diverse iconset), or 'simple, which is closest's to Atom's style as it only

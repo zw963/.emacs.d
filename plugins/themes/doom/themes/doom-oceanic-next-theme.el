@@ -1,14 +1,14 @@
-;;; doom-oceanic-next-theme.el --- inspired by Oceanic Next -*- no-byte-compile: t; -*-
+;;; doom-oceanic-next-theme.el --- inspired by Oceanic Next -*- lexical-binding: t; no-byte-compile: t; -*-
 (require 'doom-themes)
 
 (defgroup doom-oceanic-next-theme nil
-  "Options for doom-themes"
+  "Options for the `doom-oceanic-next' theme."
   :group 'doom-themes)
 
 (defcustom doom-oceanic-next-brighter-modeline nil
- "If non-nil, more vivid colors will be used to style the mode-line."
- :group 'doom-oceanic-next-theme
- :type 'boolean)
+  "If non-nil, more vivid colors will be used to style the mode-line."
+  :group 'doom-oceanic-next-theme
+  :type 'boolean)
 
 (defcustom doom-oceanic-next-brighter-comments nil
   "If non-nil, comments will be highlighted in more vivid colors."
@@ -95,30 +95,23 @@ determine the exact padding."
 
    (modeline-bg
     (if -modeline-bright
-        (doom-darken blue 0.475)
-      `(,(doom-darken (car bg-alt) 0.15) ,@(cdr base0))))
-   (modeline-bg-l
-    (if -modeline-bright
         (doom-darken blue 0.45)
       `(,(doom-darken (car bg-alt) 0.1) ,@(cdr base0))))
-   (modeline-bg-inactive   `(,(doom-darken (car bg-alt) 0.1) ,@(cdr bg-alt)))
-   (modeline-bg-inactive-l `(,(car bg-alt) ,@(cdr base1))))
+   (modeline-bg-l
+    (if -modeline-bright
+        (doom-darken blue 0.475)
+      `(,(doom-darken (car bg-alt) 0.15) ,@(cdr base0))))
+   (modeline-bg-inactive   `(,(car bg-alt) ,@(cdr base1)))
+   (modeline-bg-inactive-l `(,(doom-darken (car bg-alt) 0.1) ,@(cdr bg-alt))))
 
 
-  ;; --- extra faces ------------------------
-  ((elscreen-tab-other-screen-face :background "#353a42" :foreground "#1e2022")
-
-   (evil-goggles-default-face :inherit 'region :background (doom-blend region bg 0.5))
+  ;;;; Base theme face overrides
+  (
 
    ((line-number &override) :foreground base4)
    ((line-number-current-line &override) :foreground fg)
-
-   (font-lock-comment-face
-    :foreground comments
+   ((font-lock-comment-face &override)
     :background (if doom-oceanic-next-comment-bg (doom-lighten bg 0.05)))
-   (font-lock-doc-face
-    :inherit 'font-lock-comment-face
-    :foreground doc-comments)
 
    (mode-line
     :background modeline-bg :foreground modeline-fg
@@ -126,9 +119,41 @@ determine the exact padding."
    (mode-line-inactive
     :background modeline-bg-inactive :foreground modeline-fg-alt
     :box (if -modeline-pad `(:line-width ,-modeline-pad :color ,modeline-bg-inactive)))
-   (mode-line-emphasis
-    :foreground (if -modeline-bright base8 highlight))
+   (mode-line-emphasis :foreground (if -modeline-bright base8 highlight))
+   
+   ;;;; VCS/magit readability
+   (diff-refine-removed :foreground vc-deleted :background bg :inverse-video t)
+   (diff-refine-added :foreground vc-added :background bg :inverse-video t)
 
+   (magit-diff-removed-highlight :foreground vc-deleted :background base1 :weight 'bold)
+
+   (magit-diff-base :foreground vc-modified :background bg-alt)
+   (magit-diff-removed :foreground vc-deleted :background base1)
+   (magit-diff-added :foreground vc-added :background base1)
+
+   ;;;; css-mode <built-in> / scss-mode
+   (css-proprietary-property :foreground orange)
+   (css-property             :foreground green)
+   (css-selector             :foreground blue)
+   ;;;; doom-modeline
+   (doom-modeline-bar :background (if -modeline-bright modeline-bg highlight))
+   (doom-modeline-buffer-file :inherit 'mode-line-buffer-id :weight 'bold)
+   (doom-modeline-buffer-path :inherit 'mode-line-emphasis :weight 'bold)
+   (doom-modeline-buffer-project-root :foreground green :weight 'bold)
+   ;;;; elscreen
+   (elscreen-tab-other-screen-face :background "#353a42" :foreground "#1e2022")
+   ;;;; markdown-mode
+   (markdown-markup-face :foreground base5)
+   (markdown-header-face :inherit 'bold :foreground blue)
+   ((markdown-code-face &override) :background (doom-lighten bg 0.05))
+   ;;;; ivy
+   (ivy-current-match :background base2 :distant-foreground base0 :weight 'bold)
+   ;;;; org <built-in>
+   ((org-block &override) :background bg-alt)
+   ((org-block-begin-line &override) :background bg-alt)
+   ((org-block-end-line &override) :background bg-alt)
+   (org-hide :foreground hidden)
+   ;;;; solaire-mode
    (solaire-mode-line-face
     :inherit 'mode-line
     :background modeline-bg-l
@@ -136,38 +161,9 @@ determine the exact padding."
    (solaire-mode-line-inactive-face
     :inherit 'mode-line-inactive
     :background modeline-bg-inactive-l
-    :box (if -modeline-pad `(:line-width ,-modeline-pad :color ,modeline-bg-inactive-l)))
+    :box (if -modeline-pad `(:line-width ,-modeline-pad :color ,modeline-bg-inactive-l))))
 
-   (tooltip              :background bg-alt :foreground fg)
-   ;; Doom modeline
-   (doom-modeline-bar :background (if -modeline-bright modeline-bg highlight))
-   (doom-modeline-buffer-file :inherit 'mode-line-buffer-id :weight 'bold)
-   (doom-modeline-buffer-path :inherit 'mode-line-emphasis :weight 'bold)
-   (doom-modeline-buffer-project-root :foreground green :weight 'bold)
-
-   ;; ivy-mode
-   (ivy-current-match :background base2 :distant-foreground base0 :weight 'bold)
-
-   ;; --- major-mode faces -------------------
-   ;; css-mode / scss-mode
-   (css-proprietary-property :foreground orange)
-   (css-property             :foreground green)
-   (css-selector             :foreground blue)
-
-   ;; markdown-mode
-   (markdown-markup-face :foreground base5)
-   (markdown-header-face :inherit 'bold :foreground blue)
-   ((markdown-code-face &override) :background (doom-lighten bg 0.05))
-
-   ;; org-mode
-   ((org-block &override) :background bg-alt)
-   ((org-block-begin-line &override) :background bg-alt)
-   ((org-block-end-line &override) :background bg-alt)
-   (org-hide :foreground hidden)
-   (solaire-org-hide-face :foreground hidden))
-
-
-  ;; --- extra variables ---------------------
+  ;;;; Base theme variable overrides-
   ()
   )
 

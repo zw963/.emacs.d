@@ -1,40 +1,41 @@
-;;; doom-material-theme.el --- inspired by Material Theme by equinusocio -*- lexical-binding: t; no-byte-compile: t; -*-
+;;; doom-material-dark-theme.el --- inspired by Material Theme by xrei -*- lexical-binding: t; no-byte-compile: t; -*-
 (require 'doom-themes)
 
 ;;
-(defgroup doom-material-theme nil
-  "Options for the `material' theme."
+(defgroup doom-material-dark-theme nil
+  "Options for the `material dark' theme."
   :group 'doom-themes)
+
 
 (defcustom doom-material-padded-modeline doom-themes-padded-modeline
   "If non-nil, adds a 4px padding to the mode-line.
 Can be an integer to determine the exact padding."
-  :group 'doom-material-theme
+  :group 'doom-material-dark-theme
   :type '(choice integer boolean))
 
 ;;
-(def-doom-theme doom-material
-  "A dark theme inspired by Material Theme by equinusocio"
+(def-doom-theme doom-material-dark
+  "A darker version of the Material Theme inspired by xrei"
 
   ;; name        default   256       16
-  ((bg         '("#263238" nil       nil))
-   (bg-alt     '("#1C262B" nil       nil))
+  ((bg         '("#212121" nil       nil))
+   (bg-alt     '("#3e3e3e" nil       nil))
    (base0      '("#171F24" "black"   "black"))
-   (base1      '("#1C262B" "#262626" "brightblack"))
-   (base2      '("#222D32" "#303030" "brightblack"))
-   (base3      '("#171F24" "#3a3a3a" "brightblack"))
-   (base4      '("#314048" "#444444" "brightblack"))
-   (base5      '("#37474F" "#585858" "brightblack"))
-   (base6      '("#556369" "#626262" "brightblack"))
-   (base7      '("#737E84" "#767676" "brightblack"))
-   (base8      '("#9BA3A7" "#a8a8a8" "white"))
+   (base1      '("#262626" "#262626" "brightblack"))
+   (base2      '("#303030" "#303030" "brightblack"))
+   (base3      '("#3A3A3A" "#3A3A3A" "brightblack"))
+   (base4      '("#4a4a4a" "#444444" "brightblack"))
+   (base5      '("#585858" "#585858" "brightblack"))
+   (base6      '("#626262" "#626262" "brightblack"))
+   (base7      '("#767676" "#767676" "brightblack"))
+   (base8      '("#A8A8A8" "#a8a8a8" "white"))
    (fg         '("#EEFFFF" "#e4e4e4" "brightwhite"))
    (fg-alt     '("#BFC7D5" "#bcbcbc" "white"))
 
    (grey base5)
 
-   (red         '("#ff5370" "#ff0000" "red"))
-   (orange      '("#f78c6c" "#ff5f00" "brightred"))
+   (red         '("#f57373" "#ff0000" "red"))
+   (orange      '("#F78C6C" "#ff5f00" "brightred"))
    (green       '("#c3e88d" "#afff00" "green"))
    (teal        '("#44b9b1" "#00d7af" "brightgreen"))
    (yellow      '("#ffcb6b" "#ffd700" "brightyellow"))
@@ -81,7 +82,10 @@ Can be an integer to determine the exact padding."
 
   ;;;; Base theme face overrides
   (;;;; emacs
-   (lazy-highlight :background base4 :foreground fg :weight 'bold)
+   (lazy-highlight :background (doom-darken green 0.5) :foreground green :weight 'bold)
+   (minibuffer-prompt :foreground yellow)
+   (region :background (doom-darken dark-cyan 0.5) :foreground dark-cyan :distant-foreground (doom-darken fg 0.2) :extend t)
+   (hl-line :background base2 :foreground nil)
    (mode-line
     :background modeline-bg :foreground modeline-fg
     :box (if -modeline-pad `(:line-width ,-modeline-pad :color ,modeline-bg)))
@@ -89,6 +93,13 @@ Can be an integer to determine the exact padding."
     :background modeline-bg-alt :foreground modeline-fg-alt
     :box (if -modeline-pad `(:line-width ,-modeline-pad :color ,modeline-bg-alt)))
    (tooltip :background (doom-darken bg-alt 0.2) :foreground fg)
+   (cursor :background yellow)
+   (line-number-current-line
+     :inherit '(hl-line default)
+     :foreground cyan :distant-foreground nil
+     :weight 'normal :italic nil :underline nil :strike-through nil)
+   (completions-first-difference :foreground yellow)
+   (icomplete-first-match :foreground green :underline t :weight 'bold)
 
    ;;;; doom-modeline
    (doom-modeline-buffer-path       :foreground green :weight 'bold)
@@ -114,7 +125,10 @@ Can be an integer to determine the exact padding."
    (dired-k-ignored :foreground cyan)
    (dired-k-added    :foreground vc-added)
    ;;;; ivy
-   (ivy-current-match :background base5)
+   (ivy-current-match :background base3)
+   (ivy-minibuffer-match-face-2
+    :inherit 'ivy-minibuffer-match-face-1
+    :foreground dark-cyan :background base1 :weight 'semi-bold)
    ;;;; js2-mode
    (js2-jsdoc-tag              :foreground magenta)
    (js2-object-property        :foreground yellow)
@@ -136,6 +150,29 @@ Can be an integer to determine the exact padding."
    (rainbow-delimiters-depth-9-face :foreground dark-cyan)
    ;;;; rjsx-mode
    (rjsx-tag :foreground red)
-   (rjsx-attr :foreground yellow :slant 'italic :weight 'medium)))
+   (rjsx-attr :foreground yellow :slant 'italic :weight 'medium)
+   (rjsx-tag-bracket-face :foreground cyan)
+   ;;;; Magit
+   (magit-header-line :background (doom-lighten modeline-bg 0.2) :foreground green :weight 'bold
+                      :box `(:line-width 3 :color ,(doom-lighten modeline-bg 0.2)))
+   ;;;; Treemacs
+   (treemacs-git-modified-face :foreground vc-modified)
+   ;;;; Web Mode
+   (web-mode-html-tag-face :foreground red)
+   (web-mode-html-attr-equal-face :foreground cyan)
+   ;;;; Org Mode
+   (org-level-1 :foreground green)
+   (org-level-2 :foreground yellow)
+   (org-level-3 :foreground red)
+   (org-level-4 :foreground cyan)
+   (org-level-5 :foreground blue)
+   (org-level-6 :foreground magenta)
+   (org-level-7 :foreground teal)
+   (org-level-8 :foreground violet)
+   (org-todo :foreground orange)
+   ;;;; css
+   (css-property :foreground orange)
+   (css-proprietary-property :foreground magenta)
+   (css-selector :foreground yellow)))
 
-;;; doom-material-theme.el ends here
+;;; Doom-material-theme.el ends here

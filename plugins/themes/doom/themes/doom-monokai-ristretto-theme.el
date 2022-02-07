@@ -1,54 +1,54 @@
-;; doom-monokai-spectrum-theme.el --- Spectrum filter of Monokai Pro -*- lexical-binding: t; no-byte-compile: t; -*-
+;; doom-monokai-ristretto-theme.el --- Ristretto filter of Monokai Pro -*- lexical-binding: t; no-byte-compile: t; -*-
 (require 'doom-themes)
 
 ;;; Code:
-(defgroup doom-monokai-spectrum-theme nil
+(defgroup doom-monokai-ristretto-theme nil
   "Options for doom-molokai."
   :group 'doom-themes)
 
-(defcustom doom-monokai-spectrum-brighter-comments nil
+(defcustom doom-monokai-ristretto-brighter-comments nil
   "If non-nil, comments will be highlighted in more vivid colors."
-  :group 'doom-monokai-spectrum-theme
+  :group 'doom-monokai-ristretto-theme
   :type 'boolean)
 
-(defcustom doom-monokai-spectrum-comment-bg doom-monokai-spectrum-brighter-comments
+(defcustom doom-monokai-ristretto-comment-bg doom-monokai-ristretto-brighter-comments
   "If non-nil, comments will have a subtle, darker background.
 Enhancing their legibility."
-  :group 'doom-monokai-spectrum-theme
+  :group 'doom-monokai-ristretto-theme
   :type 'boolean)
 
-(defcustom doom-monokai-spectrum-padded-modeline doom-themes-padded-modeline
+(defcustom doom-monokai-ristretto-padded-modeline doom-themes-padded-modeline
   "If non-nil, adds a 4px padding to the mode-line.
 Can be an integer to determine the exact padding."
-  :group 'doom-monokai-spectrum-theme
+  :group 'doom-monokai-ristretto-theme
   :type '(choice integer boolean))
 
 ;;
-(def-doom-theme doom-monokai-spectrum
+(def-doom-theme doom-monokai-ristretto
   "A dark, vibrant theme inspired by Textmate's Monokai."
 
   ;; name        gui       256       16
-  ((bg         '("#222222" nil       nil            ))
-   (bg-alt     '("#191919" nil       nil            ))
+  ((bg         '("#2c2525" nil       nil            ))
+   (bg-alt     '("#201C1C" nil       nil            ))
    (base0      '("#131313" "#121212" "black"        ))
-   (base1      '("#191919" "#1c1c1c" "black"        ))
-   (base2      '("#2c2c2d" "#262626" "brightblack"  ))
-   (base3      '("#363537" "#3a3a3a" "brightblack"  ))
-   (base4      '("#525053" "#585858" "brightblack"  ))
-   (base5      '("#585659" "#585858" "brightblack"  ))
-   (base6      '("#69676c" "#6c6c6c" "brightblack"  ))
-   (base7      '("#8b888f" "#8a8a8a" "brightblack"  ))
-   (base8      '("#b6b2bc" "#bcbcbc" "white"        ))
-   (fg         '("#f7f1ff" "#ffffff" "brightwhite"  ))
+   (base1      '("#191515" "#1c1c1c" "black"        ))
+   (base2      '("#332c2c" "#262626" "brightblack"  ))
+   (base3      '("#403838" "#3a3a3a" "brightblack"  ))
+   (base4      '("#5b5353" "#585858" "brightblack"  ))
+   (base5      '("#615959" "#585858" "brightblack"  ))
+   (base6      '("#72696a" "#6c6c6c" "brightblack"  ))
+   (base7      '("#948a8b" "#8a8a8a" "brightblack"  ))
+   (base8      '("#bfb3b5" "#bcbcbc" "white"        ))
+   (fg         '("#fff1f3" "#ffffff" "brightwhite"  ))
    (fg-alt     '("#c6c6c6" "#c6c6c6" "white"        ))
 
    (grey       base4)
-   (red        '("#fc618d" "#ff69bf" "red"          ))
-   (orange     '("#fd9353" "#ff7f50" "brightred"    ))
-   (green      '("#7bd88f" "#90ee90" "green"        ))
-   (yellow     '("#fce566" "#f0e68c" "yellow"       ))
-   (violet     '("#948ae3" "#9370db" "magenta"      ))
-   (cyan       '("#5ad4e6" "#40e0d0" "brightcyan"   ))
+   (red        '("#fd6883" "#ff69bf" "red"          ))
+   (orange     '("#f38d70" "#ff7f50" "brightred"    ))
+   (green      '("#adda78" "#90ee90" "green"        ))
+   (yellow     '("#f9cc6c" "#f0e68c" "yellow"       ))
+   (violet     '("#a8a9eb" "#9370db" "magenta"      ))
+   (cyan       '("#85dacc" "#40e0d0" "brightcyan"   ))
    (magenta     cyan)
    (blue        cyan)
    (dark-blue   cyan)
@@ -60,8 +60,8 @@ Can be an integer to determine the exact padding."
    (vertical-bar   (doom-lighten bg 0.1))
    (selection      base2)
    (builtin        violet)
-   (comments       (if doom-monokai-spectrum-brighter-comments violet base6))
-   (doc-comments   (if doom-monokai-spectrum-brighter-comments (doom-lighten violet 0.1) (doom-lighten base6 0.25)))
+   (comments       (if doom-monokai-ristretto-brighter-comments violet base6))
+   (doc-comments   (if doom-monokai-ristretto-brighter-comments (doom-lighten violet 0.1) (doom-lighten base6 0.25)))
    (constants      violet)
    (functions      green)
    (keywords       magenta)
@@ -82,8 +82,8 @@ Can be an integer to determine the exact padding."
    ;; custom categories
    (hidden     `(,(car bg) "black" "black"))
    (-modeline-pad
-    (when doom-monokai-spectrum-padded-modeline
-      (if (integerp doom-monokai-spectrum-padded-modeline) doom-monokai-spectrum-padded-modeline 4)))
+    (when doom-monokai-ristretto-padded-modeline
+      (if (integerp doom-monokai-ristretto-padded-modeline) doom-monokai-ristretto-padded-modeline 4)))
 
 
    (org-quote `(,(doom-lighten (car bg) 0.05) "#1f1f1f")))
@@ -117,14 +117,37 @@ Can be an integer to determine the exact padding."
    (css-proprietary-property                     :foreground keywords)
    ;;;; deadgrep
    (deadgrep-match-face                          :inherit 'match :box `(:line-width 2 :color ,yellow))
-   ;;;; doom-emacs
-   (doom-dashboard-menu-title                    :foreground yellow)
    ;;;; doom-modeline
    (doom-modeline-bar                            :background yellow)
    (doom-modeline-buffer-file                    :inherit 'mode-line-buffer-id :weight 'bold)
    (doom-modeline-buffer-path                    :inherit 'bold :foreground green)
    (doom-modeline-buffer-project-root            :foreground green :weight 'bold)
    (doom-modeline-buffer-modified                :inherit 'bold :foreground orange)
+   ;;;; ivy
+   (ivy-action                                   :foreground violet)
+   (ivy-confirm-face                             :foreground green)
+   (ivy-current-match                            :foreground bg :background yellow)
+   (ivy-cursor                                   :foreground bg :background fg)
+   (ivy-grep-info                                :foreground red)
+   (ivy-grep-line-number                         :foreground red)
+   (ivy-highlight-face                           :background base3 :foreground fg)
+   (ivy-match-required-face                      :foreground red)
+   (ivy-minibuffer-match-face-1                  :foreground yellow)
+   (ivy-minibuffer-match-face-2                  :foreground yellow :bold bold)
+   (ivy-minibuffer-match-face-3                  :foreground green)
+   (ivy-minibuffer-match-face-4                  :foreground green :bold bold)
+   (ivy-minibuffer-match-highlight               :foreground base6 :background base3)
+   (ivy-modified-buffer                          :foreground fg)
+   (ivy-modified-outside-buffer                  :foreground fg)
+   (ivy-org                                      :foreground base3 :italic italic)
+   (ivy-prompt-match                             :foreground bg :background yellow)
+   (ivy-remote                                   :foreground violet)
+   (ivy-separator                                :foreground base3)
+   (ivy-subdir                                   :foreground green)
+   (ivy-virtual                                  :foreground violet)
+   (ivy-yanked-word                              :foreground base6 :background base3)
+   ;;;; doom-emacs
+   (doom-dashboard-menu-title                    :foreground yellow)
    ;;;; ediff <built-in>
    (ediff-fine-diff-A                            :background (doom-blend red bg 0.3) :bold 'bold)
    ;;;; evil
@@ -139,28 +162,8 @@ Can be an integer to determine the exact padding."
    ;;;; helm
    (helm-swoop-target-line-face                  :foreground red :inverse-video t)
    ;;;; ivy
-   (ivy-action                                   :foreground violet)
-   (ivy-confirm-face                             :foreground green)
    (ivy-current-match                            :background base3)
-   (ivy-cursor                                   :foreground bg :background fg)
-   (ivy-grep-info                                :foreground red)
-   (ivy-grep-line-number                         :foreground red)
-   (ivy-highlight-face                           :background base3 :foreground fg)
-   (ivy-match-required-face                      :foreground red)
    (ivy-minibuffer-match-face-1                  :background base2 :foreground base4)
-   (ivy-minibuffer-match-face-2                  :foreground yellow :bold bold)
-   (ivy-minibuffer-match-face-3                  :foreground green)
-   (ivy-minibuffer-match-face-4                  :foreground green :bold bold)
-   (ivy-minibuffer-match-highlight               :foreground base6 :background base3)
-   (ivy-modified-buffer                          :foreground fg)
-   (ivy-modified-outside-buffer                  :foreground fg)
-   (ivy-org                                      :foreground base3 :italic italic)
-   (ivy-prompt-match                             :foreground bg :background yellow)
-   (ivy-remote                                   :foreground violet)
-   (ivy-separator                                :foreground base3)
-   (ivy-subdir                                   :foreground green)
-   (ivy-virtual                                  :foreground violet)
-   (ivy-yanked-word                              :foreground base6 :background base3)
    ;;;; lsp-mode
    (lsp-face-highlight-read                     :background base3)
    (lsp-face-highlight-textual                  :background base3)
@@ -183,6 +186,14 @@ Can be an integer to determine the exact padding."
    ;;;; neotree
    (neo-dir-link-face                            :foreground cyan)
    (neo-expand-btn-face                          :foreground red)
+   ;;;; rainbow-delimiters
+   (rainbow-delimiters-depth-1-face              :foreground red)
+   (rainbow-delimiters-depth-2-face              :foreground orange)
+   (rainbow-delimiters-depth-3-face              :foreground green)
+   (rainbow-delimiters-depth-4-face              :foreground cyan)
+   (rainbow-delimiters-depth-5-face              :foreground red)
+   (rainbow-delimiters-depth-6-face              :foreground orange)
+   (rainbow-delimiters-depth-7-face              :foreground green)
    ;;;; outline <built-in>
    ((outline-1 &override)                        :foreground yellow)
    ((outline-2 &override)                        :foreground blue)
@@ -248,14 +259,6 @@ Can be an integer to determine the exact padding."
    ;;(php-print-statement                          :foreground green)
    ;;(php-return-type-colon                        :foreground red)
    ;;(php-function-keyword                         :foreground blue :italic italic)
-   ;;;; rainbow-delimiters
-   (rainbow-delimiters-depth-1-face              :foreground red)
-   (rainbow-delimiters-depth-2-face              :foreground orange)
-   (rainbow-delimiters-depth-3-face              :foreground green)
-   (rainbow-delimiters-depth-4-face              :foreground cyan)
-   (rainbow-delimiters-depth-5-face              :foreground red)
-   (rainbow-delimiters-depth-6-face              :foreground orange)
-   (rainbow-delimiters-depth-7-face              :foreground green)
    ;;;; show-paren-mode
    (show-paren-match                             :bold bold :foreground green)
    (show-paren-mismatch                          :bold bold :foreground red)
@@ -302,4 +305,4 @@ Can be an integer to determine the exact padding."
   ;; ()
   )
 
-;;; doom-monokai-spectrum-theme.el ends here
+;;; doom-monokai-ristretto-theme.el ends here

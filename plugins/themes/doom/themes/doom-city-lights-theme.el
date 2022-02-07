@@ -1,9 +1,9 @@
-;;; doom-city-lights-theme.el --- inspired by Atom City Lights -*- no-byte-compile: t; -*-
+;;; doom-city-lights-theme.el --- inspired by Atom City Lights -*- lexical-binding: t; no-byte-compile: t; -*-
 (require 'doom-themes)
 
 ;;
 (defgroup doom-city-lights-theme nil
-  "Options for doom-themes"
+  "Options for the `doom-city-lights' theme."
   :group 'doom-themes)
 
 (defcustom doom-city-lights-brighter-modeline nil
@@ -98,30 +98,17 @@ determine the exact padding."
    (modeline-bg
     (if -modeline-bright
         base3
-        `(,(doom-darken (car bg) 0.15) ,@(cdr base0))))
-   (modeline-bg-l
-    (if -modeline-bright
-        base3
-        `(,(doom-darken (car bg) 0.1) ,@(cdr base0))))
-   (modeline-bg-inactive   (doom-darken bg 0.1))
-   (modeline-bg-inactive-l `(,(car bg) ,@(cdr base1))))
+      `(,(doom-darken (car bg) 0.15) ,@(cdr base0))))
+   (modeline-bg-l modeline-bg)
+   (modeline-bg-inactive   `(,(car bg) ,@(cdr base1)))
+   (modeline-bg-inactive-l (doom-darken bg 0.1)))
 
 
-  ;; --- extra faces ------------------------
-  ((elscreen-tab-other-screen-face :background "#353a42" :foreground "#1e2022")
-
-   ((line-number &override) :foreground base4)
+  ;;;; Base theme face overrides
+  (((line-number &override) :foreground base4)
    ((line-number-current-line &override) :foreground fg)
-
-   (font-lock-comment-face
-    :foreground comments
+   ((font-lock-comment-face &override)
     :background (if doom-city-lights-comment-bg (doom-lighten bg 0.05)))
-   (font-lock-doc-face
-    :inherit 'font-lock-comment-face
-    :foreground doc-comments)
-
-   (doom-modeline-bar :background (if -modeline-bright modeline-bg highlight))
-
    (mode-line
     :background modeline-bg :foreground modeline-fg
     :box (if -modeline-pad `(:line-width ,-modeline-pad :color ,modeline-bg)))
@@ -131,34 +118,27 @@ determine the exact padding."
    (mode-line-emphasis
     :foreground (if -modeline-bright base8 highlight))
 
-   (solaire-mode-line-face
-    :inherit 'mode-line
-    :background modeline-bg-l
-    :box (if -modeline-pad `(:line-width ,-modeline-pad :color ,modeline-bg-l)))
-   (solaire-mode-line-inactive-face
-    :inherit 'mode-line-inactive
-    :background modeline-bg-inactive-l
-    :box (if -modeline-pad `(:line-width ,-modeline-pad :color ,modeline-bg-inactive-l)))
-
-   ;; --- major-mode faces -------------------
-   ;; css-mode / scss-mode
+   ;;;; company
+   (company-tooltip-selection     :background base3)
+   ;;;; css-mode <built-in> / scss-mode
    (css-proprietary-property :foreground orange)
    (css-property             :foreground green)
    (css-selector             :foreground blue)
-
-   ;; magit-mode
+   ;;;; doom-modeline
+   (doom-modeline-bar :background (if -modeline-bright modeline-bg highlight))
+   ;;;; elscreen
+   (elscreen-tab-other-screen-face :background "#353a42" :foreground "#1e2022")
+   ;;;; magit
    (magit-diff-hunk-heading-highlight :foreground fg :background base4 :weight 'bold)
    (magit-diff-hunk-heading :foreground fg-alt :background base3 :weight 'normal)
-
-   ;; markdown-mode
+   ;;;; markdown-mode
    (markdown-markup-face :foreground base5)
    (markdown-header-face :inherit 'bold :foreground red)
    (markdown-url-face    :foreground teal :weight 'normal)
    (markdown-reference-face :foreground base6)
    ((markdown-bold-face &override)   :foreground fg)
    ((markdown-italic-face &override) :foreground fg-alt)
-
-   ;; outline (affects org-mode)
+   ;;;; outline <built-in>
    ((outline-1 &override) :foreground blue)
    ((outline-2 &override) :foreground green)
    ((outline-3 &override) :foreground teal)
@@ -167,29 +147,29 @@ determine the exact padding."
    ((outline-6 &override) :foreground (doom-darken teal 0.2))
    ((outline-7 &override) :foreground (doom-darken blue 0.4))
    ((outline-8 &override) :foreground (doom-darken green 0.4))
-
-   ;; org-mode
+   ;;;; org <built-in>
    ((org-block &override) :background base2)
    ((org-block-begin-line &override) :background base2)
    (org-hide :foreground hidden)
-
-   ;; tooltip and company
-   (tooltip              :background bg-alt :foreground fg)
-   (company-tooltip-selection     :background base3)
-
-   ;; Ivy
+   ;;;; ivy
    (ivy-minibuffer-match-face-2 :foreground blue :weight 'bold)
-
-   ;; js2-mode
+   ;;;; js2-mode
    (js2-object-property :foreground dark-blue)
-   (js2-object-property-access :foreground dark-cyan) 
-   
-   ;; rjsx-mode
+   (js2-object-property-access :foreground dark-cyan)
+   ;;;; rjsx-mode
    (rjsx-tag :foreground dark-cyan)
    (rjsx-attr :foreground cyan :slant 'italic :weight 'medium)
-   )
+   ;;;; solaire-mode
+   (solaire-mode-line-face
+    :inherit 'mode-line
+    :background modeline-bg-l
+    :box (if -modeline-pad `(:line-width ,-modeline-pad :color ,modeline-bg-l)))
+   (solaire-mode-line-inactive-face
+    :inherit 'mode-line-inactive
+    :background modeline-bg-inactive-l
+    :box (if -modeline-pad `(:line-width ,-modeline-pad :color ,modeline-bg-inactive-l))))
 
-  ;; --- extra variables ---------------------
+  ;;;; Base theme variable overrides-
   ()
   )
 

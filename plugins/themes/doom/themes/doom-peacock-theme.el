@@ -1,8 +1,8 @@
-;;; doom-peacock-theme.el --- inspired by daylerees Peacock -*- no-byte-compile: t; -*-
+;;; doom-peacock-theme.el --- inspired by daylerees Peacock -*- lexical-binding: t; no-byte-compile: t; -*-
 (require 'doom-themes)
 
 (defgroup doom-peacock-theme nil
-  "Options for doom-themes"
+  "Options for the `doom-peacock' theme."
   :group 'doom-themes)
 
 (defcustom doom-peacock-brighter-modeline nil
@@ -97,66 +97,67 @@ determine the exact padding."
 
    (modeline-bg
     (if -modeline-bright
-        (doom-darken bg 0.475)
-      `(,(doom-darken (car bg) 0.15) ,@(cdr base0))))
-   (modeline-bg-l
-    (if -modeline-bright
         (doom-darken blue 0.45)
       `(,(doom-darken (car bg-alt) 0.1) ,@(cdr base0))))
-   (modeline-bg-inactive   (doom-darken bg 0.1))
-   (modeline-bg-inactive-l `(,(car bg) ,@(cdr base1))))
+   (modeline-bg-l
+    (if -modeline-bright
+        (doom-darken bg 0.475)
+      `(,(doom-darken (car bg) 0.15) ,@(cdr base0))))
+   (modeline-bg-inactive   `(,(doom-darken (car bg) 0.1) ,@(cdr base1)))
+   (modeline-bg-inactive-l (doom-darken bg 0.1)))
 
 
-  ;; --- extra faces ------------------------
-  ((elscreen-tab-other-screen-face :background "#353a42" :foreground "#1e2022")
-
-   (font-lock-comment-face
+  ;;;; Base theme face overrides
+  ((font-lock-comment-face
     :foreground comments
     :background (if doom-peacock-comment-bg (doom-lighten bg 0.05)))
    (font-lock-doc-face
     :inherit 'font-lock-comment-face
     :foreground doc-comments)
-
    ((line-number &override) :foreground base4)
    ((line-number-current-line &override) :foreground base7)
-
-   ;; tooltip
-   (tooltip              :background bg-alt :foreground fg)
-
-   ;; company
-    (company-tooltip            :inherit 'tooltip)
-    (company-tooltip-common                           :foreground highlight)
-    (company-tooltip-search     :background highlight :foreground bg :distant-foreground fg)
-    (company-tooltip-selection  :background selection)
-    (company-tooltip-mouse      :background magenta   :foreground bg :distant-foreground fg)
-    (company-tooltip-annotation                       :foreground violet)
-    (company-scrollbar-bg       :inherit 'tooltip)
-    (company-scrollbar-fg       :background highlight)
-    (company-preview                                  :foreground highlight)
-    (company-preview-common     :background base3 :foreground magenta)
-    (company-preview-search     :inherit 'company-tooltip-search)
-    (company-template-field     :inherit 'match)
-
-   ;; popup
-   (popup-face :inherit 'tooltip)
-   (popup-selection-face :inherit 'tooltip)
-
-   ;; pos-tip
-   (popup          :inherit 'tooltip)
-   (popup-tip-face :inherit 'tooltip)
-
-
-   (doom-modeline-bar :background (if -modeline-bright modeline-bg highlight))
-
    (mode-line
     :background modeline-bg :foreground modeline-fg
     :box (if -modeline-pad `(:line-width ,-modeline-pad :color ,modeline-bg)))
    (mode-line-inactive
     :background modeline-bg-inactive :foreground modeline-fg-alt
     :box (if -modeline-pad `(:line-width ,-modeline-pad :color ,modeline-bg-inactive)))
-   (mode-line-emphasis
-    :foreground (if -modeline-bright base8 highlight))
+   (mode-line-emphasis :foreground (if -modeline-bright base8 highlight))
 
+   ;;;; company
+   (company-tooltip            :inherit 'tooltip)
+   (company-tooltip-common                           :foreground highlight)
+   (company-tooltip-search     :background highlight :foreground bg :distant-foreground fg)
+   (company-tooltip-selection  :background selection)
+   (company-tooltip-mouse      :background magenta   :foreground bg :distant-foreground fg)
+   (company-tooltip-annotation                       :foreground violet)
+   (company-scrollbar-bg       :inherit 'tooltip)
+   (company-scrollbar-fg       :background highlight)
+   (company-preview                                  :foreground highlight)
+   (company-preview-common     :background base3 :foreground magenta)
+   (company-preview-search     :inherit 'company-tooltip-search)
+   (company-template-field     :inherit 'match)
+   ;;;; css-mode <built-in> / scss-mode
+   (css-proprietary-property :foreground orange)
+   (css-property             :foreground green)
+   (css-selector             :foreground blue)
+   ;;;; doom-modeline
+   (doom-modeline-bar :background (if -modeline-bright modeline-bg highlight))
+   ;;;; elscreen
+   (elscreen-tab-other-screen-face :background "#353a42" :foreground "#1e2022")
+   ;;;; markdown-mode
+   (markdown-markup-face :foreground base5)
+   (markdown-header-face :inherit 'bold :foreground red)
+   ((markdown-code-face &override) :background (doom-lighten base3 0.05))
+   ;;;; popup
+   (popup-face :inherit 'tooltip)
+   (popup-selection-face :inherit 'tooltip)
+   ;;;; pos-tip
+   (popup-tip-face :inherit 'tooltip)
+   ;;;; rjsx-mode
+   (rjsx-tag :foreground teal)
+   (rjsx-attr :foreground red)
+   ;;;; solaire-mode
    (solaire-mode-line-face
     :inherit 'mode-line
     :background modeline-bg-l
@@ -164,26 +165,9 @@ determine the exact padding."
    (solaire-mode-line-inactive-face
     :inherit 'mode-line-inactive
     :background modeline-bg-inactive-l
-    :box (if -modeline-pad `(:line-width ,-modeline-pad :color ,modeline-bg-inactive-l)))
+    :box (if -modeline-pad `(:line-width ,-modeline-pad :color ,modeline-bg-inactive-l))))
 
-   ;; --- major-mode faces -------------------
-   ;; css-mode / scss-mode
-   (css-proprietary-property :foreground orange)
-   (css-property             :foreground green)
-   (css-selector             :foreground blue)
-
-   ;; markdown-mode
-   (markdown-markup-face :foreground base5)
-   (markdown-header-face :inherit 'bold :foreground red)
-   ((markdown-code-face &override) :background (doom-lighten base3 0.05))
-
-   ;; rjsx-mode
-   (rjsx-tag :foreground teal)
-   (rjsx-attr :foreground red)
-   )
-
-
-  ;; --- extra variables ---------------------
+  ;;;; Base theme variable overrides-
   ;; ()
   )
 
