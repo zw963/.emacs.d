@@ -20,7 +20,7 @@
 ;; (load-theme 'atom-one-dark t)
 ;; (load-theme 'one-light t)
 
-;; (load-theme 'leuven-dark t)
+(load-theme 'leuven t)
 
 ;; (require 'color-theme-sanityinc-tomorrow)
 ;; (load-theme 'sanityinc-tomorrow-blue t)
