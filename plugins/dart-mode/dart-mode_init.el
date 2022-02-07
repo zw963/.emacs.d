@@ -13,12 +13,20 @@
 (require 'dart-mode)
 (add-to-list 'auto-mode-alist '("\\.dart\\'" . dart-mode))
 
+(defun special-mode-lsp-dart-dap-flutter-hot-restart ()
+  (interactive)
+  (goto-char (point-max))
+  lsp-dart-dap-flutter-hot-restart)
+
 (require 'lsp-dart)
-(setq lsp-signature-auto-activate nil)
-;; (setq lsp-dart-dap-flutter-hot-reload-on-save t)
-(define-key dart-mode-map (kbd "C-M-x") 'lsp-dart-dap-flutter-hot-reload)
-(define-key dart-mode-map (kbd "<escape>") 'lsp-dart-show-flutter-outline)
-(add-hook 'dart-mode-hook 'lsp-deferred)
+(with-eval-after-load 'lsp-dart
+  (setq lsp-signature-auto-activate nil)
+  ;; (setq lsp-dart-dap-flutter-hot-reload-on-save t)
+  (define-key dart-mode-map (kbd "C-M-x") 'lsp-dart-dap-flutter-hot-restart)
+  (define-key special-mode-map (kbd "C-M-x") 'special-mode-lsp-dart-dap-flutter-hot-restart)
+  (define-key dart-mode-map (kbd "<escape>") 'lsp-dart-show-flutter-outline)
+  (add-hook 'dart-mode-hook 'lsp-deferred)
+  )
 
 (with-eval-after-load 'treemacs
   (add-hook
@@ -42,7 +50,7 @@
 ;; (add-hook 'dart-mode-hook 'flutter-test-mode)
 ;; (define-key dart-mode-map (kbd "C-M-x") 'flutter-run-or-hot-reload)
 
-(require 'hover)
+;; (require 'hover)
 
 (with-eval-after-load 'hover
   (define-key hover-minor-mode-map (kbd "C-M-x") 'hover-run-or-hot-restart)
