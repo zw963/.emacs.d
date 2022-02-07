@@ -41,5 +41,13 @@
 ;; (setq treemacs-indentation-string (propertize " ⫶ " 'face 'font-lock-comment-face)
 ;;       treemacs-indentation 1)
 
+(add-hook 'treemacs-mode-hook '(lambda ()
+                                 (with-eval-after-load 'doom-themes
+                                   (require 'doom-themes-ext-treemacs)
+                                   (doom-themes-treemacs-config)
+                                   )
+                                 ))
+
+
 (provide 'treemacs_init)
 ;;; treemacs_init.el ends here

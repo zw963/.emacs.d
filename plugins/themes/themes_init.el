@@ -18,14 +18,11 @@
 (load-theme 'doom-one t)
 (setq doom-theme 'doom-material)
 
-;; (require 'doom-themes-ext-visual-bell)
-;; (doom-themes-visual-bell-config)
+(require 'doom-themes-ext-visual-bell)
+(doom-themes-visual-bell-config)
 
-;; (require 'doom-themes-ext-treemacs)
-;; ;; (setq doom-themes-treemacs-theme "doom-atom") ; use "doom-colors" for less minimal icon theme
-;; (doom-themes-treemacs-config)
-;; (require 'doom-themes-ext-org)
-;; (doom-themes-org-config)
+(require 'doom-themes-ext-org)
+(doom-themes-org-config)
 
 ;; (load-theme 'atom-one-dark t)
 ;; (load-theme 'one-light t)
