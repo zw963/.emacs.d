@@ -5,7 +5,7 @@
 ;; Author: Feng Shu <tumashu@163.com>
 ;; Maintainer: Feng Shu <tumashu@163.com>
 ;; URL: https://github.com/tumashu/posframe
-;; Version: 1.1.6
+;; Version: 1.1.7
 ;; Keywords: convenience, tooltip
 ;; Package-Requires: ((emacs "26.1"))
 
@@ -1003,7 +1003,8 @@ posframe is very very slowly, `posframe-hide' is more useful."
   "Delete posframe pertaining to BUFFER-OR-NAME.
 BUFFER-OR-NAME can be a buffer or a buffer name."
   (let* ((buffer (get-buffer buffer-or-name))
-         (posframe (posframe--find-existing-posframe buffer))
+         (posframe (when buffer
+                     (posframe--find-existing-posframe buffer)))
          ;; NOTE: `delete-frame' runs ‘delete-frame-functions’ before
          ;; actually deleting the frame, unless the frame is a
          ;; tooltip, posframe is a child-frame, but its function like
