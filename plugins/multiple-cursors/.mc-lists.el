@@ -14,6 +14,7 @@
 
 (setq mc/cmds-to-run-once
       '(
+        comment-dwim
         help-for-help
         iedit-switch-to-mc-mode
         yas-expand-from-keymap
