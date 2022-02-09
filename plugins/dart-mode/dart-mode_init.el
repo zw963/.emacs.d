@@ -65,32 +65,20 @@
 (defun flutter-toggle-container/sizedbox (&optional arg)
   (interactive)
   (let (
-        (start-point-container (s-lex-format "Container(${dart-symbols}child: "))
-        (start-point-sizedbox (s-lex-format "SizedBox(${dart-symbols}child: "))
+        (start-point (s-lex-format "\\(?1:Container\\|SizedBox\\)(${dart-symbols}child: "))
         (end-point flutter-widget-end)
         )
-    (let ((begin-pos-container (save-excursion (search-backward-regexp start-point-container nil t)))
-          (begin-pos-sizedbox (save-excursion (search-backward-regexp start-point-sizedbox nil t)))
+    (let ((begin-pos (save-excursion (search-backward-regexp start-point nil t)))
           (end-pos (save-excursion (search-forward-regexp end-point nil t 1))))
-      (cond ((and begin-pos-container end-pos) (save-excursion (replace-regexp "Container(\n\\s-+\\(color: Colors\.[^,]+,\\)?" "SizedBox(" nil begin-pos-container end-pos)))
-            ((and begin-pos-sizedbox end-pos) (save-excursion (replace-regexp "SizedBox(" "Container(color: Colors.grey," nil begin-pos-sizedbox end-pos)))
+      (cond ((and begin-pos end-pos)
+            (if (string= (match-string 1) "SizedBox")
+                (save-excursion (replace-regexp "SizedBox(" "Container(color: Colors.grey," nil begin-pos end-pos))
+              (save-excursion (replace-regexp "Container(\n\\s-+\\(color: Colors\.[^,]+,\\)?" "SizedBox(" nil begin-pos end-pos))))
             (t (message "Not in Container or SizedBox"))))))
 
 (define-key dart-mode-map [(meta c) (c)] 'flutter-undo-container)
 (define-key dart-mode-map [(meta c) (s)] 'flutter-toggle-container/sizedbox)
 (define-key dart-mode-map [(meta c) (L)] 'flutter-undo-layout-builder)
-
-;; (defun switch-container-or-sizedBox (&optional arg)
-;;     (interactive)
-;;     (let ((start-point "LayoutBuilder([\s\t\na-zA-Z():,{'$;]*return ")
-;;           (end-point ";\n\\s-+},\n\\s-+)"))
-;;       (let ((begin-pos (save-excursion (search-backward-regexp start-point nil t)))
-;;         (end-pos (save-excursion (search-forward-regexp end-point nil t 1))))
-;;         (cond ((and begin-pos end-pos)
-;;              (save-excursion (replace-regexp (concat start-point "\\|" end-point) "" nil begin-pos end-pos)))
-;;               (t (message "Not in Layoutbuilder"))))))
-
-;;   (global-set-key [(meta c) (L)] 'undo-flutter-layout-builder)
 
 (with-eval-after-load 'treemacs
   (add-hook

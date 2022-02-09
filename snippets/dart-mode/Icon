@@ -1,0 +1,7 @@
+mode: snippet -*-
+# name: wrap a Icon
+# binding: I
+# condition: (yas-use-region-p)
+# contributor: Billy.Zheng vil963@gmail.com
+# --
+const Icon(`(yas-selected-text)`$0)
