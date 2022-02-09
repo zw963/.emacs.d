@@ -2,16 +2,20 @@
 
 (defcustom boring-buffer-regexp-list
   (list (rx string-start " ")
-        (rx string-start "*")
-        ;; (rx string-start "*helm")
-        ;; (rx string-start "ompil" string-end)
-        ;; (rx string-start "*Selection")
-        ;; (rx string-start "*Backtrace")
-        ;; (rx string-start "*Warnings")
-        ;; (rx string-start "*Help")
-        ;; (rx string-start "*helpful")
+        ;; (rx string-start "*")
+        (rx string-start "*helm")
+        "\\`.*ompil.*\\'"
+        "\\`[Hh]elp.*\\'"
+        (rx string-start "*Selection")
+        (rx string-start "*Backtrace")
+        (rx string-start "*Warnings")
+        (rx string-start "*Ibuffer")
+        (rx string-start "*Flutter Run")
+        (rx string-start "*dart_analysis_server")
+        (rx string-start "*LSP")
+        (rx string-start "*lsp")
         (rx "TAGS" line-end)
-        ;; (rx string-start "*scratch*" string-end)
+        (rx string-start "*scratch*" string-end)
         )
   "无用的 buffer 匹配列表, 被 ibuffer, ido, helm 使用."
   :type  '(repeat (choice regexp))
