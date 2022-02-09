@@ -27,9 +27,9 @@
 ;; for more customize, check lsp-headerline-breadcrumb-segments
 (setq lsp-headerline-breadcrumb-enable-symbol-numbers t)
 
-(setq lsp-signature-function 'lsp-signature-posframe)
+;; (setq lsp-signature-function 'lsp-signature-posframe)
 
-;; (setq lsp-enable-on-type-formatting nil)
+(setq lsp-enable-on-type-formatting nil)
 
 (defun lsp-install-save-hooks ()
     (add-hook 'before-save-hook #'lsp-format-buffer t t)
