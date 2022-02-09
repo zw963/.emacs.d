@@ -6,7 +6,8 @@ mode: snippet -*-
 # --
 LayoutBuilder(
   builder: (BuildContext context, BoxConstraints constraints,) {
-  print("constraints: $constraints");
-  return `(yas-selected-text)`;
+    final ss = MediaQuery.of(context).size;
+    print('constraints: $constraints of \${ss.width}/\${ss.height}');
+    return `(yas-selected-text)`;
   },
   )

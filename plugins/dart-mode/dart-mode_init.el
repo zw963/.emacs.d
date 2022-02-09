@@ -11,22 +11,86 @@
 ;;   (list (cdr project)))
 
 (require 'dart-mode)
+(require 's)
 (add-to-list 'auto-mode-alist '("\\.dart\\'" . dart-mode))
 
 (defun special-mode-lsp-dart-dap-flutter-hot-restart ()
   (interactive)
   (goto-char (point-max))
-  lsp-dart-dap-flutter-hot-restart)
+  (lsp-dart-dap-flutter-hot-restart))
 
 (require 'lsp-dart)
 (with-eval-after-load 'lsp-dart
   (setq lsp-signature-auto-activate nil)
   ;; (setq lsp-dart-dap-flutter-hot-reload-on-save t)
-  (define-key dart-mode-map (kbd "C-M-x") 'lsp-dart-dap-flutter-hot-restart)
+  (define-key dart-mode-map (kbd "C-M-x") 'lsp-dart-dap-flutter-hot-reload)
+  (define-key dart-mode-map (kbd "C-M-z") 'lsp-dart-dap-flutter-hot-restart)
   (define-key special-mode-map (kbd "C-M-x") 'special-mode-lsp-dart-dap-flutter-hot-restart)
   (define-key dart-mode-map (kbd "<escape>") 'lsp-dart-show-flutter-outline)
   (add-hook 'dart-mode-hook 'lsp-deferred)
   )
+
+;; 匹配dart 中可能出现的符号
+(setq dart-symbols "[\s\t\na-zA-Z0-9():,{}'$;.=/]*")
+;; Flutter 之中，widget 调用匹配结束括号以及前面的逗号，需要被删除
+;;     ,
+;;   )
+(setq flutter-widget-end ",\n\\s-+)")
+
+(defun flutter-undo-layout-builder (&optional arg)
+  (interactive)
+  (let ((start-point (s-lex-format "LayoutBuilder(${dart-symbols}return "))
+        (end-point (s-lex-format ";\n\\s-+}${flutter-widget-end}")))
+    (let ((begin-pos (save-excursion (search-backward-regexp start-point nil t)))
+          (end-pos (save-excursion (search-forward-regexp end-point nil t 1))))
+      (cond ((and begin-pos end-pos)
+             (save-excursion (replace-regexp (concat start-point "\\|" end-point) "" nil begin-pos end-pos)))
+            (t (message "Not in Layoutbuilder"))))))
+
+(defun flutter-undo-container (&optional arg)
+  (interactive)
+  (let ((start-point (s-lex-format "Container(${dart-symbols}child: "))
+        (end-point flutter-widget-end))
+    (let ((begin-pos (save-excursion (search-backward-regexp start-point nil t)))
+          (end-pos (save-excursion (search-forward-regexp end-point nil t 1))))
+      (cond ((and begin-pos end-pos)
+             (save-excursion
+               (search-backward-regexp start-point nil t)
+               (forward-sexp 2)
+               (when (re-search-backward end-point nil t 1)
+                 (replace-match "")))
+             (save-excursion (replace-regexp start-point "" nil begin-pos end-pos)))
+            (t (message "Not in Container"))))))
+
+(defun flutter-toggle-container/sizedbox (&optional arg)
+  (interactive)
+  (let (
+        (start-point-container (s-lex-format "Container(${dart-symbols}child: "))
+        (start-point-sizedbox (s-lex-format "SizedBox(${dart-symbols}child: "))
+        (end-point flutter-widget-end)
+        )
+    (let ((begin-pos-container (save-excursion (search-backward-regexp start-point-container nil t)))
+          (begin-pos-sizedbox (save-excursion (search-backward-regexp start-point-sizedbox nil t)))
+          (end-pos (save-excursion (search-forward-regexp end-point nil t 1))))
+      (cond ((and begin-pos-container end-pos) (save-excursion (replace-regexp "Container(\n\\s-+\\(color: Colors\.[^,]+,\\)?" "SizedBox(" nil begin-pos-container end-pos)))
+            ((and begin-pos-sizedbox end-pos) (save-excursion (replace-regexp "SizedBox(" "Container(color: Colors.grey," nil begin-pos-sizedbox end-pos)))
+            (t (message "Not in Container or SizedBox"))))))
+
+(define-key dart-mode-map [(meta c) (c)] 'flutter-undo-container)
+(define-key dart-mode-map [(meta c) (s)] 'flutter-toggle-container/sizedbox)
+(define-key dart-mode-map [(meta c) (L)] 'flutter-undo-layout-builder)
+
+;; (defun switch-container-or-sizedBox (&optional arg)
+;;     (interactive)
+;;     (let ((start-point "LayoutBuilder([\s\t\na-zA-Z():,{'$;]*return ")
+;;           (end-point ";\n\\s-+},\n\\s-+)"))
+;;       (let ((begin-pos (save-excursion (search-backward-regexp start-point nil t)))
+;;         (end-pos (save-excursion (search-forward-regexp end-point nil t 1))))
+;;         (cond ((and begin-pos end-pos)
+;;              (save-excursion (replace-regexp (concat start-point "\\|" end-point) "" nil begin-pos end-pos)))
+;;               (t (message "Not in Layoutbuilder"))))))
+
+;;   (global-set-key [(meta c) (L)] 'undo-flutter-layout-builder)
 
 (with-eval-after-load 'treemacs
   (add-hook
