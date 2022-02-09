@@ -25,7 +25,8 @@
   ;; (setq lsp-dart-dap-flutter-hot-reload-on-save t)
   (define-key dart-mode-map (kbd "C-M-x") 'lsp-dart-dap-flutter-hot-reload)
   (define-key dart-mode-map (kbd "C-M-z") 'lsp-dart-dap-flutter-hot-restart)
-  (define-key special-mode-map (kbd "C-M-x") 'special-mode-lsp-dart-dap-flutter-hot-restart)
+  (define-key special-mode-map (kbd "C-M-x") 'special-mode-lsp-dart-dap-flutter-hot-reload)
+  (define-key special-mode-map (kbd "C-M-z") 'special-mode-lsp-dart-dap-flutter-hot-restart)
   (define-key dart-mode-map (kbd "<escape>") 'lsp-dart-show-flutter-outline)
   (add-hook 'dart-mode-hook 'lsp-deferred)
   )
@@ -68,8 +69,8 @@
         (start-point (s-lex-format "\\(?1:Container\\|SizedBox\\)(${dart-symbols}child: "))
         (end-point flutter-widget-end)
         )
-    (let ((begin-pos (save-excursion (search-backward-regexp start-point nil t)))
-          (end-pos (save-excursion (search-forward-regexp end-point nil t 1))))
+    (let ((end-pos (save-excursion (search-forward-regexp end-point nil t 1)))
+          (begin-pos (save-excursion (search-backward-regexp start-point nil t))))
       (cond ((and begin-pos end-pos)
             (if (string= (match-string 1) "SizedBox")
                 (save-excursion (replace-regexp "SizedBox(" "Container(color: Colors.grey," nil begin-pos end-pos))
@@ -105,7 +106,8 @@
 ;; (require 'hover)
 
 (with-eval-after-load 'hover
-  (define-key hover-minor-mode-map (kbd "C-M-x") 'hover-run-or-hot-restart)
+  (define-key hover-minor-mode-map (kbd "C-M-x") 'hover-run-or-hot-reload)
+  (define-key hover-minor-mode-map (kbd "C-M-z") 'hover-run-or-hot-restart)
   (setq
    hover-screenshot-path (concat (getenv "HOME") "/Pictures")
    hover-screenshot-prefix "magpie-"
