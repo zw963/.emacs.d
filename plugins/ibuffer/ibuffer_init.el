@@ -4,7 +4,7 @@
       ibuffer-show-empty-filter-groups nil ;隐藏空组
       )
 (add-hook 'ibuffer-mode-hook 'ibuffer-auto-mode)
-(add-list-to-list 'ibuffer-never-show-predicates boring-buffer-regexp-list)
+;; (add-list-to-list 'ibuffer-never-show-predicates boring-buffer-regexp-list)
 
 (define-ibuffer-column size-h
   (:name "Size" :inline t)
