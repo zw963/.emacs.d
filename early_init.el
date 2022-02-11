@@ -35,8 +35,8 @@
 (defun hack-local-variables-confirm (all-vars unsafe-vars risky-vars dir-name) t)
 
 (relative-load "autoloads.el")
-;; (relative-load "base_init.el")
-;; (relative-load "init.el")
+(relative-load "base_init.el")
+(relative-load "init.el")
 
 ;; 打开这两个变量, 查看那些包有错误.
 (unless (string= (getenv "LOAD_INIT") "true")

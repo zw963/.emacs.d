@@ -46,6 +46,7 @@
                                    (require 'doom-themes-ext-treemacs)
                                    (doom-themes-treemacs-config)
                                    )
+                                 (define-key treemacs-mode-map [(control d)] 'treemacs-remove-project-from-workspace)
                                  ))
 
 
