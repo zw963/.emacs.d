@@ -8,21 +8,20 @@
 
 (setq custom-theme-directory (expand-file-name "plugins/themes" default-directory))
 ;; (load-theme 'material t) ;; 这个是原来的
-;; (load-theme 'vscode-dark-plus t)
-;; (load-theme 'material-light t) ;; 这个是原来的
+(load-theme 'vscode-dark-plus t)
 ;; (require 'spacemacs-common)
 ;; (load-theme 'spacemacs-dark t)
 ;; (load-theme 'dracula t)
 
-(require 'doom-themes)
-(load-theme 'doom-one t)
-(setq doom-theme 'doom-material)
+;; (require 'doom-themes)
+;; (load-theme 'doom-one t)
+;; (setq doom-theme 'doom-material)
 
-(require 'doom-themes-ext-visual-bell)
-(doom-themes-visual-bell-config)
+;; (require 'doom-themes-ext-visual-bell)
+;; (doom-themes-visual-bell-config)
 
-(require 'doom-themes-ext-org)
-(doom-themes-org-config)
+;; (require 'doom-themes-ext-org)
+;; (doom-themes-org-config)
 
 ;; (load-theme 'atom-one-dark t)
 ;; (load-theme 'one-light t)
