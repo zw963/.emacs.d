@@ -16,8 +16,8 @@
 
 (require 'lsp-icons)
 
-;; 尝试 guess root.
-(setq lsp-auto-guess-root t)
+;; 尝试 guess root, 注意不要打开这个，打开这个可能造成进入 lsp-dart 当前项目依赖的库文件之后，无法再次跳转。
+;; (setq lsp-auto-guess-root nil)
 
 ;; try disable watch file for performance reason, don't know it impact yet.
 ;; 下面的两个一个注释，另一个取消注释.
