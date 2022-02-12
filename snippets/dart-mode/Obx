@@ -1,0 +1,9 @@
+mode: snippet -*-
+# name: Wrap a Obx
+# binding: O
+# condition: (yas-use-region-p)
+# contributor: Billy.Zheng vil963@gmail.com
+# --
+Obx(() {
+`(yas-selected-text)`$0
+},)

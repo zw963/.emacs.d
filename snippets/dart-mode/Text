@@ -1,0 +1,7 @@
+mode: snippet -*-
+# name: wrap a Text
+# binding: T
+# condition: (yas-use-region-p)
+# contributor: Billy.Zheng vil963@gmail.com
+# --
+Text(`(yas-selected-text)`)
