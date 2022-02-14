@@ -82,6 +82,15 @@
   ad-do-it
   )
 
+(require 'page-break-lines)
+
+(with-eval-after-load 'browse-kill-ring+
+  (add-to-list 'page-break-lines-modes 'browse-kill-ring-mode)
+  )
+
+(global-page-break-lines-mode 1)
+
+
 ;; (require 'popup-kill-ring)
 ;; (global-set-key [(meta y)] 'popup-kill-ring)
 
