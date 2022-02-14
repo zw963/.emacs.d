@@ -5,7 +5,7 @@
         ;; (rx string-start "*")
         (rx string-start "*helm")
         "\\`.*ompil.*\\'"
-        "\\`[Hh]elp.*\\'"
+        "\\`\\*[Hh]elp.*\\'"
         (rx string-start "*Selection")
         (rx string-start "*Backtrace")
         (rx string-start "*Warnings")
@@ -14,6 +14,8 @@
         (rx string-start "*dart_analysis_server")
         (rx string-start "*LSP")
         (rx string-start "*lsp")
+        (rx string-start "*Bookmark")
+        (rx string-start "*Alerts")
         (rx "TAGS" line-end)
         (rx string-start "*scratch*" string-end)
         )

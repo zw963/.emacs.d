@@ -10,6 +10,7 @@
         "\\*Async Shell Command\\*"
         "\\*quickrun\\*$"
         "\\*ansi-term\\*"
+        "\\*Alerts\\*"
         vterm-mode
         inf-ruby-mode
         special-mode
