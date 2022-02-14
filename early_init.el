@@ -19,11 +19,12 @@
 ;; (setq server-host "127.0.0.1") ;指定本emacs server是否允许远程连接.
 (setq server-port 9299)
 
-(setq inhibit-startup-screen t)    ;关闭启动帮助画面
-(setq initial-scratch-message "
+(setq inhibit-startup-screen t ;关闭启动帮助画面
+      initial-scratch-message "
 (setq default-directory \"/home/zw963/Dropbox/common/.emacs.d\")
 (normal-top-level-add-subdirs-to-load-path)
-")
+"
+      )
 
 (defun run-ruby-mode-hook (func)
   (dolist (hook '(ruby-mode-hook enh-ruby-mode-hook))
@@ -44,4 +45,3 @@
   (setq no-byte-compile t)
   ;; (setq debug-on-signal t)
   )
-

@@ -10,12 +10,13 @@
 (require 'shell_init)
 ;; (require 'quickrun_init)
 (require 'treemacs_init)
-(require 'page-break-lines_init)
+
 ;; 下面两个库都针对 kill-ring-save, kill-region 等函数添加了 device.
 ;; 因为判断选区时, 总是首先判断 rect-mark, 因此要确保 rect-mark_init 在
 ;; browse-kill-ring 之后 require, 行为才正确.
 (require 'browse-kill-ring_init)
 (require 'rect-mark_init)
+
 (require 'fancy-narrow_init)
 (require 'yafolding_init)
 (require 'avy_init)
@@ -48,7 +49,10 @@
 (require 'yasnippet_init)
 (require 'anzu_init)
 ;; (require 'visual-regexp_init)
-(require 'pangu-spacing_init)
+
+;; 这个感觉用处不大
+;; (require 'pangu-spacing_init)
+
 (require 'back-button_init)
 (require 'bm_init)
 (require 'helpful_init)
@@ -140,8 +144,8 @@
 ;; 这个似乎要放到最后面？
 ;; (require 'workgroups_init)
 (require 'posframe_init)
-(require 'burly_init)
 (require 'shackle_init)
 (require 'popper_init)
+(require 'burly_init)
 
 (setenv "LOAD_INIT" "true")
