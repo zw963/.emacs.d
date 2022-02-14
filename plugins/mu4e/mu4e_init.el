@@ -30,14 +30,19 @@
 ;;    '(message-send-mail-function 'async-smtpmail-send-it)     ; show completion list when ambiguous
 ;;    ))
 
+(add-hook 'mu4e-headers-mode-hook
+          (lambda ()
+            (define-key mu4e-headers-mode-map [(M)] 'mu4e-headers-mark-all)
+          ))
+
 (add-hook 'message-mode-hook
           (lambda ()
             (define-key message-mode-map [(control c) (control K)] 'message-kill-buffer)
             (define-key message-mode-map [(control c) (control c)] 'message-fill-paragraph)
             (define-key message-mode-map [(control x) (control s)] 'message-send-and-exit)
             (turn-on-flyspell)
-            (set (make-local-variable 'ac-auto-show-menu) t)
-            (set (make-local-variable 'ac-use-menu-map) t)
+            ;; (set (make-local-variable 'ac-auto-show-menu) t)
+            ;; (set (make-local-variable 'ac-use-menu-map) t)
             ))
 
 ;; 初始化 mu 的步骤：
