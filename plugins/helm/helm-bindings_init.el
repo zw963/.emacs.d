@@ -15,6 +15,13 @@
   (define-key lisp-interaction-mode-map [remap completion-at-point] 'helm-lisp-completion-at-point)
   (define-key emacs-lisp-mode-map       [remap completion-at-point] 'helm-lisp-completion-at-point))
 
+(global-set-key [remap imenu] 'helm-imenu)
+
+(add-hook 'prog-mode-hook
+          #'(lambda ()
+              (local-set-key [(control c) (j)] 'helm-imenu-in-all-buffers)
+              ))
+
 ;;;  ------------------------ helm-swoop -------------------------
 
 ;; (setq helm-swoop-use-fuzzy-match t)
