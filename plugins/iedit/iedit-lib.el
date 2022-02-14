@@ -3,10 +3,10 @@
 
 ;; Copyright (C) 2010 - 2019, 2020, 2021 Victor Ren
 
-;; Time-stamp: <2021-12-23 19:28:21 Victor Ren>
+;; Time-stamp: <2022-01-14 12:33:36 Victor Ren>
 ;; Author: Victor Ren <victorhge@gmail.com>
 ;; Keywords: occurrence region simultaneous rectangle refactoring
-;; Version: 0.9.9.9
+;; Version: 0.9.9.9.9
 ;; X-URL: https://github.com/victorhge/iedit
 ;;        https://www.emacswiki.org/emacs/Iedit
 ;; Compatibility: GNU Emacs: 22.x, 23.x, 24.x, 25.x
@@ -94,6 +94,7 @@ mode, set it as nil."
   "If no-nil, iedit-mode automatically starts buffering the changes.
  This could be a workaround for lag problem under certain modes."
   :type 'boolean
+  :local t
   :group 'iedit)
 
 (defcustom iedit-overlay-priority 200
@@ -114,19 +115,19 @@ This is used by `iedit-number-occurrences'."
   :type 'string
   :group 'iedit)
 
-(defvar iedit-occurrences-overlays nil
+(defvar-local iedit-occurrences-overlays nil
   "The occurrences slot contains a list of overlays used to
 indicate the position of each editable occurrence.  In addition, the
 occurrence overlay is used to provide a different face
 configurable via `iedit-occurrence'.")
 
-(defvar iedit-read-only-occurrences-overlays nil
+(defvar-local iedit-read-only-occurrences-overlays nil
   "The occurrences slot contains a list of overlays used to
 indicate the position of each read-only occurrence.  In addition, the
 occurrence overlay is used to provide a different face
 configurable via `iedit-ready-only-occurrence'.")
 
-(defvar iedit-case-sensitive iedit-case-sensitive-default
+(defvar-local iedit-case-sensitive iedit-case-sensitive-default
   "This is buffer local variable.
 If no-nil, matching is case sensitive.  If nil and `case-replace'
 is no-nil, iedit try to preserve the case pattern of each
@@ -137,105 +138,82 @@ occurrence.")
 Either nil, t, or 'open.  'open means the same as t except that
 opens hidden overlays. ")
 
-(defvar iedit-lib-skip-invisible-count 0
-  "This is buffer local variable which is the number of skipped invisible occurrence. ")
+(defvar-local iedit-lib-skip-invisible-count 0
+  "This is buffer local variable which is the number of skipped invisible
+occurrence. ")
 
-(defvar iedit-lib-skip-filtered-count 0
+(defvar-local iedit-lib-skip-filtered-count 0
   "This is buffer local variable which is the number of filtered occurrence. ")
 
-(defvar iedit-hiding nil
+(defvar-local iedit-hiding nil
   "This is buffer local variable which indicates whether buffer lines are hided. ")
 
-(defvar iedit-forward-success t
+(defvar-local iedit-forward-success t
   "This is buffer local variable which indicates the moving
 forward or backward successful")
 
-(defvar iedit-before-modification-string ""
+(defvar-local iedit-before-modification-string ""
   "This is buffer local variable which is the buffer substring
 that is going to be changed.")
 
-(defvar iedit-before-buffering-string ""
+(defvar-local iedit-before-buffering-string ""
   "This is buffer local variable which is the buffer substring
 that is going to be changed.")
 
-(defvar iedit-before-buffering-undo-list nil
+(defvar-local iedit-before-buffering-undo-list nil
   "This is buffer local variable which is the buffer undo list before modification.")
 
-(defvar iedit-before-buffering-point nil
+(defvar-local iedit-before-buffering-point nil
   "This is buffer local variable which is the point before modification.")
 
-(defvar iedit-buffering-overlay nil
-  "This is buffer local variable which is the current overlay before starting recording kmacro.")
+(defvar-local iedit-buffering-overlay nil
+  "This is buffer local variable which is the current overlay before starting
+recording kmacro.")
 
-(defvar iedit-start-kmacro-offset nil
+(defvar-local iedit-start-kmacro-offset nil
   "This is buffer local variable which is the offset from the
   current overlay start before starting recording kmacro.")
 
 ;; `iedit-record-changes' gets called twice when change==0 and
 ;; occurrence is zero-width (beg==end) -- for front and back insertion.
-(defvar iedit-skip-modification-once t
+(defvar-local iedit-skip-modification-once t
   "Variable used to skip first modification hook run when
 insertion against a zero-width occurrence.")
 
-(defvar iedit-aborting nil
+(defvar-local iedit-aborting nil
   "This is buffer local variable which indicates Iedit mode is aborting.")
 
-(defvar iedit-lib-quit-func nil
+(defvar-local iedit-lib-quit-func nil
   "Function to call to exit mode using `iedit-lib'.
 Should be set in `iedit-lib-start'.")
 
-(defvar iedit-post-undo-hook-installed nil
+(defvar-local iedit-post-undo-hook-installed nil
   "This is buffer local variable which indicated if
 `iedit-post-undo' is installed in `post-command-hook'.")
 
-(defvar iedit-buffering nil
+(defvar-local iedit-buffering nil
   "This is buffer local variable which indicates iedit-mode is
 buffering, which means the modification to the current occurrence
 is not applied to other occurrences when it is true.")
 
-(defvar iedit-occurrence-context-lines 1
+(defvar-local iedit-occurrence-context-lines 1
   "The number of lines before or after the occurrence.")
 
-(defvar iedit-occurrence-index 0
+(defvar-local iedit-occurrence-index 0
   "The index of the current occurrence, counted from the beginning of the buffer.
 Used in mode-line to indicate the position of the current
 occurrence.")
 
-(defvar iedit-after-change-list nil
+(defvar-local iedit-after-change-list nil
   "Used to store the modifications in the command being run.")
 
-(defvar iedit-updating nil
+(defvar-local iedit-updating nil
   "Used to prevent recursive calling change hooks.
 It replaces `inhibit-modification-hooks' which prevents calling
 `after-change-functions'.")
 
-(defvar iedit-line-move-ignore-invisible-value nil
+(defvar-local iedit-line-move-ignore-invisible-value nil
   "Used to save and restore the value of `line-move-ignore-invisible'.")
-
-(make-variable-buffer-local 'iedit-updating)
-(make-variable-buffer-local 'iedit-after-change-list)
-(make-variable-buffer-local 'iedit-occurrences-overlays)
-(make-variable-buffer-local 'iedit-read-only-occurrences-overlays)
-(make-variable-buffer-local 'iedit-hiding)
-(make-variable-buffer-local 'iedit-case-sensitive)
-(make-variable-buffer-local 'iedit-forward-success)
-(make-variable-buffer-local 'iedit-before-modification-string)
-(make-variable-buffer-local 'iedit-before-buffering-string)
-(make-variable-buffer-local 'iedit-before-buffering-undo-list)
-(make-variable-buffer-local 'iedit-before-buffering-point)
-(make-variable-buffer-local 'iedit-buffering-overlay)
-(make-variable-buffer-local 'iedit-start-kmacro-offset)
-(make-variable-buffer-local 'iedit-skip-modification-once)
-(make-variable-buffer-local 'iedit-aborting)
-(make-variable-buffer-local 'iedit-buffering)
-(make-variable-buffer-local 'iedit-auto-buffering)
-(make-variable-buffer-local 'iedit-post-undo-hook-installed)
-(make-variable-buffer-local 'iedit-occurrence-context-lines)
-(make-variable-buffer-local 'iedit-occurrence-index)
-(make-variable-buffer-local 'iedit-lib-quit-func)
-(make-variable-buffer-local 'iedit-lib-skip-invisible-count)
-(make-variable-buffer-local 'iedit-lib-skip-filtered-count)
-(make-variable-buffer-local 'iedit-line-move-ignore-invisible-value)
 
 (defconst iedit-occurrence-overlay-name 'iedit-occurrence-overlay-name)
 (defconst iedit-invisible-overlay-name 'iedit-invisible-overlay-name)
@@ -331,6 +309,7 @@ It should be set before occurrence overlay is created.")
   "Quit the current mode by calling mode exit function."
   (interactive)
   (when iedit-buffering
+	;; keep the content and quit iedit only
 	(setq iedit-buffering nil)
 	(when defining-kbd-macro
 	  (kmacro-keyboard-quit)
@@ -473,7 +452,10 @@ there are."
   "Clean up occurrence overlay, invisible overlay and local variables."
   (when iedit-buffering
 	(if defining-kbd-macro
-		(iedit-end-and-call-kmacro nil)
+		(progn
+		  (kmacro-end-macro nil)
+		  (setq iedit-buffering nil)
+		  (iedit--apply-kmacro))
 	  (iedit-stop-buffering)))
   (iedit-cleanup-occurrences-overlays)
   (remove-hook 'post-command-hook 'iedit-update-occurrences t)
@@ -1001,7 +983,8 @@ The relative position of the current occurrence is remembered."
   (message "Start recording keyboard input..."))
 
 (defun iedit-end-and-call-kmacro (arg &optional no-repeat)
-  "Call last keyboard macro, ending it first if currently being defined, apply it on all the occurrences.
+  "Call last keyboard macro, ending it first if currently being defined, apply
+it on all the occurrences.
 
 If iedit is buffering, call it only once.
 
@@ -1024,19 +1007,25 @@ before calling the last keyboard macro."
 		;; (and defining-kbd-macro iedit-buffering-overlay) iedit-start-kmacro was called
 		(kmacro-end-macro nil)
 		(setq iedit-buffering nil))
-	  (let ((iedit-updating t))
-		(save-excursion
-		  (when iedit-buffering-overlay (iedit-move-conjoined-overlays iedit-buffering-overlay))
-		  (dolist (another-occurrence iedit-occurrences-overlays)
-			(when (not (eq another-occurrence iedit-buffering-overlay))
-			  (goto-char (+ (overlay-start another-occurrence) iedit-start-kmacro-offset))
-			  (kmacro-call-macro nil t)
-			  (iedit-move-conjoined-overlays another-occurrence)))))
+	  (iedit--apply-kmacro)
 	  (setq iedit-buffering-overlay nil)
 	  (if (iedit-same-length)
-		  (message "Keyboard macro applied to the occurrences.")
+		  nil
 		(iedit--quit)
 		(message "Abort Iedit mode due to different change made to occurrences.")))))
+
+(defun iedit--apply-kmacro ()
+  "Apply last keyboard macro on all the occurrences."
+  (let ((iedit-updating t))
+	(save-excursion
+	  (when iedit-buffering-overlay (iedit-move-conjoined-overlays iedit-buffering-overlay))
+	  (dolist (another-occurrence iedit-occurrences-overlays)
+		(when (not (eq another-occurrence iedit-buffering-overlay))
+		  (goto-char (+ (overlay-start another-occurrence) iedit-start-kmacro-offset))
+		  (kmacro-call-macro nil t)
+		  (iedit-move-conjoined-overlays another-occurrence)))
+	  )
+	(message "Keyboard macro applied to the occurrences.")))
 
 (defun iedit-case-pattern (beg end)
   "Distinguish the case pattern of the text between `beg' and `end'.
@@ -1212,7 +1201,8 @@ Return nil if occurrence string is empty string."
     (- (overlay-end ov) (overlay-start ov))))
 
 (defun iedit-find-overlay (beg end property &optional exclusive)
-  "Return a overlay with property in region, or out of the region if EXCLUSIVE is not nil."
+  "Return a overlay with property in region, or out of the region if EXCLUSIVE is
+not nil."
   (if exclusive
       (or (iedit-find-overlay-in-region (point-min) beg property)
           (iedit-find-overlay-in-region end (point-max) property))
