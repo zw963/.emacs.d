@@ -1,0 +1,9 @@
+# -*- mode: snippet -*-
+# name: define Widget method
+# key: d
+# binding: d
+# condition: (yas-use-region-p)
+# --
+Widget ${1:WidgetName}() {
+  $0
+}
