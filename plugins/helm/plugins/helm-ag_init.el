@@ -13,7 +13,7 @@
  '(helm-follow-mode-persistent t)
  ;; helm-ag-base-command "ag --nocolor --nogroup --ignore-case"
  ;; '(helm-ag-base-command "rg --hidden --with-filename --no-heading --smart-case")
- '(helm-ag-base-command "rg --no-config --no-heading --hidden --smart-case")
+ '(helm-ag-base-command "rg --no-config --no-heading --hidden --smart-case --color never")
  ;; '(helm-ag-base-command "rg --no-config --no-heading --hidden --smart-case" )
  '(helm-ag-insert-at-point 'symbol)
  '(helm-ag-fuzzy-match t)
