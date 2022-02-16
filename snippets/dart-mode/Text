@@ -4,4 +4,10 @@ mode: snippet -*-
 # condition: (yas-use-region-p)
 # contributor: Billy.Zheng vil963@gmail.com
 # --
-Text(`(yas-selected-text)`)
+Text(`(yas-selected-text)`,
+  style: TextStyle(
+    fontSize: 13,
+    fontWeight: FontWeight.bold,
+    color: Color(0xFF999999),
+  ),
+)
