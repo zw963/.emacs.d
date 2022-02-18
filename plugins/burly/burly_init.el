@@ -38,6 +38,7 @@
             ))
 
 (global-set-key [(f6)] 'burly-open-bookmark)
+(global-set-key [(shift f6)] 'burly-bookmark-windows)
 
 (provide 'burly_init)
 
