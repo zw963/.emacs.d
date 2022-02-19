@@ -1,11 +1,11 @@
 mode: snippet -*-
-# name: wrap a Text
+# name: wrap a TextSpan/children
 # binding: T
 # condition: (yas-use-region-p)
 # contributor: Billy.Zheng vil963@gmail.com
 # --
-Text(`(yas-selected-text)`,
-  style: TextStyle(
+TextSpan(style: TextStyle(
    `(field "1" "13" "fontSize: " ", ")``(field "2" "bold" "fontWeight: FontWeight." ", ")``(field "3" "red" "color: Colors." ", ")`
+   children: [`(yas-selected-text)`$0],
   ),
 )

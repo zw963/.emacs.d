@@ -1,0 +1,15 @@
+mode: snippet -*-
+# name: Wrap a ConstrainedBox
+# binding: C
+# condition: (yas-use-region-p)
+# contributor: Billy.Zheng vil963@gmail.com
+# --
+ConstrainedBox(
+  constraints: BoxConstraints(
+    `(field "1" "0" "minWidth: " ", ")`
+    `(field "2" "200" "maxWidth: " ", ")`
+    `(field "3" "0" "minHeight: " ", ")`
+    `(field "4" "200" "maxHeight: " ", ")`
+   ),
+  child: `(yas-selected-text)`,$0
+  )

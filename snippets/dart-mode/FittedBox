@@ -1,0 +1,9 @@
+mode: snippet -*-
+# name: Wrap a FittedBox
+# binding: F
+# condition: (yas-use-region-p)
+# contributor: Billy.Zheng vil963@gmail.com
+# --
+FittedBox(
+  child: `(yas-selected-text)`,$0
+  )

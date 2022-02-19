@@ -1,10 +1,11 @@
 mode: snippet -*-
 # name: Wrap a Container
+# key: Container
 # binding: c
 # condition: (yas-use-region-p)
 # contributor: Billy.Zheng vil963@gmail.com
 # --
 Container(
   `(field "1" "red" "color: Colors." ",")`
-  child: `(yas-selected-text)`,$0
+  child: `(yas-selected-text)`$0,
   )

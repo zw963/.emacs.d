@@ -1,0 +1,10 @@
+mode: snippet -*-
+# name: wrap a Positioned
+# binding: P
+# condition: (yas-use-region-p)
+# contributor: Billy.Zheng vil963@gmail.com
+# --
+Positioned(
+  `(field "1" "10" "left: " ", ")``(field "2" "10" "top: " ", ")``(field "3" "10" "right: " ", ")``(field "4" "10" "bottom: " ", ")`
+  child: `(yas-selected-text)`,$0
+  )

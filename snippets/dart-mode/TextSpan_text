@@ -1,0 +1,10 @@
+mode: snippet -*-
+# name: TextSpan
+# key: TextSpan
+# contributor: Billy.Zheng vil963@gmail.com
+# --
+TextSpan(text: '${1:text}',
+  style: TextStyle(
+   `(field "2" "13" "fontSize: " ", ")``(field "3" "bold" "fontWeight: FontWeight." ", ")``(field "4" "red" "color: Colors." ", ")`
+  ),
+)

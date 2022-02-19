@@ -5,6 +5,7 @@ mode: snippet -*-
 # contributor: Billy.Zheng vil963@gmail.com
 # --
 Align(
-  `(field "1" "topRight" "alignment: Alignment." ",")`
+    // Can be use like alignment: Alignment(-1, 1);  too.
+  `(field "1" "topLeft" "alignment: Alignment." ",")`
   child: `(yas-selected-text)`,$0
   )

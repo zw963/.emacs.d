@@ -1,0 +1,12 @@
+mode: snippet -*-
+# name: Wrap a RefreshIndicator
+# binding: R
+# condition: (yas-use-region-p)
+# contributor: Billy.Zheng vil963@gmail.com
+# --
+RefreshIndicator(
+      onRefresh: () => Future.sync(
+        () => ${1:_pagingController}.refresh(),
+      ),
+      child: `(yas-selected-text)`,
+    )

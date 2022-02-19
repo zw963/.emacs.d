@@ -1,6 +1,6 @@
 mode: snippet -*-
-# name: ListView.separated
-# key: ListView.separated
+# name: ListView.separated (和 ListView.builder 的区别只是有分割线)
+# key: ListView
 # contributor: Billy.Zheng vil963@gmail.com
 # --
 ListView.separated(

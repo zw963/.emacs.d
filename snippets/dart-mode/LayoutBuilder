@@ -1,6 +1,6 @@
 mode: snippet -*-
 # name: Wrap a Layout Builder
-# binding: L
+# binding: l
 # condition: (yas-use-region-p)
 # contributor: Billy.Zheng vil963@gmail.com
 # --
@@ -8,6 +8,6 @@ LayoutBuilder(
   builder: (BuildContext context, BoxConstraints constraints,) {
     final ss = MediaQuery.of(context).size;
     print('constraints: $constraints of \${ss.width}/\${ss.height}');
-    return `(yas-selected-text)`;
+    return `(yas-selected-text)`$0;
   },
   )

@@ -1,5 +1,6 @@
 mode: snippet -*-
 # name: wrap a Column
+# key: Column
 # binding: C
 # condition: (yas-use-region-p)
 # contributor: Billy.Zheng vil963@gmail.com
@@ -7,5 +8,5 @@ mode: snippet -*-
 Column(
  `(field "1" "center" "mainAxisAlignment: MainAxisAlignment." ",")`
  `(field "2" "center" "crossAxisAlignment: CrossAxisAlignment." ",")`
-  children: [`(yas-selected-text)`,],$0
+  children: [`(yas-selected-text)``(if-binding "," "$0")`],
   )
