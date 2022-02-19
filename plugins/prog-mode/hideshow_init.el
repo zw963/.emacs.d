@@ -1,13 +1,4 @@
-(require 'yafolding)
-
-(add-hook 'nxml-mode-hook 'yafolding-mode)
-(add-hook 'yaml-mode-hook 'yafolding-mode)
-
-(with-eval-after-load 'all-the-icons
-  (setq yafolding-ellipsis-content (all-the-icons-material "unfold_more"))
-  )
-
-(define-key yafolding-mode-map [(control tab)] 'yafolding-toggle-element)
+(require 'hideshow)
 
 ;; 某些模式下, 可能需要定制 hs-hide-all-non-comment-function.
 ;; 参加下面的例子, the following code shows the next nested level in addition to
@@ -17,8 +8,6 @@
 ;;       (hs-hide-level 1))
 ;;     (forward-sexp 1))
 ;;   (setq hs-hide-all-non-comment-function 'ttn-hs-hide-level-1)
-
-(require 'hideshow)
 
 (unless (memq 'hs-headline mode-line-format)
   (setq mode-line-format
@@ -92,14 +81,6 @@ Meant to be used as `hs-set-up-overlay'."
                                 (local-set-key [(mouse-2)] 'hs-toggle-hiding)
                                 ))
 
-;; (require 'vimish-fold)
+(provide 'hideshow_init)
 
-;; (add-hook 'prog-mode-hook 'vimish-fold-mode)
-
-;; ;; (global-set-key (kbd "<menu> v f") #'vimish-fold)
-;; ;; (global-set-key (kbd "<menu> v v") #'vimish-fold-delete)
-
-;; (global-set-key [(control tab)] 'vimish-fold)
-
-(provide 'yafolding_init)
-;;; yafolding_init.el ends here
+;;; name_init.el ends here

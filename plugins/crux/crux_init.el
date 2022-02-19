@@ -73,6 +73,7 @@
 (global-set-key [(control right)] 'transpose-current-char) ;光标前所在字母右移
 (global-set-key [(control left)] 'transpose-current-char-backward) ;光标前所在字母左移
 (global-set-key [(meta k)] 'mark-next-line)
+;; (global-set-key [(control c) (?\t)] 'crux-indent-rigidly-and-copy-to-clipboard)
 
 (global-set-key [remap move-beginning-of-line] #'crux-move-beginning-of-line)
 (global-set-key [remap kill-whole-line] #'crux-kill-whole-line)
@@ -82,20 +83,6 @@
 (global-set-key [(meta n)] 'window-move-up) ;光标位置不变，窗口向上移动四行
 (global-set-key [(meta p)] 'window-move-down) ;光标位置不变，窗口向下移动两行
 ;; (require 'window-move-hack_init)
-
-(dolist (hook '(prog-mode-hook
-                yaml-mode-hook
-                elixir-mode-hook
-                web-mode-hook
-                conf-mode-hook))
-  (add-hook hook (lambda ()
-                   (local-set-key [(control c) (control c)] 'format-buffer)
-                   (local-set-key [(?\,)] 'input-comma-with-space)
-                   (local-set-key [(?\;)] 'input-semicolon-with-space)
-                   (local-set-key [(control c) (?\t)] 'crux-indent-rigidly-and-copy-to-clipboard)
-                   (global-set-key [(meta c) (\.)] 'input-rocket-with-space)
-                   (global-set-key [(meta c) (=)] 'input-add-equal)
-                   )))
 
 (crux-reopen-as-root-mode 1)
 
@@ -149,51 +136,6 @@
   "Insert a timestamp according to locale's date and time format."
   (interactive)
   (insert (format-time-string "%F %T %Z" (current-time))))
-
-(defun input-rocket-with-space ()
-  (interactive)
-  (insert " => "))
-
-(defun input-add-equal ()
-  (interactive)
-  (insert " += "))
-
-(defun input-comma-with-space ()
-  (interactive)
-  (if (or
-       ;; (fourth (syntax-ppss))
-       ;; (member (fourth (syntax-ppss)) (list ?\/))
-       (and (member major-mode '(sh-mode
-                                 conf-space-mode
-                                 conf-unix-mode
-                                 emacs-lisp-mode
-                                 lisp-interaction-mode
-                                 snippet-mode))
-            ;; (fifth (syntax-ppss)) is comment
-            (not (fifth (syntax-ppss)))))
-      (insert ",")
-    (insert ", ")))
-
-(defun input-semicolon-with-space ()
-  (interactive)
-  (if (fourth (syntax-ppss))
-      (insert ";")
-    (if (not (looking-back "; " (line-beginning-position)))
-        (insert "; ")
-      (progn
-        (backward-delete-char 1)
-        (insert ";")))))
-
-(defun format-buffer ()
-  "Perform a bunch of operations of a buffer."
-  (interactive)
-  (untabify (point-min) (point-max))
-  ;; (delete-trailing-whitespace)
-  (whitespace-cleanup)
-  (indent-region (point-min) (point-max))
-  ;; (unless dont-indent-line
-  ;;   )
-  )
 
 (defun save-buffer-and-kill-buffer-and-window ()
   "Simple convenience function.
@@ -252,13 +194,6 @@
 ;;       ;; 记住: 总可以通过Ctrl+Alt+j 执行下面的功能.(注释中新行自动注释)
 ;;       (default-indent-new-line)
 ;;     (reindent-then-newline-and-indent)))
-
-;; (defun input-comment-with-rocket ()
-;;   (interactive)
-;;   (cond
-;;    ((member major-mode '(ruby-mode enh-ruby-mode)) (insert "# => "))
-;;    ((member major-mode '(js2-mode cc-mode rust-mode rustic-mode)) (insert "// => ")))
-;;   )
 
 (defun transpose-current-char (&optional arg)
   "Move current char right."

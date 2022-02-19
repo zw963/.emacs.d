@@ -191,7 +191,7 @@ js 以 { 开头, function(done) { ... }
     (when string2 (insert string2))))
 
 (defun if-binding (string1 &optional string2)
-  "Add STRING1 if  expand with a binding, only be use in `...`."
+  "Add STRING1 if expand with a binding, only be use in `...`."
   (if (expand-with-binding)
       (insert string1)
     (when string2 (insert string2))))

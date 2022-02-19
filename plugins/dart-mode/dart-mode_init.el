@@ -45,7 +45,12 @@
     (let ((begin-pos (save-excursion (search-backward-regexp start-point nil t)))
           (end-pos (save-excursion (search-forward-regexp end-point nil t 1))))
       (cond ((and begin-pos end-pos)
-             (save-excursion (replace-regexp (concat start-point "\\|" end-point) "" nil begin-pos end-pos)))
+             (save-excursion
+               (search-backward-regexp start-point nil t)
+               (forward-sexp 2)
+               (when (re-search-backward end-point nil t 1)
+                 (replace-match "")))
+             (save-excursion (replace-regexp start-point "" nil begin-pos end-pos)))
             (t (message "Not in Layoutbuilder"))))))
 
 (defun flutter-undo-container (&optional arg)
@@ -79,7 +84,7 @@
 
 (define-key dart-mode-map [(meta c) (c)] 'flutter-undo-container)
 (define-key dart-mode-map [(meta c) (s)] 'flutter-toggle-container/sizedbox)
-(define-key dart-mode-map [(meta c) (L)] 'flutter-undo-layout-builder)
+(define-key dart-mode-map [(meta c) (l)] 'flutter-undo-layout-builder)
 
 (with-eval-after-load 'treemacs
   (add-hook
