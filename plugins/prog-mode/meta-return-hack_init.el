@@ -1,4 +1,3 @@
-(require 'subr)
 (require 'ruby-toggle-block_init)
 
 (defun no-moving-newline-and-indent ()

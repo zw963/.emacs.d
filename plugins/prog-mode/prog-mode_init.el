@@ -1,6 +1,7 @@
 (require 'prog-mode)
 (require 'hideshow_init)
 (require 'meta-return-hack_init)
+(require 'ligature_init)
 
 (dolist (hook '(prog-mode-hook
                 yaml-mode-hook
