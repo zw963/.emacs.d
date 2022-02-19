@@ -15,7 +15,6 @@
 ;;         (define-key map (kbd "M-8") 'winum-select-window-8)
 ;;         map))
 
-(global-set-key (kbd "M-0") 'winum-select-window-0-or-10)
 (global-set-key (kbd "M-1") 'winum-select-window-1)
 (global-set-key (kbd "M-2") 'winum-select-window-2)
 (global-set-key (kbd "M-3") 'winum-select-window-3)

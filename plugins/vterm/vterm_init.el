@@ -32,9 +32,9 @@
 ;;                         'dirtrack-filter-out-pwd-prompt t t)))
 
 (add-hook 'vterm-mode-hook (lambda ()
-                              (define-key vterm-mode-map [(control shift k)] 'vterm-clear)
-                              ;; (dirtrack-mode 1)
-                              ))
+                             (define-key vterm-mode-map [(control shift k)] 'vterm-clear)
+                             ;; (dirtrack-mode 1)
+                             ))
 
 (setq vterm-module-cmake-args "-DUSE_SYSTEM_LIBVTERM=no")
 
@@ -51,12 +51,29 @@
 
 (advice-add 'counsel-yank-pop-action :around #'vterm-counsel-yank-pop-action)
 
-;; 这个不用了，使用 popper.el 管理。
-;; (require 'multi-vterm)
-;; (setq multi-vterm-dedicated-window-height 50)
+;; (defun drop-down-term ()
+;;   "Open a drop-down terminal in the same directory as the current file."
+;;   (interactive)
+;;   (require 'multi-vterm)
+;;   (let ((win (get-local-window-for-buffer-name "*vterminal")))
+;;     (if win
+;;         (delete-window win)
+;;       (let ((buffer (get-local-buffer-for-buffer-name "*vterminal")))
+;;         (unless buffer
+;;           (multi-vterm)
+;;           (setq buffer (get-local-buffer-for-buffer-name "*vterminal"))
+;;           )
+;;         (setq win
+;;               (display-buffer-in-side-window
+;;                buffer
+;;                '((side . top)
+;;                  ;; (dedicated . t)
+;;                  )))))
+;;     (select-window win)))
 
-;; ;; 可以使用 Ctrl+x j, Ctrl+x l 来切换 buffer 和 vterm.
-;; (global-set-key [(shift control t)] 'multi-vterm-dedicated-toggle)
+;; 这个不用了，使用 popper.el 管理。
+
+(require 'multi-vterm_init)
 
 (provide 'vterm_init)
 
