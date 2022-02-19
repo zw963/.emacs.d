@@ -4,8 +4,9 @@
 
 (treemacs-git-mode 'deferred)
 ;; we don't need treemacs command, use q to close and exit treemacs.
-(global-set-key [(f9)] 'treemacs-select-window)
-(setq treemacs-show-hidden-files nil)
+(global-set-key [(f9)] 'treemacs)
+(setq treemacs-show-hidden-files nil) ; 快捷键 th
+;; (setq treemacs-width-is-initially-locked nil) ; 快捷键 tw
 
 (treemacs-fringe-indicator-mode 'always)
 (treemacs-filewatch-mode t)
@@ -26,7 +27,6 @@
 ;; (add-to-list 'treemacs-ignored-file-predicates #'treemacs-ignore-example)
 
 (setq treemacs-width 42)
-(setq treemacs-width-is-initially-locked nil)
 
 (require 'treemacs-icons-dired)
 ;; 让 dired 使用 treemacs 图标。
