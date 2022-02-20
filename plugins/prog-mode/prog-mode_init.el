@@ -2,6 +2,15 @@
 (require 'hideshow_init)
 (require 'meta-return-hack_init)
 (require 'ligature_init)
+(require 'context-menu-mode_init)
+
+(add-hook 'prog-mode-hook 'display-line-numbers-mode)
+(add-hook 'sgml-mode-hook 'display-line-numbers-mode)
+(add-hook 'feature-mode-hook 'display-line-numbers-mode)
+(add-hook 'yaml-mode-hook 'display-line-numbers-mode)
+;; (setq display-line-numbers 'relative)
+
+(add-hook 'prog-mode-hook 'goto-address-mode)
 
 (setq diff-switches "-Naur")                     ;Default to unified diffs
 (setq vc-rcs-diff-switches "-u")

@@ -384,25 +384,13 @@
 
 (add-hook 'text-mode-hook 'goto-address-mode)
 
-(add-hook 'prog-mode-hook 'display-line-numbers-mode)
-(add-hook 'sgml-mode-hook 'display-line-numbers-mode)
-(add-hook 'feature-mode-hook 'display-line-numbers-mode)
-(add-hook 'yaml-mode-hook 'display-line-numbers-mode)
-;; (setq display-line-numbers 'relative)
-
 (delete-selection-mode t)                       ;选区替换模式.
 
 (setq auto-revert-interval 0.5)
 ;; (setq auto-revert-verbose nil)
 
-(add-hook 'prog-mode-hook 'goto-address-mode)
-
 ;; 这个同时看两个 buffer 很有用.
 ;; (follow-mode t)
-
-;; (add-hook 'prog-mode-hook 'hs-minor-mode)
-;; 这里额外启用了 :box t 属性使得提示更加明显
-;; (defconst hideshow-folded-face '((t (:inherit 'font-lock-comment-face :box t))))
 
 (windmove-default-keybindings) ;; Shift+方向键选择窗口q
 ;; 将所有开启的窗口布局, 放入一个 stack, 可以通过 C-c <left> 或 C-c <right> 浏览 stack

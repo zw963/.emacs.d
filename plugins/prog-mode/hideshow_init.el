@@ -81,6 +81,10 @@ Meant to be used as `hs-set-up-overlay'."
                                 (local-set-key [(mouse-2)] 'hs-toggle-hiding)
                                 ))
 
+;; 这里额外启用了 :box t 属性使得提示更加明显, 不知道啥效果，打开试一下
+(defconst hideshow-folded-face '((t (:inherit 'font-lock-comment-face :box t))))
+
+
 (provide 'hideshow_init)
 
 ;;; name_init.el ends here

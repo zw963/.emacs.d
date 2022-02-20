@@ -10,7 +10,7 @@
         (compilation-mode :select t :size 0.3 :align 'below :autoclose t)
         ("*quickrun*" :select t :size 15 :align 'below :autoclose t)
         ("*Backtrace*" :select t :size 15 :align 'below :autoclose t)
-        (("*Help*" "*Apropos*") :select t :size 0.3 :align 'below :autoclose t)
+        (("*Help*" "*Apropos*" "*Occur*") :select t :size 0.3 :align 'below :autoclose t)
         (helpful-mode :select t :size 0.5 :popup t :align 'below :autoclose t)
         ("^\\*.*Shell Command.*\\*$" :regexp t :size 0.3 :align 'below :autoclose t)
         (" *Flycheck checkers*" :select t :size 0.3 :align 'below :autoclose t)
