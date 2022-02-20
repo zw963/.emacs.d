@@ -149,5 +149,6 @@
 (require 'shackle_init)
 (require 'popper_init)
 (require 'burly_init)
+;; (require 'dashboard_init)
 
 (setenv "LOAD_INIT" "true")
