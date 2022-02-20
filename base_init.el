@@ -45,20 +45,6 @@
   "Create missing directory when find file."
   (unless (file-exists-p default-directory) (make-directory default-directory t)))
 
-;; 设置透明度
-;; (add-to-list 'default-frame-alist '(alpha 95 80))
-(defun toggle-transparency ()
-  (interactive)
-  (let ((alpha (frame-parameter nil 'alpha)))
-    (set-frame-parameter
-     nil 'alpha
-     (if (eql (cond ((numberp alpha) alpha)
-                    ((numberp (cdr alpha)) (cdr alpha))
-                    ;; Also handle undocumented (<active> <inactive>) form.
-                    ((numberp (cadr alpha)) (cadr alpha)))
-              100)
-         '(95 . 80) '(100 . 100)))))
-
 (require 'recentf)
 (setq recentf-max-saved-items 100)            ;增大 recentf 历史记录为 50
 ;; (setq recentf-max-menu-items 10)
@@ -172,24 +158,8 @@
 ;;     (eval-print-last-sexp)))
 
 ;; ------------------------------一些函数 ------------------------------
-(defun noop (&optional noop)
-  "Do nothing, NOOP."
-  (interactive)
-  )
 ;; 某些模式会使用 F12 快捷键执行附加的操作。(全局绑定为无操作)
 (global-set-key [f12] 'noop)
-
-(defun add-list-to-list(target list)
-  "Add LIST to TARGET."
-  (set target (append list (eval target))))
-
-;; 自动安装 package, e.g: (install 'imenu-anywhere)
-(defun install (package)
-  "Install a PACKAGE."
-  (interactive)
-  (unless (package-installed-p package)
-    (package-refresh-contents)
-    (package-install package)))
 
 ;; ------------------------------显示相关------------------------------
 
@@ -302,11 +272,27 @@
     )
   )
 
+;; 设置透明度
+;; (add-to-list 'default-frame-alist '(alpha 95 80))
+(defun toggle-transparency ()
+  (interactive)
+  (let ((alpha (frame-parameter nil 'alpha)))
+    (set-frame-parameter
+     nil 'alpha
+     (if (eql (cond ((numberp alpha) alpha)
+                    ((numberp (cdr alpha)) (cdr alpha))
+                    ;; Also handle undocumented (<active> <inactive>) form.
+                    ((numberp (cadr alpha)) (cadr alpha)))
+              100)
+         '(95 . 80) '(100 . 100)))))
+
+
 (add-hook 'window-setup-hook 'toggle-frame-maximized t)
 ;; NOTICE: 传送给aftar-make-frame-function的函数必须有且只能有一个参数用来表示新建立的frame.
 
 (if (and (fboundp 'daemonp) (daemonp))
     (add-hook 'after-make-frame-functions 'initialize-frame-delay t)
+    (add-hook 'after-make-frame-functions 'toggle-transparency t)
   )
 
 (global-set-key [(f5)] (lambda ()
@@ -454,6 +440,9 @@
 (windmove-default-keybindings) ;; Shift+方向键选择窗口q
 ;; 将所有开启的窗口布局, 放入一个 stack, 可以通过 C-c <left> 或 C-c <right> 浏览 stack
 (winner-mode t)
+
+;; (setq frame-resize-pixelwise t)
+;; (setq window-sides-vertical t)
 
 (blink-cursor-mode -1)                  ;光标不闪
 (transient-mark-mode t)

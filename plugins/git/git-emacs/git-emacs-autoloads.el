@@ -25,9 +25,7 @@
 (defsubst git--in-vc-mode? ()
   "Returns true if the current buffer is under vc-git."
   
-  ;; (and vc-mode (string-match "^ Git" (substring-no-properties vc-mode)))
-  t
-  )
+  (and vc-mode (string-match "^ Git" (substring-no-properties vc-mode))))
 
 (defvar git-emacs-loaded nil)
 

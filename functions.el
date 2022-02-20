@@ -1,3 +1,30 @@
+(require 's)
+
+(defun run-ruby-mode-hook (func)
+  (dolist (hook '(ruby-mode-hook enh-ruby-mode-hook))
+    (add-hook hook `(lambda ()
+                      ,func
+                      ))))
+
+(defun get-local-window-for-buffer-name (buffer-name-string)
+  "Return the window displaying the specified buffer in the current frame.
+Returns nil otherwise."
+  (declare (side-effect-free error-free))
+  (->> (window-list (selected-frame))
+       (--first (->> it
+                     (window-buffer)
+                     (buffer-name)
+                     (s-starts-with? buffer-name-string)))))
+
+(defun get-local-buffer-for-buffer-name (buffer-name-string)
+  "Return the specified buffer if exists.
+Returns nil otherwise."
+  (declare (side-effect-free error-free))
+  (->> (buffer-list)
+       (--first (->> it
+                     (buffer-name)
+                     (s-starts-with? buffer-name-string)))))
+
 ;; stolen from rinari
 (defun self-defined-highlight-keywords (keywords &optional face)
   "Highlight the passed KEYWORDS in current buffer.
@@ -14,24 +41,61 @@ Use `font-lock-add-keywords' in case of `ruby-mode' or
                   )
           (list 2 (or face 'font-lock-builtin-face))))))
 
-(require 'sgml-mode)
-(defun format-xml ()
+(require 'ansi-color)
+(defun minibuffer-echo-filter (proc string)
+  "Echo process's output to minibuffer."
+  (message (ansi-color-apply (replace-regexp-in-string "\r?\n\r?\\'" "" string))))
+
+(defun run-process (proc-name &rest arg)
+  "run process and print output to minibuffer."
+  (let ((proc (apply 'start-process "" nil proc-name arg)))
+    (set-process-filter proc 'minibuffer-echo-filter))
+  (print arg)
+  )
+
+(defun use-proxy (port)
   (interactive)
-  (save-excursion
-    (sgml-pretty-print (point-min) (point-max))
-    (indent-region (point-min) (point-max))))
+  (setenv "http_proxy" (concat "http://127.0.0.1:" port))
+  (setenv "https_proxy" (concat "http://127.0.0.1:" port))
+  (message (concat "set http_proxy https_proxy to http://127.0.0.1:" port))
+  )
+
+(defun add-list-to-list(target list)
+  "Add LIST to TARGET."
+  (set target (append list (eval target))))
+
+;; 自动安装 package, e.g: (install 'imenu-anywhere)
+(defun install (package)
+  "Install a PACKAGE."
+  (interactive)
+  (unless (package-installed-p package)
+    (package-refresh-contents)
+    (package-install package)))
+
+(defun noop (&optional noop)
+  "Do nothing, NOOP."
+  (interactive)
+  )
+
+
+;; (require 'sgml-mode)
+;; (defun format-xml ()
+;;   (interactive)
+;;   (save-excursion
+;;     (sgml-pretty-print (point-min) (point-max))
+;;     (indent-region (point-min) (point-max))))
 
 ;; ============================== 快捷键相关 ==============================
 
-(defun kill-buffer-enhanced ()
-  (interactive)
-  (if (equal major-mode 'org-mode)
-      (progn
-        (call-interactively 'save-buffer)
-        (call-interactively 'bury-buffer))
-    (progn
-      (setq menu-updating-frame nil)
-      (kill-buffer (current-buffer)))))
+;; (defun kill-buffer-enhanced ()
+;;   (interactive)
+;;   (if (equal major-mode 'org-mode)
+;;       (progn
+;;         (call-interactively 'save-buffer)
+;;         (call-interactively 'bury-buffer))
+;;     (progn
+;;       (setq menu-updating-frame nil)
+;;       (kill-buffer (current-buffer)))))
 
 ;; (defun set-webpack-watch-dog ()
 ;;   (let ((watch-dog-file (getenv "WEBPACK_WATCH_DOG")))

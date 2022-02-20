@@ -33,9 +33,11 @@
 (setq popper-display-control nil)
 (setq popper-window-height 50)
 
-(global-set-key [(shift control t)] 'popper-toggle-latest)
-(with-eval-after-load 'vterm
-  (define-key vterm-mode-map [(shift control t)] 'popper-toggle-latest))
+;; (global-set-key [(shift control t)] 'popper-toggle-latest)
+
+;; (with-eval-after-load 'vterm
+;;   (define-key vterm-mode-map [(shift control t)] 'popper-toggle-latest))
+
 (global-set-key (kbd "C-`") 'popper-cycle)
 (global-set-key (kbd "C-M-`") 'popper-toggle-type)
 (setq popper-group-function #'popper-group-by-directory)

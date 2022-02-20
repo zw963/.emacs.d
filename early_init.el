@@ -26,16 +26,11 @@
 "
       )
 
-(defun run-ruby-mode-hook (func)
-  (dolist (hook '(ruby-mode-hook enh-ruby-mode-hook))
-    (add-hook hook `(lambda ()
-                      ,func
-                      ))))
-
 ;; 当加载 .dir-locals 时，永远不提示
 (defun hack-local-variables-confirm (all-vars unsafe-vars risky-vars dir-name) t)
 
 (relative-load "autoloads.el")
+(relative-load "functions.el")
 (relative-load "base_init.el")
 (relative-load "init.el")
 
