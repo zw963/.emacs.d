@@ -38,7 +38,8 @@
 ;; (with-eval-after-load 'vterm
 ;;   (define-key vterm-mode-map [(shift control t)] 'popper-toggle-latest))
 
-(global-set-key (kbd "C-`") 'popper-cycle)
+(global-set-key (kbd "C-`") 'popper-toggle-latest)
+;; (global-set-key (kbd "C-`") 'popper-cycle)
 (global-set-key (kbd "C-M-`") 'popper-toggle-type)
 (setq popper-group-function #'popper-group-by-directory)
 (popper-mode +1)
