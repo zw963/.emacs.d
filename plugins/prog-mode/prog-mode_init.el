@@ -3,6 +3,32 @@
 (require 'meta-return-hack_init)
 (require 'ligature_init)
 
+(setq diff-switches "-Naur")                     ;Default to unified diffs
+(setq vc-rcs-diff-switches "-u")
+
+(defun update-diff-colors ()
+  "Update the colors for diff faces."
+  (set-face-attribute 'diff-added nil
+                      :foreground "white" :background "DarkGreen")
+  (set-face-attribute 'diff-removed nil
+                      :foreground "white" :background "DarkRed")
+  (set-face-attribute 'diff-changed nil
+                      :foreground "white" :background "purple"))
+(add-hook 'diff-mode-hook
+          (lambda ()
+            (define-key diff-mode-map [(meta backspace)] 'backward-kill-word)
+            (define-key diff-mode-map [(meta ?\d)] 'backward-kill-word)
+            (update-diff-colors)
+            ))
+
+;; ediff 最重要的两个命令，a, b 分别表示左右两个 buffer 的 diff.
+
+;; 如果希望在一个单独的 frame 中读取 ediff 帮助, 注释下面这行代码.
+(setq ediff-window-setup-function 'ediff-setup-windows-plain)
+(setq ediff-coding-system-for-read 'utf-8-auto-unix)
+;; (setq ediff-coding-system-for-write 'utf-8-auto-unix)
+(setq ediff-auto-refine-limit 30000)
+
 (dolist (hook '(prog-mode-hook
                 yaml-mode-hook
                 elixir-mode-hook

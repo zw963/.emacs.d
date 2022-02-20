@@ -212,13 +212,27 @@
 (setq frame-title-format
       '((:eval (if (buffer-file-name) (abbreviate-file-name (buffer-file-name))
                  "%b")) " - Emacs " emacs-version))
-;; , 中文，,
+
+(defun toggle-transparency ()
+  (interactive)
+  (let ((alpha (frame-parameter nil 'alpha)))
+    (set-frame-parameter
+     nil 'alpha
+     (if (eql (cond ((numberp alpha) alpha)
+                    ((numberp (cdr alpha)) (cdr alpha))
+                    ;; Also handle undocumented (<active> <inactive>) form.
+                    ((numberp (cadr alpha)) (cadr alpha)))
+              100)
+         '(95 . 80) '(100 . 100)))))
+
+;; 中英文逗号 ，,
 (dolist (param '(
                  (menu-bar-lines . 0)
                  (tool-bar-lines . 0)
                  (vertical-scroll-bars . nil)
                  (left-fringe . 1)
                  (right-fringe . 1)
+                 (alpha 95 80) ;; 设置透明度, 默认设置微透明，使用 toggle-transparency 函数关闭
                  ;; 当以 daemon 启动时， 光标使用系统光标黑色， 这里改为浅白色。
                  ;; (cursor-color . "AntiqueWhite3")
                  (cursor-color . "#00FF00")
@@ -272,27 +286,11 @@
     )
   )
 
-;; 设置透明度
-;; (add-to-list 'default-frame-alist '(alpha 95 80))
-(defun toggle-transparency ()
-  (interactive)
-  (let ((alpha (frame-parameter nil 'alpha)))
-    (set-frame-parameter
-     nil 'alpha
-     (if (eql (cond ((numberp alpha) alpha)
-                    ((numberp (cdr alpha)) (cdr alpha))
-                    ;; Also handle undocumented (<active> <inactive>) form.
-                    ((numberp (cadr alpha)) (cadr alpha)))
-              100)
-         '(95 . 80) '(100 . 100)))))
-
-
 (add-hook 'window-setup-hook 'toggle-frame-maximized t)
 ;; NOTICE: 传送给aftar-make-frame-function的函数必须有且只能有一个参数用来表示新建立的frame.
 
 (if (and (fboundp 'daemonp) (daemonp))
     (add-hook 'after-make-frame-functions 'initialize-frame-delay t)
-    (add-hook 'after-make-frame-functions 'toggle-transparency t)
   )
 
 (global-set-key [(f5)] (lambda ()
@@ -352,33 +350,6 @@
  cursor-in-non-selected-windows 'hollow ; 在没有激活的 window 上显示一个空心正方形
  )
 
-(setq diff-switches "-Naur")                     ;Default to unified diffs
-(setq vc-rcs-diff-switches "-u")
-
-(defun update-diff-colors ()
-  "Update the colors for diff faces."
-  (set-face-attribute 'diff-added nil
-                      :foreground "white" :background "DarkGreen")
-  (set-face-attribute 'diff-removed nil
-                      :foreground "white" :background "DarkRed")
-  (set-face-attribute 'diff-changed nil
-                      :foreground "white" :background "purple"))
-(add-hook 'diff-mode-hook
-          (lambda ()
-            (define-key diff-mode-map [(meta backspace)] 'backward-kill-word)
-            (define-key diff-mode-map [(meta ?\d)] 'backward-kill-word)
-            (update-diff-colors)
-            ))
-
-
-;; ediff 最重要的两个命令，a, b 分别表示左右两个 buffer 的 diff.
-
-;; 如果希望在一个单独的 frame 中读取 ediff 帮助, 注释下面这行代码.
-(setq ediff-window-setup-function 'ediff-setup-windows-plain)
-(setq ediff-coding-system-for-read 'utf-8-auto-unix)
-;; (setq ediff-coding-system-for-write 'utf-8-auto-unix)
-(setq ediff-auto-refine-limit 30000)
-
 (setq mouse-buffer-menu-mode-groups
       '(
         (".*\\.rb" . "Ruby")
@@ -413,15 +384,11 @@
 
 (add-hook 'text-mode-hook 'goto-address-mode)
 
-(defun enable-display-line-numbers ()
-  (display-line-numbers-mode 1)
-  ;; (setq display-line-numbers 'relative)
-  )
-
-(add-hook 'prog-mode-hook 'enable-display-line-numbers)
-(add-hook 'sgml-mode-hook 'enable-display-line-numbers)
-(add-hook 'feature-mode-hook 'enable-display-line-numbers)
-(add-hook 'yaml-mode-hook 'enable-display-line-numbers)
+(add-hook 'prog-mode-hook 'display-line-numbers-mode)
+(add-hook 'sgml-mode-hook 'display-line-numbers-mode)
+(add-hook 'feature-mode-hook 'display-line-numbers-mode)
+(add-hook 'yaml-mode-hook 'display-line-numbers-mode)
+;; (setq display-line-numbers 'relative)
 
 (delete-selection-mode t)                       ;选区替换模式.
 
