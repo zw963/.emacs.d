@@ -16,9 +16,11 @@
 
 (add-hook 'activate-mark-hook (lambda ()
                                 (local-set-key (kbd "C-@") 'set-rectangular-region-anchor)
+                                (set-cursor-color "#e52b50")
                                 ))
 (add-hook 'deactivate-mark-hook (lambda ()
                                   (local-unset-key (kbd "C-@"))
+                                  (set-cursor-color "#00FF00")
                                   ))
 
 (provide 'multiple-cursors_init)
