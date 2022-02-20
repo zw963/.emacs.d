@@ -11,6 +11,7 @@
 
 (eval-when-compile (require 'vc))
 (eval-when-compile (require 'vc-git))
+;; comment this is needed for diff-hl-stage-current-hunk work.
 ;; (add-to-list 'vc-handled-backends 'git)
 
 (autoload 'git-status "git-status"
