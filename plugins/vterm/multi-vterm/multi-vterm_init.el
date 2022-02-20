@@ -25,13 +25,15 @@
                  )))
         (select-window win)))))
 
+(global-set-key [(control l)] 'toggle-drop-down-term)
+
 (add-hook 'vterm-mode-hook (lambda ()
                              (define-key vterm-mode-map (kbd "M-9") 'multi-vterm-prev)
                              (define-key vterm-mode-map (kbd "M-0") 'multi-vterm-next)
                              (define-key vterm-mode-map [(control x) (\2)] 'split-window-below-then-switch-to-new-vterm)
                              (define-key vterm-mode-map [(control x) (\3)] 'split-window-right-then-switch-to-new-vterm)
                              (define-key vterm-mode-map [(shift control t)] 'multi-vterm)
-                             (define-key vterm-mode-map [(shift space)] 'multi-vterm-dedicated-toggle)
+                             (define-key vterm-mode-map [(control l)] 'toggle-drop-down-term)
                              ))
 
 ;; (add-to-list 'display-buffer-alist '
