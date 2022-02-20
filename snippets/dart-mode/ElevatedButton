@@ -1,11 +1,11 @@
 # -*- mode: snippet -*-
-# name: wrap a GestureDetector
-# key: GestureDetector
-# binding: G
+# name: wrap a ElevatedButton
+# key: ElevatedButton
+# binding: B
 # condition: (yas-use-region-p)
 # contributor: Billy.Zheng vil963@gmail.com
 # --
-GestureDetector(
-          onTap: () {$0},
+ElevatedButton(
+          onPressed: () {$0},
           child: `(yas-selected-text)`,
         )

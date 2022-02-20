@@ -1,0 +1,11 @@
+mode: snippet -*-
+# name: Wrap a Visibility
+# key: Visibility
+# binding: V
+# condition: (yas-use-region-p)
+# contributor: Billy.Zheng vil963@gmail.com
+# --
+Visibility(
+  visible: isVisible,
+  child: `(yas-selected-text)`$0,
+  )

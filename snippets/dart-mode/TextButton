@@ -1,6 +1,6 @@
 mode: snippet -*-
 # name: Wrap a TextButton
-# binding: T
+# binding: B
 # condition: (yas-use-region-p)
 # contributor: Billy.Zheng vil963@gmail.com
 # --
