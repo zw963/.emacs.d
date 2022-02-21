@@ -1,0 +1,7 @@
+# -*- mode: snippet -*-
+# name: define Stateful Widget class
+# key: c
+# --
+class ${1:WidgetName}`(field "2" "StatefulWidget" " extends ")` {
+  $0
+}
