@@ -227,7 +227,7 @@
          '(95 . 80) '(100 . 100)))))
 
 ;; 中英文逗号 ，,
-(dolist (param '(
+(dolist (param `(
                  (menu-bar-lines . 0)
                  (tool-bar-lines . 0)
                  (vertical-scroll-bars . nil)
@@ -236,7 +236,7 @@
                  ;; (alpha 95 80) ;; 设置透明度, 默认设置微透明，使用 toggle-transparency 函数关闭
                  ;; 当以 daemon 启动时， 光标使用系统光标黑色， 这里改为浅白色。
                  ;; (cursor-color . "AntiqueWhite3")
-                 (cursor-color . "#00FF00")
+                 (cursor-color . ,zw/cursor-color-default)
                  ;; (fullscreen . nil)
                  ))
   (add-to-list 'default-frame-alist param)

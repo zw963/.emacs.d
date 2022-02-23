@@ -7,9 +7,12 @@
 ;; (setenv "https_proxy" "")
 ;; (setenv "ftp_proxy" "")
 
+(setq zw/cursor-color-default "#00FF00")
+
 (require 'gcmh_init)
 (require 'auto-compile_init)
 (require 'crux_init)
+(require 'multiple-cursors_init)
 ;; (require 'exec-path-from-shell_init)
 (require 'themes_init)
 
