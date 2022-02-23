@@ -14,6 +14,9 @@
 ;; 这个是用鼠标左键点一下, 就新增加一个 cursor.
 (global-set-key (kbd "C-S-<mouse-1>") 'mc/add-cursor-on-click)
 
+;; Ctrl + Shift + 2, 多行编辑
+(global-set-key (kbd "C-@") 'set-rectangular-region-anchor)
+
 ;; (add-hook 'activate-mark-hook (lambda ()
 ;;                                 (local-set-key (kbd "C-@") 'set-rectangular-region-anchor)
 ;;                                 (set-cursor-color "#e52b50")

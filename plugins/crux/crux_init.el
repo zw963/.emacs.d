@@ -7,7 +7,8 @@
 (global-set-key [(meta c)] 'meta-c-map)
 
 ;;  在命令行下, 貌似 C-2 默认等价于: C-@，这里使用同样的绑定。
-(define-key key-translation-map [(control \2)] [(control \@)])
+;; (define-key key-translation-map [(control \2)] [(control \@)])
+(global-set-key [(control \2)] 'set-mark-command)
 (global-set-key [(control c) (j)] 'imenu)
 
 (global-set-key [(meta D)] (lambda () (interactive) (dired "./"))) ; 打开 dired buffer.
