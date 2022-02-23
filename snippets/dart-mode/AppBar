@@ -4,17 +4,6 @@ mode: snippet -*-
 # contributor: Billy.Zheng vil963@gmail.com
 # --
 AppBar(
-      title: Container(child: const Text('${1:Title}')),
-      actions: [
-        TextButton(
-          onPressed: () async {
-            await Application.router.navigateTo(
-              context,
-              ${2:Page}.routerPath,
-            );
-            setState(() {});
-          },
-          child: const Text('${3:Button Title}'),
-        )
-      ]
+      title: const Text('${1:Title}'),
+      actions: [],
       )

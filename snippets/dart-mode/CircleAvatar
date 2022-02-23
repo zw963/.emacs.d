@@ -5,6 +5,6 @@ mode: snippet -*-
 # contributor: Billy.Zheng vil963@gmail.com
 # --
 CircleAvatar(
-  `(child "1" "50" "radius: " ", ")`
+  `(field "1" "50" "radius: " ", ")`
   child: `(yas-selected-text)`,$0
   )

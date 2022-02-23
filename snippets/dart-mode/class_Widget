@@ -2,6 +2,11 @@
 # name: define Stateful Widget class
 # key: c
 # --
-class ${1:WidgetName}`(field "2" "StatefulWidget" " extends ")` {
-  $0
+class ${1:WidgetName} extends ${2:$$(yas-choose-value '("StatefulWidget" "StatelessWidget"))} {
+  const $1({Key? key}) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return Placeholder()$0;
+  }
 }

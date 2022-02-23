@@ -1,0 +1,11 @@
+mode: snippet -*-
+# name: wrap a Scaffold
+# key: Scaffold
+# binding: S
+# condition: (yas-use-region-p)
+# contributor: Billy.Zheng vil963@gmail.com
+# --
+Scaffold(
+  appBar: Text('${1:Title}'),
+  body: `(yas-selected-text)`,
+)
