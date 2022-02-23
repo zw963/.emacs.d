@@ -748,7 +748,7 @@ auto-selected name already exists."
        (propertize (treemacs-project->path duplicate) 'face 'font-lock-string-face)))
     (`(includes-project ,project)
      (goto-char (treemacs-project->position project))
-     (treemacs-pulse-on-failure "Project '%s' is included in '%s'. Projects May not overlap."
+     (treemacs-pulse-on-failure "Project '%s' is included in '%s'. Projects may not overlap."
        (propertize (treemacs-project->name project) 'face 'font-lock-type-face)
        (propertize path 'face 'font-lock-string-face)))
     (`(duplicate-name ,duplicate)
@@ -1074,7 +1074,7 @@ Only works with a single project in the workspace."
          treemacs-persist-file
          nil :silent)
         (treemacs--restore)
-        (-if-let (ws (treemacs--select-workspace-by-name
+        (-if-let (ws (treemacs--find-workspace-by-name
                       (treemacs-workspace->name (treemacs-current-workspace))))
             (setf (treemacs-current-workspace) ws)
           (treemacs--find-workspace))
