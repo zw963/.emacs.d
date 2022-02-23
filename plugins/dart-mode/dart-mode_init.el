@@ -22,7 +22,7 @@
 (require 'lsp-dart)
 (with-eval-after-load 'lsp-dart
   (setq lsp-signature-auto-activate nil)
-  ;; (setq lsp-dart-dap-flutter-hot-reload-on-save t)
+  (setq lsp-dart-dap-flutter-hot-reload-on-save t)
   (define-key dart-mode-map (kbd "C-M-x") 'lsp-dart-dap-flutter-hot-reload)
   (define-key dart-mode-map (kbd "C-M-z") 'lsp-dart-dap-flutter-hot-restart)
   (define-key special-mode-map (kbd "C-M-x") 'special-mode-lsp-dart-dap-flutter-hot-reload)
@@ -58,15 +58,48 @@
   (let ((start-point (s-lex-format "Container(${dart-symbols}child: "))
         (end-point flutter-widget-end))
     (let ((begin-pos (save-excursion (search-backward-regexp start-point nil t)))
-          (end-pos (save-excursion (search-forward-regexp end-point nil t 1))))
-      (cond ((and begin-pos end-pos)
+          ;; 这个结果不准，很有可能是某个中间的其他 widget 的结尾。
+          ;; (end-pos (save-excursion (search-forward-regexp end-point nil t 1)))
+          )
+      (cond (begin-pos
              (save-excursion
                (search-backward-regexp start-point nil t)
                (forward-sexp 2)
                (when (re-search-backward end-point nil t 1)
                  (replace-match "")))
-             (save-excursion (replace-regexp start-point "" nil begin-pos end-pos)))
+             (save-excursion (replace-regexp start-point "" nil begin-pos (point))))
             (t (message "Not in Container"))))))
+
+(setq flutter-widgets (regexp-opt '
+ (
+  "Align"
+  "Center" "CircleAvatar" "ConstrainedBox" "Container"
+  "ElevatedButton" "Expanded"
+  "FittedBox" "Flexible" "Fractionalsizedbox"
+  "GestureDetector"
+  "ListView" "ListView.builder" "Listview.separated"
+  "Padding" "Positioned"
+  "RefreshIndicator" "RaisedButton"
+  "SafeArea" "Scaffold" "SizedBox" "Stack" "SliverToBoxAdapter"
+  "TextButton" "TextSpan"
+  "Visibility"
+  "Wrap"
+  )))
+
+(defun flutter-undo-widget (&optional arg)
+  (interactive)
+  (let ((start-point (s-lex-format "${flutter-widgets}(${dart-symbols}\\(child\\|body\\):"))
+        (end-point flutter-widget-end))
+    (let ((begin-pos (save-excursion (search-backward-regexp start-point nil t 1)))
+          )
+      (cond (begin-pos
+             (save-excursion
+               (goto-char begin-pos)
+               (forward-sexp 2)
+               (when (re-search-backward end-point begin-pos t 1)
+                 (replace-match "")))
+             (save-excursion (replace-regexp start-point "" nil begin-pos (point))))
+            (t (message "Not in Widget"))))))
 
 (defun flutter-toggle-container/sizedbox (&optional arg)
   (interactive)
@@ -77,12 +110,12 @@
     (let ((end-pos (save-excursion (search-forward-regexp end-point nil t 1)))
           (begin-pos (save-excursion (search-backward-regexp start-point nil t))))
       (cond ((and begin-pos end-pos)
-            (if (string= (match-string 1) "SizedBox")
-                (save-excursion (replace-regexp "SizedBox(" "Container(color: Colors.grey," nil begin-pos end-pos))
-              (save-excursion (replace-regexp "Container(\n\\s-+\\(color: Colors\.[^,]+,\\)?" "SizedBox(" nil begin-pos end-pos))))
+             (if (string= (match-string 1) "SizedBox")
+                 (save-excursion (replace-regexp "SizedBox(" "Container(color: Colors.grey," nil begin-pos end-pos))
+               (save-excursion (replace-regexp "Container(\n\\s-+\\(color: Colors\.[^,]+,\\)?" "SizedBox(" nil begin-pos end-pos))))
             (t (message "Not in Container or SizedBox"))))))
 
-(define-key dart-mode-map [(meta c) (c)] 'flutter-undo-container)
+(define-key dart-mode-map [(meta c) (c)] 'flutter-undo-widget)
 (define-key dart-mode-map [(meta c) (s)] 'flutter-toggle-container/sizedbox)
 (define-key dart-mode-map [(meta c) (l)] 'flutter-undo-layout-builder)
 
