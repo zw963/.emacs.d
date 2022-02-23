@@ -1,5 +1,5 @@
 # -*- mode: snippet -*-
-# name: define Stateful Widget class
+# name: define StatelessWidget class
 # key: c
 # --
 class ${1:WidgetName} extends ${2:$$(yas-choose-value '("StatefulWidget" "StatelessWidget"))} {
@@ -9,4 +9,14 @@ class ${1:WidgetName} extends ${2:$$(yas-choose-value '("StatefulWidget" "Statel
   Widget build(BuildContext context) {
     return Placeholder()$0;
   }
+
+ `(yas-if-any "3" "@override")`
+ `(yas-if-any "3" "State<")`${3:$1}`(yas-if-any "3" "> createState() => _")`$3`(yas-if-any "3" "State();")`
 }
+
+`(yas-if-any "3" "class _")`$3`(yas-if-any "3" "State extends State<")`$3`(yas-if-any "3" "> {
+    @override
+    Widget build(BuildContext context) {
+      return Placeholder();
+    }
+}")`

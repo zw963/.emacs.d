@@ -1,10 +1,10 @@
 mode: snippet -*-
-# name: Wrap a TextButton
+# name: Wrap a RaisedButton
 # binding: B
 # condition: (yas-use-region-p)
 # contributor: Billy.Zheng vil963@gmail.com
 # --
-TextButton(
+RaisedButton(
 onPressed: () async {$0},
   child: `(yas-selected-text)`$0
   ),

@@ -1,5 +1,6 @@
 mode: snippet -*-
 # name: Wrap a setState
+# key: setState
 # binding: s
 # condition: (yas-use-region-p)
 # contributor: Billy.Zheng vil963@gmail.com
