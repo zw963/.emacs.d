@@ -26,11 +26,8 @@
 
 (add-to-list 'hippie-expand-try-functions-list 'yas-hippie-try-expand)
 
-;; (require 'dropdown-list)
-;; (add-to-list 'yas-prompt-functions 'yas-x-prompt)
-
-(yas-recompile-all)
-(yas-global-mode t)
+(require 'dropdown-list)
+(setq yas-prompt-functions '(yas-dropdown-prompt))
 
 (defun test-yas/snippet ()
   "test yas/snippet pattern."
@@ -157,6 +154,12 @@
 
   (run-ruby-mode-hook '(ac-add-yas-source))
   )
+
+;; (require 'yasnippet-multiple-key)
+;; (yasnippet-multiple-key-compile-directory (expand-file-name "snippets"))
+
+(yas-recompile-all)
+(yas-global-mode t)
 
 (provide 'yasnippet_init)
 ;;; yasnippet_init.el ends here
