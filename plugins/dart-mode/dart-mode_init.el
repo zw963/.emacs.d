@@ -22,7 +22,7 @@
 (require 'lsp-dart)
 (with-eval-after-load 'lsp-dart
   (setq lsp-signature-auto-activate nil)
-  (setq lsp-dart-dap-flutter-hot-reload-on-save t)
+  ;; (setq lsp-dart-dap-flutter-hot-reload-on-save t)
   (define-key dart-mode-map (kbd "C-M-x") 'lsp-dart-dap-flutter-hot-reload)
   (define-key dart-mode-map (kbd "C-M-z") 'lsp-dart-dap-flutter-hot-restart)
   (define-key special-mode-map (kbd "C-M-x") 'special-mode-lsp-dart-dap-flutter-hot-reload)
