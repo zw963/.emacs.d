@@ -5,5 +5,5 @@ mode: snippet -*-
 # contributor: Billy.Zheng vil963@gmail.com
 # --
 Obx(() {
-  return `(yas-selected-text)`;
+  `(yas-selected-text)`;
 }$0)

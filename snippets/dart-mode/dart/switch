@@ -1,6 +1,6 @@
 # -*- mode: snippet -*-
-# name: do
-# key: do
+# name: switch
+# key: switch
 # contributor: Billy.Zheng vil963@gmail.com
 # --
 switch (${1:command}) {
@@ -8,5 +8,5 @@ switch (${1:command}) {
     $0
     break;
   default:
-    executeUnknown();
+  true
 }
