@@ -1,9 +1,9 @@
 ;;; web-mode.el --- major mode for editing web templates
 ;;; -*- coding: utf-8; lexical-binding: t; -*-
 
-;; Copyright 2011-2021 François-Xavier Bois
+;; Copyright 2011-2022 François-Xavier Bois
 
-;; Version: 17.0.4
+;; Version: 17.1.4
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Package-Requires: ((emacs "23.1"))
@@ -11,20 +11,20 @@
 ;; Repository: http://github.com/fxbois/web-mode
 ;; Created: July 2011
 ;; Keywords: languages
-;; License: GNU General Public License >= 2
+;; License: GNU General Public License >= 3
 ;; Distribution: This file is not part of Emacs
 
 ;;; Commentary:
 
 ;;==============================================================================
-;; WEB-MODE is sponsored by ** Kernix ** Best Digital Factory & Data Lab (Paris)
+;; WEB-MODE is sponsored by ** Kernix ** Best Digital Agency & Data Lab (Paris)
 ;;==============================================================================
 
 ;;; Code:
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "17.0.4"
+(defconst web-mode-version "17.1.4"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -314,7 +314,7 @@ See web-mode-block-face."
 
 (defcustom web-mode-extra-control-blocks '()
   "A list of additional control blocks."
-  :type '(alist :key-type string :value-type string)
+  :type '(alist :key-type string :value-type (repaet string))
   :group 'web-mode)
 
 (defcustom web-mode-tests-directory (concat default-directory "tests/")
@@ -833,7 +833,7 @@ Must be used in conjunction with web-mode-enable-block-face."
 
 (defvar web-mode-void-elements
   '("area" "base" "br" "col" "command" "embed" "hr" "img" "input" "keygen"
-    "link" "meta" "param" "source" "track" "wbr"))
+    "link" "meta" "param" "source" "track" "wbr" "tmpl_var"))
 
 (defvar web-mode-part-content-types
   '("css" "javascript" "json" "jsx" "markdown" "pug" "ruby"
@@ -926,7 +926,7 @@ Must be used in conjunction with web-mode-enable-block-face."
 
 (defvar web-mode-content-types
   '(("css"        . "\\.\\(s?css\\|css\\.erb\\)\\'")
-    ("javascript" . "\\.\\(js\\|js\\.erb\\)\\'")
+    ("javascript" . "\\.\\([mc]?js\\|js\\.erb\\)\\'")
     ("typescript" . "\\.\\(ts\\|ts\\.erb\\)\\'")
     ("json"       . "\\.\\(api\\|json\\|jsonld\\)\\'")
     ("jsx"        . "\\.[jt]sx\\'")
@@ -1771,7 +1771,7 @@ shouldn't be moved back.)")
      "endif" "endifchanged" "endifequal" "endifnotequal"
      "endmacro"
      "endrandom" "endraw"
-     "endsafe" "endsandbox"  "endspaceless"
+     "endsafe" "endsandbox" "endspaceless"
      "endtablerow"
      "endunless"
      "endverbatim"
@@ -2077,6 +2077,9 @@ shouldn't be moved back.)")
 
 (defvar web-mode-django-code-font-lock-keywords
   (list
+   '("{%[ ]*\\(set\\)[ ]+\\([[:alpha:]]+\\)[ ]*%}"
+     (1 'web-mode-block-control-face)
+     (2 'web-mode-variable-name-face))
    (cons (concat "\\({%\\|#\\)[ ]*\\(" web-mode-django-control-blocks-regexp "\\)[ %]") '(2 'web-mode-block-control-face))
    '("\\({%\\|#\\)[ ]*\\(end[[:alpha:]]+\\)\\_>" 2 'web-mode-block-control-face) ;#504
    (cons (concat "\\_<\\(" web-mode-django-keywords "\\)\\_>") '(1 'web-mode-keyword-face))
@@ -2836,6 +2839,9 @@ another auto-completion with different ac-sources (e.g. ac-php)")
   (when (or (null web-mode-change-end) (> font-lock-end web-mode-change-end))
     (when web-mode-trace (message "extend-region: font-lock-end(%S) > web-mode-change-end(%S)" font-lock-end web-mode-change-end))
     (setq web-mode-change-end font-lock-end))
+  (when font-lock-dont-widen
+    (setq web-mode-change-beg (max web-mode-change-beg (point-min))
+          web-mode-change-end (min web-mode-change-end (point-max))))
   (let ((region (web-mode-scan web-mode-change-beg web-mode-change-end)))
     (when region
       ;;(message "region: %S" region)
@@ -3298,7 +3304,7 @@ Also return non-nil if it is the command `self-insert-command' is remapped to."
           (cond
            ((string= sub2 "<%")
             (setq closing-string '("<%". "%>")
-                  delim-open "<%[=-]?"
+                  delim-open "<%\\(==\\|[=-]\\)?"
                   delim-close "[-]?%>"))
            (t
             (setq closing-string "EOL"
@@ -4769,6 +4775,8 @@ Also return non-nil if it is the command `self-insert-command' is remapped to."
           (setq controls (append controls (list (cons 'inside "for")))))
          ((web-mode-block-starts-with "end\\([[:alpha:]]+\\)" reg-beg)
           (setq controls (append controls (list (cons 'close (match-string-no-properties 1))))))
+         ((web-mode-block-starts-with "set [[:alpha:]]+[ ]*%}" reg-beg)
+          (setq controls (append controls (list (cons 'open "set")))))
          ((web-mode-block-starts-with (concat web-mode-django-control-blocks-regexp "[ %]") reg-beg)
           (let (control)
             (setq control (match-string-no-properties 1))
@@ -5163,10 +5171,6 @@ Also return non-nil if it is the command `self-insert-command' is remapped to."
 
 ;;---- LEXER PARTS -------------------------------------------------------------
 
-;; FLAGS: tag
-;; (1)attrs (2)custom (4)slash-beg (8)slash-end (16)bracket-end
-;; (32)namespaced
-
 (defun web-mode-scan-elements (reg-beg reg-end)
   (save-excursion
     (let (part-beg part-end flags limit close-expr props tname tbeg tend element-content-type (regexp web-mode-dom-regexp) part-close-tag char)
@@ -5355,8 +5359,12 @@ Also return non-nil if it is the command `self-insert-command' is remapped to."
 
       )))
 
+;; FLAGS: tag
+;; (1)attrs (2)custom (4)slash-beg (8)slash-end (16)bracket-end (32)namespaced
+
 ;; FLAGS: attr
 ;; (1)custom-attr (2)engine-attr (4)spread-attr[jsx] (8)code-value
+;; SPECS: https://www.w3.org/TR/2012/WD-html-markup-20120329/syntax.html#attr-value-unquoted
 
 ;; STATES: attr
 ;; (0)nil (1)space (2)name (3)space-before (4)equal (5)space-after
@@ -5384,7 +5392,7 @@ Also return non-nil if it is the command `self-insert-command' is remapped to."
        ((>= pos limit)
         (setq continue nil)
         (setq go-back t)
-        (setq attrs (+ attrs (web-mode-attr-scan state char name-beg name-end val-beg attr-flags equal-offset)))
+        (setq attrs (+ attrs (web-mode-attr-scan pos state char name-beg name-end val-beg attr-flags equal-offset tag-flags)))
         )
 
        ((or (and (= state 8) (not (member char '(?\" ?\\))))
@@ -5405,7 +5413,7 @@ Also return non-nil if it is the command `self-insert-command' is remapped to."
 
        ((and (= state 2) is-jsx (eq char ?\}) (eq attr-flags 4))
         (setq name-end pos)
-        (setq attrs (+ attrs (web-mode-attr-scan state char name-beg name-end val-beg attr-flags equal-offset)))
+        (setq attrs (+ attrs (web-mode-attr-scan pos state char name-beg name-end val-beg attr-flags equal-offset tag-flags)))
         (setq state 0
               attr-flags 0
               equal-offset 0
@@ -5420,7 +5428,7 @@ Also return non-nil if it is the command `self-insert-command' is remapped to."
             )
 
         ;;(message "%S %S" (point) attr-flags)
-        (setq attrs (+ attrs (web-mode-attr-scan state char name-beg name-end val-beg attr-flags equal-offset)))
+        (setq attrs (+ attrs (web-mode-attr-scan pos state char name-beg name-end val-beg attr-flags equal-offset tag-flags)))
         (setq state 0
               attr-flags 0
               equal-offset 0
@@ -5456,7 +5464,7 @@ Also return non-nil if it is the command `self-insert-command' is remapped to."
        ((and (eq char ?\<) (not (member state '(7 8 9))))
         (setq continue nil)
         (setq go-back t)
-        (setq attrs (+ attrs (web-mode-attr-scan state char name-beg name-end val-beg attr-flags equal-offset)))
+        (setq attrs (+ attrs (web-mode-attr-scan pos state char name-beg name-end val-beg attr-flags equal-offset tag-flags)))
         )
 
        ((and (eq char ?\>) (not (member state '(7 8 9))))
@@ -5466,7 +5474,7 @@ Also return non-nil if it is the command `self-insert-command' is remapped to."
           )
         (setq continue nil)
         (when name-beg
-          (setq attrs (+ attrs (web-mode-attr-scan state char name-beg name-end val-beg attr-flags equal-offset))))
+          (setq attrs (+ attrs (web-mode-attr-scan pos state char name-beg name-end val-beg attr-flags equal-offset tag-flags))))
         )
 
        ((and spaced (member state '(1 3 5)))
@@ -5477,7 +5485,7 @@ Also return non-nil if it is the command `self-insert-command' is remapped to."
         )
 
        ((and (eq char ?\/) (member state '(4 5)))
-        (setq attrs (+ attrs (web-mode-attr-scan state char name-beg name-end val-beg attr-flags equal-offset)))
+        (setq attrs (+ attrs (web-mode-attr-scan pos state char name-beg name-end val-beg attr-flags equal-offset tag-flags)))
         (setq state 1
               attr-flags 0
               equal-offset 0
@@ -5497,7 +5505,7 @@ Also return non-nil if it is the command `self-insert-command' is remapped to."
              (or (and (>= char 97) (<= char 122)) ;a - z
                  (and (>= char 65) (<= char 90)) ;A - Z
                  (eq char ?\-)))
-        (setq attrs (+ attrs (web-mode-attr-scan state char name-beg name-end val-beg attr-flags equal-offset)))
+        (setq attrs (+ attrs (web-mode-attr-scan pos state char name-beg name-end val-beg attr-flags equal-offset tag-flags)))
         (setq state 2
               attr-flags 0
               equal-offset 0
@@ -5507,7 +5515,7 @@ Also return non-nil if it is the command `self-insert-command' is remapped to."
         )
 
        ((and (eq char ?\n) (not (member state '(7 8 9))))
-        (setq attrs (+ attrs (web-mode-attr-scan state char name-beg name-end val-beg attr-flags equal-offset)))
+        (setq attrs (+ attrs (web-mode-attr-scan pos state char name-beg name-end val-beg attr-flags equal-offset tag-flags)))
         (setq state 1
               attr-flags 0
               equal-offset 0
@@ -5517,7 +5525,7 @@ Also return non-nil if it is the command `self-insert-command' is remapped to."
         )
 
        ((and (= state 6) (member char '(?\s ?\n))) ;#1150
-        (setq attrs (+ attrs (web-mode-attr-scan state char name-beg name-end val-beg attr-flags equal-offset)))
+        (setq attrs (+ attrs (web-mode-attr-scan pos state char name-beg name-end val-beg attr-flags equal-offset tag-flags)))
         (setq state 1
               attr-flags 0
               equal-offset 0
@@ -5531,7 +5539,7 @@ Also return non-nil if it is the command `self-insert-command' is remapped to."
           (setq tag-flags (logior tag-flags 16))
           (setq continue nil))
         (setq state 6)
-        (setq attrs (+ attrs (web-mode-attr-scan state char name-beg name-end val-beg attr-flags equal-offset)))
+        (setq attrs (+ attrs (web-mode-attr-scan pos state char name-beg name-end val-beg attr-flags equal-offset tag-flags)))
         (setq state 1
               attr-flags 0
               equal-offset 0
@@ -5579,7 +5587,7 @@ Also return non-nil if it is the command `self-insert-command' is remapped to."
 
        ) ;cond
 
-      ;;(message "point(%S) end(%S) state(%S) c(%S) name-beg(%S) name-end(%S) val-beg(%S) attr-flags(%S) equal-offset(%S)" pos end state char name-beg name-end val-beg attr-flags equal-offset)
+      ;;(message "point(%S) end(%S) state(%S) c(%S) name-beg(%S) name-end(%S) val-beg(%S) attr-flags(%S) equal-offset(%S)" pos end state char name-beg name-end val-beg attr-flags equal-offset tag-flags)
 
       (when (and quoted (>= quoted 2))
         (setq quoted nil))
@@ -5594,20 +5602,20 @@ Also return non-nil if it is the command `self-insert-command' is remapped to."
 
     tag-flags))
 
-(defun web-mode-attr-scan (state char name-beg name-end val-beg flags equal-offset)
-  ;;(message "point(%S) state(%S) c(%c) name-beg(%S) name-end(%S) val-beg(%S) flags(%S) equal-offset(%S)"
-  ;;         (point) state char name-beg name-end val-beg flags equal-offset)
-  (when (null flags) (setq flags 0))
+(defun web-mode-attr-scan (pos state char name-beg name-end val-beg attr-flags equal-offset tag-flags)
+  ;;(message "point(%S) state(%S) c(%c) name-beg(%S) name-end(%S) val-beg(%S) attr-flags(%S) equal-offset(%S) tag-flags(%S)"
+  ;;         pos state char name-beg name-end val-beg attr-flags equal-offset tag-flags)
+  (when (null attr-flags) (setq attr-flags 0))
   (when (and name-beg name-end web-mode-engine-attr-regexp)
     (let (name)
       (setq name (buffer-substring-no-properties name-beg (1+ name-end)))
       ;;(message "%S" name)
       (cond
        ((string-match-p "^data[-]" name)
-        (setq flags (logior flags 1))
+        (setq attr-flags (logior attr-flags 1))
         )
        ((string-match-p web-mode-engine-attr-regexp name)
-        (setq flags (logior flags 2))
+        (setq attr-flags (logior attr-flags 2))
         )
        )
       ) ;name
@@ -5615,16 +5623,15 @@ Also return non-nil if it is the command `self-insert-command' is remapped to."
   ;;(message "%S" name)
   (cond
    ((null name-beg)
-    ;;    (message "name-beg is null (%S)" (point))
     0)
    ((or (and (= state 8) (not (eq ?\" char)))
         (and (= state 7) (not (eq ?\' char))))
-    (put-text-property name-beg (1+ name-beg) 'tag-attr-beg flags)
+    (put-text-property name-beg (1+ name-beg) 'tag-attr-beg attr-flags)
     (put-text-property name-beg val-beg 'tag-attr t)
     (put-text-property (1- val-beg) val-beg 'tag-attr-end equal-offset)
     1)
    ((and (member state '(4 5)) (null val-beg))
-    (put-text-property name-beg (1+ name-beg) 'tag-attr-beg flags)
+    (put-text-property name-beg (1+ name-beg) 'tag-attr-beg attr-flags)
     (put-text-property name-beg (+ name-beg equal-offset 1) 'tag-attr t)
     (put-text-property (+ name-beg equal-offset) (+ name-beg equal-offset 1) 'tag-attr-end equal-offset)
     1)
@@ -5632,20 +5639,23 @@ Also return non-nil if it is the command `self-insert-command' is remapped to."
     (let (val-end)
       (if (null val-beg)
           (setq val-end name-end)
-        (setq val-end (point))
+        (setq val-end pos)
         (cond
          ((null char)
           (setq val-end (1- val-end)))
          ((member char '(?\s ?\n ?\/))
           (setq val-end (1- val-end)))
          ((eq char ?\>)
-          (if (logior flags 8)
-              (setq val-end (- val-end 2))
+          (if (= (logand tag-flags 8) 8)
+              (progn
+                ;;(message "tag-flags=%S %S" tag-flags (logand tag-flags 8))
+                (setq val-end (- val-end 2)))
             (setq val-end (- val-end 1)))
+          ;; (message "val-end=%S" val-end)
           )
          )
-        ) ;if
-      (put-text-property name-beg (1+ name-beg) 'tag-attr-beg flags)
+        )
+      (put-text-property name-beg (1+ name-beg) 'tag-attr-beg attr-flags)
       (put-text-property name-beg (1+ val-end) 'tag-attr t)
       (put-text-property val-end (1+ val-end) 'tag-attr-end equal-offset)
       ) ;let
@@ -8247,12 +8257,12 @@ Also return non-nil if it is the command `self-insert-command' is remapped to."
              (options (plist-get ctx :options))
              (chars (list curr-char prev-char))
              (tmp nil)
-             (is-js (member language '("javascript" "jsx" "ejs"))))
+             (is-js (member language '("javascript" "jsx" "ejs" "typescript"))))
 
         (when (member language '("json" "typescript"))
           (setq language "javascript"))
 
-        ;;(message "%S" language)
+        ;;(message "%S %S" (plist-get ctx :language) language)
         ;;(message "curr-char=[%c] prev-char=[%c]\n%S" curr-char prev-char ctx)
         ;;(message "options=%S" ctx)
 
@@ -8835,6 +8845,11 @@ Also return non-nil if it is the command `self-insert-command' is remapped to."
                  (not (string-match-p "^{" curr-line)))
             (setq offset (+ prev-indentation web-mode-code-indent-offset))
             )
+           ((and (string-match-p "else$" prev-line)
+                 (string-match-p "^{" curr-line)
+                 web-mode-enable-curly-brace-indentation)
+            (setq offset (+ prev-indentation web-mode-code-indent-offset))
+            )
            ((setq tmp (web-mode-part-is-opener prev-pos reg-beg))
             ;;(message "is-opener")
             (if (or (not (looking-at-p "{")) ;; #1020, #1053, #1160
@@ -8904,14 +8919,15 @@ Also return non-nil if it is the command `self-insert-command' is remapped to."
             (setq offset (+ (current-indentation) web-mode-code-indent-offset)))
            ))
 
-         ((member ?\, chars)
-          (when debug (message "I400(%S) block-args" pos))
+         ((and is-js (member ?\, chars))
+          (when debug (message "I400(%S) part-args" pos))
           (cond
-           ((not (web-mode-block-args-beginning pos reg-beg))
+           ((not (web-mode-part-args-beginning pos reg-beg))
             ;;(message "ici")
             )
            ((cdr (assoc "lineup-args" web-mode-indentation-params))
             (setq offset (current-column))
+            ;;(message "offset=%S" offset)
             (when (eq curr-char ?\,)
               (goto-char pos)
               (looking-at ",[ \t\n]*")
@@ -8920,6 +8936,25 @@ Also return non-nil if it is the command `self-insert-command' is remapped to."
            (t
             (setq offset (+ (current-indentation) web-mode-code-indent-offset)))
            ))
+
+         ((member ?\, chars)
+          (when debug (message "I401(%S) block-args" pos))
+          (cond
+           ((not (web-mode-block-args-beginning pos reg-beg))
+            ;;(message "ici")
+            )
+           ((cdr (assoc "lineup-args" web-mode-indentation-params))
+            (setq offset (current-column))
+            ;;(message "offset=%S" offset)
+            (when (eq curr-char ?\,)
+              (goto-char pos)
+              (looking-at ",[ \t\n]*")
+              (setq offset (- offset (length (match-string-no-properties 0)))))
+            )
+           (t
+            (setq offset (+ (current-indentation) web-mode-code-indent-offset)))
+           ))
+
 
          ((and (string= language "php") (member ?\. chars))
           (when debug (message "I410(%S) block-string" pos))
@@ -10555,12 +10590,12 @@ Prompt user if TAG-NAME isn't provided."
       (unless tag-name (setq tag-name (read-from-minibuffer "New tag name? ")))
       (when (and (> (length tag-name) 0)
                  (web-mode-element-beginning)
-                 (looking-at "<\\([[:alnum:]]+\\(:?[-][[:alpha:]]+\\)?\\)"))
+                 (looking-at "<\\([[:alnum:]]+\\(:?[[:alpha:]_-]+\\)?\\)"))
         (setq pos (point))
         (unless (web-mode-element-is-void)
             (save-match-data
               (web-mode-tag-match)
-              (if (looking-at "</[ ]*\\([[:alnum:]]+\\(:?[-][[:alpha:]]+\\)?\\)")
+              (if (looking-at "</[ ]*\\([[:alnum:]]+\\(:?[[:alpha:]_-]+\\)?\\)")
                   (replace-match (concat "</" tag-name))
                 )))
         (goto-char pos)
