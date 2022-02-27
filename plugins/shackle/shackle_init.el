@@ -6,7 +6,7 @@
       shackle-select-reused-windows t
       shackle-rules
       '(
-        (("*Warnings*" "*Messages*" "*Completions*" "*Alerts*") :size 0.3 :align 'below :autoclose t)
+        (("*Warnings*" "*Messages*" "*Completions*" "*Alerts*" "*Compile-Log*") :size 0.3 :align 'below :autoclose t)
         (compilation-mode :select t :size 0.3 :align 'below :autoclose t)
         ("*quickrun*" :select t :size 15 :align 'below :autoclose t)
         ("*Backtrace*" :select t :size 15 :align 'below :autoclose t)
