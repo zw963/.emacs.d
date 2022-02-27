@@ -32,7 +32,7 @@
   )
 
 ;; 匹配dart 中可能出现的符号
-(setq dart-symbols "[\s\t\na-zA-Z0-9():,{}'$;.=/]*")
+(setq dart-symbols "[\s\t\na-zA-Z0-9():,{}'$;.=></_]*")
 ;; Flutter 之中，widget 调用匹配结束括号以及前面的逗号，需要被删除
 ;;     ,
 ;;   )
@@ -70,25 +70,27 @@
              (save-excursion (replace-regexp start-point "" nil begin-pos (point))))
             (t (message "Not in Container"))))))
 
-(setq flutter-widgets (regexp-opt '
- (
-  "Align"
-  "Center" "CircleAvatar" "ConstrainedBox" "Container"
-  "ElevatedButton" "Expanded"
-  "FittedBox" "Flexible" "Fractionalsizedbox"
-  "GestureDetector"
-  "ListView" "ListView.builder" "Listview.separated"
-  "Padding" "Positioned"
-  "RefreshIndicator" "RaisedButton"
-  "SafeArea" "Scaffold" "SizedBox" "Stack" "SliverToBoxAdapter"
-  "TextButton" "TextSpan"
-  "Visibility"
-  "Wrap"
-  )))
+;; (setq flutter-widgets (regexp-opt '
+;;  (
+;;   "Align"
+;;   "Center" "CircleAvatar" "ConstrainedBox" "Container"
+;;   "ElevatedButton" "Expanded"
+;;   "FittedBox" "Flexible" "Fractionalsizedbox"
+;;   "GestureDetector"
+;;   "ListView" "ListView.builder" "Listview.separated"
+;;   "Padding" "Positioned"
+;;   "RefreshIndicator" "RaisedButton"
+;;   "SafeArea" "Scaffold" "SizedBox" "Stack" "SliverToBoxAdapter"
+;;   "TextButton" "TextSpan"
+;;   "Visibility"
+;;   "Wrap"
+;;   )))
+
+(setq flutter-widget-pattern " [A-Z][A-Za-z]+")
 
 (defun flutter-undo-widget (&optional arg)
   (interactive)
-  (let ((start-point (s-lex-format "${flutter-widgets}(${dart-symbols}\\(child\\|body\\):"))
+  (let ((start-point (s-lex-format "${flutter-widget-pattern}(${dart-symbols}\\(child\\|body\\):"))
         (end-point flutter-widget-end))
     (let ((begin-pos (save-excursion (search-backward-regexp start-point nil t 1)))
           )
