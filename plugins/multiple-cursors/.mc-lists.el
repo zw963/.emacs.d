@@ -4,6 +4,7 @@
 (setq mc/cmds-to-run-for-all
       '(
         beginning-of-buffer
+        crux-move-beginning-of-line
         describe-key
         helm-confirm-and-exit-minibuffer
         iedit-mode

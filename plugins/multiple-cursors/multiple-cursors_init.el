@@ -1,6 +1,6 @@
-(require 'region-bindings-mode)
-(region-bindings-mode-enable)
-(setq region-bindings-mode-disable-predicates '((lambda () buffer-read-only)))
+;; (require 'region-bindings-mode)
+;; (region-bindings-mode-enable)
+;; (setq region-bindings-mode-disable-predicates '((lambda () buffer-read-only)))
 
 (setq mc/list-file (expand-file-name "plugins/multiple-cursors/.mc-lists.el"))
 
@@ -9,13 +9,13 @@
 ;;  在命令行下, 貌似 C-2 默认等价于: C-@，这里使用同样的绑定。
 ;; (define-key key-translation-map [(control \2)] [(control \@)])
 
-(define-key region-bindings-mode-map [(control c) (control c)] 'mc/edit-lines)
-(define-key region-bindings-mode-map [(control \2)] 'set-rectangular-region-anchor)
+;; (define-key region-bindings-mode-map [(control c) (control c)] 'mc/edit-lines)
+;; (define-key region-bindings-mode-map [(control \2)] 'set-rectangular-region-anchor)
 (global-set-key [(control \2)] 'set-mark-command)
 ;; Ctrl + Shift + 2, 多行编辑
 (global-set-key (kbd "C-@") 'set-rectangular-region-anchor)
 ;; 注意用法，右边的 Shift, 加左边的 C-c C-c
-;; (global-set-key (kbd "C-S-c C-S-c") 'mc/edit-lines)
+(global-set-key (kbd "C-S-c C-S-c") 'mc/edit-lines)
 
 (define-key mc/keymap (kbd "<return>") nil)
 
