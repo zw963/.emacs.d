@@ -9,7 +9,7 @@
 ;; (setq company-dabbrev-other-buffers nil)
 ;; ;; make dabbrev case-sensitive
 (setq company-dabbrev-ignore-case nil)
-;; (setq company-dabbrev-downcase nil)
+(setq company-dabbrev-downcase nil)
 ;; (setq company-dabbrev-code-ignore-case nil)
 ;; (setq company-dabbrev-code-everywhere t)
 
