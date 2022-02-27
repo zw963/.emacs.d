@@ -27,8 +27,26 @@
   (define-key special-mode-map (kbd "C-M-x") 'special-mode-lsp-dart-dap-flutter-hot-reload)
   (define-key special-mode-map (kbd "C-M-z") 'special-mode-lsp-dart-dap-flutter-hot-restart)
   ;; (define-key dart-mode-map (kbd "<escape>") 'lsp-dart-show-flutter-outline)
-  (add-hook 'dart-mode-hook 'lsp-deferred)
   )
+
+(defun context-menu-unwrap-flutter-widget (menu click)
+  "Populate MENU with `flutter-unwrap-widget' commands."
+  (define-key-after menu [hs-hide-block]
+    '(menu-item "Unwrap widget"
+                (lambda (click) (interactive "e")
+                  (save-excursion
+                    (mouse-set-point click)
+                    (flutter-unwrap-widget)))))
+  (define-key-after menu [hs-separator] menu-bar-separator)
+  menu)
+
+(defun dart-mode-common-hooks ()
+  (add-to-list 'context-menu-functions 'context-menu-unwrap-flutter-widget t)
+  (when (featurep 'treemacs) (save-selected-window (treemacs-select-window)))
+  (lsp-deferred)
+  )
+
+(add-hook 'dart-mode-hook 'dart-mode-common-hooks)
 
 ;; 匹配dart 中可能出现的符号
 (setq dart-symbols "[\s\t\na-zA-Z0-9():,{}'$;.=></_]*")
@@ -37,7 +55,7 @@
 ;;   )
 (setq flutter-widget-end ",\n\\s-+)")
 
-(defun flutter-undo-layout-builder (&optional arg)
+(defun flutter-unwrap-layout-builder (&optional arg)
   (interactive)
   (let ((start-point (s-lex-format "LayoutBuilder(${dart-symbols}return "))
         (end-point (s-lex-format ";\n\\s-+}${flutter-widget-end}")))
@@ -52,7 +70,7 @@
              (save-excursion (replace-regexp start-point "" nil begin-pos end-pos)))
             (t (message "Not in Layoutbuilder"))))))
 
-(defun flutter-undo-container (&optional arg)
+(defun flutter-unwrap-container (&optional arg)
   (interactive)
   (let ((start-point (s-lex-format "Container(${dart-symbols}child: "))
         (end-point flutter-widget-end))
@@ -87,20 +105,25 @@
 
 (setq flutter-widget-pattern " [A-Z][A-Za-z]+")
 
-(defun flutter-undo-widget (&optional arg)
+(defun flutter-unwrap-widget (&optional arg)
   (interactive)
-  (let ((start-point (s-lex-format "${flutter-widget-pattern}(${dart-symbols}\\(child\\|body\\):"))
-        (end-point flutter-widget-end))
-    (let ((begin-pos (save-excursion (search-backward-regexp start-point nil t 1)))
-          )
-      (cond (begin-pos
-             (save-excursion
-               (goto-char begin-pos)
-               (forward-sexp 2)
-               (when (re-search-backward end-point begin-pos t 1)
-                 (replace-match "")))
-             (save-excursion (replace-regexp start-point "" nil begin-pos (point))))
-            (t (message "Not in Widget"))))))
+  (let ((handle (prepare-change-group)))
+    (unwind-protect
+        (progn
+          (activate-change-group handle)
+          (let ((start-point (s-lex-format "${flutter-widget-pattern}(${dart-symbols}\\(child\\|body\\):"))
+                (end-point flutter-widget-end))
+            (let ((begin-pos (save-excursion (search-backward-regexp start-point nil t 1)))
+                  )
+              (cond (begin-pos
+                     (save-excursion
+                       (goto-char begin-pos)
+                       (forward-sexp 2)
+                       (when (re-search-backward end-point begin-pos t 1)
+                         (replace-match "")))
+                     (save-excursion (replace-regexp start-point "" nil begin-pos (point))))
+                    (t (message "Not in Widget")))))
+          (undo-amalgamate-change-group handle)))))
 
 (defun flutter-toggle-container/sizedbox (&optional arg)
   (interactive)
@@ -116,21 +139,14 @@
                (save-excursion (replace-regexp "Container(\n\\s-+\\(color: Colors\.[^,]+,\\)?" "SizedBox(" nil begin-pos end-pos))))
             (t (message "Not in Container or SizedBox"))))))
 
-(define-key dart-mode-map [(meta c) (c)] 'flutter-undo-widget)
+(define-key dart-mode-map [(meta c) (c)] 'flutter-unwrap-widget)
 (define-key dart-mode-map [(meta c) (s)] 'flutter-toggle-container/sizedbox)
-(define-key dart-mode-map [(meta c) (l)] 'flutter-undo-layout-builder)
+(define-key dart-mode-map [(meta c) (l)] 'flutter-unwrap-layout-builder)
 
-(with-eval-after-load 'treemacs
-  (add-hook
-   'dart-mode-hook
-   (lambda ()
-     (save-selected-window (treemacs-select-window))))
-  )
-
-(require 'flutter)
-(setq flutter-l10n-arb-dir "lib/i10n")
-(setq flutter-l10n-template-arb-file "intl_zh_Hans.arb")
-(setq flutter-l10n-output-localization-file "l10n.dart")
+;; (require 'flutter)
+;; (setq flutter-l10n-arb-dir "lib/i10n")
+;; (setq flutter-l10n-template-arb-file "intl_zh_Hans.arb")
+;; (setq flutter-l10n-output-localization-file "l10n.dart")
 
 (defun use-charles-proxy ()
   (interactive)
