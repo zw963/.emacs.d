@@ -21,13 +21,12 @@
 
 (require 'lsp-dart)
 (with-eval-after-load 'lsp-dart
-  (setq lsp-signature-auto-activate nil)
   ;; (setq lsp-dart-dap-flutter-hot-reload-on-save t)
   (define-key dart-mode-map (kbd "C-M-x") 'lsp-dart-dap-flutter-hot-reload)
   (define-key dart-mode-map (kbd "C-M-z") 'lsp-dart-dap-flutter-hot-restart)
   (define-key special-mode-map (kbd "C-M-x") 'special-mode-lsp-dart-dap-flutter-hot-reload)
   (define-key special-mode-map (kbd "C-M-z") 'special-mode-lsp-dart-dap-flutter-hot-restart)
-  (define-key dart-mode-map (kbd "<escape>") 'lsp-dart-show-flutter-outline)
+  ;; (define-key dart-mode-map (kbd "<escape>") 'lsp-dart-show-flutter-outline)
   (add-hook 'dart-mode-hook 'lsp-deferred)
   )
 

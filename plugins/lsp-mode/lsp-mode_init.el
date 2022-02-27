@@ -21,13 +21,17 @@
 
 ;; try disable watch file for performance reason, don't know it impact yet.
 ;; 下面的两个一个注释，另一个取消注释.
-;; (setq lsp-enable-file-watchers nil)
-(setq lsp-file-watch-threshold 3000)
+(setq lsp-enable-file-watchers nil)
+;; (setq lsp-file-watch-threshold 3000)
 
 ;; for more customize, check lsp-headerline-breadcrumb-segments
 (setq lsp-headerline-breadcrumb-enable-symbol-numbers t)
 
-;; (setq lsp-signature-function 'lsp-signature-posframe)
+;; 这个 lsp-dart 模式推荐是 nil 的，尝试不设定它是是看效果。
+;; (setq lsp-signature-auto-activate nil)
+
+;; 这个尝试打开，看看什么是 lsp-signature
+(setq lsp-signature-function 'lsp-signature-posframe)
 
 (setq lsp-enable-on-type-formatting nil)
 
