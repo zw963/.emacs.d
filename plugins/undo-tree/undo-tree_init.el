@@ -1,10 +1,10 @@
-(require 'undo-fu)
+;; (require 'undo-fu)
 
-(with-eval-after-load 'undo-fu
-  (global-unset-key (kbd "C-z"))
-  (global-set-key (kbd "C-z")   'undo-fu-only-undo)
-  (global-set-key (kbd "C-S-z") 'undo-fu-only-redo)
-  )
+;; (with-eval-after-load 'undo-fu
+;;   (global-unset-key (kbd "C-z"))
+;;   (global-set-key (kbd "C-z")   'undo-fu-only-undo)
+;;   (global-set-key (kbd "C-S-z") 'undo-fu-only-redo)
+;;   )
 
 ;; ------------------------------ undo-tree ------------------------------
 ;; 测试下, 这个包到底有没有问题.
@@ -34,7 +34,7 @@
       (cond ((and begin-pos end-pos)
              (save-excursion (replace-regexp "(puts.*__x=(\\|);puts File.readlines.*__x)" "" nil begin-pos end-pos)))
             (t (call-interactively 'undo-tree-undo)))))
-  (global-set-key [remap undo-tree-undo] 'undo-tree-or-undo-pp)
+  ;; (global-set-key [remap undo-tree-undo] 'undo-tree-or-undo-pp)
 
   (global-set-key [(control meta /)] 'undo-tree-redo)
 
