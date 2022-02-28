@@ -6,13 +6,11 @@
 (require 'org-mode_init)
 (require 'ibuffer_init)
 (require 'dired_init)
-(require 'all-the-icons_init)
 (require 'shell_init)
 ;; (require 'quickrun_init)
 (require 'treemacs_init)
 
 (require 'fancy-narrow_init)
-(require 'yafolding_init)
 (require 'avy_init)
 (require 'beacon_init)
 (require 'which-key_init)
@@ -143,6 +141,7 @@
 (require 'shackle_init)
 (require 'popper_init)
 (require 'burly_init)
+(require 'all-the-icons_init)
 ;; (require 'dashboard_init)
 
 (setenv "LOAD_INIT" "true")

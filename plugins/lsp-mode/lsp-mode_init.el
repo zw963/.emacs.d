@@ -27,11 +27,10 @@
 ;; for more customize, check lsp-headerline-breadcrumb-segments
 (setq lsp-headerline-breadcrumb-enable-symbol-numbers t)
 
-;; 这个 lsp-dart 模式推荐是 nil 的，尝试不设定它是是看效果。
-;; (setq lsp-signature-auto-activate nil)
-
-;; 这个尝试打开，看看什么是 lsp-signature
-(setq lsp-signature-function 'lsp-signature-posframe)
+;; 这个 打开时，lsp-dart 非常卡，建议关闭
+(setq lsp-signature-auto-activate nil)
+;; 使用 posframe 挺丑的
+;; (setq lsp-signature-function 'lsp-signature-posframe)
 
 (setq lsp-enable-on-type-formatting nil)
 

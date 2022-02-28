@@ -11,7 +11,7 @@
 (treemacs-fringe-indicator-mode 'always)
 (treemacs-filewatch-mode t)
 (treemacs-indent-guide-mode t)
-(setq treemacs-file-event-delay 1000)
+;; (setq treemacs-file-event-delay 1000)
 (treemacs-follow-mode t)
 ;; (require 'treemacs-project-follow-mode)
 ;; (treemacs-project-follow-mode t)
