@@ -33,7 +33,7 @@
   (define-key company-active-map (kbd "S-TAB") 'company-select-previous)
   )
 
-(set-company-tab)
+;; (set-company-tab)
 
 ;; emacs-lisp-compilation-mode "*Compile-Log*"
 

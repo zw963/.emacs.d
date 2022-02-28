@@ -10,7 +10,7 @@
 ;; URL: http://github.com/nonsequitur/inf-ruby
 ;; Created: 8 April 1998
 ;; Keywords: languages ruby
-;; Version: 2.5.2
+;; Version: 2.6.0
 ;; Package-Requires: ((emacs "24.3"))
 
 ;; This program is free software: you can redistribute it and/or modify
@@ -103,10 +103,9 @@ returns a string."
   :group 'inf-ruby)
 
 (defun inf-ruby--irb-command ()
-  (let ((command "irb --prompt default -r irb/completion"))
-    (if (inf-ruby--irb-needs-nomultiline-p)
-        (setq command (concat command " --nomultiline"))
-      (setq command (concat command "  --noreadline")))
+  (let ((command "irb --prompt default -r irb/completion --noreadline"))
+    (when (inf-ruby--irb-needs-nomultiline-p)
+      (setq command (concat command " --nomultiline")))
     command))
 
 (defun inf-ruby--irb-needs-nomultiline-p (&optional with-bundler)
@@ -411,9 +410,10 @@ the buffer, defaults to \"ruby\"."
 
   (let ((commandlist (split-string-and-unquote command))
         (buffer (current-buffer))
-        (process-environment process-environment))
+        (process-environment (copy-sequence process-environment)))
     ;; http://debbugs.gnu.org/15775
     (setenv "PAGER" (executable-find "cat"))
+    (setenv "RUBY_DEBUG_NO_RELINE" "true")
     (set-buffer (apply 'make-comint-in-buffer
                        name
                        (inf-ruby-choose-buffer-name name)
@@ -783,7 +783,7 @@ Then switch to the process buffer."
 (defun ruby-load-current-file ()
   "Load the current ruby file into the inferior Ruby process."
   (interactive)
-  (ruby-load-file (buffer-name)))
+  (ruby-load-file (buffer-file-name)))
 
 (defun ruby-send-buffer ()
   "Send the current buffer to the inferior Ruby process."
@@ -1065,7 +1065,7 @@ automatically."
              ;; Note: this only has effect in Rails < 5.0 or >= 5.1.4
              ;; https://github.com/rails/rails/pull/29010
              (when (inf-ruby--irb-needs-nomultiline-p)
-               " -- --nomultiline"))
+               " -- --nomultiline --noreadline"))
      "rails")))
 
 (defun inf-ruby-console-rails-env ()
