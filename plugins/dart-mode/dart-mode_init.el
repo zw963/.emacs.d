@@ -112,7 +112,9 @@
         (progn
           (activate-change-group handle)
           (let ((start-point (s-lex-format "${flutter-widget-pattern}(${dart-symbols}\\(child\\|body\\):"))
-                (end-point flutter-widget-end))
+                (end-point flutter-widget-end)
+                (current-point (point))
+                )
             (let ((begin-pos (save-excursion (search-backward-regexp start-point nil t 1)))
                   )
               (cond (begin-pos
@@ -121,7 +123,7 @@
                        (forward-sexp 2)
                        (when (re-search-backward end-point begin-pos t 1)
                          (replace-match "")))
-                     (save-excursion (replace-regexp start-point "" nil begin-pos (point))))
+                     (save-excursion (replace-regexp start-point "" nil begin-pos current-point t)))
                     (t (message "Not in Widget")))))
           (undo-amalgamate-change-group handle)))))
 
