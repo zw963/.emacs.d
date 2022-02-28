@@ -55,8 +55,10 @@
     (transform-parens-fixed "[[(]" "[])]"))
 
    ((member major-mode '(ruby-mode enh-ruby-mode))
-    (ruby-toggle-block-fixed)
-    )
+    (ruby-toggle-block-fixed))
+
+   ((member major-mode '(dart-mode))
+    (flutter-unwrap-function-body))
    ))
 
 (defun meta-return-hacked-init()

@@ -54,6 +54,7 @@
 ;;     ,
 ;;   )
 (setq flutter-widget-end ",\n\\s-+)")
+(setq flutter-function-end ";\n\\s-+}")
 
 (defun flutter-unwrap-layout-builder (&optional arg)
   (interactive)
@@ -104,6 +105,29 @@
 ;;   )))
 
 (setq flutter-widget-pattern " [A-Z][A-Za-z]+")
+(setq flutter-symbol-pattern "[A-Za-z0-9_]*")
+
+(defun flutter-unwrap-function-body (&optional arg)
+  (interactive)
+  (let ((handle (prepare-change-group)))
+    (unwind-protect
+        (progn
+          (activate-change-group handle)
+          (let ((start-point (s-lex-format "\\((${flutter-symbol-pattern})\\) {\n\\s-+return "))
+                (end-point flutter-function-end)
+                (current-point (point))
+                )
+            (let ((begin-pos (save-excursion (search-backward-regexp start-point nil t 1))))
+              (let ((args (match-string 1)))
+                  (cond (begin-pos
+                     (save-excursion
+                       (goto-char begin-pos)
+                       (forward-sexp 2)
+                       (when (re-search-backward end-point begin-pos t 1)
+                         (replace-match "")))
+                     (save-excursion (replace-regexp start-point (s-lex-format "${args} => ") nil begin-pos current-point t)))
+                    (t (message "Not in function"))))))
+          (undo-amalgamate-change-group handle)))))
 
 (defun flutter-unwrap-widget (&optional arg)
   (interactive)
