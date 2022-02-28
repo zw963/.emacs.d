@@ -30,8 +30,8 @@
             (define-key vc-git-log-view-mode-map [(=)] 'bc3-gitdiff-file-at-point) ;; 当前文件与 commit 之间的修改.
             ))
 
-(global-set-key [(control f11)] 'bc1-current-file) ; Ctrl-F11 bc1
-(global-set-key [(meta f11)] 'bc2-current-file) ; Meta-F11 bc2
+(global-set-key [(control f12)] 'bc1-current-file) ; Ctrl-F11 bc1
+(global-set-key [(meta f12)] 'bc2-current-file) ; Meta-F11 bc2
 
 (with-eval-after-load 'git-emacs
   (global-set-key [(control x) (v) (=)] 'bc3-gitdiff) ;; 当前 diff 修改.
