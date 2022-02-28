@@ -458,16 +458,12 @@ Run program PATH if not nil passing ARGS if not nil."
 (defun lsp-dart-dap-flutter-hot-restart ()
   "Hot restart current Flutter debug session."
   (interactive)
-  (if (dap--cur-session)
-      (lsp-dart-dap--flutter-hot-restart)
-    (lsp-dart-dap-run-flutter)))
+  (lsp-dart-dap--flutter-hot-restart))
 
 (defun lsp-dart-dap-flutter-hot-reload ()
   "Hot reload current Flutter debug session."
   (interactive)
-  (if (dap--cur-session)
-      (lsp-dart-dap--flutter-hot-reload)
-    (lsp-dart-dap-run-flutter)))
+  (lsp-dart-dap--flutter-hot-reload))
 
 (define-minor-mode lsp-dart-dap-mode
   "Mode for when debugging Dart/Flutter code."
