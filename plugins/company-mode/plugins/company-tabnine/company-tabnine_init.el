@@ -4,7 +4,7 @@
 
 ;; 注意：在编辑器内，输入 Tabnine::config 使用浏览器打开配置页面。
 (defun add-tabnine-backend ()
-  (setq-local company-idle-delay 0.4)
+  ;; (setq-local company-idle-delay 0.4)
   (make-local-variable 'company-backends)
   (add-to-list 'company-backends #'company-tabnine)
   )

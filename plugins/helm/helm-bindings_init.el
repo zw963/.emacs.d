@@ -6,7 +6,6 @@
 ;; 下面的配置来自于 emacs-helm.sh
 (define-key global-map [remap list-buffers] 'helm-buffers-list)
 (define-key global-map [remap occur] 'helm-occur)
-(define-key global-map [remap dabbrev-expand] 'helm-dabbrev)
 (define-key global-map [remap execute-extended-command] 'helm-M-x)
 (define-key minibuffer-local-map [(control /)] 'helm-undo-yank-text-at-point)
 

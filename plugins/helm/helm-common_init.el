@@ -44,6 +44,7 @@
 (global-set-key [(control x) (control b)] 'helm-mini)
 (global-set-key [(control x) (control n)] 'helm-mini)
 (global-set-key [(control x) (control p)] 'helm-resume)
+;; (define-key global-map [remap dabbrev-expand] 'helm-dabbrev)
 
 (add-hook 'helm-mode-hook '(lambda ()
                              (define-key helm-map (kbd "TAB") #'helm-execute-persistent-action)

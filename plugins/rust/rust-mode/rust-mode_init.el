@@ -69,7 +69,7 @@ CHAR-FUNCTION
 
 (add-hook 'rust-mode-hook
           #'(lambda ()
-              (setq-local company-idle-delay 0.4)
+              (setq-local company-idle-delay 0.2)
               (setq-local company-minimum-prefix-length 3)
               (local-set-key [(control c) (control m)] 'rust-format-buffer)
               (local-set-key [(control c) (return)] 'rust-run)
