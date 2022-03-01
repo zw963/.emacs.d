@@ -2,14 +2,15 @@
 (require 'treemacs)
 (require 'treemacs-file-management)
 
-(treemacs-git-mode 'deferred)
+;; (treemacs-git-mode 'deferred)
+;; (treemacs-filewatch-mode t)
+
 ;; we don't need treemacs command, use q to close and exit treemacs.
 (global-set-key [(f9)] 'treemacs)
 (setq treemacs-show-hidden-files nil) ; 快捷键 th
 ;; (setq treemacs-width-is-initially-locked nil) ; 快捷键 tw
 
 (treemacs-fringe-indicator-mode 'always)
-(treemacs-filewatch-mode t)
 (treemacs-indent-guide-mode t)
 ;; (setq treemacs-file-event-delay 1000)
 (treemacs-follow-mode t)
@@ -36,7 +37,7 @@
 ;; (treemacs-load-theme "all-the-icons")
 
 ;; 改变图标大小，默认 22.
-(treemacs-resize-icons 18)
+;; (treemacs-resize-icons 18)
 
 ;; (setq treemacs-indentation-string (propertize " ⫶ " 'face 'font-lock-comment-face)
 ;;       treemacs-indentation 1)
