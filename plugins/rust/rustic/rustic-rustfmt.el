@@ -116,7 +116,7 @@ and it's `cdr' is a list of arguments."
         (error (format "File %s does not exist." it))))
     (with-current-buffer err-buf
       (let* ((c `(,(rustic-rustfmt-bin)
-                  ,rustic-rustfmt-args
+                  ,@(split-string rustic-rustfmt-args)
                   ,@command "--" ,@files))
              (proc (rustic-make-process :name rustic-format-process-name
                                         :buffer err-buf
@@ -255,6 +255,8 @@ and it's `cdr' is a list of arguments."
 
 (defun rustic-cargo-fmt-sentinel (proc output)
   "Sentinel for formatting with `rustic-cargo-fmt'."
+  (with-current-buffer (process-buffer proc)
+    (setq default-directory (process-get proc 'workspace)))
   (let ((proc-buffer (process-buffer proc))
         (inhibit-read-only t))
     (with-current-buffer proc-buffer

@@ -1,6 +1,6 @@
 ;;; rustic.el --- Rust development environment -*-lexical-binding: t-*-
 
-;; Version: 2.6
+;; Version: 3.0
 ;; Author: Mozilla
 ;;
 ;; Keywords: languages
@@ -175,6 +175,7 @@ This variable might soon be remove again.")
   (require 'rustic-rustfix)
   (require 'rustic-playpen)
   (require 'rustic-lsp)
+  (require 'rustic-expand)
   (with-eval-after-load 'flycheck
     (require 'rustic-flycheck)))
 

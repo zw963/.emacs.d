@@ -50,6 +50,11 @@ If nil then the project is simply created."
   :type 'string
   :group 'rustic-cargo)
 
+(defcustom rustic-cargo-build-arguments ""
+  "Default arguments when running 'cargo build'."
+  :type 'string
+  :group 'rustic-cargo)
+
 (defvar rustic-cargo-outdated-face nil)
 (make-obsolete-variable 'rustic-cargo-outdated-face
                         "use the face `rustic-cargo-outdated' instead."
@@ -213,6 +218,8 @@ When calling this function from `rustic-popup-mode', always use the value of
     (define-key map (kbd "U") 'rustic-cargo-mark-all-upgrades)
     (define-key map (kbd "x") 'rustic-cargo-upgrade-execute)
     (define-key map (kbd "r") 'rustic-cargo-reload-outdated)
+    (define-key map (kbd "l") 'rustic-cargo-mark-latest-upgrade)
+    (define-key map (kbd "L") 'rustic-cargo-mark-all-upgrades-latest)
     (define-key map (kbd "c") 'rustic-compile)
     (define-key map (kbd "q") 'quit-window)
     map)
@@ -348,6 +355,56 @@ Execute process in PATH."
                                        'font-lock-face
                                        'rustic-cargo-outdated-upgrade)))))
       (tabulated-list-put-tag "U" t))))
+
+;;;###autoload
+(defun rustic-cargo-mark-latest-upgrade ()
+  "Mark an upgradable package to the latest available version."
+  (interactive)
+  (let* ((crate (tabulated-list-get-entry (point)))
+         (v (substring-no-properties (elt crate 3)))
+         (line-beg (line-beginning-position))
+         (inhibit-read-only t))
+    (when v
+      (save-excursion
+        (goto-char line-beg)
+        (save-match-data
+          (when (search-forward (elt crate 0))
+            (replace-match (propertize (elt crate 0)
+                                       'font-lock-face
+                                       'rustic-cargo-outdated-upgrade)))
+          (goto-char (line-beginning-position))
+          (when (search-forward (elt crate 1))
+            (replace-match (propertize v
+                                       'font-lock-face
+                                       'rustic-cargo-outdated-upgrade)))))
+      (tabulated-list-put-tag "U" t))))
+
+;;;###autoload
+(defun rustic-cargo-mark-all-upgrades-latest ()
+  "Mark all packages in the Package Menu to latest version."
+  (interactive)
+  (tabulated-list-print t)
+  (save-excursion
+    (goto-char (point-min))
+    (while (not (eobp))
+      (let* ((crate (aref (tabulated-list-get-entry) 0))
+             (current-version (aref (tabulated-list-get-entry) 1))
+             (latest-version (aref (tabulated-list-get-entry) 3))
+             (line-beg (line-beginning-position))
+             (replace-highlight-text
+              (lambda (text)
+                (replace-match (propertize text
+                                           'font-lock-face
+                                           'rustic-cargo-outdated-upgrade))))
+             (inhibit-read-only t))
+        (save-match-data
+          (when (search-forward crate)
+            (funcall replace-highlight-text crate))
+          (goto-char line-beg)
+          (when (search-forward current-version)
+            (funcall replace-highlight-text latest-version)))
+        (tabulated-list-put-tag "U")
+        (forward-line)))))
 
 ;;;###autoload
 (defun rustic-cargo-mark-all-upgrades ()
@@ -494,9 +551,9 @@ When calling this function from `rustic-popup-mode', always use the value of
   (rustic-cargo-run-command
    (cond (arg
           (setq rustic-run-arguments (read-from-minibuffer "Cargo run arguments: " rustic-run-arguments)))
-         ((rustic--get-run-arguments))
          ((eq major-mode 'rustic-popup-mode)
           rustic-run-arguments)
+         ((rustic--get-run-arguments))
          (t ""))))
 
 ;;;###autoload
@@ -548,8 +605,10 @@ in your project like `pwd'"
 (defun rustic-cargo-build ()
   "Run 'cargo build' for the current project."
   (interactive)
-  (rustic-run-cargo-command (list (rustic-cargo-bin) "build")
-                            (list :clippy-fix t)))
+  (rustic-run-cargo-command `(,(rustic-cargo-bin)
+                              "build"
+                              ,@(split-string rustic-cargo-build-arguments))
+                              (list :clippy-fix t)))
 
 (defvar rustic-clean-arguments nil
   "Holds arguments for 'cargo clean', similar to `compilation-arguments`.")
