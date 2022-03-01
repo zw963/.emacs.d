@@ -2,8 +2,9 @@
 (require 'treemacs)
 (require 'treemacs-file-management)
 
-;; (treemacs-git-mode 'deferred)
-;; (treemacs-filewatch-mode t)
+(treemacs-git-mode 'deferred)
+(treemacs-filewatch-mode t)
+;; (setq treemacs-file-event-delay 1000)
 
 ;; we don't need treemacs command, use q to close and exit treemacs.
 (global-set-key [(f9)] 'treemacs)
@@ -12,7 +13,6 @@
 
 (treemacs-fringe-indicator-mode 'always)
 (treemacs-indent-guide-mode t)
-;; (setq treemacs-file-event-delay 1000)
 (treemacs-follow-mode t)
 ;; (require 'treemacs-project-follow-mode)
 ;; (treemacs-project-follow-mode t)
