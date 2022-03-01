@@ -1,13 +1,10 @@
 ;; -*-Emacs-Lisp-*-
 
 ;; ==============================开启的功能==============================
-;; (require 'flyspell_init)
-;; (require 'rime_init)
 (require 'org-mode_init)
 (require 'ibuffer_init)
 (require 'dired_init)
 (require 'shell_init)
-;; (require 'quickrun_init)
 (require 'treemacs_init)
 
 (require 'fancy-narrow_init)
@@ -15,69 +12,46 @@
 (require 'beacon_init)
 (require 'which-key_init)
 (require 'zoom-frm_init)
-;; (require 'awesome-tray_init)
-;; (require 'smart-mode-line_init)
 (require 'doom-modeline_init)
 (require 'rich-minority_init)
 (require 'show-point-mode_init)
-;; (require 'eyebrowse_init)
 (require 'winum_init)
 (require 'hydra_init);; depend by treemacs
-;; (require 'auto-indent-mode_init)
-;; (require 'aggressive-indent_init)
 (require 'edit-server_init)
-;; (require 'fanyi_init)
-;; (require 'markdown-mode_init)
 (require 'iedit_init)
 (require 'multiple-cursors_init)
 (require 'undo-tree_init)
 (require 'toggle-quotes_init)
 (require 'beyond-compare_init)
+;; (require 'ido_init)
 (require 'helm_init) ;; helm 放到 ivy 后面，可以覆盖某些 ivy 覆盖的快捷键。
 ;; (require 'helm-bindings_init) ; 和 ivy_init 冲突， 二者选其一.
 (require 'ivy_init)
-;; (require 'snails_init)
 (require 'prescient_init) ;; 这个必须放在 ivy_init 后面.
 (require 'yasnippet_init)
 (require 'anzu_init)
-;; (require 'visual-regexp_init)
-
-;; 这个感觉用处不大
-;; (require 'pangu-spacing_init)
-
 (require 'back-button_init)
 (require 'bm_init)
 (require 'helpful_init)
 (require 'wgrep_init)
 (require 'quickrun_init)
-
-;; (require 'ido_init)
-;; (require 'popwin_init)
 ;; (require 'amx_init)
-;; (require 'eglot_init) ----------
 ;; (require 'spaceline_init)
-;; (require 'awesome-tab_init)
-;; (require 'awesome-pair_init)
-;; (require 'super-save_init)
-;; (require 'pdf-tools_init)
+
 ;; (require 'valign_init)
 (require 'cnfonts_init)
-(require 'find-file-in-project_init)
+;; (require 'find-file-in-project_init)
 (require 'vterm_init)
-;; (require 'auto-complete_init)
-;; (require 'english-teacher_init)
 (require 'async_init)
 (require 'mu4e_init)
 (require 'volatile-highlights_init)
 (require 'buffer-move_init)
 (require 'goto-chg_init)
-;; (require 'sunrise_init)
-;; (require 'ctrlf_init)
+(require 'symbol-overlay_init)
 
 ;; ============================== 编程相关 ==============================
 
 (require 'prog-mode_init)
-
 ;; (require 'apheleia_init)
 (require 'git_init)
 (require 'flycheck_init)
@@ -85,10 +59,6 @@
 (require 'lsp-mode_init)
 (require 'dap-mode_init)
 (require 'dart-mode_init)
-
-;; (require 'color-identifiers-mode_init)
-;; (require 'minimap_init)
-;; (require 'zoom_init)
 (require 'smartparens_init)
 (require 'string-inflection_init)
 (require 'highlight-indentation_init)
@@ -99,11 +69,9 @@
 (require 'ruby_init)
 (require 'web-mode_init)
 (require 'rainbow-mode_init)
-;; (require 'smart-jump_init)
 (require 'scss-css-mode_init)
 (require 'json-mode_init)
 ;; (require 'tree-sitter_init)
-;; (require 'reformatter_init)
 
 (require 'dpaste_init)
 (require 'ws-butler_init)
@@ -112,23 +80,11 @@
 
 ;; 关闭一些有用，但最近不常用的 mode
 ;; (require 'go-mode_init)
-(require 'rust_init)
+;; (require 'rust_init)
 ;; (require 'haskell-mode_init)
-
 ;; (require 'js2-mode_init)
 ;; (require 'lua-mode_init)
 ;; (require 'toml-mode_init)
-;; (require 'coffee-mode_init)
-
-;; (require 'symbol-overlay_init)
-;; (require 'feature-mode_init)
-;; (require 'mode-compile_init)
-;; (require 'fluentd-mode)
-;; (require 'disable-mouse_init)
-;; (require 'telega_init)
-;; (require 'eaf_init)
-;; 这个会造成 treemacs-follow-mode 当滚动时，也频繁的刷新文件列表，造成页面被 pull back.
-;; (require 'wakatime-mode_init)
 
 ;; 加载 dotfiles 时，阻止 gc.
 ;; (when (file-exists-p (expand-file-name ".emacs" config))
@@ -136,7 +92,6 @@
 ;;    (load ".emacs")))
 
 ;; 这个似乎要放到最后面？
-;; (require 'workgroups_init)
 (require 'posframe_init)
 (require 'shackle_init)
 (require 'popper_init)
