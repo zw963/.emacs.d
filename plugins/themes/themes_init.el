@@ -1,14 +1,16 @@
 ;; ------------------------------ Theme ------------------------------
 
 ;; popular themes: https://emacsthemes.com/popular/index.html
-;; (setq zenburn-use-variable-pitch t)
-;; (setq zenburn-scale-org-headlines t)
-;; (setq zenburn-scale-outline-headlines t)
-;; (load-theme 'zenburn t)
 
 (setq custom-theme-directory (expand-file-name "plugins/themes" default-directory))
+
+(setq zenburn-use-variable-pitch t)
+(setq zenburn-scale-org-headlines t)
+(setq zenburn-scale-outline-headlines t)
+(load-theme 'zenburn t)
+
 ;; (load-theme 'material t) ;; 这个是原来的
-(load-theme 'vscode-dark-plus t)
+;; (load-theme 'vscode-dark-plus t)
 ;; (require 'spacemacs-common)
 ;; (load-theme 'spacemacs-dark t)
 ;; (load-theme 'dracula t)

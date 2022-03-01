@@ -267,7 +267,7 @@ Also bind `class' to ((class color) (min-colors 89))."
 
    `(c-annotation-face ((t (:inherit font-lock-constant-face))))
 ;;;;; line numbers (Emacs 26.1 and above)
-   `(line-number ((t (:foreground ,zenburn-bg+3 :background ,zenburn-bg-05))))
+   `(line-number ((t (:inherit default :foreground ,zenburn-bg+3 :background ,zenburn-bg-05))))
    `(line-number-current-line ((t (:inherit line-number :foreground ,zenburn-yellow-2))))
 ;;;;; man
    '(Man-overstrike ((t (:inherit font-lock-keyword-face))))
@@ -1372,6 +1372,9 @@ Also bind `class' to ((class color) (min-colors 89))."
    `(realgud-backtrace-number ((t (:foreground ,zenburn-yellow, :weight bold))))
 ;;;;; regex-tool
    `(regex-tool-matched-face ((t (:background ,zenburn-blue-4 :weight bold))))
+;;;;; rmail
+   `(rmail-highlight ((t (:foreground ,zenburn-yellow :weight bold))))
+   `(rmail-header-name ((t (:foreground ,zenburn-blue))))
 ;;;;; rpm-mode
    `(rpm-spec-dir-face ((t (:foreground ,zenburn-green))))
    `(rpm-spec-doc-face ((t (:foreground ,zenburn-green))))
@@ -1485,6 +1488,15 @@ Also bind `class' to ((class color) (min-colors 89))."
    `(tabbar-unselected ((t (:foreground ,zenburn-fg
                                         :background ,zenburn-bg+1
                                         :box (:line-width -1 :style released-button)))))
+;;;;; tab-bar
+   `(tab-bar ((t (:background ,zenburn-bg+1))))
+   `(tab-bar-tab ((t (:foreground ,zenburn-fg
+                                  :background ,zenburn-bg
+                                  :weight bold
+                                  :box (:line-width -1 :style released-button)))))
+   `(tab-bar-tab-inactive ((t (:foreground ,zenburn-fg
+                                           :background ,zenburn-bg+1
+                                           :box (:line-width -1 :style released-button)))))
 ;;;;; term
    `(term-color-black ((t (:foreground ,zenburn-bg
                                        :background ,zenburn-bg-1))))
