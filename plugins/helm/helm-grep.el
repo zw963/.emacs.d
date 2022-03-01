@@ -508,10 +508,13 @@ It is intended to use as a let-bound variable, DON'T set this globaly.")
                                            (shell-quote-argument x)))
                                helm-grep-ignored-directories " ")))
          (exclude           (unless (helm-grep-use-ack-p)
-                              (if helm-grep-in-recurse
-                                  (concat (or include ignored-files)
-                                          " " ignored-dirs)
-                                ignored-files)))
+                              (let ((inc     (and include
+                                                  (concat include " ")))
+                                    (igfiles (and ignored-files
+                                                  (concat ignored-files " ")))
+                                    (igdirs  (and helm-grep-in-recurse
+                                                  ignored-dirs)))
+                                (concat inc igfiles igdirs))))
          (types             (and (helm-grep-use-ack-p)
                                  ;; When %e format spec is not specified
                                  ;; in `helm-grep-default-command'
@@ -874,6 +877,46 @@ If N is positive go forward otherwise go backward."
         (helm-grep-mode-jump)))))
 (put 'helm-grep-mode-mouse-jump 'helm-only t)
 
+(defun helm-grep-next-error (&optional argp reset)
+  "Goto ARGP position from a `helm-grep-mode' buffer.
+RESET non-nil means rewind to the first match.
+This is the `next-error-function' for `helm-grep-mode'."
+  (interactive "p")
+  (goto-char (cond (reset (point-min))
+		   ((< argp 0) (line-beginning-position))
+		   ((> argp 0) (line-end-position))
+		   ((point))))
+  (let ((fun (if (> argp 0)
+                 #'next-single-property-change
+               #'previous-single-property-change)))
+    (helm-aif (funcall fun (point) 'helm-grep-fname)
+        (progn (goto-char it) (helm-grep-mode-jump))
+      (user-error "No more matches"))))
+(put 'helm-grep-next-error 'helm-only t)
+
+;;;###autoload
+(defun helm-revert-next-error-last-buffer ()
+  "Revert last `next-error' buffer from `current-buffer'.
+
+Accept to revert only `helm-grep-mode' or `helm-occur-mode' buffers.
+Use this when you want to revert the `next-error' buffer after
+modifications in `current-buffer'."
+  (interactive)
+  (let ((buffer  (next-error-find-buffer))
+        (linum   (line-number-at-pos))
+        (bufname (buffer-name)))
+    (if buffer
+        (with-current-buffer buffer
+          (helm-aif (memq major-mode '(helm-grep-mode helm-occur-mode))
+              (progn (revert-buffer)
+                     ;; helm-occur-mode revert fn is synchronous so
+                     ;; reajust from here (it is done with
+                     ;; helm-grep-mode in its sentinel).
+                     (when (eq (car it) 'helm-occur-mode)
+                       (helm-grep-goto-closest-from-linum linum bufname)))
+            (error "No suitable buffer to revert found")))
+      (error "No suitable buffer to revert found"))))
+
 (define-derived-mode helm-grep-mode
     special-mode "helm-grep"
     "Major mode to provide actions in helm grep saved buffer.
@@ -883,7 +926,9 @@ Special commands:
     (set (make-local-variable 'helm-grep-last-cmd-line)
          (with-helm-buffer helm-grep-last-cmd-line))
     (set (make-local-variable 'revert-buffer-function)
-         #'helm-grep-mode--revert-buffer-function))
+         #'helm-grep-mode--revert-buffer-function)
+    (set (make-local-variable 'next-error-function)
+         #'helm-grep-next-error))
 (put 'helm-grep-mode 'helm-only t)
 
 (defun helm-grep-mode--revert-buffer-function (&optional _ignore-auto _noconfirm)
@@ -902,7 +947,9 @@ Special commands:
 
 (defun helm-grep-mode--sentinel (process event)
   (when (string= event "finished\n")
-    (with-current-buffer (current-buffer)
+    (with-current-buffer (if (eq major-mode 'helm-grep-mode)
+                             (current-buffer)
+                           (next-error-find-buffer))
       (let ((inhibit-read-only t))
         (save-excursion
           (cl-loop for l in (with-current-buffer (process-buffer process)
@@ -918,8 +965,22 @@ Special commands:
                                'helm-realvalue line)
                               "\n"))))
       (when (fboundp 'wgrep-cleanup-overlays)
-        (wgrep-cleanup-overlays (point-min) (point-max)))
-      (message "Reverting buffer done"))))
+        (wgrep-cleanup-overlays (point-min) (point-max))))
+    (unless (eq major-mode 'helm-grep-mode)
+      (let ((bufname (buffer-name))
+            (linum (line-number-at-pos)))
+        (with-current-buffer (next-error-find-buffer)
+          (helm-grep-goto-closest-from-linum linum bufname))))
+    (message "Reverting buffer done")))
+
+(defun helm-grep-goto-closest-from-linum (linum bufname)
+  (goto-char (point-min))
+  (catch 'break
+    (while (re-search-forward (format "^%s:\\([0-9]+\\):" (regexp-quote bufname)) nil t)
+      (let ((numline (string-to-number (match-string 1))))
+        (when (< (- linum numline) 0)
+          (forward-line -1)
+          (throw 'break nil))))))
 
 (defun helm-gm-next-file ()
   (interactive)
@@ -979,14 +1040,13 @@ Special commands:
     ;; `helm-grep-use-ack-p'.
     (call-process (helm-grep-command t) nil t nil "--help-types")
     (goto-char (point-min))
-    (cl-loop while (re-search-forward
-                    "^ *--\\(\\[no\\]\\)\\([^. ]+\\) *\\(.*\\)" nil t)
-             collect (cons (concat (match-string 2)
-                                   " [" (match-string 3) "]")
-                           (match-string 2))
-             collect (cons (concat "no" (match-string 2)
-                                   " [" (match-string 3) "]")
-                           (concat "no" (match-string 2))))))
+    (cl-loop while (re-search-forward "^ +\\([^. ]+\\) +\\(.*\\)" nil t)
+             collect (cons (concat (match-string 1)
+                                   " [" (match-string 2) "]")
+                           (match-string 1))
+             collect (cons (concat "no" (match-string 1)
+                                   " [" (match-string 2) "]")
+                           (concat "no" (match-string 1))))))
 
 (defun helm-grep-ack-types-transformer (candidates _source)
   (cl-loop for i in candidates
@@ -1268,7 +1328,7 @@ matching `helm-zgrep-file-extension-regexp' only."
   (let ((helm-grep-default-directory-fn
          (or helm-grep-default-directory-fn
              (lambda () (or helm-ff-default-directory
-                            (and (null (eq major-mode 'helm-grep-mode))
+                            (and helm-alive-p
                                  (helm-default-directory))
                             default-directory)))))
     (if (consp candidate)

@@ -588,11 +588,11 @@ from its directory."
                helm-actions-inherit-frame-settings) ; use this-command
            (if (file-exists-p f)
                (helm-find-files-1 (file-name-directory f)
-                                  (concat
-                                   "^"
-                                   (regexp-quote
-                                    (if helm-ff-transformer-show-only-basename
-                                        (helm-basename f) f))))
+                                   (format
+                                    helm-ff-last-expanded-candidate-regexp
+                                    (regexp-quote
+                                     (if helm-ff-transformer-show-only-basename
+                                         (helm-basename f) f))))
              (helm-find-files-1 f))))
        (helm--quit-and-find-file-default-file src)))))
 (put 'helm-quit-and-find-file 'helm-only t)
@@ -1039,10 +1039,6 @@ If FILE is a directory, open this directory."
       (dired file)
     (dired (file-name-directory file))
     (dired-goto-file file)))
-
-(defun helm-require-or-error (feature function)
-  (or (require feature nil t)
-      (error "Need %s to use `%s'." feature function)))
 
 (defun helm-find-file-as-root (candidate)
   (let* ((buf (helm-basename candidate))
