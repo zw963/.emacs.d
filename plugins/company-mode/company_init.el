@@ -3,7 +3,7 @@
 (require 'company-capf)
 
 ;; FIXME: 测试一下啥效果
-(setq company-tooltip-limit 20)                      ; bigger popup window
+;; (setq company-tooltip-limit 20)                      ; bigger popup window
 ;; FIXME: 测试一下这个
 (setq company-begin-commands
       (delete 'c-scope-operator
@@ -11,8 +11,7 @@
                       (delete 'c-electric-lt-gt
                               (delete 'c-electric-slash
                                       company-begin-commands)))))
-;; FIXME: 测试一下
-(setq company-tooltip-align-annotations t)
+;; (setq company-tooltip-align-annotations t)
 ;; (global-set-key (kbd "C-c /") 'company-files)
 
 ;; (setq company-tooltip-width-grow-only t)
@@ -45,17 +44,15 @@
 
 ;; (set-company-tab)
 
-;; emacs-lisp-compilation-mode "*Compile-Log*"
-
 (global-set-key (kbd "<tab>") #'company-indent-or-complete-common)
 (define-key company-active-map (kbd "C-s") 'company-filter-candidates)
 (define-key company-active-map (kbd "M-/") #'company-complete)
 
 ;; Use M-1,2 ... to select a candidation.
 (setq company-show-quick-access t)
-(setq company-minimum-prefix-length 2)
-(setq company-idle-delay
-      (lambda () (if (company-in-string-or-comment) nil 0.4)))
+;; (setq company-minimum-prefix-length 2)
+;; (setq company-idle-delay
+;;       (lambda () (if (company-in-string-or-comment) nil 0.4)))
 
 ;; 这个其实是替换 company-preview-if-just-one-frontend 为 company-preview-frontend
 ;; 这样做，会让 preview 总是在光标处 inline 显示。
@@ -125,7 +122,9 @@ ac-auto-show-menu 为 nil 的情形, 这种模式比较适合在 yasnippet 正�
   (advice-add #'company-complete-common-or-cycle :around #'advice-always-trigger-yas)
   )
 
-(setq company-insertion-on-trigger t)
+;; 这个开启，lsp 不工作
+;; (setq company-insertion-on-trigger t)
+
 ;; ;; 注意： C-x = 用来检测光标下字符的数字，(insert 数字) 用来测试数字对应的字符。
 ;; ;; 32 空格, 41 右圆括号, 46 是 dot 字符
 ;; ;; 这里我们移除空格，添加逗号(44), 分号(59)

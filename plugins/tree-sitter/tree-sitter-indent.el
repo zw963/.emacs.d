@@ -520,6 +520,7 @@ See `tree-sitter-indent-line'.  ORIGINAL-COLUMN is forwarded to
              (tsc-node-type indenting-node)
              tree-sitter-tree-before)))
 
+;;;###autoload
 (define-minor-mode tree-sitter-indent-mode
   "Use Tree-sitter as backend for indenting buffer."
   nil nil nil
