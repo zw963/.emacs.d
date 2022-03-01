@@ -82,7 +82,6 @@
 ;; (require 'haskell-mode_init)
 ;; (require 'js2-mode_init)
 ;; (require 'lua-mode_init)
-;; (require 'toml-mode_init)
 
 ;; 加载 dotfiles 时，阻止 gc.
 ;; (when (file-exists-p (expand-file-name ".emacs" config))

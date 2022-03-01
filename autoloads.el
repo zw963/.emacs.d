@@ -71,5 +71,9 @@
 (add-to-list 'auto-mode-alist '("Procfile\\|Procfile.dev\\'" . yaml-mode))
 (add-to-list 'auto-mode-alist '("Procfile.options\\|Procfile.dev.options\\'" . yaml-mode))
 
+(autoload 'yaml-mode "toml-mode_init" nil t)
+
+(add-to-list 'auto-mode-alist '("\\.toml\\'" . toml-mode))
+
 ;; (provide 'markdown-mode_init)
 ;;; markdown-mode_init.el ends here
