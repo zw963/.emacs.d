@@ -1,7 +1,4 @@
-(with-eval-after-load 'helm
-  (require 'amx)
-  (setq amx-backend 'helm)
-  (global-set-key (kbd "M-x") 'amx)
-  )
+(require 'amx)
+(amx-mode t)
 
 (provide 'amx_init)
