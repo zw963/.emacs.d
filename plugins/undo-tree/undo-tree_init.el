@@ -34,7 +34,7 @@
       (cond ((and begin-pos end-pos)
              (save-excursion (replace-regexp "(puts.*__x=(\\|);puts File.readlines.*__x)" "" nil begin-pos end-pos)))
             (t (call-interactively 'undo-tree-undo)))))
-  ;; (global-set-key [remap undo-tree-undo] 'undo-tree-or-undo-pp)
+  (global-set-key [remap undo-tree-undo] 'undo-tree-or-undo-pp)
 
   (global-set-key [(control meta /)] 'undo-tree-redo)
 
