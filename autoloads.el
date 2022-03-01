@@ -63,5 +63,13 @@
 (add-to-list 'auto-mode-alist '("\\.jsx$" . web-mode))
 (add-to-list 'auto-mode-alist '("\\.wxml$" . web-mode))
 
+(autoload 'yaml-mode "yaml-mode_init" nil t)
+
+(add-to-list 'auto-mode-alist '("\\.\\(e?ya?\\|ra\\)ml\\'" . yaml-mode))
+(add-to-list 'auto-mode-alist '("\\.yml\\.j2" . yaml-mode))
+(add-to-list 'auto-mode-alist '("\\.yml" . yaml-mode))
+(add-to-list 'auto-mode-alist '("Procfile\\|Procfile.dev\\'" . yaml-mode))
+(add-to-list 'auto-mode-alist '("Procfile.options\\|Procfile.dev.options\\'" . yaml-mode))
+
 ;; (provide 'markdown-mode_init)
 ;;; markdown-mode_init.el ends here
