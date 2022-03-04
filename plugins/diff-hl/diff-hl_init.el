@@ -1,5 +1,7 @@
 (require 'diff-hl)
 
+(setq vc-git-diff-switches '("--histogram"))
+
 ;; (add-hook 'prog-mode-hook 'turn-on-diff-hl-mode)
 (global-diff-hl-mode 1)
 

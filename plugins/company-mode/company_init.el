@@ -189,9 +189,8 @@ ac-auto-show-menu 为 nil 的情形, 这种模式比较适合在 yasnippet 正�
 ;; 包含了一个 py 脚本，用来转化 stardict 的词库，模式是 KDict, 包含 11 万单词.
 (require 'company-english-helper)
 
-(require 'company-web-html)
-
 (with-eval-after-load 'web-mode
+  (require 'company-web-html)
   (add-hook 'web-mode-hook
             (lambda ()
               (set (make-local-variable 'company-backends) '(company-web-html))
