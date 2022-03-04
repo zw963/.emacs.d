@@ -1,0 +1,10 @@
+mode: snippet -*-
+# name: wrap a InkWell
+# binding: I
+# condition: (yas-use-region-p)
+# contributor: Billy.Zheng vil963@gmail.com
+# --
+InkWell(
+  onTap: () async { $0 },
+  child: `(yas-selected-text)`,$0
+  )

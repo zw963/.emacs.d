@@ -1,0 +1,32 @@
+mode: snippet -*-
+# name: create a Mutation
+# key: Mutation
+# contributor: Billy.Zheng vil963@gmail.com
+# --
+var _requesting = false;
+
+final mutation = Mutation(
+      options: MutationOptions(
+        document: gql(_mutationDoc),
+        onCompleted: (resultData) async {
+          _requesting = false;
+
+          final _result = resultData['mutation']['${1:updateAvatar}'];
+          final _code = _result['code'];
+          final _msg = _result['msg'];
+
+          if (_msg != null && _msg.length > 0) {
+            BotToast.showText(text: _msg);
+          }
+
+          if (_code == '1111') {
+            $0
+          }
+
+
+},
+      ),
+      builder: (runMutation, result) {
+        return Placeholder();
+},
+    );
