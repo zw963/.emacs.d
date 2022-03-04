@@ -51,7 +51,6 @@
 (add-to-list 'auto-mode-alist '("\\.mkdn$\\|\\.mkd$\\|\\.mdown$" . gfm-mode))
 
 (autoload 'web-mode "web-mode_init" nil t)
-
 (add-to-list 'auto-mode-alist '("\\.html?\\'" . web-mode))
 (add-to-list 'auto-mode-alist '("\\.phtml\\'" . web-mode))
 (add-to-list 'auto-mode-alist '("\\.tpl\\.php\\'" . web-mode))
@@ -64,15 +63,13 @@
 (add-to-list 'auto-mode-alist '("\\.wxml$" . web-mode))
 
 (autoload 'yaml-mode "yaml-mode_init" nil t)
-
 (add-to-list 'auto-mode-alist '("\\.\\(e?ya?\\|ra\\)ml\\'" . yaml-mode))
 (add-to-list 'auto-mode-alist '("\\.yml\\.j2" . yaml-mode))
 (add-to-list 'auto-mode-alist '("\\.yml" . yaml-mode))
 (add-to-list 'auto-mode-alist '("Procfile\\|Procfile.dev\\'" . yaml-mode))
 (add-to-list 'auto-mode-alist '("Procfile.options\\|Procfile.dev.options\\'" . yaml-mode))
 
-(autoload 'yaml-mode "toml-mode_init" nil t)
-
+(autoload 'toml-mode "toml-mode_init" nil t)
 (add-to-list 'auto-mode-alist '("\\.toml\\'" . toml-mode))
 
 ;; (provide 'markdown-mode_init)

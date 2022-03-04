@@ -9,13 +9,6 @@
 
 (setq zw/cursor-color-default "#00FF00")
 
-(require 'gcmh_init)
-(require 'auto-compile_init)
-(require 'crux_init)
-(require 'multiple-cursors_init)
-;; (require 'exec-path-from-shell_init)
-(require 'themes_init)
-
 (require 'server)
 ;; Emacs server 设定
 (setq server-use-tcp t) ;使用 `tcp-ip连接' 代替本地 `socket链接'.
@@ -37,9 +30,18 @@
 (relative-load "base_init.el")
 (relative-load "init.el")
 
+(require 'gcmh_init)
+(require 'auto-compile_init)
+(require 'crux_init)
+(require 'multiple-cursors_init)
+(require 'themes_init)
+
 ;; 打开这两个变量, 查看那些包有错误.
 (unless (string= (getenv "LOAD_INIT") "true")
   (setq debug-on-error t)              ;需要调试时，开启这个。
   (setq no-byte-compile t)
   ;; (setq debug-on-signal t)
   )
+
+(require 'helm_init)
+

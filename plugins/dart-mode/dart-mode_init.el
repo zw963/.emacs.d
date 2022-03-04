@@ -14,6 +14,8 @@
 (require 's)
 (add-to-list 'auto-mode-alist '("\\.dart\\'" . dart-mode))
 
+(add-to-list 'hs-special-modes-alist '(dart-mode "{" "}" "/[*/]" nil nil))
+
 (defun special-mode-lsp-dart-dap-flutter-hot-restart ()
   (interactive)
   (goto-char (point-max))
@@ -31,7 +33,7 @@
 
 (defun context-menu-unwrap-flutter-widget (menu click)
   "Populate MENU with `flutter-unwrap-widget' commands."
-  (define-key-after menu [hs-hide-block]
+  (define-key-after menu [unwrap-flutter-widget]
     '(menu-item "Unwrap widget"
                 (lambda (click) (interactive "e")
                   (save-excursion
@@ -41,7 +43,13 @@
   menu)
 
 (defun dart-mode-common-hooks ()
-  (add-to-list 'context-menu-functions 'context-menu-unwrap-flutter-widget t)
+  ;; (add-to-list 'context-menu-functions 'context-menu-unwrap-flutter-widget t)
+  (setq-local context-menu-functions
+              '(context-menu-hideshow
+                context-menu-unwrap-flutter-widget
+                occur-context-menu
+                context-menu-region
+                ))
   (when (featurep 'treemacs) (save-selected-window (treemacs-select-window)))
   (lsp-deferred)
   )
