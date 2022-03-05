@@ -12,48 +12,12 @@
 
 (require 'dart-mode)
 (require 's)
+
 (add-to-list 'auto-mode-alist '("\\.dart\\'" . dart-mode))
 
-(add-to-list 'hs-special-modes-alist '(dart-mode "{" "}" "/[*/]" nil nil))
-
-(defun special-mode-lsp-dart-dap-flutter-hot-restart ()
-  (interactive)
-  (goto-char (point-max))
-  (lsp-dart-dap-flutter-hot-restart))
-
-(require 'lsp-dart)
-(with-eval-after-load 'lsp-dart
-  ;; (setq lsp-dart-dap-flutter-hot-reload-on-save t)
-  (define-key dart-mode-map (kbd "C-M-x") 'lsp-dart-dap-flutter-hot-reload)
-  (define-key dart-mode-map (kbd "C-M-z") 'lsp-dart-dap-flutter-hot-restart)
-  (define-key special-mode-map (kbd "C-M-x") 'special-mode-lsp-dart-dap-flutter-hot-reload)
-  (define-key special-mode-map (kbd "C-M-z") 'special-mode-lsp-dart-dap-flutter-hot-restart)
-  ;; (define-key dart-mode-map (kbd "<escape>") 'lsp-dart-show-flutter-outline)
-  )
-
-(defun context-menu-unwrap-flutter-widget (menu click)
-  "Populate MENU with `flutter-unwrap-widget' commands."
-  (define-key-after menu [unwrap-flutter-widget]
-    '(menu-item "Unwrap widget"
-                (lambda (click) (interactive "e")
-                  (save-excursion
-                    (mouse-set-point click)
-                    (flutter-unwrap-widget)))))
-  (define-key-after menu [hs-separator] menu-bar-separator)
-  menu)
-
 (defun dart-mode-common-hooks ()
-  ;; (add-to-list 'context-menu-functions 'context-menu-unwrap-flutter-widget t)
-  (setq-local context-menu-functions
-              '(context-menu-hideshow
-                context-menu-unwrap-flutter-widget
-                occur-context-menu
-                context-menu-region
-                ))
   (when (featurep 'treemacs) (save-selected-window (treemacs-select-window)))
-  (lsp-deferred)
   )
-
 (add-hook 'dart-mode-hook 'dart-mode-common-hooks)
 
 ;; 匹配dart 中可能出现的符号
@@ -127,14 +91,14 @@
                 )
             (let ((begin-pos (save-excursion (search-backward-regexp start-point nil t 1))))
               (let ((args (match-string 1)))
-                  (cond (begin-pos
-                     (save-excursion
-                       (goto-char begin-pos)
-                       (forward-sexp 2)
-                       (when (re-search-backward end-point begin-pos t 1)
-                         (replace-match "")))
-                     (save-excursion (replace-regexp start-point (s-lex-format "${args} => ") nil begin-pos current-point t)))
-                    (t (message "Not in function"))))))
+                (cond (begin-pos
+                       (save-excursion
+                         (goto-char begin-pos)
+                         (forward-sexp 2)
+                         (when (re-search-backward end-point begin-pos t 1)
+                           (replace-match "")))
+                       (save-excursion (replace-regexp start-point (s-lex-format "${args} => ") nil begin-pos current-point t)))
+                      (t (message "Not in function"))))))
           (undo-amalgamate-change-group handle)))))
 
 (defun flutter-unwrap-widget (&optional arg)
@@ -176,6 +140,10 @@
 (define-key dart-mode-map [(meta c) (c)] 'flutter-unwrap-widget)
 (define-key dart-mode-map [(meta c) (s)] 'flutter-toggle-container/sizedbox)
 (define-key dart-mode-map [(meta c) (l)] 'flutter-unwrap-layout-builder)
+
+;; (require 'lsp-dart_init)
+(require 'dart-mode-eglot_init)
+(require 'dart-mode-context-menu_init)
 
 ;; (require 'flutter)
 ;; (setq flutter-l10n-arb-dir "lib/i10n")

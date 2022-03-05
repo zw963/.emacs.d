@@ -5,6 +5,9 @@
 (setq dired-auto-revert-buffer t) ; 重新进入已经打开的 dired buffer 时, 刷新.
 (setq dired-listing-switches "-aBhl  --group-directories-first")
 
+;; 尝试打开这个试试。
+(setq dired-dwim-target t)
+
 (setq dired-guess-shell-alist-user `((,(rx "."
                                            (or
                                             ;; Videos

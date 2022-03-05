@@ -51,13 +51,12 @@
 
 ;; ============================== 编程相关 ==============================
 
+(require 'eldoc-box_init)
 (require 'prog-mode_init)
 ;; (require 'apheleia_init)
 (require 'git_init)
 (require 'flycheck_init)
 (require 'company_init)
-(require 'lsp-mode_init)
-(require 'dap-mode_init)
 (require 'dart-mode_init)
 (require 'smartparens_init)
 (require 'string-inflection_init)
