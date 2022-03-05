@@ -5,9 +5,11 @@
 
 (add-hook 'before-save-hook 'eglot-format-buffer)
 (define-key eglot-mode-map (kbd "C-c r") 'eglot-rename)
-(define-key eglot-mode-map (kbd "C-c ! n") 'flymake-goto-next-error)
+;; (define-key eglot-mode-map (kbd "C-c ! n") 'flymake-goto-next-error)
 
 ;; (stq eglot-confirm-server-initiated-edits nil)
+
+(require 'eglot-flycheck_init)
 
 (provide 'eglot_init)
 

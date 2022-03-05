@@ -397,7 +397,19 @@
 ;; 将所有开启的窗口布局, 放入一个 stack, 可以通过 C-c <left> 或 C-c <right> 浏览 stack
 (winner-mode t)
 
-;; (setq frame-resize-pixelwise t)
+;; 开启试一下
+(setq
+ frame-resize-pixelwise t
+ mouse-wheel-scroll-amount '(1 ((shift) . 1) ((control) . nil))
+ mouse-wheel-progressive-speed nil
+ )
+
+ ;; Disable margin for overline and underline
+(setq
+ overline-margin 0
+ underline-minimum-offset 0
+ )
+
 ;; (setq window-sides-vertical t)
 
 (blink-cursor-mode -1)                  ;光标不闪
