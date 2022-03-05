@@ -1,20 +1,6 @@
 (require 'rust-mode)
 
-(setq rust-format-on-save t)
-
-(with-eval-after-load 'lsp-mode
-  (require 'lsp-rust)
-  (require 'lsp-modeline)
-
-  (setq lsp-rust-analyzer-display-chaining-hints t)
-  (setq lsp-rust-full-docs t)
-
-  ;; (setq lsp-rust-server 'rls)
-
-  ;; 注意，如果用 rls, 必须把 lsp-enable-imenu 设为 nil, ruby-analyzer 无需。
-  ;; (setq-local lsp-enable-imenu nil)
-  (add-hook 'rust-mode-hook 'lsp-deferred)
-  )
+;; (setq rust-format-on-save t)
 
 (defvar electric-pair-inhibit-predicate-mode-chars-alist
   '((t . nil))
