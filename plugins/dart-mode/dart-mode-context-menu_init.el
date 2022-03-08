@@ -1,3 +1,5 @@
+(require 'eldoc-box_init)
+
 (defun context-menu-unwrap-flutter-widget (menu click)
   "Populate MENU with `flutter-unwrap-widget' commands."
   (define-key-after menu [unwrap-flutter-widget]

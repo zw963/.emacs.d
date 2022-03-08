@@ -1,3 +1,5 @@
+(require 'flycheck)
+
 (defvar-local +lsp--flycheck-eglot--current-errors nil)
 
 (defun +lsp--flycheck-eglot-init (checker callback)
