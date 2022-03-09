@@ -77,7 +77,7 @@
 ;;   )))
 
 (setq flutter-widget-pattern " [A-Z][A-Za-z]+")
-(setq flutter-symbol-pattern "[A-Za-z0-9_]*")
+(setq flutter-args-pattern "[A-Za-z0-9_,? ]*")
 
 (defun flutter-unwrap-function-body (&optional arg)
   (interactive)
@@ -85,7 +85,8 @@
     (unwind-protect
         (progn
           (activate-change-group handle)
-          (let ((start-point (s-lex-format "\\((${flutter-symbol-pattern})\\) {\n\\s-+return "))
+          (let ((start-point (s-lex-format "\\((${flutter-args-pattern})\\(:? async\\)?\\) {\\(:?\n\\s-+return\\)?")
+                             )
                 (end-point flutter-function-end)
                 (current-point (point))
                 )
@@ -94,10 +95,12 @@
                 (cond (begin-pos
                        (save-excursion
                          (goto-char begin-pos)
-                         (forward-sexp 2)
+                         (if (string-match "async" args)
+                             (forward-sexp 3)
+                           (forward-sexp 2))
                          (when (re-search-backward end-point begin-pos t 1)
                            (replace-match "")))
-                       (save-excursion (replace-regexp start-point (s-lex-format "${args} => ") nil begin-pos current-point t)))
+                       (save-excursion (replace-regexp start-point (s-lex-format "${args} =>") nil begin-pos current-point t)))
                       (t (message "Not in function"))))))
           (undo-amalgamate-change-group handle)))))
 
@@ -141,8 +144,8 @@
 (define-key dart-mode-map [(meta c) (s)] 'flutter-toggle-container/sizedbox)
 (define-key dart-mode-map [(meta c) (l)] 'flutter-unwrap-layout-builder)
 
-;; (require 'lsp-dart_init)
-(require 'dart-mode-eglot_init)
+(require 'lsp-dart_init)
+;; (require 'dart-mode-eglot_init)
 (require 'dart-mode-context-menu_init)
 
 ;; (require 'flutter)
