@@ -86,6 +86,14 @@ Meant to be used as `hs-set-up-overlay'."
 
 (add-to-list 'hs-special-modes-alist '(dart-mode "{" "}" "/[*/]" nil nil))
 
+(add-to-list 'hs-special-modes-alist
+	     '(ruby-mode
+	       "\\(def\\|do\\|{\\)" "\\(end\\|end\\|}\\)" "#" nil nil))
+
+(add-to-list 'hs-special-modes-alist
+	     '(enh-ruby-mode
+	       "\\(def\\|do\\|{\\)" "\\(end\\|end\\|}\\)" "#" (lambda (arg) (enh-ruby-forward-sexp)) nil))
+
 (provide 'hideshow_init)
 
 ;;; name_init.el ends here
