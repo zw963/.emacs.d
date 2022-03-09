@@ -2,8 +2,15 @@
 ;; For better performance and results, use company-capf (default)
 (require 'company-capf)
 
+
 ;; FIXME: 测试一下啥效果
-;; (setq company-tooltip-limit 20)                      ; bigger popup window
+;; (setq company-tooltip-limit 5)                      ; bigger popup window
+(setq company-tooltip-flip-when-above t)
+(setq company-tooltip-width-grow-only t) ; 如果 candidates 变宽，tooltip 也跟着变宽，但是不会重新变窄。
+
+
+(setq company-text-icons-add-background t) ; 生成 icon 的背景
+
 ;; FIXME: 测试一下这个
 (setq company-begin-commands
       (delete 'c-scope-operator
@@ -11,16 +18,8 @@
                       (delete 'c-electric-lt-gt
                               (delete 'c-electric-slash
                                       company-begin-commands)))))
-;; (setq company-tooltip-align-annotations t)
+;; (setq company-tooltip-align-annotations t) ;; candidate 的注释在 tooltip 右边靠齐
 ;; (global-set-key (kbd "C-c /") 'company-files)
-
-;; (setq company-tooltip-width-grow-only t)
-;; (setq company-dabbrev-other-buffers nil)
-;; ;; make dabbrev case-sensitive
-(setq company-dabbrev-ignore-case nil)
-(setq company-dabbrev-downcase nil)
-;; (setq company-dabbrev-code-ignore-case nil)
-;; (setq company-dabbrev-code-everywhere t)
 
 ;; 注意： 默认 TAB 的行为是 company-complete-common, 他会自动完成当前 candidates 的
 ;; 公共部分， 但是并不会在 candidates 之间移动.
@@ -45,43 +44,69 @@
 ;; (set-company-tab)
 
 (global-set-key (kbd "<tab>") #'company-indent-or-complete-common)
-(define-key company-active-map (kbd "C-s") 'company-filter-candidates)
+(define-key company-active-map (kbd "C-s") 'company-filter-candidates) ;; 这个可以随时 C-o 随时切换
 (define-key company-active-map (kbd "M-/") #'company-complete)
+(global-set-key (kbd "C-c C-/") #'company-other-backend)
 
 ;; Use M-1,2 ... to select a candidation.
 (setq company-show-quick-access t)
+(setq company-show-quick-access 'left)
 ;; (setq company-minimum-prefix-length 2)
 ;; (setq company-idle-delay
 ;;       (lambda () (if (company-in-string-or-comment) nil 0.4)))
 
 ;; 这个其实是替换 company-preview-if-just-one-frontend 为 company-preview-frontend
 ;; 这样做，会让 preview 总是在光标处 inline 显示。
-(setq company-frontends
-      '(company-pseudo-tooltip-unless-just-one-frontend
-        company-preview-frontend
-        company-echo-metadata-frontend))
+;; (setq company-frontends
+;;       '(company-pseudo-tooltip-unless-just-one-frontend
+;;         company-preview-frontend
+;;         company-echo-metadata-frontend))
 
 ;; company-backends 工厂默认值为
 ;; (company-bbdb company-semantic company-cmake company-capf company-clang company-files
 ;;            (company-dabbrev-code company-gtags company-etags company-keywords)
 ;;            company-oddmuse company-dabbrev)
 
+;;  删除后的默认为：
+
+;; (company-files company-dabbrev)
+
+
 (add-hook 'company-mode-hook (lambda ()
                                (setq company-backends
-                                     (delete 'company-oddmuse
-                                             (delete 'company-bbdb
-                                                     (delete 'company-cmake
-                                                             (delete 'company-clang
-                                                                     (delete '(company-dabbrev-code company-gtags company-etags company-keywords) company-backends))))))
+                                     (delete 'company-semantic
+                                             (delete 'company-oddmuse
+                                                     (delete 'company-bbdb
+                                                             (delete 'company-cmake
+                                                                     (delete 'company-clang
+                                                                             (delete '(company-dabbrev-code company-gtags company-etags company-keywords) company-backends)))))))
                                ))
+
+;; 根据文档，company-semantic 以及  company-etags 现在都属于 company-capf
+;; company-semantic 要开启 semantic-mode 来支持，但是因为只支持有限的语言，因此不用打开。
+;;
+
+(add-hook 'prog-mode-hook
+          (lambda ()
+            (add-to-list 'company-backends '(company-capf company-dabbrev-code company-keywords))
+            ))
 
 (require 'company-dabbrev-code)
 (setq company-dabbrev-code-everywhere t)
+(setq company-dabbrev-other-buffers t) ;; 设为 true, 则仅在同一个 major-mode buffer 里面找
+(setq company-dabbrev-downcase nil) ;; make dabbrev case-sensitive
+;; (setq company-dabbrev-code-ignore-case nil)
+;; (setq company-dabbrev-code-everywhere t)
 
-(dolist (hook '(sh-mode-hook graphql-mode-hook))
-  (add-hook hook (lambda ()
-                   (add-to-list (make-local-variable 'company-backends) '(company-dabbrev-code company-keywords))
-                   )))
+(setq company-files-exclusions '(".git/" ".DS_Store"))
+
+
+;; (setq company-dabbrev-minimum-length 4)
+
+;; (dolist (hook '(sh-mode-hook graphql-mode-hook))
+;;   (add-hook hook (lambda ()
+;;                    (add-to-list (make-local-variable 'company-backends) '(company-capf company-dabbrev-code company-keywords))
+;;                    )))
 
 ;; C-n, C-s 如果可以自动打断 tooltip, 其实效果不错。
 ;; (define-key company-active-map (kbd "C-n") 'company-select-next)
