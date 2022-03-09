@@ -38,7 +38,7 @@
 
 (require 'crux)
 (require 'move-dup)
-(require 'mark-lines)
+;; (require 'mark-lines)
 
 (global-set-key [(control x) (\4) (t)] 'crux-transpose-windows)
 (global-set-key [(control k)] 'crux-smart-kill-line)
@@ -210,15 +210,27 @@
 (setq save-abbrevs 'silently)
 (setq-default abbrev-mode t)
 
-(defun mark-next-line ()
-  "Mark next line continuously."
-  (interactive)
-  (if (use-region-p)
-      (next-line nil)
-    (if (eql (point-max) (line-end-position))
-        (mark-lines-next-line nil)
-      (mark-lines-previous-line nil)
-      )))
+(defun mark-next-line (arg)
+  "Select the current line and move the cursor by ARG lines IF
+no region is selected.
+
+If a region is already selected when calling this command, only move
+the cursor by ARG lines."
+  (interactive "p")
+  (when (not (use-region-p))
+    (forward-line 0)
+    (set-mark-command nil))
+  (forward-line arg))
+
+;; (defun mark-next-line ()
+;;   "Mark next line continuously."
+;;   (interactive)
+;;   (if (use-region-p)
+;;       (next-line nil)
+;;     (if (eql (point-max) (line-end-position))
+;;         (mark-lines-next-line nil)
+;;       (mark-lines-previous-line nil)
+;;       )))
 
 ;; (defun open-line-and-indent (n)
 ;;   (interactive "*p")
