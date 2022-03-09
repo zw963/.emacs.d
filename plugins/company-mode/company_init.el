@@ -51,9 +51,11 @@
 ;; Use M-1,2 ... to select a candidation.
 (setq company-show-quick-access t)
 (setq company-show-quick-access 'left)
-;; (setq company-minimum-prefix-length 2)
+(setq company-minimum-prefix-length 4)
+
 ;; (setq company-idle-delay
 ;;       (lambda () (if (company-in-string-or-comment) nil 0.4)))
+(setq company-dabbrev-code-everywhere t)
 
 ;; 这个其实是替换 company-preview-if-just-one-frontend 为 company-preview-frontend
 ;; 这样做，会让 preview 总是在光标处 inline 显示。
@@ -92,7 +94,6 @@
             ))
 
 (require 'company-dabbrev-code)
-(setq company-dabbrev-code-everywhere t)
 (setq company-dabbrev-other-buffers t) ;; 设为 true, 则仅在同一个 major-mode buffer 里面找
 (setq company-dabbrev-downcase nil) ;; make dabbrev case-sensitive
 ;; (setq company-dabbrev-code-ignore-case nil)
