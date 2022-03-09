@@ -21,11 +21,26 @@
   (define-key-after menu [hs-separator] menu-bar-separator)
   menu)
 
+(defun context-menu-show-lsp-code-actions (menu click)
+  "Populate MENU with `lsp code action' commands."
+  (define-key-after menu [show-lsp-code-actions]
+    '(menu-item "Show lsp code actions"
+                (lambda (click) (interactive "e")
+                  (save-excursion
+                    (mouse-set-point click)
+                    (if (featurep 'lsp-mode)
+                        (call-interactively 'lsp-execute-code-action)
+                      (call-interactively 'eglot-code-actions))
+                    ))))
+  (define-key-after menu [hs-separator] menu-bar-separator)
+  menu)
+
 (add-hook 'dart-mode-hook
           (lambda ()
             (setq context-menu-functions
                   '(context-menu-hideshow
                     context-menu-show-eldoc
+                    context-menu-show-lsp-code-actions
                     context-menu-unwrap-flutter-widget
                     occur-context-menu
                     prog-context-menu
