@@ -31,11 +31,6 @@
 ;;               (add-hook 'comint-preoutput-filter-functions
 ;;                         'dirtrack-filter-out-pwd-prompt t t)))
 
-(add-hook 'vterm-mode-hook (lambda ()
-                             (define-key vterm-mode-map [(control shift k)] 'vterm-clear)
-                             ;; (dirtrack-mode 1)
-                             ))
-
 (setq vterm-module-cmake-args "-DUSE_SYSTEM_LIBVTERM=no")
 
 ;; Add this piece of code to your configuration file to make counsel use the
