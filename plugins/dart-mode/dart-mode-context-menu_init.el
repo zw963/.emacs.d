@@ -39,7 +39,7 @@
           (lambda ()
             (setq context-menu-functions
                   '(context-menu-hideshow
-                    context-menu-show-eldoc
+                    ;; context-menu-show-eldoc
                     context-menu-show-lsp-code-actions
                     context-menu-unwrap-flutter-widget
                     occur-context-menu

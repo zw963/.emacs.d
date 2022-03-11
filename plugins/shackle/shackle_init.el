@@ -15,7 +15,7 @@
         ("^\\*.*Shell Command.*\\*$" :regexp t :size 0.3 :align 'below :autoclose t)
         (" *Flycheck checkers*" :select t :size 0.3 :align 'below :autoclose t)
         ((flycheck-error-list-mode flymake-diagnostics-buffer-mode) :select t :size 0.25 :align 'below :autoclose t)
-        (("*lsp-help*" "*lsp session*" "*LSP Error List*") :size 0.3 :align 'below :autoclose t)
+        (("*lsp-help*" "*lsp session*" "*LSP Error List*" "*LSP Dart commands*") :size 0.3 :align 'below :autoclose t)
         ("*DAP Templates*" :select t :size 0.4 :align 'below :autoclose t)
         (dap-server-log-mode :size 15 :align 'below :autoclose t)
         ("*rustfmt*" :select t :size 0.3 :align 'below :autoclose t)

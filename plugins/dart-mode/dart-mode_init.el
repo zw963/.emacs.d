@@ -13,6 +13,13 @@
 (require 'dart-mode)
 (require 's)
 
+(defun dart-mode-mark-sexp (&optional arg allow-extend)
+  (interactive "P\np")
+  (push-mark nil t t)
+  (forward-sexp)
+  )
+(define-key dart-mode-map [(control meta ?\s)] 'dart-mode-mark-sexp)
+
 (add-to-list 'auto-mode-alist '("\\.dart\\'" . dart-mode))
 
 (defun dart-mode-common-hooks ()
