@@ -1,0 +1,6 @@
+# -*- mode: snippet -*-
+# name: forEach
+# key: forEach
+# contributor: Billy.Zheng vil963@gmail.com
+# --
+forEach((${1:arg}) => $0);

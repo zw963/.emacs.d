@@ -29,7 +29,7 @@
 (require 'lsp-dart-flutter-daemon)
 (require 'lsp-dart-devtools)
 
-(defcustom lsp-dart-dap-extension-version "3.32.0"
+(defcustom lsp-dart-dap-extension-version "3.36.0"
   "The extension version."
   :group 'lsp-dart
   :type 'string)
@@ -70,6 +70,11 @@
   "The path to the dart test debugger."
   :group 'lsp-dart
   :type '(repeat string))
+
+(defcustom lsp-dart-dap-use-sdk-debugger t
+  "Whether to use the debugger built-in on dart-sdk and not the node extension."
+  :group 'lsp-dart
+  :type 'boolean)
 
 (defcustom lsp-dart-dap-debug-external-libraries nil
   "If non-nil, enable the debug on external libraries."
@@ -135,6 +140,11 @@ Required to support 'Inspect Widget'."
 
 ;;; Internal
 
+(defun lsp-dart-dap-use-sdk-debugger-p ()
+  "Whether we should use dart sdk debugger."
+  (and lsp-dart-dap-use-sdk-debugger
+       (lsp-dart-version-at-least-p "2.16.0")))
+
 (defun lsp-dart-dap-log (msg &rest args)
   "Log MSG with ARGS adding lsp-dart-dap prefix."
   (apply #'lsp-dart-custom-log "[DAP]" msg args))
@@ -189,9 +199,12 @@ Required to support 'Inspect Widget'."
       lsp-dart-dap--base-debugger-args
       (dap--put-if-absent :type "dart")
       (dap--put-if-absent :name "Dart")
-      (dap--put-if-absent :dap-server-path lsp-dart-dap-dart-debugger-program)
+      (dap--put-if-absent :dap-server-path (if (lsp-dart-dap-use-sdk-debugger-p)
+                                               `(,(lsp-dart-dart-command) "debug_adapter")
+                                             lsp-dart-dap-dart-debugger-program))
       (dap--put-if-absent :output-filter-function #'lsp-dart-dap--output-filter-function)
-      (dap--put-if-absent :program (lsp-dart-get-project-entrypoint))))
+      (dap--put-if-absent :program (or (lsp-dart-get-project-entrypoint)
+                                       (buffer-file-name)))))
 
 (dap-register-debug-provider "dart" 'lsp-dart-dap--populate-dart-start-file-args)
 (dap-register-debug-template "Dart :: Debug"
@@ -246,9 +259,12 @@ Call CALLBACK when the device is chosen and started successfully."
                       lsp-dart-dap--base-debugger-args
                       (dap--put-if-absent :type "flutter")
                       (dap--put-if-absent :flutterMode "debug")
-                      (dap--put-if-absent :dap-server-path lsp-dart-dap-flutter-debugger-program)
+                      (dap--put-if-absent :dap-server-path (if (lsp-dart-dap-use-sdk-debugger-p)
+                                                               `(,(lsp-dart-flutter-command) "debug_adapter")
+                                                             lsp-dart-dap-flutter-debugger-program))
                       (dap--put-if-absent :output-filter-function #'lsp-dart-dap--output-filter-function)
-                      (dap--put-if-absent :program (lsp-dart-get-project-entrypoint)))))
+                      (dap--put-if-absent :program (or (lsp-dart-get-project-entrypoint)
+                                                       (buffer-file-name))))))
     (lambda (start-debugging-callback)
       (lsp-dart-dap--flutter-get-or-start-device
        (-lambda ((&hash "id" device-id "name" device-name))
@@ -423,7 +439,9 @@ Run program PATH if not nil passing ARGS if not nil."
   "Start dart test debugging from PATH with ARGS."
   (-> (list :type "dart"
             :name "Dart Tests"
-            :dap-server-path lsp-dart-dap-dart-test-debugger-program
+            :dap-server-path (if (lsp-dart-dap-use-sdk-debugger-p)
+                                 `(,(lsp-dart-dart-command) "debug_adapter" "--test")
+                               lsp-dart-dap-dart-test-debugger-program)
             :program path
             :noDebug nil
             :shouldConnectDebugger t
@@ -435,7 +453,9 @@ Run program PATH if not nil passing ARGS if not nil."
   "Start dart test debugging from PATH with ARGS."
   (-> (list :name "Flutter Tests"
             :type "flutter"
-            :dap-server-path lsp-dart-dap-flutter-test-debugger-program
+            :dap-server-path (if (lsp-dart-dap-use-sdk-debugger-p)
+                                 `(,(lsp-dart-flutter-command) "debug_adapter" "--test")
+                               lsp-dart-dap-flutter-test-debugger-program)
             :program path
             :noDebug nil
             :shouldConnectDebugger t
@@ -458,12 +478,16 @@ Run program PATH if not nil passing ARGS if not nil."
 (defun lsp-dart-dap-flutter-hot-restart ()
   "Hot restart current Flutter debug session."
   (interactive)
-  (lsp-dart-dap--flutter-hot-restart))
+  (if (dap--cur-session)
+      (lsp-dart-dap--flutter-hot-restart)
+    (lsp-dart-dap-run-flutter)))
 
 (defun lsp-dart-dap-flutter-hot-reload ()
   "Hot reload current Flutter debug session."
   (interactive)
-  (lsp-dart-dap--flutter-hot-reload))
+  (if (dap--cur-session)
+      (lsp-dart-dap--flutter-hot-reload)
+    (lsp-dart-dap-run-flutter)))
 
 (define-minor-mode lsp-dart-dap-mode
   "Mode for when debugging Dart/Flutter code."
