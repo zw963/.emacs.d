@@ -6,6 +6,9 @@ mode: snippet -*-
 # contributor: Billy.Zheng vil963@gmail.com
 # --
 Scaffold(
-  appBar: Text('${1:Title}'),
-  body: `(yas-selected-text)`,
-)
+      appBar: AppBar(
+        title: const Text('${1:Title}'),
+        actions: [],
+      ),
+      body: `(yas-selected-text)``(if-key "Placeholder()")`$0,
+    );

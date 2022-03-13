@@ -1,0 +1,11 @@
+# -*- mode: snippet -*-
+# name: define StatelessWidget class
+# key: c
+# --
+class ${1:WidgetName} extends StatelessWidget {
+  const $1({Key? key}) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return Placeholder()$0;
+  }

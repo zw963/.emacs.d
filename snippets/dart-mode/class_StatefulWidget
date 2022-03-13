@@ -1,0 +1,19 @@
+# -*- mode: snippet -*-
+# name: define StatefulWidget class
+# key: c
+# --
+class ${1:WidgetName} extends StatefulWidget {
+  // static const routerPath = '';
+  
+  const $1({Key? key}) : super(key: key);
+  
+  @override
+  createState() => ${2:_State}();
+}
+
+class $2 extends State<$1> {
+    @override
+    Widget build(BuildContext context) {
+      return Placeholder();$0
+    }
+}
