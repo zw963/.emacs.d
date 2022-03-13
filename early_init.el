@@ -7,6 +7,9 @@
 ;; (setenv "https_proxy" "")
 ;; (setenv "ftp_proxy" "")
 
+(require 'gcmh_init)
+(require 'auto-compile_init)
+
 (setq zw/cursor-color-default "#00FF00")
 
 (require 'server)
@@ -30,11 +33,9 @@
 (relative-load "base_init.el")
 (relative-load "init.el")
 
-(require 'gcmh_init)
-(require 'auto-compile_init)
+(require 'themes_init)
 (require 'crux_init)
 (require 'multiple-cursors_init)
-(require 'themes_init)
 
 ;; 打开这两个变量, 查看那些包有错误.
 (unless (string= (getenv "LOAD_INIT") "true")
@@ -44,6 +45,8 @@
   )
 
 ;; (require 'company)
+;; (require 'dart-mode_init)
+
 ;; (require 'lsp-mode)
 ;; (require 'lsp-modeline)
 ;; (require 'lsp-headerline)
