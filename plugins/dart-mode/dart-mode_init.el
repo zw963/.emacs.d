@@ -13,6 +13,9 @@
 (require 'dart-mode)
 (require 's)
 
+;; 如果不指定这个，可能某些 dart 项目无法成功启动 lsp
+(setq lsp-dart-sdk-dir (expand-file-name "~/flutter/bin/cache/dart-sdk"))
+
 (defun dart-mode-mark-sexp (&optional arg allow-extend)
   (interactive "P\np")
   (push-mark nil t t)

@@ -17,7 +17,9 @@
     '(menu-item "Show eldoc documentation"
                 (lambda (click) (interactive "e")
                   (save-excursion
-                    (eldoc-box-eglot-help-at-point)))))
+                    (if (featurep 'lsp-mode)
+                        (lsp-describe-thing-at-point)
+                      (eldoc-box-eglot-help-at-point))))))
   (define-key-after menu [hs-separator] menu-bar-separator)
   menu)
 
@@ -39,7 +41,7 @@
           (lambda ()
             (setq context-menu-functions
                   '(context-menu-hideshow
-                    ;; context-menu-show-eldoc
+                    context-menu-show-eldoc
                     context-menu-show-lsp-code-actions
                     context-menu-unwrap-flutter-widget
                     occur-context-menu
