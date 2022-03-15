@@ -16,12 +16,13 @@
 ;; 如果不指定这个，可能某些 dart 项目无法成功启动 lsp
 (setq lsp-dart-sdk-dir (expand-file-name "~/flutter/bin/cache/dart-sdk"))
 
-(defun dart-mode-mark-sexp (&optional arg allow-extend)
-  (interactive "P\np")
-  (push-mark nil t t)
-  (forward-sexp)
-  )
-(define-key dart-mode-map [(control meta ?\s)] 'dart-mode-mark-sexp)
+;; (defun dart-mode-mark-sexp (&optional arg allow-extend)
+;;   (interactive "P\np")
+;;   (push-mark nil t t)
+;;   (forward-sexp arg t)
+;;   )
+
+(define-key dart-mode-map [(control meta ?\s)] 'mark-sexp)
 
 (add-to-list 'auto-mode-alist '("\\.dart\\'" . dart-mode))
 
