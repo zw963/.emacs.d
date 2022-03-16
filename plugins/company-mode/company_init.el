@@ -88,9 +88,14 @@
 ;; company-semantic 要开启 semantic-mode 来支持，但是因为只支持有限的语言，因此不用打开。
 ;;
 
+;; 想完成本 buffer 内的内容，需要加入 company-dabbrev-code
+;; 但是，如果开启这个，会让 lsp 出现很多和上下文无关的结果。
 (add-hook 'prog-mode-hook
           (lambda ()
-            (add-to-list 'company-backends '(company-capf company-dabbrev-code company-keywords))
+            ;; 如果没有使用 lsp, 返回多一点结果。
+            (unless (featurep 'lsp-mode)
+              (add-to-list 'company-backends '(company-capf company-dabbrev-code company-keywords))
+              )
             ))
 
 (require 'company-dabbrev-code)
