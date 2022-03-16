@@ -6,5 +6,5 @@ mode: snippet -*-
 # --
 TextButton(
 onPressed: () async {$0},
-  child: `(yas-selected-text)`$0
-  ),
+  child: `(yas-selected-text)`,$0
+  )
