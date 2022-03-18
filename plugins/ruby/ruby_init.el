@@ -27,7 +27,7 @@
   (add-to-list 'interpreter-mode-alist `("ruby" . ,preferred-ruby-mode)))
 
 (defun ruby-mark-sexp-or-block (arg)
-  (interactive "P\np")
+  (interactive "p")
   (push-mark nil t t)
   (cond
    ((looking-at "['\"]") (ruby-forward-sexp))
