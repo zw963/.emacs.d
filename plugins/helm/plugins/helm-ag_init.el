@@ -12,7 +12,7 @@
  '(helm-ag-base-command "rg --no-config --hidden --smart-case --vimgrep")
  `(helm-ag-success-exit-status '(0 2)) ;; Ripgrep uses exit-status 2 to indicate a partial success:
  ;; '(helm-ag-ignore-buffer-patterns '("\\.org\\'"))
- '(helm-ag-insert-at-point 'helm-ag)
+ '(helm-ag-insert-at-point 'symbol)
  ;; '(helm-ag-fuzzy-match t)
  ;; 下面的选项只是适合于 ag, rg 使用
  ;; '(helm-ag-ignore-patterns '(
