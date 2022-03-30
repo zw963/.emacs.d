@@ -264,7 +264,7 @@ very large directories."
   :group 'helm-files
   :type 'hook)
 
-(defcustom helm-find-files-bookmark-prefix "Helm-find-files: "
+(defcustom helm-find-files-bookmark-prefix nil
   "bookmark name prefix of `helm-find-files' sessions."
   :group 'helm-files
   :type 'string)
@@ -3695,13 +3695,16 @@ Note that only existing directories are saved here."
                               (abbreviate-file-name sel)))))))
 (add-hook 'helm-exit-minibuffer-hook 'helm-files-save-file-name-history)
 
-(defun helm-ff-valid-symlink-p (file)
+(defun helm-ff-valid-symlink-p (file &optional link)
+  "Returns the truename of FILE if it exists.
+If we already know the truename of FILE we can pass it with LINK arg
+to avoid an unnecessary call to `file-truename'."
   (helm-aif (condition-case-unless-debug nil
                 ;; `file-truename' send error
                 ;; on cyclic symlinks (Bug#692).
-                (file-truename file)
+                (or link (file-truename file))
               (error nil))
-      (file-exists-p it)))
+      (and (file-exists-p it) it)))
 
 (defun helm-get-default-mode-for-file (filename)
   "Return the default mode to open FILENAME."
@@ -3746,8 +3749,7 @@ Note that only existing directories are saved here."
                 (format "True name: '%s'\n"
                         (cond ((string-match "^\\.#" (helm-basename candidate))
                                "Autosave symlink")
-                              ((helm-ff-valid-symlink-p candidate)
-                               (file-truename candidate))
+                              ((helm-ff-valid-symlink-p candidate))
                               (t "Invalid Symlink"))))
               (format "Owner: %s: %s\n" owner owner-right)
               (format "Group: %s: %s\n" group group-right)
@@ -4156,13 +4158,16 @@ it from your init file, ensure to call it _after_ your defmethod's
   (require 'all-the-icons)
   (if helm-ff-icon-mode
       (progn
-        (cl-defmethod helm-setup-user-source :after ((source helm-source-ffiles))
-          (helm-aif (slot-value source 'filtered-candidate-transformer)
-              (setf (slot-value source 'filtered-candidate-transformer)
-                    (append it '(helm-ff-icons-transformer)))))
-        (setq helm-source-find-files
-              (helm-make-source
-                  "Find Files" 'helm-source-ffiles)))
+        (unless helm-source-find-files 
+          (setq helm-source-find-files
+                (helm-make-source
+                    "Find Files" 'helm-source-ffiles)))
+        (helm-set-attr 'filtered-candidate-transformer
+                       (append (helm-get-attr
+                                'filtered-candidate-transformer
+                                helm-source-find-files)
+                               '(helm-ff-icons-transformer))
+                       helm-source-find-files))
     (helm-set-attr 'filtered-candidate-transformer
                    (remove 'helm-ff-icons-transformer
                            (helm-get-attr
@@ -6021,16 +6026,27 @@ doing.")
     map))
 
 (defun helm-file-name-history-transformer (candidates _source)
-  (cl-loop for c in candidates
-           when (cond ((or (file-remote-p c)
-                           (and (fboundp 'tramp-archive-file-name-p)
-                                (tramp-archive-file-name-p c)))
-                       (cons (propertize c 'face 'helm-history-remote) c))
-                      ((file-exists-p c)
-                       (cons (propertize c 'face 'helm-ff-file) c))
-                      (t (unless helm--file-name-history-hide-deleted
-                           (cons (propertize c 'face 'helm-history-deleted) c))))
-           collect it))
+  (cl-loop with lgst = (cl-loop for c in candidates maximize (length c))
+           for c in candidates
+           for last-access = (format-time-string "%d/%m/%Y:%X"
+                                                 (nth 4 (file-attributes c)))
+           for disp = (cond ((or (file-remote-p c)
+                                 (and (fboundp 'tramp-archive-file-name-p)
+                                      (tramp-archive-file-name-p c)))
+                             (propertize c 'face 'helm-history-remote))
+                            ((file-exists-p c)
+                             (propertize
+                              c 'display
+                              (concat (propertize c 'face 'helm-ff-file)
+                                      (make-string (- lgst (length c)) ? )
+                                      last-access)))
+                            (t (unless helm--file-name-history-hide-deleted
+                                 (propertize c 'face 'helm-history-deleted))))
+           when disp
+           collect (cons (if helm-ff-icon-mode
+                             (concat (all-the-icons-icon-for-file c) " " disp)
+                           disp)
+                         c)))
 
 (defun helm-ff-file-name-history-ff (candidate)
   (helm-set-pattern
@@ -6060,6 +6076,7 @@ doing.")
                               file-name-history))
             :help-message 'helm-file-name-history-help-message
             :fuzzy-match t
+            :match-on-real t
             :persistent-action 'ignore
             :migemo t
             :filtered-candidate-transformer 'helm-file-name-history-transformer

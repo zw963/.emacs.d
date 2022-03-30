@@ -242,8 +242,11 @@
     :initform nil
     :custom string
     :documentation
-    "  A string to explain persistent-action of this source. It also
-  accepts a function or a variable name.
+    "  A string to explain persistent-action of this source.
+  It is a facility to display what persistent action does in
+  header-line, once your source is loaded don't use it directly, it will
+  have no effect, use instead `header-line' attribute.
+  It also accepts a function or a variable name.
   It will be displayed in `header-line' or in `minibuffer' depending
   of value of `helm-echo-input-in-header-line' and `helm-display-header-line'.")
 
@@ -904,21 +907,26 @@ See `helm-candidates-in-buffer' for more infos.")
                        (with-current-buffer (helm-candidate-buffer 'global)
                          (insert-file-contents file)
                          (goto-char (point-min))
-                         (while (not (eobp))
-                           (add-text-properties
-                            (point-at-bol) (point-at-eol)
-                            `(helm-linum ,count))
-                           (cl-incf count)
-                           (forward-line 1))))))
+                         (when (helm-get-attr 'linum)
+                           (while (not (eobp))
+                             (add-text-properties
+                              (point-at-bol) (point-at-eol)
+                              `(helm-linum ,count))
+                             (cl-incf count)
+                             (forward-line 1)))))))
    (get-line :initform #'buffer-substring)
    (candidates-file
     :initarg :candidates-file
     :initform nil
     :custom string
     :documentation
-    "  A filename.
-  Each line number of FILE is accessible with helm-linum property
-  from candidate display part."))
+    "  The file used to fetch candidates.")
+   (linum
+    :initarg :linum
+    :initform nil
+    :documentation
+    "  Store line number in each candidate when non nil.
+  Line number is stored in `helm-linum' text property."))
 
   "The contents of the FILE will be used as candidates in buffer.")
 
@@ -1023,11 +1031,14 @@ an eieio class."
 ;;; Methods to build sources.
 ;;
 ;;
-(defun helm-source--persistent-help-string (string source)
+(defun helm-source--persistent-help-string (value source)
+  "Format `persistent-help' VALUE in SOURCE.
+Argument VALUE can be a string, a variable or a function."
   (substitute-command-keys
-   (concat "\\<helm-map>\\[helm-execute-persistent-action]: "
-           (or (format "%s (keeping session)" string)
-               (slot-value source 'header-line)))))
+   (format "\\<helm-map>\\[helm-execute-persistent-action]: %s (keeping session)"
+           (helm-aif value
+               (helm-interpret-value value source)
+             (slot-value source 'header-line)))))
 
 (defun helm-source--header-line (source)
   "Compute a default header line for SOURCE.

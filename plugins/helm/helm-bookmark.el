@@ -29,6 +29,10 @@
 
 (declare-function helm-browse-project "helm-files" (arg))
 (declare-function addressbook-bookmark-edit "ext:addressbook-bookmark.el" (bookmark))
+(declare-function all-the-icons-fileicon     "ext:all-the-icons.el")
+(declare-function all-the-icons-icon-for-file"ext:all-the-icons.el")
+(declare-function all-the-icons-octicon      "ext:all-the-icons.el")
+
 
 (defgroup helm-bookmark nil
   "Predefined configurations for `helm.el'."
@@ -45,6 +49,7 @@
             helm-source-bookmark-helm-find-files
             helm-source-bookmark-info
             helm-source-bookmark-gnus
+            helm-source-bookmark-mu4e
             helm-source-bookmark-man
             helm-source-bookmark-images
             helm-source-bookmark-w3m)
@@ -53,6 +58,11 @@
   "List of sources to use in `helm-filtered-bookmarks'."
   :group 'helm-bookmark
   :type '(repeat (choice symbol)))
+
+(defcustom helm-bookmark-use-icon nil
+  "Display candidates with an icon with `all-the-icons' when non nil."
+  :type 'boolean
+  :group 'helm-bookmark)
 
 
 (defface helm-bookmark-info
@@ -146,15 +156,11 @@
   (let* ((real (helm-get-selection helm-buffer))
          (trunc (if (> (string-width real) bookmark-bmenu-file-column)
                     (helm-substring real bookmark-bmenu-file-column)
-                    real))
-         (loc (bookmark-location real)))
+                    real)))
     (setq helm-bookmark-show-location (not helm-bookmark-show-location))
     (helm-update (if helm-bookmark-show-location
-                           (concat (regexp-quote trunc)
-                                   " +"
-                                   (regexp-quote
-                                    (if (listp loc) (car loc) loc)))
-                           (regexp-quote real)))))
+                     (regexp-quote trunc)
+                   (regexp-quote real)))))
 
 (defun helm-bookmark-toggle-filename ()
   "Toggle bookmark location visibility."
@@ -210,6 +216,11 @@ BOOKMARK is a bookmark name or a bookmark record."
   (or (eq (bookmark-get-handler bookmark) 'bmkext-jump-gnus)
       (eq (bookmark-get-handler bookmark) 'gnus-summary-bookmark-jump)
       (eq (bookmark-get-handler bookmark) 'bookmarkp-jump-gnus)))
+
+(defun helm-bookmark-mu4e-bookmark-p (bookmark)
+  "Return non nil if BOOKMARK is a mu4e bookmark.
+BOOKMARK is a bookmark name or a bookmark record."
+  (eq (bookmark-get-handler bookmark) 'mu4e-bookmark-jump))
 
 (defun helm-bookmark-w3m-bookmark-p (bookmark)
   "Return non-nil if BOOKMARK is a W3m bookmark.
@@ -280,6 +291,7 @@ BOOKMARK is a bookmark name or a bookmark record."
   (cl-loop for pred in '(helm-bookmark-org-file-p
                          helm-bookmark-addressbook-p
                          helm-bookmark-gnus-bookmark-p
+                         helm-bookmark-mu4e-bookmark-p
                          helm-bookmark-w3m-bookmark-p
                          helm-bookmark-woman-man-bookmark-p
                          helm-bookmark-info-bookmark-p
@@ -423,6 +435,18 @@ If `browse-url-browser-function' is set to something else than
             (helm-init-candidates-in-buffer
                 'global (helm-bookmark-gnus-setup-alist)))))
 
+;;; Mu4e
+;;
+(defun helm-bookmark-mu4e-setup-alist ()
+  (helm-bookmark-filter-setup-alist 'helm-bookmark-mu4e-bookmark-p))
+
+(defvar helm-source-bookmark-mu4e
+  (helm-make-source "Bookmark Mu4e" 'helm-source-filtered-bookmarks
+    :init (lambda ()
+            (bookmark-maybe-load-default-file)
+            (helm-init-candidates-in-buffer
+                'global (helm-bookmark-mu4e-setup-alist)))))
+
 ;;; Info
 ;;
 (defun helm-bookmark-info-setup-alist ()
@@ -529,6 +553,8 @@ If `browse-url-browser-function' is set to something else than
                                    (helm-bookmark-w3m-bookmark-p i))
           for isgnus        = (and (fboundp 'helm-bookmark-gnus-bookmark-p)
                                    (helm-bookmark-gnus-bookmark-p i))
+          for ismu4e        = (and (fboundp 'helm-bookmark-mu4e-bookmark-p)
+                                   (helm-bookmark-mu4e-bookmark-p i))
           for isman         = (and (fboundp 'helm-bookmark-man-bookmark-p) ; Man
                                    (helm-bookmark-man-bookmark-p i))
           for iswoman       = (and (fboundp 'helm-bookmark-woman-bookmark-p) ; Woman
@@ -544,6 +570,15 @@ If `browse-url-browser-function' is set to something else than
                           (helm-substring
                            i bookmark-bmenu-file-column)
                         i)
+          for icon = (when helm-bookmark-use-icon
+                       (cond ((and isfile hff)
+                              (all-the-icons-octicon "file-directory"))
+                             ((and isfile isinfo) (all-the-icons-octicon "info"))
+                             (isfile (all-the-icons-icon-for-file isfile))
+                             ((or iswoman isman)
+                              (all-the-icons-fileicon "man-page"))
+                             ((or isgnus ismu4e)
+                              (all-the-icons-octicon "mail-read"))))
           ;; Add a * if bookmark have annotation
           if (and isannotation (not (string-equal isannotation "")))
           do (setq trunc (concat "*" (if helm-bookmark-show-location trunc i)))
@@ -606,9 +641,15 @@ If `browse-url-browser-function' is set to something else than
                            (propertize trunc 'face 'helm-bookmark-file
                                        'help-echo isfile)))
           collect (if helm-bookmark-show-location
-                      (cons (concat bmk sep (if (listp loc) (car loc) loc))
+                      (cons (concat (and icon (propertize " " 'display (concat icon " ")))
+                                    bmk
+                                    (propertize
+                                     " " 'display
+                                     (concat sep (if (listp loc) (car loc) loc))))
                             i)
-                    (cons bmk i)))))
+                    (cons (concat (and icon (propertize " " 'display (concat icon " ")))
+                                  bmk)
+                          i)))))
 
 
 ;;; Edit/rename/save bookmarks.
@@ -741,6 +782,8 @@ E.g. prepended with *."
 Optional source `helm-source-bookmark-addressbook' is loaded only
 if external addressbook-bookmark package is installed."
   (interactive)
+  (when helm-bookmark-use-icon
+    (require 'all-the-icons))
   (helm :sources helm-bookmark-default-filtered-sources
         :prompt "Search Bookmark: "
         :buffer "*helm filtered bookmarks*"
