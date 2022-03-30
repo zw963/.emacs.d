@@ -21,7 +21,9 @@
       (call-interactively 'helm-git-grep-at-point)
     (call-interactively 'helm-do-ag-this-file)))
 
-(global-set-key (kbd "M-r") 'helm-git-grep-at-point-or-helm-do-ag)
+;; 这个使用 helm-do-ag-project-root 替换，因为 helm-git-grep 的 pattern 不知道如何输入空格
+;; (global-set-key (kbd "M-r") 'helm-git-grep-at-point-or-helm-do-ag)
+
 (define-key isearch-mode-map (kbd "M-r") 'helm-git-grep-from-isearch)
 (define-key helm-map (kbd "M-r") 'helm-git-grep-from-helm)
 

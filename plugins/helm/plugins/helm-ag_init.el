@@ -1,6 +1,5 @@
 ;; C-c C-e 开启编辑模式，配合 iedit-mode, 可以批量替换内容。非常酷！
 
-;; helm-ag-ignore-buffer-patterns
 (require 'helm-ag)
 
 ;; Hack for ignore pattern works with rg
@@ -9,14 +8,12 @@
   (concat "--glob=" pattern))
 
 (custom-set-variables
- ;; 必须开启 follow 模式, 才能有跟随 buffer 的 follow 效果.
- '(helm-follow-mode-persistent t)
  ;; helm-ag-base-command "ag --nocolor --nogroup --ignore-case"
- ;; '(helm-ag-base-command "rg --hidden --with-filename --no-heading --smart-case")
- '(helm-ag-base-command "rg --no-config --no-heading --hidden --smart-case --color never")
- ;; '(helm-ag-base-command "rg --no-config --no-heading --hidden --smart-case" )
- '(helm-ag-insert-at-point 'symbol)
- '(helm-ag-fuzzy-match t)
+ '(helm-ag-base-command "rg --no-config --hidden --smart-case --vimgrep")
+ `(helm-ag-success-exit-status '(0 2)) ;; Ripgrep uses exit-status 2 to indicate a partial success:
+ ;; '(helm-ag-ignore-buffer-patterns '("\\.org\\'"))
+ '(helm-ag-insert-at-point 'helm-ag)
+ ;; '(helm-ag-fuzzy-match t)
  ;; 下面的选项只是适合于 ag, rg 使用
  ;; '(helm-ag-ignore-patterns '(
  ;;                             "*.min.js" "*.js" "*.less"
@@ -46,12 +43,15 @@
 we have to run `helm-do-ag' on DEFAULT-DIRECTORY first, then up one level function start to work."
   (if helm-do-ag-on-current-directory-p
       (apply orig-fun command)
-      (helm-quit-and-helm-do-ag-on-current-directory)))
+    (helm-quit-and-helm-do-ag-on-current-directory)))
 
 (advice-add #'helm-ag--do-ag-up-one-level :around #'advice-up-on-level-corretly-when-run-helm-do-ag-this-file)
 (global-set-key [(control r)] 'helm-do-ag-this-file)
 (define-key helm-do-ag-map [(control r)] 'helm-ag--do-ag-up-one-level)
 (add-hook 'helm-quit-hook (lambda () (setq helm-do-ag-on-current-directory-p nil)))
+
+(global-set-key [(meta r)] 'helm-do-ag-project-root)
+(global-set-key [(control meta r)] 'helm-do-ag-buffers)
 
 ;; helm-grep-ag-command 设置成 rg 后，用 helm 自带的 helm-do-grep-ag 命令调用下面这个。
 '(helm-grep-ag-command "rg --no-config --no-heading --hidden --smart-case --color=always --line-number %s %s %s")

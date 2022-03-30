@@ -2,6 +2,7 @@
 ;; 用法：
 ;; helm-git-grep 出来结果后，按下 TAB, F3, C-c C-p, 然后编辑，完成后 C-x C-s.（或 C-c C-c)
 
+;; 或者, 通过 helm 任意工具进入 helm-grep 界面后，在 readonly buffer 里按下 r 开始编辑。
 (require 'wgrep)
 (require 'wgrep-helm)
 

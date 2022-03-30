@@ -17,6 +17,8 @@
  helm-ff-guess-ffap-filenames t
  helm-ff-file-name-history-use-recentf t
  helm-ff-auto-update-initial-value t
+ ;; 必须开启 follow 模式, 才能有跟随 buffer 的 follow 效果.
+ helm-follow-mode-persistent t
  )
 
 ;; 让 helm 弹出的窗口, 总在最下面, 当开启 follow-mode 时, 这个和 neotree 不工作.
