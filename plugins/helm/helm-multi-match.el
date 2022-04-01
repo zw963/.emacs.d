@@ -206,6 +206,11 @@ E.g., ((identity . \"foo\") (not . \"bar\"))."
                       (cons 'not (substring pat 1))
                     (cons 'identity pat)))))
 
+(defun helm-mm-regexp-p (string)
+  (string-match-p "[[]*+^$.?\\]" string))
+
+(defvar helm-mm--match-on-diacritics nil)
+
 (cl-defun helm-mm-3-match (candidate &optional (pattern helm-pattern))
   "Check if PATTERN match CANDIDATE.
 When PATTERN contains a space, it is splitted and matching is
@@ -219,12 +224,16 @@ the same cons cell against CANDIDATE.
 I.e. (identity (string-match \"foo\" \"foo bar\")) => t."
   (let ((pat (helm-mm-3-get-patterns pattern)))
     (cl-loop for (predicate . regexp) in pat
+             for re = (if (and (not (helm-mm-regexp-p regexp))
+                               helm-mm--match-on-diacritics)
+                          (char-fold-to-regexp regexp)
+                        regexp)
              always (funcall predicate
                              (condition-case _err
                                  ;; FIXME: Probably do nothing when
                                  ;; using fuzzy leaving the job
                                  ;; to the fuzzy fn.
-                                 (string-match regexp candidate)
+                                 (string-match re candidate)
                                (invalid-regexp nil))))))
 
 (defun helm-mm-3-search-base (pattern searchfn1 searchfn2)
@@ -350,6 +359,11 @@ E.g. \"bar foo baz\" will match \"barfoobaz\" or \"barbazfoo\" but not
                (multi3 #'helm-mm-3-match)
                (multi3p #'helm-mm-3p-match))))
     (funcall fun candidate pattern)))
+
+(cl-defun helm-mm-3-match-on-diacritics (candidate &optional (pattern helm-pattern))
+  "Same as `helm-mm-3-match' but match on diacritics if possible."
+  (let ((helm-mm--match-on-diacritics t))
+    (helm-mm-match candidate pattern)))
 
 (defun helm-mm-search (pattern &rest _ignore)
   "Search for PATTERN with `helm-mm-matching-method' function."
