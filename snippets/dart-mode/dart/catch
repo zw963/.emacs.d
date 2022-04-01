@@ -1,0 +1,8 @@
+# -*- mode: snippet -*-
+# name: catch
+# key: catch
+# contributor: Billy.Zheng vil963@gmail.com
+# --
+catch(error) {
+  $0
+}

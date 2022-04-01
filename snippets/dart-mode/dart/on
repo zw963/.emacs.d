@@ -1,0 +1,8 @@
+# -*- mode: snippet -*-
+# name: on
+# key: on
+# contributor: Billy.Zheng vil963@gmail.com
+# --
+on ${1:Exception} {
+  $0
+}

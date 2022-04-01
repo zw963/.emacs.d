@@ -1,0 +1,8 @@
+# -*- mode: snippet -*-
+# name: final
+# key: final
+# contributor: Billy.Zheng vil963@gmail.com
+# --
+final {
+  $0
+}
