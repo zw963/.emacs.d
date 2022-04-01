@@ -59,6 +59,8 @@
 (custom-set-variables '(helm-imenu-fuzzy-match t))
 (add-to-list 'helm-imenu-all-buffer-assoc  '(enh-ruby-mode . js2-mode))
 
+;; (add-hook 'helm-grep-mode-hook 'wgrep-change-to-wgrep-mode)
+
 ;; hack for helm-grep support wgrep
 (defun helm-grep-save-results-1 ()
   "Save Helm grep result in a `helm-grep-mode' buffer."
