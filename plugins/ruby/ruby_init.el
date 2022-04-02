@@ -7,6 +7,7 @@
 (require 'rbs-mode_init)
 (require 'robe-mode_init)
 (require 'yard-mode_init)
+(require 'rubocop_init)
 
 ;; rbtagger 和 ctags-update，lsp 冲突。
 ;; (require 'rbtagger_init)
