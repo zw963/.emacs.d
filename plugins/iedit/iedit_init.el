@@ -2,7 +2,7 @@
 
 (setq-default iedit-occurrence-context-lines 0)
 (setq iedit-auto-narrow t)
-(setq iedit-auto-buffering t)
+;; (setq iedit-auto-buffering t) ;; 不知道干嘛的，打开 iedit 编辑无效了
 
 (require 'iedit-rect)
 ;; 开启 iedit-rectangle-mode 之后, 可以直接编辑, 编辑完记住要再次快捷键退出模式.
