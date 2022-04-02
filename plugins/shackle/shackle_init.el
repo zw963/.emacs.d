@@ -7,7 +7,8 @@
       shackle-rules
       '(
         (("*Warnings*" "*Messages*" "*Completions*" "*Alerts*" "*Compile-Log*") :size 0.3 :align 'below :autoclose t)
-        (compilation-mode :select t :size 0.3 :align 'below :autoclose t)
+        ;; (("\\*RuboCop ") :regexp t :size 0.3 :align 'below :autoclose t)
+        ((compilation-mode rustic-compilation-mode rustic-cargo-clippy-mode rustic-cargo-outdated-mode rustic-cargo-test-mode cargo-process-mode) :select t :size 0.3 :align 'below :autoclose t)
         ("*quickrun*" :select t :size 15 :align 'below :autoclose t)
         ("*Backtrace*" :select t :size 15 :align 'below :autoclose t)
         (("*Help*" "*Apropos*" "*Occur*") :select t :size 0.3 :align 'below :autoclose t)
@@ -19,7 +20,6 @@
         ("*DAP Templates*" :select t :size 0.4 :align 'below :autoclose t)
         (dap-server-log-mode :size 15 :align 'below :autoclose t)
         ("*rustfmt*" :select t :size 0.3 :align 'below :autoclose t)
-        ((rustic-compilation-mode rustic-cargo-clippy-mode rustic-cargo-outdated-mode rustic-cargo-test-mode cargo-process-mode) :select t :size 0.3 :align 'below :autoclose t)
         (profiler-report-mode :select t :size 0.5 :align 'below)
         ("*ELP Profiling Restuls*" :select t :size 0.5 :align 'below)
         (("*Gofmt Errors*" "*Go Test*") :select t :size 0.3 :align 'below :autoclose t)
