@@ -1,8 +1,8 @@
 # -*- mode: snippet -*-
-# name: on
+# name: on ...catch
 # key: on
 # contributor: Billy.Zheng vil963@gmail.com
 # --
-on ${1:Exception} {
+on ${1:Exception} catch(error) {
   $0
 }
