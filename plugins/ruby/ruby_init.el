@@ -5,15 +5,14 @@
 (require 'ruby-test-mode_init)
 (require 'ruby-mode_keyword_highlight_init)
 (require 'rbs-mode_init)
-(require 'robe-mode_init)
 (require 'yard-mode_init)
-(require 'rubocop_init)
+(require 'ruby-mode-lsp_init)
+(require 'rubocop_init) ;; lsp 里面如果开了保存自动格式化，这个也要 require, 否则很慢？
+(require 'robe-mode_init)
 
 ;; rbtagger 和 ctags-update，lsp 冲突。
 ;; (require 'rbtagger_init)
-
 ;; (require 'ctags-update_init)
-;; (require 'ruby-mode-lsp_init)
 
 ;; (require 'rspec-mode_init)
 ;; (require 'yari_init)

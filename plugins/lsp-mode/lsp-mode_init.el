@@ -41,6 +41,8 @@
 
 (add-hook 'go-mode-hook 'lsp-install-save-hooks)
 (add-hook 'dart-mode-hook 'lsp-install-save-hooks)
+(add-hook 'ruby-mode-hook 'lsp-install-save-hooks)
+(add-hook 'enh-ruby-mode-hook 'lsp-install-save-hooks)
 
 ;; 这个默认不打开，怀疑打开会很慢，先关闭
 ;; (setq lsp-semantic-tokens-enable t)

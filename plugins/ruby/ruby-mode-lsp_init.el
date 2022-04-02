@@ -30,18 +30,23 @@
 ;;                         (lsp--set-configuration
 ;;                          (lsp-configuration-section "solargraph"))))))
 
+(require 'lsp-mode_init)
+;; (require 'dap-mode_init)
 (require 'lsp-solargraph)
 ;; (add-to-list 'lsp-solargraph-library-directories '("~/utils/ruby_tools/app/gems"))
 
-(dolist (hook (list
-               'enh-ruby-mode-hook
-               'ruby-mode
-               ))
-  (add-hook hook (lambda ()
-                   (unless (and rvm--current-ruby rvm--current-gemset)
-                     (rvm-activate-corresponding-ruby))
-                   (lsp-deferred)
-                   )))
+;; (dolist (hook (list
+;;                'enh-ruby-mode-hook
+;;                'ruby-mode
+;;                ))
+;;   (add-hook hook (lambda ()
+;;                    ;; (unless (and rvm--current-ruby rvm--current-gemset)
+;;                    ;;   (rvm-activate-corresponding-ruby))
+;;                    (lsp-deferred)
+;;                    )))
+
+(add-hook 'ruby-mode-hook 'lsp-deferred)
+(add-hook 'enh-ruby-mode-hook 'lsp-deferred)
 
 (provide 'ruby-mode-lsp_init)
 
