@@ -67,7 +67,7 @@
   (if rustic--buffer-workspace
       rustic--buffer-workspace
     (with-temp-buffer
-      (let ((ret (call-process (rustic-cargo-bin) nil t nil "locate-project" "--workspace")))
+      (let ((ret (call-process (rustic-cargo-bin) nil (list (current-buffer) nil) nil "locate-project" "--workspace")))
         (when (and (/= ret 0) (not nodefault))
           (error "`cargo locate-project' returned %s status: %s" ret (buffer-string)))
         (goto-char 0)
@@ -128,7 +128,7 @@ this variable."
     (define-key map (kbd "C-c C-c r") 'rustic-cargo-rm)
     (define-key map (kbd "C-c C-c u") 'rustic-cargo-upgrade)
     map)
-  "Keymap for Rust major mode.")
+  "Keymap for `rustic-mode'.")
 
 ;;;###autoload
 (define-derived-mode rustic-mode rust-mode "Rustic"

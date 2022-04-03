@@ -76,7 +76,7 @@
 (require 'graphql-mode_init)
 
 ;; 关闭一些有用，但最近不常用的 mode
-;; (require 'go-mode_init)
+(require 'go-mode_init)
 ;; (require 'rust_init)
 ;; (require 'haskell-mode_init)
 ;; (require 'js2-mode_init)
