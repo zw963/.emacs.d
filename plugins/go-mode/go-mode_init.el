@@ -1,14 +1,12 @@
 (require 'go-mode)
 (add-to-list 'auto-mode-alist '("\\.go\\'" . go-mode))
+
+(require 'lsp-go_init)
 ;; (setq gofmt-command "goimports")
 ;; (add-hook 'before-save-hook 'gofmt-before-save)
 
 ;; ;; Set up before-save hooks to format buffer and add/delete imports.
 ;; ;; Make sure you don't have other gofmt/goimports hooks enabled.
-
-(with-eval-after-load 'lsp-mode
-  (add-hook 'go-mode-hook 'lsp-deferred)
-  )
 
 ;; (if (not (string-match "go" compile-command))
 ;;     (set (make-local-variable 'compile-command)
@@ -16,17 +14,17 @@
 
 ;; (require 'go-autocomplete)
 
-(require 'go-eldoc)
-(add-hook 'go-mode-hook 'go-eldoc-setup)
-;; mode-compile support
+;; (require 'go-eldoc)
+;; (add-hook 'go-mode-hook 'go-eldoc-setup)
+;; ;; mode-compile support
 
-(with-eval-after-load 'mode-compile
-  (add-to-list 'mode-compile-modes-alist '(go-mode . (go-compile nil)))
-  (setq go-command "go")
-  (setq go-dbg-flags "run")
-  (defun go-compile ()
-    (interactive)
-    (mc--shell-compile go-command go-dbg-flags nil)))
+;; (with-eval-after-load 'mode-compile
+;;   (add-to-list 'mode-compile-modes-alist '(go-mode . (go-compile nil)))
+;;   (setq go-command "go")
+;;   (setq go-dbg-flags "run")
+;;   (defun go-compile ()
+;;     (interactive)
+;;     (mc--shell-compile go-command go-dbg-flags nil)))
 
 ;; The Go Oracle will blow your mind! It can do things like find all the callers of a
 ;; given function/method. It can also show you all the functions that read or write

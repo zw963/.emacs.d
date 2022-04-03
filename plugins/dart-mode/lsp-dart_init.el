@@ -7,7 +7,6 @@
   (goto-char (point-max))
   (lsp-dart-dap-flutter-hot-restart))
 
-
 ;; (setq lsp-dart-dap-flutter-hot-reload-on-save t)
 (define-key dart-mode-map (kbd "C-M-x") 'lsp-dart-dap-flutter-hot-reload)
 (define-key dart-mode-map (kbd "C-M-z") 'lsp-dart-dap-flutter-hot-restart)
@@ -17,7 +16,11 @@
 
 ;; (setq lsp-dart-dap-use-sdk-debugger nil)
 
-(add-hook 'dart-mode-hook 'lsp-deferred)
+(add-hook 'dart-mode-hook
+          (lambda ()
+            (add-hook 'before-save-hook #'lsp-format-buffer t t)
+            (lsp-deferred)
+            ))
 
 (provide 'lsp-dart_init)
 
