@@ -26,11 +26,6 @@
 
 (add-to-list 'auto-mode-alist '("\\.dart\\'" . dart-mode))
 
-(defun dart-mode-common-hooks ()
-  (when (featurep 'treemacs) (save-selected-window (treemacs-select-window)))
-  )
-(add-hook 'dart-mode-hook 'dart-mode-common-hooks)
-
 ;; 匹配dart 中可能出现的符号
 (setq dart-symbols "[\s\t\na-zA-Z0-9():,{}'$;.=></_]*")
 ;; Flutter 之中，widget 调用匹配结束括号以及前面的逗号，需要被删除

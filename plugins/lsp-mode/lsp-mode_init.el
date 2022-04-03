@@ -35,9 +35,9 @@
 (setq lsp-enable-on-type-formatting nil)
 
 (defun lsp-install-save-hooks ()
-    (add-hook 'before-save-hook #'lsp-format-buffer t t)
-    ;; (add-hook 'before-save-hook #'lsp-organize-imports t t)
-    )
+  (add-hook 'before-save-hook #'lsp-format-buffer t t)
+  ;; (add-hook 'before-save-hook #'lsp-organize-imports t t)
+  )
 
 (add-hook 'go-mode-hook 'lsp-install-save-hooks)
 (add-hook 'dart-mode-hook 'lsp-install-save-hooks)
@@ -112,6 +112,9 @@
   ;; (add-hook 'treemacs-switch-workspace-hook 'lsp-treemacs-symbols)
   ;; (add-hook 'treemacs-select-hook 'lsp-ui-imenu)
   ;; (add-hook 'treemacs-switch-workspace-hook 'lsp-ui-imenu)
+  (defun lsp-mode-common-hooks ()
+    (when (featurep 'treemacs) (save-selected-window (treemacs-select-window))))
+  (add-hook 'lsp-mode-hook 'lsp-mode-common-hooks)
   )
 
 ;; (with-eval-after-load 'company

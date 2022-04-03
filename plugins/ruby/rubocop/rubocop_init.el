@@ -8,7 +8,7 @@
 
 (add-hook 'ruby-mode-hook #'rubocop-mode)
 
-(run-ruby-mode-hook '(local-set-key [(control c) (control c)] 'rubocop-format-current-file))
+;; (run-ruby-mode-hook '(local-set-key [(control c) (control c)] 'rubocop-format-current-file))
 
 (provide 'rubocop_init)
 

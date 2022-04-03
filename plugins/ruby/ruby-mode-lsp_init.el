@@ -45,8 +45,8 @@
 ;;                    (lsp-deferred)
 ;;                    )))
 
-(add-hook 'ruby-mode-hook 'lsp-deferred)
-(add-hook 'enh-ruby-mode-hook 'lsp-deferred)
+(add-hook 'ruby-mode-hook 'lsp)
+(add-hook 'enh-ruby-mode-hook 'lsp)
 
 (provide 'ruby-mode-lsp_init)
 
