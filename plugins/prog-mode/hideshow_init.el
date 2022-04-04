@@ -85,6 +85,7 @@ Meant to be used as `hs-set-up-overlay'."
 (defconst hideshow-folded-face '((t (:inherit 'font-lock-comment-face :box t))))
 
 (add-to-list 'hs-special-modes-alist '(dart-mode "{" "}" "/[*/]" nil nil))
+(add-to-list 'hs-special-modes-alist '(go-mode "{" "}" "/[*/]" nil nil))
 
 (add-to-list 'hs-special-modes-alist
 	     '(ruby-mode

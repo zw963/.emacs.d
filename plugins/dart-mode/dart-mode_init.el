@@ -152,7 +152,6 @@
 
 (require 'lsp-dart_init)
 ;; (require 'dart-mode-eglot_init)
-(require 'dart-mode-context-menu_init)
 
 ;; (require 'flutter)
 ;; (setq flutter-l10n-arb-dir "lib/i10n")

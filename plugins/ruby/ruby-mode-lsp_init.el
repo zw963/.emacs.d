@@ -32,6 +32,7 @@
 
 (require 'lsp-mode_init)
 (require 'lsp-solargraph)
+
 ;; (add-to-list 'lsp-solargraph-library-directories '("~/utils/ruby_tools/app/gems"))
 
 ;; (dolist (hook (list
@@ -51,6 +52,10 @@
 
 (add-hook 'ruby-mode-hook 'zw/lsp-ruby-common-hooks)
 (add-hook 'enh-ruby-mode-hook 'zw/lsp-ruby-common-hooks)
+
+;; (require 'dap-mode_init)
+;; (require 'dap-ruby)
+;; (dap-ruby-setup)
 
 (provide 'ruby-mode-lsp_init)
 

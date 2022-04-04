@@ -1,5 +1,4 @@
 (require 'lsp-mode_init)
-(require 'dap-mode_init)
 (require 'lsp-go)
 
 (add-hook 'go-mode-hook
@@ -9,6 +8,9 @@
             (lsp-deferred)
             ))
 
+(require 'dap-mode_init)
+(require 'dap-go)
+(dap-go-setup)
 
 (provide 'lsp-go_init)
 
