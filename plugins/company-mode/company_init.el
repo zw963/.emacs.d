@@ -43,7 +43,7 @@
 
 ;; (set-company-tab)
 
-(global-set-key (kbd "<tab>") #'company-indent-or-complete-common)
+;; (global-set-key (kbd "<tab>") #'company-indent-or-complete-common)
 (define-key company-active-map (kbd "C-s") 'company-filter-candidates) ;; 这个可以随时 C-o 随时切换
 (define-key company-active-map (kbd "M-/") #'company-complete)
 (global-set-key (kbd "C-c C-/") #'company-other-backend)
@@ -74,15 +74,16 @@
 ;; (company-files company-dabbrev)
 
 
-(add-hook 'company-mode-hook (lambda ()
-                               (setq company-backends
-                                     (delete 'company-semantic
-                                             (delete 'company-oddmuse
-                                                     (delete 'company-bbdb
-                                                             (delete 'company-cmake
-                                                                     (delete 'company-clang
-                                                                             (delete '(company-dabbrev-code company-gtags company-etags company-keywords) company-backends)))))))
-                               ))
+(add-hook 'company-mode-hook
+          (lambda ()
+            (setq company-backends
+                  (delete 'company-semantic
+                          (delete 'company-oddmuse
+                                  (delete 'company-bbdb
+                                          (delete 'company-cmake
+                                                  (delete 'company-clang
+                                                          (delete '(company-dabbrev-code company-gtags company-etags company-keywords) company-backends)))))))
+            ))
 
 ;; 根据文档，company-semantic 以及  company-etags 现在都属于 company-capf
 ;; company-semantic 要开启 semantic-mode 来支持，但是因为只支持有限的语言，因此不用打开。
@@ -93,7 +94,7 @@
 (add-hook 'prog-mode-hook
           (lambda ()
             ;; 如果没有使用 lsp, 返回多一点结果。
-            (unless (featurep 'lsp-mode)
+            (unless (bound-and-true-p lsp-mode)
               (add-to-list 'company-backends '(company-capf company-dabbrev-code company-keywords))
               )
             ))
