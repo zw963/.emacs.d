@@ -34,7 +34,7 @@
     '(menu-item "Show eldoc documentation"
                 (lambda (click) (interactive "e")
                   (save-excursion
-                    (if (featurep 'lsp-mode)
+                    (if (bound-and-true-p lsp-mode)
                         (lsp-describe-thing-at-point)
                       (eldoc-box-eglot-help-at-point))))))
   (define-key-after menu [hs-separator] menu-bar-separator)
@@ -47,7 +47,7 @@
                 (lambda (click) (interactive "e")
                   (save-excursion
                     (mouse-set-point click)
-                    (if (featurep 'lsp-mode)
+                    (if (bound-and-true-p lsp-mode)
                         (call-interactively 'lsp-execute-code-action)
                       (call-interactively 'eglot-code-actions))
                     ))))
