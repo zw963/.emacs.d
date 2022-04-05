@@ -5,6 +5,6 @@
 
 (add-hook 'dart-mode-hook 'eglot-ensure)
 
-(provide 'dart-mode-eglot_init)
+(provide 'eglot-dart_init)
 
-;;; dart-mode-eglot_init.el ends here
+;;; eglot-dart_init.el ends here

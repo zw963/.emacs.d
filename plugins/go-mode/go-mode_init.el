@@ -2,6 +2,8 @@
 (add-to-list 'auto-mode-alist '("\\.go\\'" . go-mode))
 
 (require 'lsp-go_init)
+;; (require 'eglot-go_init)
+
 ;; (setq gofmt-command "goimports")
 ;; (add-hook 'before-save-hook 'gofmt-before-save)
 

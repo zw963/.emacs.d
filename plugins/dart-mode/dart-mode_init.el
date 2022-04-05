@@ -151,7 +151,7 @@
 (define-key dart-mode-map [(meta c) (l)] 'flutter-unwrap-layout-builder)
 
 (require 'lsp-dart_init)
-;; (require 'dart-mode-eglot_init)
+;; (require 'eglot-dart_init)
 
 ;; (require 'flutter)
 ;; (setq flutter-l10n-arb-dir "lib/i10n")
