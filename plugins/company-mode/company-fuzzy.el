@@ -1,13 +1,13 @@
 ;;; company-fuzzy.el --- Fuzzy matching for `company-mode'  -*- lexical-binding: t; -*-
 
-;; Copyright (C) 2019-2021  Shen, Jen-Chieh
+;; Copyright (C) 2019-2022  Shen, Jen-Chieh
 ;; Created date 2019-08-01 16:54:34
 
 ;; Author: Shen, Jen-Chieh <jcs090218@gmail.com>
 ;; Description: Fuzzy matching for `company-mode'.
 ;; Keyword: auto auto-complete complete fuzzy matching
-;; Version: 1.3.0
-;; Package-Requires: ((emacs "24.4") (company "0.8.12") (s "1.12.0") (ht "2.0"))
+;; Version: 1.4.0
+;; Package-Requires: ((emacs "26.1") (company "0.8.12") (s "1.12.0") (ht "2.0"))
 ;; URL: https://github.com/jcs-elpa/company-fuzzy
 
 ;; This file is NOT part of GNU Emacs.
@@ -137,6 +137,7 @@
 ;;
 
 (declare-function company-files "ext:company-files.el")
+(declare-function company-yasnippet "ext:company-yasnippet.el")
 
 (declare-function flex-score "ext:flex.el")
 (declare-function flx-score "ext:flx.el")
@@ -185,6 +186,10 @@
 (defun company-fuzzy--enable ()
   "Record down all other backend to `company-fuzzy--backends'."
   (company-fuzzy--init)
+  ;; XXX Don't know why, but you need to clear it first to make local
+  ;; variables work!
+  (ht-clear company-fuzzy--ht-backends-candidates)
+  (ht-clear company-fuzzy--ht-history)
   (unless company-fuzzy--recorded-backends
     (setq company-fuzzy--recorded-backends company-backends
           company-fuzzy--backends (company-fuzzy--normalize-backend-list company-fuzzy--recorded-backends))
@@ -243,7 +248,7 @@
   "Return the most generic prefix."
   (let ((start (company-fuzzy--symbol-start)))
     (ignore-errors
-      (string-trim (substring (buffer-string) (1- start) (1- (point)))))))
+      (string-trim (buffer-substring-no-properties (or start (point-min)) (point))))))
 
 (defun company-fuzzy--trigger-prefix-p ()
   "Check if current prefix a trigger prefix."
@@ -293,8 +298,8 @@ See function `string-prefix-p' for arguments PREFIX, STRING and IGNORE-CASE."
 
 (defun company-fuzzy--backend-command (candidate command)
   "Find the backend from the CANDIDATE then call the COMMAND."
-  (let ((backend (company-fuzzy--get-backend-by-candidate candidate)))
-    (if (or (string-empty-p candidate) (not backend)) nil
+  (unless (string-empty-p candidate)
+    (when-let ((backend (company-fuzzy--get-backend-by-candidate candidate)))
       (company-fuzzy--call-backend backend command candidate))))
 
 ;;
@@ -379,17 +384,16 @@ See function `string-prefix-p' for arguments PREFIX, STRING and IGNORE-CASE."
   "Sort CANDIDATES with function call FNC.
 
 If optional argument FLIP is non-nil, reverse query and pattern order."
-  (let ((scoring-table (ht-create)) scoring-keys prefix scoring score)
+  (let ((scoring-table (ht-create)) scoring-keys)
     (dolist (cand candidates)
-      (setq prefix (company-fuzzy--backend-prefix-candidate cand 'match)
-            scoring (ignore-errors
-                      (if flip (funcall fnc prefix cand)
-                        (funcall fnc cand prefix)))
-            score (cond ((listp scoring) (nth 0 scoring))
-                        ((vectorp scoring) (aref scoring 0))
-                        ((numberp scoring) scoring)
-                        (t 0)))
-      (when score
+      (when-let* ((prefix (company-fuzzy--backend-prefix-candidate cand 'match))
+                  (scoring (ignore-errors
+                             (if flip (funcall fnc prefix cand)
+                               (funcall fnc cand prefix))))
+                  (score (cond ((listp scoring) (nth 0 scoring))
+                               ((vectorp scoring) (aref scoring 0))
+                               ((numberp scoring) scoring)
+                               (t 0))))
         (ht-set scoring-table score (push cand (ht-get scoring-table score)))))
     ;; Get all keys, and turn into a list.
     (ht-map (lambda (score-key _cands) (push score-key scoring-keys)) scoring-table)
@@ -464,6 +468,12 @@ If optional argument FLIP is non-nil, reverse query and pattern order."
 ;; (@* "Prefix" )
 ;;
 
+(defun company-fuzzy--valid-prefix (backend)
+  "Guess the current BACKEND prefix."
+  (let ((prefix (funcall backend 'prefix)))
+    (if (stringp prefix) prefix
+      (thing-at-point 'symbol))))  ; Fallback
+
 (defun company-fuzzy--backend-prefix-complete (backend)
   "Return prefix for each BACKEND while doing completion.
 
@@ -471,7 +481,7 @@ This function is use when function `company-fuzzy--insert-candidate' is
 called.  It returns the current selection prefix to prevent completion
 completes in an odd way."
   (cl-case backend
-    (`company-files (company-files 'prefix))
+    (`company-files (company-fuzzy--valid-prefix backend))
     (t (company-fuzzy--backend-prefix backend 'match))))
 
 (defun company-fuzzy--backend-prefix-match (backend)
@@ -484,19 +494,17 @@ For instance, if there is a candidate function `buffer-file-name' and with
 current prefix `bfn'.  It will just return `bfn' because the current prefix
 does best describe the for this candidate."
   (cl-case backend
-    (`company-capf (thing-at-point 'symbol))
+    ((company-capf company-yasnippet) (company-fuzzy--valid-prefix backend))
     (`company-files
      ;; NOTE: For `company-files', we will return the last section of the path
      ;; for the best match.
      ;;
      ;; Example, if I have path `/path/to/dir'; then it shall return `dir'.
-     (let ((prefix (company-files 'prefix)))
-       (when prefix
-         (let* ((splitted (split-string prefix "/" t))
-                (len-splitted (length splitted))
-                (last (nth (1- len-splitted) splitted)))
-           last))))
-    (`company-yasnippet (thing-at-point 'symbol))
+     (when-let* ((prefix (company-files 'prefix))
+                 (splitted (split-string prefix "/" t))
+                 (len-splitted (length splitted))
+                 (last (nth (1- len-splitted) splitted)))
+       last))
     (t company-fuzzy--prefix)))
 
 (defun company-fuzzy--backend-prefix-get (backend)
@@ -510,21 +518,25 @@ function `buffer-file-name' as candidate.  But with this function will use a
 letter `b' instead of full prefix `bfn'.  So the BACKEND will return something
 that may be relavent to the first character `b'.
 
-P.S. Not all backend work this way."
+P.S.  Not all backend work this way."
   (cl-case backend
     (`company-files
-     (let ((prefix (company-files 'prefix)))
-       (when prefix
-         (let* ((splitted (split-string prefix "/" t))
-                (len-splitted (length splitted))
-                (last (nth (1- len-splitted) splitted))
-                (new-prefix prefix))
-           (when (< 1 len-splitted)
-             (setq new-prefix
-                   (substring prefix 0 (- (length prefix) (length last)))))
-           new-prefix))))
-    (`company-yasnippet "")
+     (when-let ((prefix (company-files 'prefix)))
+       (let* ((splitted (split-string prefix "/" t))
+              (len-splitted (length splitted))
+              (last (nth (1- len-splitted) splitted))
+              (new-prefix prefix))
+         (when (< 1 len-splitted)
+           (setq new-prefix
+                 (substring prefix 0 (- (length prefix) (length last)))))
+         new-prefix)))
+    (`company-yasnippet (company-yasnippet 'prefix))
     (t (ignore-errors (substring company-fuzzy--prefix 0 1)))))
+
+(defun company-fuzzy--backend-prefix-candidate (cand type)
+  "Get the backend prefix by CAND and TYPE."
+  (let ((backend (company-fuzzy--get-backend-by-candidate cand)))
+    (company-fuzzy--backend-prefix backend type)))
 
 (defun company-fuzzy--backend-prefix (backend type)
   "Get the BACKEND prefix by TYPE."
@@ -532,14 +544,6 @@ P.S. Not all backend work this way."
     (`complete (company-fuzzy--backend-prefix-complete backend))
     (`match (company-fuzzy--backend-prefix-match backend))
     (`get (company-fuzzy--backend-prefix-get backend))))
-
-(defun company-fuzzy--backend-prefix-candidate (cand type)
-  "Get the backend prefix by CAND and TYPE."
-  (let ((backend (company-fuzzy--get-backend-by-candidate cand)))
-    (cl-case type
-      (`complete (company-fuzzy--backend-prefix-complete backend))
-      (`match (company-fuzzy--backend-prefix-match backend))
-      (`get (company-fuzzy--backend-prefix-get backend)))))
 
 ;;
 ;; (@* "Fuzzy Matching" )
@@ -590,8 +594,8 @@ Insert .* between each char."
 
 (defun company-fuzzy-all-candidates ()
   "Return the list of all candidates."
-  (setq company-fuzzy--ht-backends-candidates (ht-create)  ; Clean up.
-        company-fuzzy--is-trigger-prefix-p (company-fuzzy--trigger-prefix-p))
+  (ht-clear company-fuzzy--ht-backends-candidates)  ; Clean up
+  (setq company-fuzzy--is-trigger-prefix-p (company-fuzzy--trigger-prefix-p))
   (dolist (backend company-fuzzy--backends)
     (if (memq backend company-fuzzy-passthrough-backends)
         (company-fuzzy--candidates-from-passthrough-backend backend)
@@ -670,7 +674,7 @@ Insert .* between each char."
   "Set the prefix just right before completion."
   (setq company-fuzzy--is-trigger-prefix-p nil
         company-fuzzy--prefix (or (ignore-errors (company-fuzzy--generic-prefix))
-                                  (ffap-file-at-point))))
+                                  (ffap-guesser))))
 
 (defun company-fuzzy-all-other-backends (command &optional arg &rest ignored)
   "Backend source for all other backend except this backend, COMMAND, ARG, IGNORED."
@@ -682,6 +686,39 @@ Insert .* between each char."
     (`candidates (company-fuzzy-all-candidates))
     (`pre-render (company-fuzzy--pre-render arg (nth 0 ignored)))
     (t (company-fuzzy--backend-command arg command))))
+
+;;
+;; (@* "Users" )
+;;
+
+(defun company-fuzzy--backend-organize ()
+  "Organize backend after modified the backend list."
+  (if company-fuzzy-mode
+      (setq company-fuzzy--backends (delete-dups company-fuzzy--backends)
+            company-fuzzy--recorded-backends (delete-dups company-fuzzy--recorded-backends))
+    (setq company-backends (delete-dups company-backends))))
+
+;;;###autoload
+(defun company-fuzzy-backend-add (backend)
+  "Safe way to add BACKEND."
+  (if company-fuzzy-mode
+      (progn
+        (add-to-list 'company-fuzzy--backends backend t)
+        (add-to-list 'company-fuzzy--recorded-backends backend t))
+    (make-local-variable 'company-backends)
+    (add-to-list 'company-backends backend t))
+  (company-fuzzy--backend-organize))
+
+;;;###autoload
+(defun company-fuzzy-backend-remove (backend)
+  "Safe way to remove BACKEND."
+  (if company-fuzzy-mode
+      (progn
+        (setq company-fuzzy--backends (cl-remove backend company-fuzzy--backends)
+              company-fuzzy--recorded-backends (cl-remove backend company-fuzzy--recorded-backends)))
+    (make-local-variable 'company-backends)
+    (setq company-backends (cl-remove backend company-backends)))
+  (company-fuzzy--backend-organize))
 
 (provide 'company-fuzzy)
 ;;; company-fuzzy.el ends here
