@@ -2,7 +2,7 @@
 
 ;; popular themes: https://emacsthemes.com/popular/index.html
 
-(setq custom-theme-directory (expand-file-name "plugins/themes" default-directory))
+(setq custom-theme-directory (expand-file-name "plugins/themes"))
 
 ;; (setq zenburn-use-variable-pitch t)
 ;; (setq zenburn-scale-org-headlines t)

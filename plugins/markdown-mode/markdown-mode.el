@@ -1,12 +1,12 @@
 ;;; markdown-mode.el --- Major mode for Markdown-formatted text -*- lexical-binding: t; -*-
 
-;; Copyright (C) 2007-2020 Jason R. Blevins and markdown-mode
+;; Copyright (C) 2007-2022 Jason R. Blevins and markdown-mode
 ;; contributors (see the commit log for details).
 
 ;; Author: Jason R. Blevins <jblevins@xbeta.org>
 ;; Maintainer: Jason R. Blevins <jblevins@xbeta.org>
 ;; Created: May 24, 2007
-;; Version: 2.5-dev
+;; Version: 2.6-dev
 ;; Package-Requires: ((emacs "25.1"))
 ;; Keywords: Markdown, GitHub Flavored Markdown, itex
 ;; URL: https://jblevins.org/projects/markdown-mode/
@@ -55,7 +55,7 @@
 
 ;;; Constants =================================================================
 
-(defconst markdown-mode-version "2.5-dev"
+(defconst markdown-mode-version "2.6-dev"
   "Markdown mode version number.")
 
 (defconst markdown-output-buffer-name "*markdown-output*"
@@ -346,6 +346,13 @@ Math support can be enabled, disabled, or toggled later using
   :type 'boolean
   :safe 'booleanp
   :package-version '(markdown-mode . "2.4"))
+
+(defcustom markdown-enable-highlighting-syntax nil
+  "Enable highlighting syntax."
+  :group 'markdown
+  :type 'boolean
+  :safe 'booleanp
+  :package-version '(markdown-mode . "2.5"))
 
 (defcustom markdown-css-paths nil
   "List of URLs of CSS files to link to in the output XHTML."
@@ -988,7 +995,7 @@ Compatible with Pandoc, Python Markdown, PHP Markdown Extra, and Leanpub.")
   "Regular expression for Leanpub section markers and related syntax.")
 
 (defconst markdown-regex-sub-superscript
-  "\\(?:^\\|[^\\~^]\\)\\(?1:\\(?2:[~^]\\)\\(?3:[[:alnum:]]+\\)\\(?4:\\2\\)\\)"
+  "\\(?:^\\|[^\\~^]\\)\\(?1:\\(?2:[~^]\\)\\(?3:[+-\u2212]?[[:alnum:]]+\\)\\(?4:\\2\\)\\)"
   "The regular expression matching a sub- or superscript.
 The leading un-numbered group matches the character before the
 opening tilde or carat, if any, ensuring that it is not a
@@ -1042,6 +1049,15 @@ Group 3 matches all attributes and whitespace following the tag name.")
 (defconst markdown-regex-html-entity
   "\\(&#?[[:alnum:]]+;\\)"
   "Regular expression for matching HTML entities.")
+
+(defconst markdown-regex-highlighting
+  "\\(?1:^\\|[^\\]\\)\\(?2:\\(?3:==\\)\\(?4:[^ \n\t\\]\\|[^ \n\t]\\(?:.\\|\n[^\n]\\)*?[^\\ ]\\)\\(?5:==\\)\\)"
+"Regular expression for matching highlighting text.
+Group 1 matches the character before the opening equal, if any,
+ensuring that it is not a backslash escape.
+Group 2 matches the entire expression, including delimiters.
+Groups 3 and 5 matches the opening and closing delimiters.
+Group 4 matches the text inside the delimiters.")
 
 
 ;;; Syntax ====================================================================
@@ -1558,6 +1574,13 @@ MIDDLE-BEGIN is the start of the \"middle\" section of the block."
       (put-text-property close-begin close-end
                          (cl-cadadr fence-spec) close-data))))
 
+(defun markdown--triple-quote-single-line-p (begin)
+  (save-excursion
+    (goto-char begin)
+    (save-match-data
+      (and (search-forward "```" nil t)
+           (search-forward "```" (line-end-position) t)))))
+
 (defun markdown-syntax-propertize-fenced-block-constructs (start end)
   "Propertize according to `markdown-fenced-block-pairs' from START to END.
 If unable to propertize an entire block (if the start of a block is within START
@@ -1592,7 +1615,8 @@ start which was previously propertized."
       (while (re-search-forward start-reg end t)
         ;; we assume the opening constructs take up (only) an entire line,
         ;; so we re-check the current line
-        (let* ((cur-line (buffer-substring (point-at-bol) (point-at-eol)))
+        (let* ((block-start (match-beginning 0))
+               (cur-line (buffer-substring (point-at-bol) (point-at-eol)))
                ;; find entry in `markdown-fenced-block-pairs' corresponding
                ;; to regex which was matched
                (correct-entry
@@ -1609,18 +1633,20 @@ start which was previously propertized."
                  (cl-caadr correct-entry)
                  (if (and (match-beginning 1) (match-end 1))
                      (- (match-end 1) (match-beginning 1))
-                   0))))
-          ;; get correct match data
-          (save-excursion
-            (beginning-of-line)
-            (re-search-forward
-             (markdown-maybe-funcall-regexp (caar correct-entry))
-             (point-at-eol)))
-          ;; mark starting, even if ending is outside of region
-          (put-text-property (match-beginning 0) (match-end 0)
-                             (cl-cadar correct-entry) (match-data t))
-          (markdown-propertize-end-match
-           end-reg end correct-entry enclosed-text-start))))))
+                   0)))
+               (prop (cl-cadar correct-entry)))
+          (when (or (not (eq prop 'markdown-gfm-block-begin))
+                    (not (markdown--triple-quote-single-line-p block-start)))
+            ;; get correct match data
+            (save-excursion
+              (beginning-of-line)
+              (re-search-forward
+               (markdown-maybe-funcall-regexp (caar correct-entry))
+               (point-at-eol)))
+            ;; mark starting, even if ending is outside of region
+            (put-text-property (match-beginning 0) (match-end 0) prop (match-data t))
+            (markdown-propertize-end-match
+             end-reg end correct-entry enclosed-text-start)))))))
 
 (defun markdown-syntax-propertize-blockquotes (start end)
   "Match blockquotes from START to END."
@@ -1979,6 +2005,11 @@ For example, this applies to plain angle bracket URLs:
   "Face for HTML entities."
   :group 'markdown-faces)
 
+(defface markdown-highlighting-face
+  '((t (:background "yellow" :foreground "black")))
+  "Face for highlighting."
+  :group 'markdown-faces)
+
 (defcustom markdown-header-scaling nil
   "Whether to use variable-height faces for headers.
 When non-nil, `markdown-header-face' will inherit from
@@ -2171,6 +2202,9 @@ Depending on your font, some reasonable choices are:
     (,markdown-regex-strike-through . ((3 markdown-markup-properties)
                                        (4 'markdown-strike-through-face)
                                        (5 markdown-markup-properties)))
+    (markdown--match-highlighting . ((3 markdown-markup-properties)
+                                     (4 'markdown-highlighting-face)
+                                     (5 markdown-markup-properties)))
     (,markdown-regex-line-break . (1 'markdown-line-break-face prepend))
     (markdown-fontify-sub-superscripts)
     (markdown-match-inline-attributes . ((0 markdown-markup-properties prepend)))
@@ -2632,7 +2666,8 @@ intact additional processing."
                          (match-beginning 5) (match-end 5)))))))))
 
 (defun markdown-get-defined-references ()
-  "Return all defined reference labels and their line numbers (not including square brackets)."
+  "Return all defined reference labels and their line numbers.
+They does not include square brackets)."
   (save-excursion
     (goto-char (point-min))
     (let (refs)
@@ -2891,6 +2926,10 @@ When FACELESS is non-nil, do not return matches where faces have been applied."
                                 (match-beginning 4) (match-end 4)))
           t)))))
 
+(defun markdown--match-highlighting (last)
+  (when markdown-enable-highlighting-syntax
+    (re-search-forward markdown-regex-highlighting last t)))
+
 (defun markdown-match-math-generic (regex last)
   "Match REGEX from point to LAST.
 REGEX is either `markdown-regex-math-inline-single' for matching
@@ -2941,7 +2980,8 @@ $..$ or `markdown-regex-math-inline-double' for matching $$..$$."
 (defun markdown-match-math-double (last)
   "Match double quoted $$..$$ math from point to LAST."
   (when markdown-enable-math
-    (when (and (char-equal (char-after) ?$)
+    (when (and (< (1+ (point)) (point-max))
+               (char-equal (char-after) ?$)
                (char-equal (char-after (1+ (point))) ?$)
                (not (bolp))
                (not (char-equal (char-before) ?\\))
@@ -3354,7 +3394,7 @@ SEQ may be an atom or a sequence."
              (margin-char-width (/ margin-pixel-width (default-font-width))))
         (set-window-margins nil margin-char-width))
     ;; As a fallback, simply set margin based on character count.
-    (set-window-margins nil markdown-marginalize-headers-margin-width)))
+    (set-window-margins nil (1+ markdown-marginalize-headers-margin-width))))
 
 (defun markdown-fontify-headings (last)
   "Add text properties to headings from point to LAST."
@@ -3396,11 +3436,11 @@ SEQ may be an atom or a sequence."
     t))
 
 (defun markdown-fontify-tables (last)
-  (when (and (re-search-forward "|" last t)
-             (markdown-table-at-point-p))
-    (font-lock-append-text-property
-     (line-beginning-position) (min (1+ (line-end-position)) (point-max))
-     'face 'markdown-table-face)
+  (when (re-search-forward "|" last t)
+    (when (markdown-table-at-point-p)
+      (font-lock-append-text-property
+       (line-beginning-position) (min (1+ (line-end-position)) (point-max))
+       'face 'markdown-table-face))
     (forward-line 1)
     t))
 
@@ -3420,27 +3460,27 @@ SEQ may be an atom or a sequence."
 
 (defun markdown-fontify-list-items (last)
   "Apply font-lock properties to list markers from point to LAST."
-  (when (and (markdown-match-list-items last)
-             (not (markdown-code-block-at-point-p (match-beginning 2))))
-    (let* ((indent (length (match-string-no-properties 1)))
-           (level (/ indent markdown-list-indent-width)) ;; level = 0, 1, 2, ...
-           (bullet (nth (mod level (length markdown-list-item-bullets))
-                        markdown-list-item-bullets)))
-      (add-text-properties
-       (match-beginning 2) (match-end 2) '(face markdown-list-face))
-      (when markdown-hide-markup
-        (cond
-         ;; Unordered lists
-         ((string-match-p "[\\*\\+-]" (match-string 2))
-          (add-text-properties
-           (match-beginning 2) (match-end 2) `(display ,bullet)))
-         ;; Definition lists
-         ((string-equal ":" (match-string 2))
-          (let ((display-string
-                 (char-to-string (markdown--first-displayable
-                                  markdown-definition-display-char))))
-            (add-text-properties (match-beginning 2) (match-end 2)
-                                 `(display ,display-string)))))))
+  (when (markdown-match-list-items last)
+    (when (not (markdown-code-block-at-point-p (match-beginning 2)))
+      (let* ((indent (length (match-string-no-properties 1)))
+             (level (/ indent markdown-list-indent-width)) ;; level = 0, 1, 2, ...
+             (bullet (nth (mod level (length markdown-list-item-bullets))
+                          markdown-list-item-bullets)))
+        (add-text-properties
+         (match-beginning 2) (match-end 2) '(face markdown-list-face))
+        (when markdown-hide-markup
+          (cond
+           ;; Unordered lists
+           ((string-match-p "[\\*\\+-]" (match-string 2))
+            (add-text-properties
+             (match-beginning 2) (match-end 2) `(display ,bullet)))
+           ;; Definition lists
+           ((string-equal ":" (match-string 2))
+            (let ((display-string
+                   (char-to-string (markdown--first-displayable
+                                    markdown-definition-display-char))))
+              (add-text-properties (match-beginning 2) (match-end 2)
+                                   `(display ,display-string))))))))
     t))
 
 (defun markdown-fontify-hrs (last)
@@ -3888,7 +3928,7 @@ This is an internal function called by
         (markdown-insert-uri uri))))))
 
 (defun markdown-insert-link ()
-  "Insert new or update an existing link, with interactive prompts.
+  "Insert new or update an existing link, with interactive prompt.
 If the point is at an existing link or URL, update the link text,
 URL, reference label, and/or title.  Otherwise, insert a new link.
 The type of link inserted (inline, reference, or plain URL)
@@ -3923,7 +3963,7 @@ selectively adding or removing information via the prompts."
   (markdown--insert-link-or-image nil))
 
 (defun markdown-insert-image ()
-  "Insert new or update an existing image, with interactive prompts.
+  "Insert new or update an existing image, with interactive prompt.
 If the point is at an existing image, update the alt text, URL,
 reference label, and/or title. Otherwise, insert a new image.
 The type of image inserted (inline or reference) depends on which
@@ -7311,7 +7351,11 @@ Return the name of the output buffer used."
                      (if (not (null command-args))
                          (apply #'call-process-region begin-region end-region command nil buf nil command-args)
                        (call-process-region begin-region end-region command nil buf))
-                   (funcall markdown-command begin-region end-region buf)
+                   (if markdown-command-needs-filename
+                       (if (not buffer-file-name)
+                           (user-error "Must be visiting a file")
+                         (funcall markdown-command begin-region end-region buf buffer-file-name))
+                     (funcall markdown-command begin-region end-region buf))
                    ;; If the ‘markdown-command’ function didn’t signal an
                    ;; error, assume it succeeded by binding ‘exit-code’ to 0.
                    0))))))
@@ -8205,6 +8249,9 @@ markers and footnote text."
    ;; Reference definition
    ((thing-at-point-looking-at markdown-regex-reference-definition)
     (markdown-reference-goto-link (match-string-no-properties 2)))
+   ;; Link
+   ((or (markdown-link-p) (markdown-wiki-link-p))
+    (markdown-follow-thing-at-point nil))
    ;; GFM task list item
    ((markdown-gfm-task-list-item-at-point)
     (markdown-toggle-gfm-checkbox))
@@ -8769,7 +8816,8 @@ at the END of code blocks."
   (goto-char (- beg 1))
   (let ((block-indentation (current-indentation)))
     (when (> block-indentation 0)
-      (indent-rigidly beg end block-indentation))))
+      (indent-rigidly beg end block-indentation)))
+  (font-lock-ensure))
 
 (defun markdown-edit-code-block ()
   "Edit Markdown code block in an indirect buffer."
@@ -8777,8 +8825,8 @@ at the END of code blocks."
   (save-excursion
     (if (fboundp 'edit-indirect-region)
         (let* ((bounds (markdown-get-enclosing-fenced-block-construct))
-               (begin (and bounds (goto-char (nth 0 bounds)) (point-at-bol 2)))
-               (end (and bounds (goto-char (nth 1 bounds)) (point-at-bol 1))))
+               (begin (and bounds (not (null (nth 0 bounds))) (goto-char (nth 0 bounds)) (point-at-bol 2)))
+               (end (and bounds(not (null (nth 1 bounds)))  (goto-char (nth 1 bounds)) (point-at-bol 1))))
           (if (and begin end)
               (let* ((indentation (and (goto-char (nth 0 bounds)) (current-indentation)))
                      (lang (markdown-code-block-lang))
@@ -8788,7 +8836,7 @@ at the END of code blocks."
                       (lambda (_parent-buffer _beg _end)
                         (funcall mode)))
                      (indirect-buf (edit-indirect-region begin end 'display-buffer)))
-                  ;; reset `sh-shell' when indirect buffer
+                ;; reset `sh-shell' when indirect buffer
                 (when (and (not (member system-type '(ms-dos windows-nt)))
                            (member mode '(shell-script-mode sh-mode))
                            (member lang (append
@@ -9612,22 +9660,21 @@ rows and columns and the column alignment."
              (thing-at-point-looking-at markdown-regex-link-reference))
          (or markdown-hide-urls markdown-hide-markup))
     (let* ((imagep (string-equal (match-string 1) "!"))
+           (referencep (string-equal (match-string 5) "["))
+           (link (match-string-no-properties 6))
            (edit-keys (markdown--substitute-command-keys
                        (if imagep
                            "\\[markdown-insert-image]"
                          "\\[markdown-insert-link]")))
            (edit-str (propertize edit-keys 'face 'font-lock-constant-face))
-           (referencep (string-equal (match-string 5) "["))
            (object (if referencep "reference" "URL")))
       (format "Hidden %s (%s to edit): %s" object edit-str
               (if referencep
                   (concat
                    (propertize "[" 'face 'markdown-markup-face)
-                   (propertize (match-string-no-properties 6)
-                               'face 'markdown-reference-face)
+                   (propertize link 'face 'markdown-reference-face)
                    (propertize "]" 'face 'markdown-markup-face))
-                (propertize (match-string-no-properties 6)
-                            'face 'markdown-url-face)))))
+                (propertize link 'face 'markdown-url-face)))))
    ;; Hidden language name for fenced code blocks
    ((and (markdown-code-block-at-point-p)
          (not (get-text-property (point) 'markdown-pre))
@@ -9730,7 +9777,7 @@ rows and columns and the column alignment."
                            ;; not paragraph-ending suffixes:
                            ".*  $" ; line ending in two spaces
                            "^#+"
-                           "^[-=]+"
+                           "^\\(?:   \\)?[-=]+[ \t]*$" ;; setext
                            "[ \t]*\\[\\^\\S-*\\]:[ \t]*$") ; just the start of a footnote def
                          "\\|"))
   (setq-local adaptive-fill-first-line-regexp "\\`[ \t]*[A-Z]?>[ \t]*?\\'")

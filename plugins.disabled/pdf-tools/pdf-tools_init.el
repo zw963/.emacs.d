@@ -1,4 +1,4 @@
-(setq pdf-info-epdfinfo-program (expand-file-name "pdf-tools/epdfinfo/bin/epdfinfo" plugins))
+(setq pdf-info-epdfinfo-program (expand-file-name "plugins/pdf-tools/epdfinfo/bin/epdfinfo"))
 
 (require 'pdf-tools)
 (require 'pdf-loader)
