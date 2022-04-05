@@ -27,6 +27,8 @@
 
 ;; (add-to-list 'treemacs-ignored-file-predicates #'treemacs-ignore-example)
 
+(global-set-key [(control x) (\1)] 'treemacs-delete-other-windows)
+
 (setq treemacs-width 42)
 
 (require 'treemacs-icons-dired)
