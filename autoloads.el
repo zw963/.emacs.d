@@ -26,30 +26,6 @@
 (autoload 'systemd-mode "systemd" nil t)
 (add-to-list 'auto-mode-alist '("\\.service\\'"  . systemd-mode))
 
-;; markdown-mode
-;; (require 'markdown-mode)
-
-(autoload 'markdown-mode "markdown-mode" nil t)
-
-(add-hook 'markdown-mode-hook
-          (lambda ()
-            (local-unset-key (kbd "C-x n"))
-            (define-key markdown-mode-map [(control c) (return)] 'markdown-preview)
-            (define-key markdown-mode-map [(meta c) (n)] 'markdown-narrow-to-subtree)
-            ))
-(setq markdown-command "pulldown-cmark"
-      markdown-open-command "pulldown-cmark"
-      markdown-gfm-use-electric-backquote nil
-      markdown-indent-on-enter 'indent-and-new-item
-      markdown-content-type "text/html"
-      markdown-coding-system 'utf-8
-      markdown-gfm-uppercase-checkbox t
-      )
-
-(add-to-list 'auto-mode-alist '("\\.markdown$" . gfm-mode))
-(add-to-list 'auto-mode-alist '("\\.md$" . gfm-mode))
-(add-to-list 'auto-mode-alist '("\\.mkdn$\\|\\.mkd$\\|\\.mdown$" . gfm-mode))
-
 (autoload 'web-mode "web-mode_init" nil t)
 (add-to-list 'auto-mode-alist '("\\.html?\\'" . web-mode))
 (add-to-list 'auto-mode-alist '("\\.phtml\\'" . web-mode))
@@ -79,5 +55,6 @@
 (add-to-list 'auto-mode-alist '("/authorized_keys2?\\'" . ssh-authorized-keys-mode))
 (add-hook 'ssh-config-mode-hook 'turn-on-font-lock)
 
-;; (provide 'markdown-mode_init)
-;;; markdown-mode_init.el ends here
+(autoload 'graphql-mode "graphql-mode" nil t)
+(add-to-list 'auto-mode-alist '("\\.graphql\\'" . graphql-mode))
+(add-to-list 'auto-mode-alist '("\\.gql\\'" . graphql-mode))

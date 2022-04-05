@@ -73,7 +73,6 @@
 (require 'dpaste_init)
 (require 'ws-butler_init)
 (require 'solaire-mode_init)
-(require 'graphql-mode_init)
 
 ;; 关闭一些有用，但最近不常用的 mode
 (require 'go-mode_init)
