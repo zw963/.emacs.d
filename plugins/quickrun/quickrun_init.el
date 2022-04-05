@@ -12,6 +12,8 @@
                 ))
   (add-hook hook (lambda ()
                    (local-set-key [(control x) (control e)] 'quickrun-region)
+                   (local-set-key [(control c) (return)] 'quickrun)
+                   (local-set-key [(control c) (tab)] 'quickrun-compile-only)
                    )))
 
 (provide 'quickrun_init)

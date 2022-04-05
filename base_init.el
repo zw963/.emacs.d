@@ -16,8 +16,10 @@
         (rx string-start "*lsp")
         (rx string-start "*Bookmark")
         (rx string-start "*Alerts")
+        (rx string-start "*gopls")
         (rx "TAGS" line-end)
         (rx string-start "*scratch*" string-end)
+        (rx string-start "*quickrun*" string-end)
         (rx string-start "*vterm")
         )
   "无用的 buffer 匹配列表, 被 ibuffer, ido, helm 使用."
