@@ -47,7 +47,7 @@
 
 (defun zw/lsp-ruby-common-hooks ()
   (add-hook 'before-save-hook #'lsp-format-buffer t t)
-  (lsp)
+  (lsp-deferred)
   )
 
 (add-hook 'ruby-mode-hook 'zw/lsp-ruby-common-hooks)
@@ -57,6 +57,6 @@
 ;; (require 'dap-ruby)
 ;; (dap-ruby-setup)
 
-(provide 'ruby-mode-lsp_init)
+(provide 'lsp-ruby_init)
 
-;;; ruby-mode-lsp_init.el ends here
+;;; lsp-ruby_init.el ends here

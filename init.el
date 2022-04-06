@@ -5,7 +5,7 @@
 (require 'ibuffer_init)
 (require 'dired_init)
 (require 'shell_init)
-;; (require 'treemacs_init)
+(require 'treemacs_init)
 
 (require 'fancy-narrow_init)
 (require 'avy_init)

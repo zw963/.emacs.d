@@ -11,6 +11,6 @@
 ;; (setq-local lsp-enable-imenu nil)
 (add-hook 'rust-mode-hook 'lsp-deferred)
 
-(provide 'rust-mode-lsp_init)
+(provide 'lsp-rust-mode_init)
 
-;;; rust-mode-lsp_init.el ends here
+;;; lsp-rust-mode_init.el ends here
