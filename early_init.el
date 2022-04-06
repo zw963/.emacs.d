@@ -35,6 +35,7 @@
 
 (require 'themes_init)
 (require 'crux_init)
+(require 'whole-line-or-region_init)
 (require 'multiple-cursors_init)
 
 ;; 打开这两个变量, 查看那些包有错误.
