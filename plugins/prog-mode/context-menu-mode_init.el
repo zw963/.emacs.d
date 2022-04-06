@@ -81,6 +81,7 @@
 (defun context-menu-set-lsp-common-context-menu ()
   (setq context-menu-functions
         '(context-menu-hideshow
+          context-menu-show-git-message
           context-menu-show-eldoc
           context-menu-show-lsp-code-actions
           context-menu-unwrap-flutter-widget
@@ -91,6 +92,8 @@
 
 (add-hook 'dart-mode-hook 'context-menu-set-lsp-common-context-menu)
 (add-hook 'go-mode-hook 'context-menu-set-lsp-common-context-menu)
+(add-hook 'ruby-mode-hook 'context-menu-set-lsp-common-context-menu)
+(add-hook 'enh-ruby-mode-hook 'context-menu-set-lsp-common-context-menu)
 
 (context-menu-mode t)
 
