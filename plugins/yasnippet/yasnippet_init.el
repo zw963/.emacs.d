@@ -26,9 +26,6 @@
 
 (add-to-list 'hippie-expand-try-functions-list 'yas-hippie-try-expand)
 
-(require 'dropdown-list)
-(setq yas-prompt-functions '(yas-dropdown-prompt))
-
 (defun test-yas/snippet ()
   "test yas/snippet pattern."
   (interactive)
@@ -121,21 +118,6 @@
   (add-hook 'yas-before-expand-snippet-hook 'ac/close)
   (add-hook 'yas-after-exit-snippet-hook 'ac/start)
 
-  (defun yas-popup-isearch-prompt (prompt choices &optional display-fn)
-    "use popup menu to display snippet menu."
-    (popup-menu*
-     (mapcar
-      (lambda (choice)
-        (popup-make-item
-         (or (and display-fn (funcall display-fn choice))
-             choice)
-         :value choice))
-      choices)
-     :prompt prompt
-     :isearch t
-     ))
-  (add-to-list 'yas-prompt-functions 'yas-popup-isearch-prompt)
-
   (defun ac-add-yas-source ()
     ;; 将 ac-source-yasnippets 加到最后面.
     ;; 不记得为什么要把 ac-source-yasnippets 放在最后,
@@ -154,6 +136,25 @@
 
   (run-ruby-mode-hook '(ac-add-yas-source))
   )
+
+;; (defun yas/popup-isearch-prompt (prompt choices &optional display-fn)
+;;   (when (featurep 'popup)
+;;     (popup-menu*
+;;      (mapcar
+;;       (lambda (choice)
+;;         (popup-make-item
+;;          (or (and display-fn (funcall display-fn choice))
+;;              choice)
+;;          :value choice))
+;;       choices)
+;;      :prompt prompt
+;;      ;; start isearch mode immediately
+;;      :isearch t
+;;      )))
+;; (setq yas-prompt-functions '(yas/popup-isearch-prompt yas/no-prompt))
+
+(require 'dropdown-list)
+(setq yas-prompt-functions '(yas-dropdown-prompt))
 
 ;; (require 'yasnippet-multiple-key)
 ;; (yasnippet-multiple-key-compile-directory (expand-file-name "snippets"))
