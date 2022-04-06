@@ -78,7 +78,18 @@
   (define-key-after menu [hs-separator] menu-bar-separator)
   menu)
 
-(defun context-menu-set-lsp-common-context-menu ()
+(defun context-menu-lsp-common-context-menu ()
+  (setq context-menu-functions
+        '(context-menu-hideshow
+          context-menu-show-git-message
+          context-menu-show-eldoc
+          context-menu-show-lsp-code-actions
+          occur-context-menu
+          prog-context-menu
+          context-menu-local
+          )))
+
+(defun context-menu-lsp-dart-context-menu ()
   (setq context-menu-functions
         '(context-menu-hideshow
           context-menu-show-git-message
@@ -90,10 +101,12 @@
           context-menu-local
           )))
 
-(add-hook 'dart-mode-hook 'context-menu-set-lsp-common-context-menu)
-(add-hook 'go-mode-hook 'context-menu-set-lsp-common-context-menu)
-(add-hook 'ruby-mode-hook 'context-menu-set-lsp-common-context-menu)
-(add-hook 'enh-ruby-mode-hook 'context-menu-set-lsp-common-context-menu)
+(add-hook 'dart-mode-hook 'context-menu-lsp-dart-context-menu)
+(add-hook 'go-mode-hook 'context-menu-lsp-common-context-menu)
+(add-hook 'ruby-mode-hook 'context-menu-lsp-common-context-menu)
+(add-hook 'enh-ruby-mode-hook 'context-menu-lsp-common-context-menu)
+(add-hook 'rust-mode-hook 'context-menu-lsp-common-context-menu)
+(add-hook 'rustic-mode-hook 'context-menu-lsp-common-context-menu)
 
 (context-menu-mode t)
 
