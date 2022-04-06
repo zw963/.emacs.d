@@ -446,7 +446,7 @@
 (when (fboundp 'set-charset-priority)
   (set-charset-priority 'unicode))
 
-;; (repeat-mode 1)
+(repeat-mode 1)
 
 ;; (file-name-shadow-mode 1)
 ;; (minibuffer-depth-indicate-mode 1)                   ;显示minibuffer深度
