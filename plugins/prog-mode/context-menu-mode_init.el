@@ -3,6 +3,7 @@
 
 (setq-default context-menu-functions
               '(context-menu-hideshow
+                context-menu-show-git-message
                 occur-context-menu
                 context-menu-region
                 ))
@@ -37,6 +38,18 @@
                     (if (bound-and-true-p lsp-mode)
                         (lsp-describe-thing-at-point)
                       (eldoc-box-eglot-help-at-point))))))
+  (define-key-after menu [hs-separator] menu-bar-separator)
+  menu)
+
+(defun context-menu-show-git-message (menu click)
+  "Populate MENU with `eldoc-box-eglot-help-at-point' commands."
+  (define-key-after menu [show-git-message]
+    '(menu-item "Show git message"
+                (lambda (click) (interactive "e")
+                  (save-excursion
+                    (mouse-set-point click)
+                    (git-messenger:popup-message)
+                    ))))
   (define-key-after menu [hs-separator] menu-bar-separator)
   menu)
 
