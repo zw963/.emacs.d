@@ -32,6 +32,7 @@
 
 (require 'lsp-mode_init)
 (require 'lsp-solargraph)
+(require 'rubocop_init) ;; lsp 里面如果开了保存自动格式化，这个也要 require, 否则很慢？
 
 ;; (add-to-list 'lsp-solargraph-library-directories '("~/utils/ruby_tools/app/gems"))
 
@@ -46,6 +47,7 @@
 ;;                    )))
 
 (defun zw/lsp-ruby-common-hooks ()
+  (rvm-activate-corresponding-ruby)
   (add-hook 'before-save-hook #'lsp-format-buffer t t)
   (lsp-deferred)
   )

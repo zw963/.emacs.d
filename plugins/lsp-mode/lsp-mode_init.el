@@ -99,12 +99,6 @@
   (require 'lsp-treemacs)
   (lsp-treemacs-sync-mode 1)
   (setq lsp-treemacs-error-list-current-project-only t)
-  ;; (add-hook 'treemacs-switch-workspace-hook 'lsp-treemacs-symbols)
-  ;; (add-hook 'treemacs-select-hook 'lsp-ui-imenu)
-  ;; (add-hook 'treemacs-switch-workspace-hook 'lsp-ui-imenu)
-  (defun lsp-mode-common-hooks ()
-    (when (featurep 'treemacs) (save-selected-window (treemacs-select-window))))
-  (add-hook 'lsp-mode-hook 'lsp-mode-common-hooks)
   )
 
 ;; (with-eval-after-load 'company

@@ -52,6 +52,16 @@
                                  (define-key treemacs-mode-map [(control d)] 'treemacs-remove-project-from-workspace)
                                  ))
 
+(with-eval-after-load 'lsp-mode
+  ;; (add-hook 'treemacs-switch-workspace-hook 'lsp-treemacs-symbols)
+  ;; (add-hook 'treemacs-select-hook 'lsp-ui-imenu)
+  ;; (add-hook 'treemacs-switch-workspace-hook 'lsp-ui-imenu)
+  (defun lsp-mode-common-hooks ()
+    (when (featurep 'treemacs) (save-selected-window (treemacs-select-window)))
+    )
+  ;; (add-hook 'lsp-mode-hook 'lsp-mode-common-hooks)
+  )
+
 
 (provide 'treemacs_init)
 ;;; treemacs_init.el ends here
