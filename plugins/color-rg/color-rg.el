@@ -6,8 +6,8 @@
 ;; Maintainer: Andy Stewart <lazycat.manatee@gmail.com>
 ;; Copyright (C) 2018, Andy Stewart, all rights reserved.
 ;; Created: 2018-08-26 14:22:12
-;; Version: 5.2
-;; Last-Updated: 2019-12-23 22:48:08
+;; Version: 5.6
+;; Last-Updated: 2020-05-04 17:52:55
 ;;           By: Andy Stewart
 ;; URL: http://www.emacswiki.org/emacs/download/color-rg.el
 ;; Keywords:
@@ -67,6 +67,19 @@
 ;;
 
 ;;; Change log:
+;;
+;; 2020/12/31
+;;      * Add new option `color-rg-search-compressed-file'.
+;;
+;; 2020/05/04
+;;      * Add new command `color-rg-insert-current-line'.
+;;
+;; 2020/04/28
+;;      * Add new option `color-rg-mac-load-path-from-shell'.
+;;
+;; 2020/03/14
+;;      * Split window and select if color-buffer is not exist in windows.
+;;      * Add keybinding notify.
 ;;
 ;; 2019/12/23
 ;;      * Support search tramp path.
@@ -241,7 +254,12 @@
 
 ;;; Code:
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; OS Config ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(when (featurep 'cocoa)
+(defvar color-rg-mac-load-path-from-shell t
+  "Some framework like Doom doens't use `exec-path-from-shell'.
+You you make this option to nil if you don't want use `exec-path-from-shell'.")
+
+(when (and color-rg-mac-load-path-from-shell
+           (featurep 'cocoa))
   ;; Initialize environment from user's shell to make eshell know every PATH by other shell.
   (require 'exec-path-from-shell)
   (exec-path-from-shell-initialize))
@@ -300,10 +318,33 @@ Default is enable, set this variable to nil if you don't like this feature."
   :type 'boolean
   :group 'color-rg)
 
-(defcustom color-rg-max-column 300
+(defcustom color-rg-max-column 3000
   "When searching for JS library files, the long JS library file will cause color-rg navigation to be very slow.
 By default, there are 300 columns of restrictions to avoid long file problems."
   :type 'integer
+  :group 'color-rg)
+
+(defcustom color-rg-search-compressed-file nil
+  "Search compressed files when read the emacs source code.
+
+Default is disabled, set this variable to true if you found it's useful"
+  :type 'boolean
+  :group 'color-rg)
+
+(defcustom color-rg-search-no-ignore-file t
+  "Don’t respect ignore files.
+
+Default is enable, set this variable to nil if you want search files match gitignore rule."
+  :type 'boolean
+  :group 'color-rg)
+
+(defcustom color-rg-search-ignore-rules "-g \"!node_modules\" -g \"!dist\""
+  "When `color-rg-search-no-ignore-file' is non-nil, color-rg will search any file.
+Include file match gitignore rule.
+
+Default rule is search any file but except `node_modules' and `dist' directory,
+you can customize ignore rules with your like."
+  :type 'string
   :group 'color-rg)
 
 (defface color-rg-font-lock-header-line-text
@@ -422,8 +463,13 @@ used to restore window configuration after apply changed.")
     (define-key map (kbd "k") 'color-rg-jump-prev-keyword)
     (define-key map (kbd "h") 'color-rg-jump-next-file)
     (define-key map (kbd "l") 'color-rg-jump-prev-file)
-    (define-key map (kbd "RET") 'color-rg-open-file)
-    (define-key map (kbd "C-m") 'color-rg-open-file)
+    (define-key map (kbd "i") 'color-rg-insert-current-line)
+
+    (define-key map (kbd "SPC") 'color-rg-open-file)
+    (define-key map (kbd "RET") 'color-rg-open-file-and-stay)
+    (define-key map (kbd "C-m") 'color-rg-open-file-and-stay)
+
+    (define-key map (kbd "e") 'color-rg-switch-to-edit-mode)
 
     (define-key map (kbd "r") 'color-rg-replace-all-matches)
     (define-key map (kbd "f") 'color-rg-filter-match-results)
@@ -435,16 +481,18 @@ used to restore window configuration after apply changed.")
 
     (define-key map (kbd "D") 'color-rg-remove-line-from-results)
 
-    (define-key map (kbd "i") 'color-rg-rerun-toggle-ignore)
-    (define-key map (kbd "t") 'color-rg-rerun-literal)
-    (define-key map (kbd "c") 'color-rg-rerun-toggle-case)
-    (define-key map (kbd "s") 'color-rg-rerun-regexp)
-    (define-key map (kbd "d") 'color-rg-rerun-change-dir)
-    (define-key map (kbd "z") 'color-rg-rerun-change-globs)
-    (define-key map (kbd "Z") 'color-rg-rerun-change-exclude-files)
-    (define-key map (kbd "C") 'color-rg-customized-search)
+    (define-key map (kbd "I") 'color-rg-rerun-toggle-ignore)
+    (define-key map (kbd "C") 'color-rg-rerun-toggle-case)
+    (define-key map (kbd "L") 'color-rg-rerun-literal)
+    (define-key map (kbd "R") 'color-rg-rerun-regexp)
+    (define-key map (kbd "G") 'color-rg-rerun-change-globs)
+    (define-key map (kbd "E") 'color-rg-rerun-change-exclude-files)
 
-    (define-key map (kbd "e") 'color-rg-switch-to-edit-mode)
+    (define-key map (kbd "o") 'color-rg-rerun-parent-dir)
+    (define-key map (kbd "O") 'color-rg-rerun-change-dir)
+
+    (define-key map (kbd "S") 'color-rg-customized-search)
+
     (define-key map (kbd "q") 'color-rg-quit)
     map)
   "Keymap used by `color-rg-mode'.")
@@ -580,6 +628,19 @@ This function is called from `compilation-filter-hook'."
                             (propertize (format "%s" (color-rg-search-mode color-rg-cur-search)) 'font-lock-face 'color-rg-font-lock-header-line-edit-mode)
                             (propertize " Hits: " 'font-lock-face 'color-rg-font-lock-header-line-text)
                             (propertize (format "%s" color-rg-hit-count) 'font-lock-face 'color-rg-font-lock-header-line-edit-mode)
+                            (propertize " Keys:" 'font-lock-face 'color-rg-font-lock-header-line-text)
+                            (propertize " Navigation " 'font-lock-face 'color-rg-font-lock-header-line-text)
+                            (propertize "j / k" 'font-lock-face 'color-rg-font-lock-header-line-edit-mode)
+                            (propertize " Replace " 'font-lock-face 'color-rg-font-lock-header-line-text)
+                            (propertize "r" 'font-lock-face 'color-rg-font-lock-header-line-edit-mode)
+                            (propertize " Edit " 'font-lock-face 'color-rg-font-lock-header-line-text)
+                            (propertize "e" 'font-lock-face 'color-rg-font-lock-header-line-edit-mode)
+                            (propertize " Filter files: " 'font-lock-face 'color-rg-font-lock-header-line-text)
+                            (propertize "x / X / u" 'font-lock-face 'color-rg-font-lock-header-line-edit-mode)
+                            (propertize " Filter regex: " 'font-lock-face 'color-rg-font-lock-header-line-text)
+                            (propertize "f / F" 'font-lock-face 'color-rg-font-lock-header-line-edit-mode)
+                            (propertize " Customize " 'font-lock-face 'color-rg-font-lock-header-line-text)
+                            (propertize "C" 'font-lock-face 'color-rg-font-lock-header-line-edit-mode)
                             )))
 
 (cl-defstruct (color-rg-search (:constructor color-rg-search-create)
@@ -660,7 +721,7 @@ CASE-SENSITIVE determinies if search is case-sensitive."
 
           (list "--column --color=always -H")
 
-          ;; NOTE:
+          ;; NOTE:                      ;
           ;;
           ;; ripgrep is default use heading option (group matches by each file) in all OS's terminal.
           ;; But not greoup matches on Windows/Emacs.
@@ -670,8 +731,13 @@ CASE-SENSITIVE determinies if search is case-sensitive."
 
           (list "--max-columns" (number-to-string color-rg-max-column))
 
-          (when no-ignore
+          (when (or color-rg-search-no-ignore-file no-ignore)
             (list "--no-ignore"))
+
+          (list color-rg-search-ignore-rules)
+
+          (when color-rg-search-compressed-file
+            (list "-z"))
 
           (when (color-rg-is-custom-file-pattern globs)
             (list (concat "--type-add " (shell-quote-argument (concat "custom:" globs)))))
@@ -690,10 +756,14 @@ CASE-SENSITIVE determinies if search is case-sensitive."
 
           (list "-e <R>" (color-rg-filter-tramp-path dir)))))
 
-    (grep-expand-template
-     (mapconcat 'identity (cons "rg" (delete-dups command-line)) " ")
-     keyword
-     (if (color-rg-is-custom-file-pattern globs) "custom" globs))))
+    (setq command-line
+          (grep-expand-template
+           (mapconcat 'identity (cons "rg" (delete-dups command-line)) " ")
+           keyword
+           (if (color-rg-is-custom-file-pattern globs) "custom" globs)))
+    (when (memq system-type '(cygwin windows-nt ms-dos))
+      (setq command-line (encode-coding-string command-line locale-coding-system)))
+    command-line))
 
 (defun color-rg-filter-tramp-path (x)
   "Remove sudo from path.  Argument X is path."
@@ -725,6 +795,8 @@ CASE-SENSITIVE determinies if search is case-sensitive."
 
     ;; Run search command.
     (with-current-buffer color-rg-buffer
+      ;; Fix compatibility issues with doom-emacs, because it changed the value of compilation-buffer-name-function.
+      (setq-local compilation-buffer-name-function #'compilation--default-buffer-name)
       ;; Start command.
       (compilation-start command 'color-rg-mode)
 
@@ -769,6 +841,8 @@ user more freedom to use rg with special arguments."
 
     ;; Run search command.
     (with-current-buffer color-rg-buffer
+      ;; Fix compatibility issues with doom-emacs, because it changed the value of compilation-buffer-name-function.
+      (setq-local compilation-buffer-name-function #'compilation--default-buffer-name)
       ;; Start command.
       (compilation-start command 'color-rg-mode)
 
@@ -1109,7 +1183,11 @@ This assumes that `color-rg-in-string-p' has already returned true, i.e.
          (search-globs
           (or globs
               "everything")))
-    (color-rg-search search-keyboard search-directory search-globs)))
+    (color-rg-search search-keyboard
+                     (if (string-equal system-type "windows-nt")
+                         (format "\"%s\"" search-directory)
+                       search-directory)
+                     search-globs)))
 
 (defun color-rg-search-symbol ()
   (interactive)
@@ -1276,14 +1354,20 @@ This function is the opposite of `color-rg-rerun-change-globs'"
   (setf (color-rg-search-globs color-rg-cur-search) (color-rg-read-file-type "Repeat search exclude files (default: [ %s ]): "))
   (color-rg-rerun))
 
+(defun color-rg-rerun-parent-dir ()
+  "Rerun last command on parent dir."
+  (interactive)
+  (setf (color-rg-search-dir color-rg-cur-search)
+        (file-name-directory (directory-file-name (color-rg-search-dir color-rg-cur-search))))
+  (color-rg-rerun))
+
 (defun color-rg-rerun-change-dir ()
-  "rerun last command but prompt for new dir."
+  "Rerun last command but prompt for new dir."
   (interactive)
   (setf (color-rg-search-dir color-rg-cur-search)
         (read-file-name "In file: "
                         (file-name-directory (color-rg-search-dir color-rg-cur-search)) nil))
   (color-rg-rerun))
-
 
 (defun color-rg-rerun-literal (&optional nointeractive)
   "Re-search as literal."
@@ -1391,13 +1475,27 @@ This function is the opposite of `color-rg-rerun-change-globs'"
           (color-rg-open-file))
       (message "Reach to first file."))))
 
-(defun color-rg-open-file ()
+(defun color-rg-insert-current-line ()
+  (interactive)
+  (let ((current-line (save-excursion
+                        (beginning-of-line)
+                        (search-forward-regexp color-rg-regexp-position nil t)
+                        (setq start (point))
+                        (end-of-line)
+                        (setq end (point))
+                        (buffer-substring start end)
+                        )))
+    (color-rg-quit)
+    (insert current-line)))
+
+(defun color-rg-open-file (&optional stay)
   (interactive)
   (let* ((match-file (color-rg-get-match-file))
          (match-line (color-rg-get-match-line))
          (match-column (color-rg-get-match-column))
          (match-buffer (color-rg-get-match-buffer match-file))
-         in-org-link-content-p)
+         in-org-link-content-p
+         color-buffer-window)
     (save-excursion
       (let ((inhibit-message t))
         ;; Try fill variables when in org file.
@@ -1428,11 +1526,23 @@ This function is the opposite of `color-rg-rerun-change-globs'"
                  (color-rg-move-to-point match-line match-column)))))
       ;; Flash match line.
       (color-rg-flash-line))
-    ;; Keep cursor in search buffer's window.
-    (select-window (get-buffer-window color-rg-buffer))
+    (unless stay
+      ;; Keep cursor in search buffer's window.
+      (setq color-buffer-window (get-buffer-window color-rg-buffer))
+      (if color-buffer-window
+          (select-window color-buffer-window)
+        ;; Split window and select if color-buffer is not exist in windows.
+        (delete-other-windows)
+        (split-window)
+        (other-window 1)
+        (switch-to-buffer color-rg-buffer)))
     ;; Ajust column position.
     (color-rg-move-to-column match-column)
     ))
+
+(defun color-rg-open-file-and-stay ()
+  (interactive)
+  (color-rg-open-file t))
 
 (defun color-rg-flash-line ()
   (let ((pulse-iterations 1)
@@ -1522,7 +1632,7 @@ Function `move-to-column' can't handle mixed string of Chinese and English corre
   ;; Add change monitor.
   (add-hook 'after-change-functions 'color-rg-after-change-function nil t)
   ;; Message to user.
-  (message "Switch to edit mode"))
+  (message "Switch to edit mode: press C-c C-c to apply change, press C-c C-q cancel edit"))
 
 (defun color-rg-quit ()
   (interactive)

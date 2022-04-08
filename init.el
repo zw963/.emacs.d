@@ -48,6 +48,7 @@
 (require 'buffer-move_init)
 (require 'goto-chg_init)
 (require 'symbol-overlay_init)
+(require 'color-rg_init)
 
 ;; ============================== 编程相关 ==============================
 
