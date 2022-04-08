@@ -91,13 +91,13 @@
 
 ;; 想完成本 buffer 内的内容，需要加入 company-dabbrev-code
 ;; 但是，如果开启这个，会让 lsp 出现很多和上下文无关的结果。
-(add-hook 'prog-mode-hook
-          (lambda ()
-            ;; 如果没有使用 lsp, 返回多一点结果。
-            (unless (bound-and-true-p lsp-mode)
-              (add-to-list 'company-backends '(company-capf company-dabbrev-code company-keywords))
-              )
-            ))
+;; (add-hook 'prog-mode-hook
+;;           (lambda ()
+;;             ;; 如果没有使用 lsp, 返回多一点结果。
+;;             (unless (bound-and-true-p lsp-mode)
+;;               (add-to-list 'company-backends '(company-capf company-dabbrev-code company-keywords))
+;;               )
+;;             ))
 
 (require 'company-dabbrev-code)
 (setq company-dabbrev-other-buffers t) ;; 设为 true, 则仅在同一个 major-mode buffer 里面找
