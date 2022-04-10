@@ -9,6 +9,7 @@
                 enh-ruby-mode-hook
                 dart-mode-hook
                 go-mode-hook
+                sh-mode
                 ))
   (add-hook hook (lambda ()
                    (local-set-key [(control x) (control e)] 'quickrun-region)
