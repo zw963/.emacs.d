@@ -74,8 +74,12 @@ Use `font-lock-add-keywords' in case of `ruby-mode' or
 
 (defun noop (&optional noop)
   "Do nothing, NOOP."
+  (interactive))
+
+(defun say (&optional noop)
+  "Say"
   (interactive)
-  )
+  (call-process "say" nil t))
 
 
 ;; (require 'sgml-mode)

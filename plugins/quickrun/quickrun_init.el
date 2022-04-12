@@ -1,5 +1,7 @@
 (require 'quickrun)
 
+(setq quickrun-timeout-seconds nil)
+
 (add-to-list 'quickrun--major-mode-alist '(enh-ruby-mode . "ruby"))
 
 ;; (setq quickrun-focus-p nil)
@@ -16,6 +18,9 @@
                    (local-set-key [(control c) (return)] 'quickrun)
                    (local-set-key [(control c) (tab)] 'quickrun-compile-only)
                    )))
+
+
+(add-hook 'quickrun-after-run-hook 'say)
 
 (provide 'quickrun_init)
 
