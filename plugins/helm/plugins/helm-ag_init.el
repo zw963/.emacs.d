@@ -9,7 +9,9 @@
 
 (custom-set-variables
  ;; helm-ag-base-command "ag --nocolor --nogroup --ignore-case"
- '(helm-ag-base-command "rg --no-config --hidden --smart-case --vimgrep")
+
+ ;; ripgrep 的 --no-heading 和 --vimgrep 的区别是，如果一行内有多个匹配，后者会使用多行输出
+ '(helm-ag-base-command "rg --no-config --hidden --smart-case --no-heading --color never")
  `(helm-ag-success-exit-status '(0 2)) ;; Ripgrep uses exit-status 2 to indicate a partial success:
  ;; '(helm-ag-ignore-buffer-patterns '("\\.org\\'"))
  '(helm-ag-insert-at-point 'symbol)

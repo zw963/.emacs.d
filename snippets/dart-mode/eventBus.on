@@ -1,0 +1,9 @@
+mode: snippet -*-
+# name: eventBus.on
+# key: eventBus.on
+# contributor: Billy.Zheng vil963@gmail.com
+# --
+eventBus.on<${1:Event}>().listen((event) {
+      $0
+      setState(() {});
+    })

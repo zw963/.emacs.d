@@ -1,5 +1,6 @@
 mode: snippet -*-
 # name: Wrap a ConstrainedBox
+# key: ConstrainedBox
 # binding: C
 # condition: (yas-use-region-p)
 # contributor: Billy.Zheng vil963@gmail.com

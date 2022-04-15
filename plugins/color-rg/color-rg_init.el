@@ -14,9 +14,9 @@
 
 (add-hook 'color-rg-mode-hook
           (lambda ()
-            (define-key color-rg-mode-map (kbd "n") 'color-rg-next-file)
-            (define-key color-rg-mode-map (kbd "p") 'color-rg-prev-file)
-           ))
+            (define-key color-rg-mode-map (kbd "n") 'color-rg-jump-next-file)
+            (define-key color-rg-mode-map (kbd "p") 'color-rg-jump-prev-file)
+         ))
 
 
 (provide 'color-rg_init)
