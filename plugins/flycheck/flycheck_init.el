@@ -2,16 +2,50 @@
 
 (global-flycheck-mode)
 
-;; (setq-default flycheck-disabled-checkers '(yaml-ruby yaml-jsyaml yaml-yamllint))
-(setq-default flycheck-disabled-checkers '(yaml-yamllint))
+(flycheck-def-executable-var ruby-rubocop-daemon-wrapper "rubocop-daemon-wrapper")
 
-(setq flycheck-ruby-rubocop-executable (expand-file-name "~/utils/ruby_tools/bin/rubocop-daemon-wrapper"))
+(flycheck-define-command-checker 'ruby-rubocop-daemon-wrapper
+  "A Ruby syntax and style checker using the RuboCop tool.
+
+You need at least RuboCop 0.34 for this syntax checker.
+
+See URL `https://rubocop.org/'."
+  ;; ruby-standard is defined based on this checker
+  :command '("rubocop-daemon-wrapper"
+             "--display-cop-names"
+             "--force-exclusion"
+             "--format" "emacs"
+             (config-file "--config" flycheck-rubocoprc)
+             (option-flag "--lint" flycheck-rubocop-lint-only)
+             ;; Rubocop takes the original file name as argument when reading
+             ;; from standard input
+             "--stdin" source-original)
+  :standard-input t
+  :working-directory #'flycheck-ruby--find-project-root
+  :error-patterns flycheck-ruby-rubocop-error-patterns
+  :modes '(enh-ruby-mode ruby-mode)
+  :next-checkers '(
+                   ;; (warning . ruby-rubocop)
+                   (warning . ruby-reek)
+                   (warning . ruby-rubylint)))
+
+(with-eval-after-load 'ruby-mode
+  (add-hook 'ruby-mode-hook
+            (lambda ()
+             (setq-local flycheck-checker 'ruby-rubocop-daemon-wrapper)
+             ))
+  )
+
+;; (setq-default flycheck-disabled-checkers '(yaml-ruby yaml-jsyaml yaml-yamllint))
+;; (setq-default flycheck-disabled-checkers '(yaml-yamllint))
+
+;; (setq flycheck-ruby-rubocop-executable (expand-file-name "~/utils/ruby_tools/bin/rubocop-daemon-wrapper"))
 
 ;; eruby 使用 ruumba 来检测语法。
 ;; (setq flycheck-eruby-erubis-executable (expand-file-name "~/utils/ruby_tools/bin/erubis"))
 
-(require 'flycheck-color-mode-line)
-(add-hook 'flycheck-mode-hook 'flycheck-color-mode-line-mode)
+;; (require 'flycheck-color-mode-line)
+;; (add-hook 'flycheck-mode-hook 'flycheck-color-mode-line-mode)
 
 ;; (require 'flycheck-inline)
 ;; (add-hook 'flycheck-mode-hook #'flycheck-inline-mode)
