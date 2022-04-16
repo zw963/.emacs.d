@@ -30,8 +30,8 @@
 ;;                         (lsp--set-configuration
 ;;                          (lsp-configuration-section "solargraph"))))))
 
-(require 'lsp-mode_init)
-(require 'lsp-solargraph)
+;; (require 'lsp-mode_init)
+;; (require 'lsp-solargraph)
 (require 'rubocop_init) ;; lsp 里面如果开了保存自动格式化，这个也要 require, 否则很慢？
 
 ;; (add-to-list 'lsp-solargraph-library-directories '("~/utils/ruby_tools/app/gems"))
@@ -51,13 +51,13 @@
   (lsp-deferred)
   )
 
-(add-hook 'ruby-mode-hook 'zw/lsp-ruby-common-hooks)
-(add-hook 'enh-ruby-mode-hook 'zw/lsp-ruby-common-hooks)
+;; (add-hook 'ruby-mode-hook 'zw/lsp-ruby-common-hooks)
+;; (add-hook 'enh-ruby-mode-hook 'zw/lsp-ruby-common-hooks)
 
 ;; (require 'dap-mode_init)
 ;; (require 'dap-ruby)
 ;; (dap-ruby-setup)
 
-(provide 'lsp-ruby_init)
+(provide 'ruby-mode-lsp_init)
 
 ;;; lsp-ruby_init.el ends here

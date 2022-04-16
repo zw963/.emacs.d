@@ -1,0 +1,19 @@
+# -*- mode: snippet -*-
+# name: ruby graphQL test class
+# key: graphql
+# --
+require 'test_helper'
+
+class `(ruby-module-name-field "1")` < ActiveSupport::TestCase
+
+test '' do
+res = run_schema(
+      query,
+      variables: {
+        openId: red_packet.open_id.to_s
+      },
+      context:   {current_user: friends[1]}
+    )
+end
+
+`(def)`
