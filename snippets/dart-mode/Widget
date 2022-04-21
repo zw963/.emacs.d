@@ -1,0 +1,9 @@
+mode: snippet -*-
+# name: wrap a wrap child Widget
+# binding: W
+# condition: (yas-use-region-p)
+# contributor: Billy.Zheng vil963@gmail.com
+# --
+${1:Widget}(
+  child: `(yas-selected-text)`,$0
+  )

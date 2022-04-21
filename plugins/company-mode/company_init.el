@@ -91,6 +91,8 @@
 
 ;; 想完成本 buffer 内的内容，需要加入 company-dabbrev-code
 ;; 但是，如果开启这个，会让 lsp 出现很多和上下文无关的结果。
+;; 因此只是有选择的在几个没有开启 lsp 的模式下开启。
+
 ;; (add-hook 'prog-mode-hook
 ;;           (lambda ()
 ;;             ;; 如果没有使用 lsp, 返回多一点结果。
@@ -104,6 +106,17 @@
 (setq company-dabbrev-downcase nil) ;; make dabbrev case-sensitive
 ;; (setq company-dabbrev-code-ignore-case nil)
 ;; (setq company-dabbrev-code-everywhere t)
+
+(dolist (hook '(
+                graphql-mode-hook
+                yaml-mode-hook
+                conf-mode-hook
+                sh-mode-hook
+                ))
+  (add-hook hook
+            (lambda ()
+              (add-to-list 'company-backends 'company-dabbrev-code)
+              )))
 
 (setq company-files-exclusions '(".git/" ".DS_Store"))
 
