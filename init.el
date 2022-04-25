@@ -93,7 +93,7 @@
 (require 'posframe_init)
 (require 'shackle_init)
 (require 'popper_init)
-(require 'burly_init)
+;; (require 'burly_init)
 (require 'all-the-icons_init)
 ;; (require 'dashboard_init)
 
