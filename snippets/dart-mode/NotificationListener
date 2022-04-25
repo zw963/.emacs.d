@@ -1,0 +1,13 @@
+mode: snippet -*-
+# name: wrap a NotificationListener
+# binding: N
+# condition: (yas-use-region-p)
+# contributor: Billy.Zheng vil963@gmail.com
+# --
+NotificationListener(
+  onNotification: (event) {
+    $0
+    return false;
+  },
+  child: `(yas-selected-text)`,
+  )

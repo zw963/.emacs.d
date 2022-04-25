@@ -1,0 +1,9 @@
+mode: snippet -*-
+# name: wrap a Scrollbar
+# binding: S
+# condition: (yas-use-region-p)
+# contributor: Billy.Zheng vil963@gmail.com
+# --
+Scrollbar(
+  child: `(yas-selected-text)`,$0
+  )
