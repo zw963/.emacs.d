@@ -1,0 +1,9 @@
+mode: snippet -*-
+# name: wrap a Card
+# binding: C
+# condition: (yas-use-region-p)
+# contributor: Billy.Zheng vil963@gmail.com
+# --
+Card(
+  child: `(yas-selected-text)`,$0
+  )

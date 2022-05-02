@@ -1,0 +1,10 @@
+mode: snippet -*-
+# name: wrap a GridView
+# key: GridView
+# binding: G
+# condition: (yas-use-region-p)
+# contributor: Billy.Zheng vil963@gmail.com
+# --
+GridView(
+  children: [`(yas-selected-text)``(if-binding "," "$0")`],
+  )
