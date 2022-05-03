@@ -6,9 +6,8 @@
 (require 'ruby-mode_keyword_highlight_init)
 (require 'rbs-mode_init)
 (require 'yard-mode_init)
-(require 'ruby-mode-lsp_init)
+(require 'lsp-ruby_init)
 (require 'robe-mode_init)
-(require 'crystal-mode_init)
 
 ;; rbtagger 和 ctags-update，lsp 冲突。
 ;; (require 'rbtagger_init)

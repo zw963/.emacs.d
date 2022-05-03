@@ -1,4 +1,5 @@
 (require 'crystal-mode)
+(require 'lsp-crystal_init)
 
 (provide 'crystal-mode_init)
 

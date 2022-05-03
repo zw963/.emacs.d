@@ -66,6 +66,7 @@
 (require 'rainbow-delimiters_init)
 (require 'expand-region_init)
 (require 'ruby_init)
+(require 'crystal-mode_init)
 (require 'rainbow-mode_init)
 (require 'scss-css-mode_init)
 (require 'json-mode_init)

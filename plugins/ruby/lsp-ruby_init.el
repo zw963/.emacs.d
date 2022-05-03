@@ -58,6 +58,6 @@
 ;; (require 'dap-ruby)
 ;; (dap-ruby-setup)
 
-(provide 'ruby-mode-lsp_init)
+(provide 'lsp-ruby_init)
 
 ;;; lsp-ruby_init.el ends here
