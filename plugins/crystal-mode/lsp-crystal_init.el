@@ -8,7 +8,7 @@
   (lsp-deferred)
   )
 
-(add-hook 'crystal-mode-hook 'zw/lsp-crystal-common-hooks)
+;; (add-hook 'crystal-mode-hook 'zw/lsp-crystal-common-hooks)
 
 (provide 'lsp-crystal_init)
 
