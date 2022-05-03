@@ -63,7 +63,8 @@
   :link '(info-link "(lsp-ui-doc) Customizing"))
 
 (defcustom lsp-ui-doc-enable t
-  "Whether or not to enable lsp-ui-doc."
+  "Whether or not to enable lsp-ui-doc.
+Displays documentation of the symbol at point on hover. This only takes effect when a buffer is started."
   :type 'boolean
   :group 'lsp-ui)
 
@@ -192,6 +193,8 @@ Only the `background' is used in this face."
     (right-fringe . 0)
     (menu-bar-lines . 0)
     (tool-bar-lines . 0)
+    (tab-bar-lines . 0)
+    (tab-bar-lines-keep-state . 0)
     (line-spacing . 0)
     (unsplittable . t)
     (undecorated . t)

@@ -388,7 +388,7 @@ Necessary since root icons are not rectangular."
     (treemacs-create-icon :file "vsc/cobol.png"     :extensions ("cobol"))
     (treemacs-create-icon :file "vsc/cfscript.png"  :extensions ("coffeescript"))
     (treemacs-create-icon :file "vsc/cpp.png"       :extensions ("cpp" "cxx" "tpp" "cc"))
-    (treemacs-create-icon :file "vsc/cpph.png"      :extensions ("hpp" "hh"))
+    (treemacs-create-icon :file "vsc/cpph.png"      :extensions ("hpp" "hxx" "hh"))
     (treemacs-create-icon :file "vsc/cucumber.png"  :extensions ("feature"))
     (treemacs-create-icon :file "vsc/cython.png"    :extensions ("cython"))
     (treemacs-create-icon :file "vsc/delphi.png"    :extensions ("pascal" "objectpascal"))
@@ -560,15 +560,14 @@ EXTENSIONS should be a list of file extensions such that they match the regex
 stored in `auto-mode-alist', for example '\(\".cc\"\).
 MODE-ICON-ALIST is an alist that maps which mode from `auto-mode-alist' should
 be assigned which treemacs icon, for example
-'\(\(c-mode . treemacs-icon-c\)
-  \(c++-mode . treemacs-icon-cpp\)\)"
+`((c-mode . ,(treemacs-get-icon-value \"c\"))
+  (c++-mode . ,(treemacs-get-icon-value \"cpp\")))"
   (dolist (extension extensions)
     (-when-let* ((mode (cdr (--first (s-matches? (car it) extension) auto-mode-alist)))
                  (icon (cdr (assq mode mode-icon-alist))))
-      (treemacs-log "Map %s to %s" extension (symbol-name icon))
       (ht-set! (treemacs-theme->gui-icons treemacs--current-theme)
                (substring extension 1)
-               (symbol-value icon)))))
+               icon))))
 
 (treemacs-only-during-init
   (treemacs-load-theme "Default"))

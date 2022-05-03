@@ -119,7 +119,14 @@
 (treemacs-import-functions-from "treemacs-persistence"
   treemacs--maybe-load-workspaces)
 
+(treemacs-import-functions-from "treemacs-annotations"
+  treemacs--delete-annotation)
+
 (declare-function treemacs-mode "treemacs-mode")
+
+(defconst treemacs--empty-table (ht)
+  "Constant value of an empty hash table.
+Used to avoid creating unnecessary garbage.")
 
 (defvar treemacs--closed-node-states
   '(root-node-closed
@@ -423,6 +430,7 @@ being edited to trigger."
   (inline-letevals (path no-buffer-delete)
     (inline-quote
      (progn
+       (treemacs--delete-annotation ,path)
        (unless ,no-buffer-delete (treemacs--kill-buffers-after-deletion ,path t))
        (treemacs--stop-watching ,path t)
        ;; filewatch mode needs the node's information to be in the dom
