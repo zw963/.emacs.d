@@ -74,6 +74,28 @@
        ""
        (buffer-file-name)))))
 
+(defun insert-comment (arg)
+  "Insert a comment line, use current mode comment tag."
+  (interactive "*P")
+  (comment-normalize-vars)
+  (if comment-insert-comment-function
+      (funcall comment-insert-comment-function)
+    (let ((add (comment-add arg)))
+      (indent-according-to-mode)
+      (insert (comment-padright comment-start add)))))
+
+(defun expand-from-key-p ()
+  "当使用 eky 再按下 TAB 来激活的 snippet 时，this_command 是 yas-expand"
+  (equal (this-command-keys-vector) '[tab]))
+
+(defun expand-with-binding ()
+  "当使用 binding: 激活一个 snippet 时，this command 是 yas-expand-from-keymap"
+  (eq this-command 'yas-expand-from-keymap))
+
+(defun yas-camelize (&optional string)
+  "merge underscore-split word into a capitalize form."
+  (replace-regexp-in-string "_\\|@\\|\\$" "" (capitalize (or string yas-text))))
+
 (defun class-from-file ()
   "Return corresponding class/module name for given FILE."
   (let ((file (current-git-file-path)))

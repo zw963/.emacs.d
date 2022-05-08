@@ -7,7 +7,7 @@
 ;; ------------------------------ expansion functions ------------------------------
 
 (defun strip-string (string)
-  "strip backslash and double-quote, used by snippets Embedded format."
+  "转义了四个字符：双引号，左右圆括号，还有转义字符自己"
   (if string
       (replace-regexp-in-string
        "\"" "\\\\\\\\\\\\\""
@@ -19,13 +19,91 @@
           "\\\\" "\\\\\\\\\\\\\\\\"
           string t nil))))))
 
-(defun stripped-field ()
-  (if yas-selected-text
-      (strip-string yas-selected-text)))
+(defun yas-if-any (field-index &optional arg1 arg2)
+  "用来拼装字符串 ${1:$(if-any \"hello\" \"world\")}, 快捷键是 a"
+  (insert (concat
+           "${"
+           field-index
+           ":$("
+           "if-any"
+           (when arg1 (concat " \"" (strip-string arg1) "\""))
+           (when arg2 (concat " \"" (strip-string arg2) "\""))
+           ")}"
+           )))
+
+(defun if-any (&optional string1 string2)
+  "Add STRING1 if `yas-text' content is not empty, otherwise STRING2."
+  (if (string-match "^$" (or yas-text yas-selected-text))
+      string2
+    (or string1 "")
+    )
+  ;; (if yas-modified-p
+  ;;     ;; 不可以为空, 或空格.
+  ;;     ;; 当按下 C-d 时，yas-text 是一个 "".
+  ;;     (if (string-match "^$" (or yas-text yas-selected-text))
+  ;;         string2
+  ;;         (or string1 "")
+  ;;       )
+  ;;   ;; 仅不可以为空格.
+  ;;   (if (string-match "^\s" (or yas-text yas-selected-text))
+  ;;       string2
+  ;;     (or string1 ""))
+  ;;   )
+  )
+
+(defun yas-field (field-index
+                  field-content
+                  &optional
+                  before-field-delimiter
+                  after-field-delimiter
+                  before-field-delimiter-function
+                  after-field-delimiter-function
+                  not-exist-after-field-delimiter)
+  "field-index: 字段的索引
+field-content: 字段的内容
+before-field-delimiter: 字段之前的标识符，例如： 开始双引号
+after-field-delimiter: 字段之后的标识符。例如： 结束双引号
+用法：
+(yas-field \"1\" \"hello\" \"[\" \"]\" \"if-any\")
+"
+  (insert
+   (concat
+    ;; 字段之前的分隔符，以及字段之前分隔符使用的函数， 默认 if-any
+    (yas-field-func field-index before-field-delimiter nil before-field-delimiter-function)
+    (yas-field-string-content field-index field-content)
+    (yas-field-func field-index after-field-delimiter nil after-field-delimiter-function)
+    )))
+
+(defun yas-field-func (field-index &optional arg1 arg2 func)
+  "用来拼装字符串 ${1:$(if-any \"hello\" \"world\")}, 函数名也可以改。
+yas-field 的依赖函数。
+"
+  (concat
+   "${"
+   field-index
+   ":$("
+   (or func "if-any")
+   (when arg1 (concat " \"" (strip-string arg1) "\""))
+   (when arg2 (concat " \"" (strip-string arg2) "\""))
+   ")}"
+   ))
+
+(defun yas-field-string-content (field-index &optional content)
+  "用来拼接：${1:hello} 这样的内容。
+(yas-fiend-string-content \"1\" \"hello\")
+yas-field 的依赖函数"
+  (if content
+      (concat
+       "${"
+       field-index
+       ":"
+       (strip-string content)
+       "}"
+       )
+    (concat "$" field-index)))
 
 (defun yas-stripped-selected-text (&optional before after expression-delimiter)
-  "strip leading whitespace, first and last blank lines,
-reinsert one blank line if region is multi-line."
+  "删除选区开始部分的白空格, 选区开始结束部分的空白行, 如果是多行字符串，最后再加一个空行"
   (if yas-selected-text
       (if (string-match "\n" yas-selected-text)
           (let ((text (replace-regexp-in-string
@@ -40,16 +118,6 @@ reinsert one blank line if region is multi-line."
         (concat before yas-selected-text after (or expression-delimiter (expression-delimiter))))
     ;; (concat before yas-selected-text after)
     ))
-
-(defun insert-comment (arg)
-  "Insert a comment line, use current mode comment tag."
-  (interactive "*P")
-  (comment-normalize-vars)
-  (if comment-insert-comment-function
-      (funcall comment-insert-comment-function)
-    (let ((add (comment-add arg)))
-      (indent-according-to-mode)
-      (insert (comment-padright comment-start add)))))
 
 (defun def (&optional def-begin def-end single-line-end-seperator)
   (insert
@@ -122,38 +190,6 @@ js 以 { 开头, function(done) { ... }
             )
     ""))
 
-(defun expand-from-key-p ()
-  "当使用 eky 再按下 TAB 来激活的 snippet 时，this_command 是 yas-expand"
-  (equal (this-command-keys-vector) '[tab]))
-
-(defun expand-with-binding ()
-  "当使用 binding: 激活一个 snippet 时，this command 是 yas-expand-from-keymap"
-  (eq this-command 'yas-expand-from-keymap))
-
-(defun yas-if-any (field-index &optional arg1 arg2)
-  "用来拼装字符串 ${1:$(if-any \"hello\" \"world\")}"
-  (insert (concat
-           "${"
-           field-index
-           ":$("
-           "if-any"
-           (when arg1 (concat " \"" (strip-string arg1) "\""))
-           (when arg2 (concat " \"" (strip-string arg2) "\""))
-           ")}"
-           )))
-
-(defun yas-field-func (field-index &optional arg1 arg2 func)
-  "用来拼装字符串 ${1:$(if-any \"hello\" \"world\")}, 函数名也可以改。"
-  (concat
-   "${"
-   field-index
-   ":$("
-   (or func "if-any")
-   (when arg1 (concat " \"" (strip-string arg1) "\""))
-   (when arg2 (concat " \"" (strip-string arg2) "\""))
-   ")}"
-   ))
-
 (defun yas-expand-func (&optional arg1 arg2 func)
   "用来拼装 `(if-any \"hello\" \"world\")`"
   (concat
@@ -163,26 +199,6 @@ js 以 { 开头, function(done) { ... }
    (when arg2 (concat " \"" (replace-regexp-in-string "\"" "\\\\\"" arg2) "\""))
    ")`"
    ))
-
-(defun if-any (&optional string1 string2)
-  "Add STRING1 if `yas-text' content is not empty, otherwise STRING2."
-  (if (string-match "^$" (or yas-text yas-selected-text))
-      string2
-    (or string1 "")
-    )
-  ;; (if yas-modified-p
-  ;;     ;; 不可以为空, 或空格.
-  ;;     ;; 当按下 C-d 时，yas-text 是一个 "".
-  ;;     (if (string-match "^$" (or yas-text yas-selected-text))
-  ;;         string2
-  ;;         (or string1 "")
-  ;;       )
-  ;;   ;; 仅不可以为空格.
-  ;;   (if (string-match "^\s" (or yas-text yas-selected-text))
-  ;;       string2
-  ;;     (or string1 ""))
-  ;;   )
-  )
 
 (defun if-key (string1 &optional string2)
   "Add STRING1 if expand with a key, only be use in `...`."
@@ -288,17 +304,6 @@ js 以 { 开头, function(done) { ... }
       " "
     ""))
 
-(defun yas-field-string-content (field-index &optional content)
-  (if content
-      (concat
-       "${"
-       field-index
-       ":"
-       (strip-string content)
-       "}"
-       )
-    (concat "$" field-index)))
-
 (defun key-field (field-index
                   field-content
                   &optional
@@ -320,27 +325,6 @@ js 以 { 开头, function(done) { ... }
                ))
     (field field-index field-content before-field-delimiter after-field-delimiter field-seperator
            field-seperator-function after-field-delimiter-function before-field-delimiter-function)))
-
-(defun yas-field (field-index
-                  field-content
-                  &optional
-                  before-field-delimiter
-                  after-field-delimiter
-                  before-field-delimiter-function
-                  after-field-delimiter-function
-                  not-exist-after-field-delimiter)
-  "field-index: 字段的索引
-field-content: 字段的内容
-before-field-delimiter: 字段之前的标识符，例如： 开始双引号
-after-field-delimiter: 字段之后的标识符。例如： 结束双引号
-"
-  (insert
-   (concat
-    ;; 字段之前的分隔符，以及字段之前分隔符使用的函数， 默认 if-any
-    (yas-field-func field-index before-field-delimiter nil before-field-delimiter-function)
-    (yas-field-string-content field-index field-content)
-    (yas-field-func field-index after-field-delimiter nil after-field-delimiter-function)
-    )))
 
 (defun yas-key-field (field-index
                       field-content
@@ -447,10 +431,6 @@ after-field-delimiter: 字段之后的标识符。例如： 结束双引号
        (quo))
      string)))
 
-(defun yas-camelize (&optional string)
-  "merge underscore-split word into a capitalize form."
-  (replace-regexp-in-string "_\\|@\\|\\$" "" (capitalize (or string yas-text))))
-
 ;; (defun instance-variable ()
 ;;   "transform to a instance variable."
 ;;   (replace-regexp-in-string "&\\|\*" "" (replace-regexp-in-string "[a-zA-Z_]+" "@\\\&" yas-text t nil)))
@@ -485,5 +465,15 @@ after-field-delimiter: 字段之后的标识符。例如： 结束双引号
 ;;  yas-minitest-describe-p
 ;;  "Non-nil if the current buffer is a ruby minitest file."
 ;;  (looking-back "describe.*" (line-beginning-position)))
+
+;; =========================== 目前没用到的函数 ====================================
+
+;; (defun stripped-field ()
+;;   (if yas-selected-text
+;;       (strip-string yas-selected-text)))
+
+;; =========================== 不打算用的函数 ====================================
+
+
 
 ;;; .yas-setup.el ends here.
