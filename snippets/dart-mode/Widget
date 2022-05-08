@@ -1,6 +1,6 @@
 mode: snippet -*-
-# name: wrap a wrap child Widget
-# binding: W
+# name: wrap a child wrapped Widget
+# binding:
 # condition: (yas-use-region-p)
 # contributor: Billy.Zheng vil963@gmail.com
 # --
