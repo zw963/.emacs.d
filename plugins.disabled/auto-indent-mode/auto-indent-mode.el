@@ -2553,7 +2553,7 @@ auto-indenting)"
               (set (make-local-variable 'auto-indent-par-region-timer)
                    (run-with-timer (auto-indent-par-region-interval) nil
                                    'auto-indent-par-region))))))
-    (error (message "[Auto-Indent-Mode]: Ignored indentation error in `auto-indent-mode-post-command-hook-last' %s" (error-message-string err)))))
+    ((debug error) (signal (car err) (cdr err)))))
 
 (defun auto-indent-mode-post-command-hook ()
   "Post-command hook for `auto-indent-mode'.
