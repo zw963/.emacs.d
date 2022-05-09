@@ -14,7 +14,8 @@
 (define-key special-mode-map (kbd "C-M-z") 'special-mode-lsp-dart-dap-flutter-hot-restart)
 ;; (define-key dart-mode-map (kbd "<escape>") 'lsp-dart-show-flutter-outline)
 
-;; (setq lsp-dart-dap-use-sdk-debugger nil)
+(setq lsp-dart-dap-extension-version "3.38.1")
+(setq lsp-dart-dap-use-sdk-debugger nil)
 
 (add-hook 'dart-mode-hook
           (lambda ()
