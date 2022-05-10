@@ -52,6 +52,7 @@
 
 ;; ============================== 编程相关 ==============================
 
+(require 'awesome-tab_init)
 (require 'eldoc-box_init)
 (require 'prog-mode_init)
 ;; (require 'apheleia_init)
