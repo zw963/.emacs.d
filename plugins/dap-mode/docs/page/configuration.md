@@ -284,6 +284,71 @@ To fully support rust and pretty printing of strings when debugging, remember to
 
 1.  Installation
 
+      - install gopls
+
+      - Install the delve command by following instructions on [delve -
+        installation](https://github.com/go-delve/delve/tree/master/Documentation/installation).
+
+      - install lsp-mode
+
+      - Put in your emacs configuration.
+
+        ``` elisp
+        (require 'dap-dlv-go)
+        ```
+    <!-- end list -->
+
+    1.  Usage
+
+        assume you have your code at \~/src/cool/cmd/app/app.go
+
+          - open your main package file e.g \~/src/cool/cmd/app/app.go
+          - or open a test file e.g app<sub>test</sub>.go
+          - add folder to lsp session where your go.mod is or would be
+              - M-x lsp-workspace-folders-add \~/src/cool
+          - set break point
+          - M-x dap-debug
+          - if you want to launch a binary or test to debug, use "Go
+            Dlv Launch File Configuration"
+          - if you want to debug current test function inside test
+            file use "Go Dlv Test Current Function Configuration"
+          - if you want to debug already running application select
+            "Go Dlv Attach Configuration"
+          - if you want to debug remote application you need start
+            delve on remote machine first, for example: `dlv --headless
+            --accept-multiclient attach 123 -l :1080` (see [dlv usage
+            documentation](https://github.com/go-delve/delve/tree/master/Documentation/usage#using-delve)
+            for more command-line options) and select "Go Dlv Remote Debug"
+          - if your build environment differs from your development
+            environment or you use `-trimpath` build flag you can use
+            `substitutePath`. `M-x` `dap-debug-edit-template` then
+            select some template and add `substitutePath` option to
+            it:
+            ```elisp
+            (dap-register-debug-template
+             "Launch Executable trimmed path"
+             (list :type "go"
+                   :request "launch"
+                   :name "Launch Executable trimmed path"
+                   :mode "exec"
+                   :program nil
+                   :args nil
+                   :env nil
+                   :substitutePath (vector (ht ("from" "/home/user/projects/tribonacci") ("to" "github.com/s-kostyaev/tribonacci")))))
+            ```
+            and after evaluation you can select this edited template
+            and debug as usual.
+
+    2.  Trouble shooting
+
+          - put (setq dap-print-io t) and check messages buffer
+          - e.g linter can return note at debug session response
+            resulting debug session to fail
+
+## Go (VS Code debug adapter)
+
+1.  Installation
+
       - For easier of setting up vscode extension, you only need call
         `dap-go-setup` after requiring `dap-go`.
 
