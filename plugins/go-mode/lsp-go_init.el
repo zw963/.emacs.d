@@ -9,8 +9,8 @@
             ))
 
 (require 'dap-mode_init)
-;; (require 'dap-go)
-(require 'dap-dlv-go)
+(require 'dap-go)
+;; (require 'dap-dlv-go)
 (dap-go-setup)
 
 (provide 'lsp-go_init)

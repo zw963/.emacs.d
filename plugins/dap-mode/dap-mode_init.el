@@ -7,6 +7,11 @@
 ;; (dap-tooltip-mode 1)
 ;; (dap-ui-mode 1)
 
+;; Delete top controll menu
+(setq dap-auto-configure-features
+      (delete 'controls
+              dap-auto-configure-features))
+
 ;; (require 'dap-hydra)
 
 ;; Try to connect to ruby-debug-ide, but still working.

@@ -11,25 +11,25 @@
 
 ;; (load-theme 'material t) ;; 这个是原来的
 ;; (load-theme 'material-light t) ;; 这个是原来的
-;; (load-theme 'vscode-dark-plus t)
+(load-theme 'vscode-dark-plus t)
 ;; (require 'spacemacs-common)
 ;; (load-theme 'spacemacs-dark t)
 ;; (load-theme 'dracula t)                 ;
 
-(require 'doom-themes)
-(setq doom-themes-enable-bold t    ; if nil, bold is universally disabled
-      doom-themes-enable-italic t) ; if nil, italics is universally disabled
-(load-theme 'doom-xcode t)
-(setq doom-theme 'doom-material)
+;; (require 'doom-themes)
+;; (setq doom-themes-enable-bold t    ; if nil, bold is universally disabled
+;;       doom-themes-enable-italic t) ; if nil, italics is universally disabled
+;; (load-theme 'doom-solarized-dark-high-contrast t)
+;; ;; (setq doom-theme 'doom-material)
 
-(require 'doom-themes-ext-visual-bell)
-(doom-themes-visual-bell-config)
+;; (require 'doom-themes-ext-visual-bell)
+;; (doom-themes-visual-bell-config)
 
-(require 'doom-themes-ext-org)
-(doom-themes-org-config)
+;; (require 'doom-themes-ext-org)
+;; (doom-themes-org-config)
 
-(require 'doom-themes-ext-treemacs)
-(doom-themes-treemacs-config)
+;; (require 'doom-themes-ext-treemacs)
+;; (doom-themes-treemacs-config)
 
 ;; (load-theme 'atom-one-dark t)
 ;; (load-theme 'one-light t)
