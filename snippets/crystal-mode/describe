@@ -1,0 +1,6 @@
+# -*- mode: snippet -*-
+# name: describe
+# key: describe
+# binding: M-c d
+# --
+describe '${1:desc}'`(ruby-do-block)`

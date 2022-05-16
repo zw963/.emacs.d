@@ -1,0 +1,7 @@
+# -*- mode: snippet -*-
+# name: it
+# key: it
+# binding: M-c i
+# condition: (yas-not-in-string-p)
+# --
+it '$1'`(ruby-do-block)`

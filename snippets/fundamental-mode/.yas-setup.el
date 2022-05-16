@@ -156,7 +156,7 @@ js 以 { 开头, function(done) { ... }
 (defun yas-def-end ()
   "定义一个函数时，结尾分隔符."
   (cond
-   ((member major-mode '(ruby-mode elixir-mode enh-ruby-mode)) "end")
+   ((member major-mode '(ruby-mode elixir-mode enh-ruby-mode crystal-mode)) "end")
    ((eql major-mode 'sh-mode) "done")
    ((member major-mode '(js2-mode cc-mode rust-mode)) "}")
    ((member major-mode '(rhtml-mode web-mode)) "<% end %>")
