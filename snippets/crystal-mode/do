@@ -1,0 +1,7 @@
+# -*- mode: snippet -*-
+# name: do |x| structure
+# key: do
+# --
+do`(yas-field "1" "arg" " |" "|")`
+  `(yas-stripped-selected-text "")`$0
+end
