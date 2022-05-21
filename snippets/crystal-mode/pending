@@ -1,0 +1,6 @@
+# -*- mode: snippet -*-
+# name: pending
+# key: pending
+# condition: (yas-ruby-specfile-p)
+# --
+pending "${1:to test}" `(ruby-do-block)`

@@ -3,6 +3,7 @@
 (require 'lsp-crystal_init)
 (require 'ameba)
 (require 'flycheck-ameba)
+(require 'crystal-mode_keyword_highlight_init)
 
 (flycheck-ameba-setup)
 
