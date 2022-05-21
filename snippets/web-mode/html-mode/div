@@ -4,4 +4,4 @@
 # binding: d
 # condition: (yas-use-region-p)
 # --
-<div`(string-field "1" "class" " class=")`>`(yas-stripped-selected-text)`$0`(def "" "</div>")`
+<div`(string-field "1" "class" " class=")`>`(def "" "</div>")`

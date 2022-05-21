@@ -1,6 +1,8 @@
 # -*- mode: snippet -*-
 # name: test
 # key: test
-# condition: (ruby-testfile-p)
+# condition: (yas-ruby-testfile-p)
 # --
-test '$1'`(ruby-do-block)`
+test '$1' "${1:desc}" do
+  $0`(yas-selected-text)`
+end

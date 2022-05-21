@@ -1,6 +1,6 @@
 # -*- mode: snippet -*-
 # name: must_be_within_epsilon
 # key: must
-# condition: (yas-ruby-test-p)
+# condition: (yas-ruby-testfile-p)
 # --
 must_be_within_epsilon ${1:expected_float}`(field "2" "0.001" ", ")``(string-field "3" "." ", ")`

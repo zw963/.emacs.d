@@ -1,6 +1,6 @@
 # -*- mode: snippet -*-
 # name: assert_match
 # key: assert
-# condition: (yas-ruby-test-p)
+# condition: (yas-ruby-testfile-p)
 # --
 assert_match "${1:pattern}", $0

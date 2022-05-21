@@ -1,6 +1,6 @@
 # -*- mode: snippet -*-
 # name: must_include
 # key: must
-# condition: (yas-ruby-test-p)
+# condition: (yas-ruby-testfile-p)
 # --
 must_include ${1:obj}`(string-field "2" "." ", ")`

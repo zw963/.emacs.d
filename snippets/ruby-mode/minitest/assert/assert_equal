@@ -1,6 +1,6 @@
 # -*- mode: snippet -*-
 # name: assert_equal
 # key: ae
-# condition: (yas-ruby-test-p)
+# condition: (yas-ruby-testfile-p)
 # --
 assert_equal ${1:100}, $0

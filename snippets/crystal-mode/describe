@@ -1,6 +1,7 @@
 # -*- mode: snippet -*-
 # name: describe
 # key: describe
+# condition: (yas-ruby-specfile-p)
 # binding: M-c d
 # --
-describe '${1:desc}'`(ruby-do-block)`
+describe `(string-field "1" "desc")` `(ruby-do-block)`

@@ -2,4 +2,4 @@
 # name: <thead>...</thead>
 # key: thead
 # --
-<thead>`(yas-stripped-selected-text)`$0`(def "" "</thead>")`
+<thead>`(def "" "</thead>")`

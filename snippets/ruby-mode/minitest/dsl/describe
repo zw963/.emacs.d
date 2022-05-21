@@ -1,6 +1,6 @@
 # -*- mode: snippet -*-
 # name: describe
 # key: describe
-# binding: M-c d
+# condition: (yas-ruby-specfile-p)
 # --
-describe '${1:desc}'`(ruby-do-block)`
+describe "${1:desc}" `(ruby-block)`

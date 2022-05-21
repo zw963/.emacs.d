@@ -1,7 +1,6 @@
 # -*- mode: snippet -*-
 # name: it
 # key: it
-# binding: M-c i
-# condition: (yas-not-in-string-p)
+# condition: (yas-ruby-specfile-p)
 # --
-it '$1'`(ruby-do-block)`
+it "${1:to test}" `(ruby-do-block)`

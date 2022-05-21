@@ -3,4 +3,4 @@
 # key: p
 # contributor: Billy.Zheng vil963@gmail.com
 # --
-println!("`(yas-field "1" "p" "" ": ")`{}", $0)
+println!("`(field "1" "p" "" ": ")`{}", $0)

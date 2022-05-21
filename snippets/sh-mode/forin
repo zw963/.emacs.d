@@ -2,4 +2,6 @@
 # name: for ... in ... done
 # key: forin
 # --
-for i in ${2:words}; do`(def "" nil ";")`
+for i in ${1:words}; do
+  $0
+done

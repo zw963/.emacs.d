@@ -54,7 +54,7 @@
          (looking-at "\\s-*[])]"))
     (transform-parens-fixed "[[(]" "[])]"))
 
-   ((member major-mode '(ruby-mode enh-ruby-mode))
+   ((member major-mode '(ruby-mode enh-ruby-mode crystal-mode))
     (ruby-toggle-block-fixed))
 
    ((member major-mode '(dart-mode))

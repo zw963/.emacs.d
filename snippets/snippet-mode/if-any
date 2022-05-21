@@ -6,4 +6,4 @@
 # condition: (yas-use-region-p)
 # contributor: Billy.Zheng/zw963 (zw963@163.com)
 # --
-\${${1:1}:$(if-any `(yas-key-field "2" "str" "\"" "\"")``(yas-field "3" "str" " \"" "\"")`)}
+\${${1:1}:$(if-any `(key-field "2" "str" "\"" "\"")``(field "3" "str" "\"" "\"")`)}

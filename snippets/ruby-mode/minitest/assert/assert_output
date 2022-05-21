@@ -1,6 +1,6 @@
 # -*- mode: snippet -*-
 # name: assert_output
 # key: assert
-# condition: (yas-ruby-test-p)
+# condition: (yas-ruby-testfile-p)
 # --
 assert_output(${1:out}`(field "2" "err" ", ")`) `(ruby-block)`

@@ -1,6 +1,6 @@
 # -*- mode: snippet -*-
 # name: must_output
 # key: must
-# condition: (yas-ruby-test-p)
+# condition: (yas-ruby-testfile-p)
 # --
 must_output ${1:stdout}`(field "2" "stderr" ", ")`

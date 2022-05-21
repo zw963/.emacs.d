@@ -95,11 +95,11 @@ Optional argument HOME is ignored."
 
 (defun ruby-testfile-p ()
   (let ((name (or (buffer-file-name) (buffer-name))))
-    (string-match "_test[0-9]*\.rb$" name)))
+    (string-match "_test\\.\\(rb\\|cr\\)$" name)))
 
 (defun ruby-specfile-p ()
   (let ((name (or (buffer-file-name) (buffer-name))))
-    (string-match "_spec[0-9]*\.rb$" name)))
+    (string-match "_spec\\.\\(rb\\|cr\\)$" name)))
 
 (provide 'ruby_init)
 

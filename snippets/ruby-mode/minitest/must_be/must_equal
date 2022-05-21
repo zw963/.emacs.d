@@ -1,6 +1,6 @@
 # -*- mode: snippet -*-
 # name: must_equal
 # key: must
-# condition: (yas-ruby-test-p)
+# condition: (yas-ruby-testfile-p)
 # --
 must_equal ${1:expected}`(string-field "2" "." ", ")`

@@ -1,8 +1,9 @@
 # -*- mode: snippet -*-
 # name: insert a field replacement skeleton.
 # key: replace
-# binding: M-c r
+# binding: r
 # expand-env: ((yas-indent-line 'fixed))
+# condition: (yas-use-region-p)
 # contributor: Billy.Zheng/zw963 (zw963@163.com)
 # --
 \${${1:1}:$(replace-regexp-in-string "${2:[a-zA-Z_]+}" "${3:}" yas-text t nil)}

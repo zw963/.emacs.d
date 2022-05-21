@@ -1,6 +1,6 @@
 # -*- mode: snippet -*-
 # name: assert_in_epsilon
 # key: assert
-# condition: (yas-ruby-test-p)
+# condition: (yas-ruby-testfile-p)
 # --
 assert_in_epsilon ${1:expected_float}`(field "2" "float" ", ")``(field "3" "0.001" ", ")`

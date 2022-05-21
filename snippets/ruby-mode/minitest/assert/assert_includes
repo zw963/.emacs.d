@@ -1,6 +1,6 @@
 # -*- mode: snippet -*-
 # name: assert_includes
 # key: assert
-# condition: (yas-ruby-test-p)
+# condition: (yas-ruby-testfile-p)
 # --
 assert_includes ${1:set}, ${2:obj}

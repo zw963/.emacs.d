@@ -4,7 +4,7 @@
 # contributor: Billy.Zheng vil963@gmail.com
 # --
 impl Drop for $1 {
-  fn drop(&mut self)`(yas-field "2" "Type" " -> ")` {
+  fn drop(&mut self)`(field "2" "Type" " -> ")` {
     $0
   }
 }

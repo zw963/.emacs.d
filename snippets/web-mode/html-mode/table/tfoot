@@ -2,4 +2,4 @@
 # name: <tfoot>...</tfoot>
 # key: tfoot
 # --
-<tfoot>`(yas-stripped-selected-text)`$0`(def "" "</tfoot>")`
+<tfoot>`(def "" "</tfoot>")`

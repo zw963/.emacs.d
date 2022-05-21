@@ -1,6 +1,6 @@
 # -*- mode: snippet -*-
 # name: assert_raises
 # key: assert
-# condition: (yas-ruby-test-p)
+# condition: (yas-ruby-testfile-p)
 # --
 assert_raises`(field "1" "*Exp" "(" ")")` `(ruby-block)`

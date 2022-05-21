@@ -1,6 +1,6 @@
 # -*- mode: snippet -*-
 # name: must_be_operator
 # key: must
-# condition: (yas-ruby-test-p)
+# condition: (yas-ruby-testfile-p)
 # --
 must_be :${1:op}, ${2:obj}`(string-field "3" "." ", ")`

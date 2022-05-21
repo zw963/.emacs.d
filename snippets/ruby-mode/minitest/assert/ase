@@ -1,6 +1,6 @@
 # -*- mode: snippet -*-
 # name: assert_equal (quick)
 # key: ase
-# condition: (yas-ruby-test-p)
+# condition: (yas-ruby-testfile-p)
 # --
 assert_equal ${1:expected}, $0

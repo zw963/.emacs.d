@@ -3,4 +3,4 @@
 # key: fn1
 # contributor: Billy.Zheng vil963@gmail.com
 # --
-fn ${1:name}(${2:arg}`(yas-field "3" "arg_type" ": ")`)`(yas-field "4" "String" " -> ")``(yas-field "5" " " " { " " }")`
+fn ${1:name}(${2:arg}`(field "3" "arg_type" ": ")`)`(field "4" "String" " -> ")``(field "5" " " " { " " }")`
