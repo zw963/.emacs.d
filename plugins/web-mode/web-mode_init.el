@@ -12,7 +12,6 @@
  web-mode-enable-current-element-highlight t
  web-mode-enable-current-column-highlight t
 
- web-mode-engines-alist '(("erb" . "\\.erb\\|\\.ecr\\|\\.r?html?\\'"))
  web-mode-ac-sources-alist '(("css" . (ac-source-css-property))
                              ("html" . (ac-source-words-in-buffer ac-source-abbrev)))
  )

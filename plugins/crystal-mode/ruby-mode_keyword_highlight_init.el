@@ -1,6 +1,7 @@
 (defcustom crystal-spec-keywords
   '(
     "pending"
+    "context"
     )
   "List of keywords to highlight for crystal spec."
   :group 'rinari
