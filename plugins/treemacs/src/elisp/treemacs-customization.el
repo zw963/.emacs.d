@@ -142,8 +142,8 @@ There are 2 options:
    minibuffer input is used.
  - `from-minibuffer': will read input from the minibuffer, same as baseline
    Emacs."
-  :type '(choice (const :tag "With Child Frame Popup" 'from-child-frame)
-                 (const :tag "From the Minibuffer (Emacs Default)" 'from-minibuffer))
+  :type '(choice (const :tag "With Child Frame Popup" from-child-frame)
+                 (const :tag "From the Minibuffer (Emacs Default)" from-minibuffer))
   :group 'treemacs)
 
 (defcustom treemacs-move-forward-on-expand nil
@@ -160,8 +160,8 @@ There are 2 options:
    permissions of the file at point
 
 Requires eldoc mode to be enabled."
-  :type '(choice (const :tag "Simple" 'simple)
-                 (const :tag "Detailed" 'detailed))
+  :type '(choice (const :tag "Simple" simple)
+                 (const :tag "Detailed" detailed))
   :group 'treemacs)
 
 (defcustom treemacs-indent-guide-style 'line
@@ -171,7 +171,8 @@ The choices are
    level
  - `block' to use a thick '██' block interspersed at every second indentation
    level"
-  :type '(choice (const :tag "Line" 'line) (const :tag "Block" 'block))
+  :type '(choice (const :tag "Line" line)
+                 (const :tag "Block" block))
   :group 'treemacs)
 
 (defcustom treemacs-indentation-string " "
@@ -278,8 +279,16 @@ of how this config works and how to modify it."
   :group 'treemacs)
 
 (defcustom treemacs-dotfiles-regex (rx bol "." (1+ any))
-  "Files matching this regular expression count as dotfiles."
+  "Files matching this regular expression count as dotfiles.
+This controls the matching behaviour of `treemacs-toggle-show-dotfiles'."
   :type 'regexp
+  :group 'treemacs)
+
+(defcustom treemacs-hide-dot-git-directory t
+  "Indicates whether the .git directory should be hidden.
+When this is non-nil the .git dir will be hidden regardless of current setting
+of `treemacs-toggle-show-dotfiles'."
+  :type 'list
   :group 'treemacs)
 
 (defcustom treemacs-sorting 'alphabetic-asc

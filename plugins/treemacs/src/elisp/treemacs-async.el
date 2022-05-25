@@ -63,6 +63,9 @@
       (treemacs-join-path treemacs-dir "treemacs-find-ignored-files.py")
     (treemacs-join-path treemacs-dir "src/scripts/treemacs-find-ignored-files.py")))
 
+(defconst treemacs--single-git-update-debouce-store (make-hash-table :size 10)
+  "Table to keep track of files that will already be updated.")
+
 (defvar treemacs--git-cache-max-size 60
   "Maximum size for `treemacs--git-cache'.
 If it does reach that size it will be cut back to 30 entries.")
@@ -253,7 +256,8 @@ OVERRIDE-STATUS: Boolean"
   (let* ((local-buffer (current-buffer))
          (parent (treemacs--parent file))
          (parent-node (treemacs-find-in-dom parent)))
-    (when parent-node
+    (when (and parent-node (null (ht-get treemacs--single-git-update-debouce-store file)))
+      (ht-set! treemacs--single-git-update-debouce-store file t)
       (let* ((parents (unless (or exclude-parents
                                   (null (treemacs-dom-node->parent parent-node)))
                         ;; include the first parent...
@@ -273,31 +277,35 @@ OVERRIDE-STATUS: Boolean"
           :directory parent
           :name "Treemacs Update Single File Process"
           :on-success
-          (when (buffer-live-p local-buffer)
-            (with-current-buffer local-buffer
-              (treemacs-with-writable-buffer
-               (save-excursion
-                 ;; first the file node with its own default face
-                 (-let [output (read (pfuture-callback-output))]
-                   (-let [(path . face) (pop output)]
-                     (treemacs--git-face-quick-change path face git-cache))
-                   ;; then the directories
-                   (pcase-dolist (`(,path . ,face) output)
-                     (treemacs--git-face-quick-change path face)))))))
+          (progn
+            (ht-remove! treemacs--single-git-update-debouce-store file)
+            (when (buffer-live-p local-buffer)
+              (with-current-buffer local-buffer
+                (treemacs-with-writable-buffer
+                 (save-excursion
+                   ;; first the file node with its own default face
+                   (-let [output (read (pfuture-callback-output))]
+                     (-let [(path . face) (pop output)]
+                       (treemacs--git-face-quick-change path face git-cache))
+                     ;; then the directories
+                     (pcase-dolist (`(,path . ,face) output)
+                       (treemacs--git-face-quick-change path face))))))))
           :on-error
-          (pcase (process-exit-status process)
-            (2 (ignore "No Change, Do Nothing"))
-            (_
-             (-let [err-str (treemacs--remove-trailing-newline (pfuture-output-from-buffer pfuture-buffer))]
-               (treemacs-log-err "Update of node \"%s\" failed with status \"%s\" and result"
-                 file (treemacs--remove-trailing-newline status))
-               (treemacs-log-err "\"%s\"" (treemacs--remove-trailing-newline err-str))))))))))
+          (progn
+            (ht-remove! treemacs--single-git-update-debouce-store file)
+            (pcase (process-exit-status process)
+              (2 (ignore "No Change, Do Nothing"))
+              (_
+               (-let [err-str (treemacs--remove-trailing-newline (pfuture-output-from-buffer pfuture-buffer))]
+                 (treemacs-log-err "Update of node \"%s\" failed with status \"%s\" and result"
+                   file (treemacs--remove-trailing-newline status))
+                 (treemacs-log-err "\"%s\"" (treemacs--remove-trailing-newline err-str)))))))))))
 
 (define-inline treemacs--git-face-quick-change (path git-face &optional git-cache)
   "Quick-change of PATH's GIT-FACE.
 Updates the visible face and git-cache + annotation store entries.  GIT-CACHE
-might be already known or not. If not it will be pulled from BTN's parent.  Used
-when asynchronous processes report back git changes."
+might be already known or not.  If not it will be pulled from BTN's parent.
+Used when asynchronous processes report back git changes."
   (inline-letevals (path git-face git-cache)
     (inline-quote
      (let ((git-cache (or ,git-cache
@@ -381,7 +389,7 @@ run because the git cache has yet to be filled."
       (treemacs-run-in-every-buffer
        (treemacs-save-position
         (dolist (file ignored-files)
-          (when-let (treemacs-is-path-visible? file)
+          (-when-let (treemacs-is-path-visible? file)
             (treemacs-do-delete-single-node file))))))))
 
 (define-minor-mode treemacs-git-mode
