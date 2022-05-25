@@ -5,7 +5,7 @@
 
 (add-hook 'org-mode-hook
           (lambda ()
-           (lobal-set-key [(control j)] 'avy-goto-char-timer)
+           (global-set-key [(control j)] 'avy-goto-char-timer)
            ))
 
 (with-eval-after-load 'treemacs

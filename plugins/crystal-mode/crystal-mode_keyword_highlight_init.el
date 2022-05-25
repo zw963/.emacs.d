@@ -36,6 +36,6 @@ Use `font-lock-add-keywords' in case of `ruby-mode' or
 (add-hook 'crystal-mode-hook 'crystal-apply-keywords-for-file-type)
 
 
-(provide 'ruby-mode_keyword_highlight_init)
+(provide 'crystal-mode_keyword_highlight_init)
 
-;;; ruby-mode_keyword_highlight_init_init.el ends here
+;;; crystal-mode_keyword_highlight_init.el ends here
