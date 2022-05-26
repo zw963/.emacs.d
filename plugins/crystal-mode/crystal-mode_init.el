@@ -1,6 +1,6 @@
 (require 'crystal-mode)
-(require 'flycheck-crystal)
 (require 'lsp-crystal_init)
+(require 'flycheck-crystal)
 (require 'ameba)
 (require 'flycheck-ameba)
 (require 'crystal-mode_keyword_highlight_init)
