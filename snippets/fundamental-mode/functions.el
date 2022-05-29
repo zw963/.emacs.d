@@ -228,8 +228,8 @@ js 以 { 开头, function(done) { ... }
 
 
 (defun end (&optional end)
-  "Insert end."
-  (let ((end (or end (yas-def-end))))
+  "抽象各种语言不同的 end, 并且，在选区的时候，可能添加尾部空格"
+  (let ((end (or end (_yas-def-end))))
     (if yas-selected-text
         (if (string-match "\n\\'" yas-selected-text)
             (concat end "\n")
