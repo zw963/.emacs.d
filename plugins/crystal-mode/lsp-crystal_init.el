@@ -5,7 +5,7 @@
 
 (defun zw/lsp-crystal-common-hooks ()
   (add-hook 'before-save-hook #'lsp-format-buffer t t)
-  (lsp-deferred)
+  ;; (lsp-deferred)
   )
 
 (add-hook 'crystal-mode-hook 'zw/lsp-crystal-common-hooks)

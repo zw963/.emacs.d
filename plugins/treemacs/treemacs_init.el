@@ -50,6 +50,7 @@
                                    (doom-themes-treemacs-config)
                                    )
                                  (define-key treemacs-mode-map [(control d)] 'treemacs-remove-project-from-workspace)
+                                 (lsp-deferred)
                                  ))
 
 (with-eval-after-load 'lsp-mode

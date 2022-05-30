@@ -9,7 +9,8 @@
 
 ;; 注意，如果用 rls, 必须把 lsp-enable-imenu 设为 nil, ruby-analyzer 无需。
 ;; (setq-local lsp-enable-imenu nil)
-(add-hook 'rust-mode-hook 'lsp-deferred)
+
+;; (add-hook 'rust-mode-hook 'lsp-deferred)
 
 (provide 'lsp-rust-mode_init)
 

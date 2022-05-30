@@ -5,7 +5,7 @@
           (lambda ()
             (add-hook 'before-save-hook #'lsp-format-buffer t t)
             (add-hook 'before-save-hook #'lsp-organize-imports t t)
-            (lsp-deferred)
+            ;; (lsp-deferred)
             ))
 
 (require 'dap-mode_init)
