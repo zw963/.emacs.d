@@ -1,0 +1,7 @@
+# -*- mode: snippet -*-
+# name: def meth=
+# key: d=
+# --
+def ${1:name}=(new_$1)
+  `(yas-stripped-selected-text)``(if-key "${2:@$1 = new_$1}"))`$0
+end

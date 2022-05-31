@@ -3,5 +3,5 @@
 # key: di
 # --
 def initialize`(field "1" "arg" "(" ")")`
-  ${2:${1:$(if-any "@")}$1}${1:$(if-any " = ")}$1$0
+  $0
 end

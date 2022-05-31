@@ -1,0 +1,7 @@
+# -*- mode: snippet -*-
+# name: def meth=
+# key: d=
+# --
+def ${1:name}=(new_$1)
+  $0
+end
