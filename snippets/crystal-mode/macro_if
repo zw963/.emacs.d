@@ -1,0 +1,8 @@
+# -*- mode: snippet -*-
+# name: macro if
+# key: macro
+# condition: (yas-use-region-p)
+# --
+{% if $1 %}
+  $0
+{% end %}

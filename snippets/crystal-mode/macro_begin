@@ -1,0 +1,9 @@
+# -*- mode: snippet -*-
+# name: macro begin
+# key: macro
+# binding: M-c b
+# condition: (yas-use-region-p)
+# --
+{% begin %}
+  $0`(yas-selected-text)`
+{% end %}
