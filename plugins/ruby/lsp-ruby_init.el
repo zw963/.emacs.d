@@ -48,7 +48,7 @@
 
 (defun zw/lsp-ruby-common-hooks ()
   (add-hook 'before-save-hook #'lsp-format-buffer t t)
-  ;; (lsp-deferred)
+  (lsp-deferred)
   )
 
 (add-hook 'ruby-mode-hook 'zw/lsp-ruby-common-hooks)
