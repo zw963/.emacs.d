@@ -59,3 +59,7 @@
 (autoload 'graphql-mode "graphql-mode" nil t)
 (add-to-list 'auto-mode-alist '("\\.graphql\\'" . graphql-mode))
 (add-to-list 'auto-mode-alist '("\\.gql\\'" . graphql-mode))
+
+(autoload 'just-mode "just-mode" nil t)
+(add-to-list 'auto-mode-alist '("/[Jj]ustfile\\'" . just-mode))
+(add-to-list 'auto-mode-alist '("\\.[Jj]ust\\(file\\)?\\'" . just-mode))

@@ -51,7 +51,9 @@
 ;; Use M-1,2 ... to select a candidation.
 (setq company-show-quick-access t)
 (setq company-show-quick-access 'left)
-(setq company-minimum-prefix-length 4)
+
+;; 设的稍微短一点，lsp 效果好一些。
+(setq company-minimum-prefix-length 2)
 
 ;; (setq company-idle-delay
 ;;       (lambda () (if (company-in-string-or-comment) nil 0.4)))
