@@ -6,6 +6,8 @@
 (define-prefix-command 'meta-c-map)
 (global-set-key [(meta c)] 'meta-c-map)
 
+(global-set-key [(f2)] 'kill-buffer-enhanced) ;关闭当前缓冲区 F2
+
 (global-set-key [(control c) (j)] 'imenu)
 
 (global-set-key [(meta D)] (lambda () (interactive) (dired "./"))) ; 打开 dired buffer.
@@ -221,6 +223,16 @@ the cursor by ARG lines."
     (forward-line 0)
     (set-mark-command nil))
   (forward-line arg))
+
+(defun kill-buffer-enhanced ()
+  (interactive)
+  (if (equal major-mode 'org-mode)
+      (progn
+        (call-interactively 'save-buffer)
+        (call-interactively 'bury-buffer))
+    (progn
+      (setq menu-updating-frame nil)
+      (kill-buffer (current-buffer)))))
 
 ;; (defun mark-next-line ()
 ;;   "Mark next line continuously."

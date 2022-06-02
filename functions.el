@@ -91,16 +91,6 @@ Use `font-lock-add-keywords' in case of `ruby-mode' or
 
 ;; ============================== 快捷键相关 ==============================
 
-;; (defun kill-buffer-enhanced ()
-;;   (interactive)
-;;   (if (equal major-mode 'org-mode)
-;;       (progn
-;;         (call-interactively 'save-buffer)
-;;         (call-interactively 'bury-buffer))
-;;     (progn
-;;       (setq menu-updating-frame nil)
-;;       (kill-buffer (current-buffer)))))
-
 ;; (defun set-webpack-watch-dog ()
 ;;   (let ((watch-dog-file (getenv "WEBPACK_WATCH_DOG")))
 ;;     (print watch-dog-file)

@@ -17,7 +17,6 @@
 
 (global-set-key [(meta \`)] 'other-frame) ; 如果默认切换无法工作，使用 Emacs 内置的 other-frame 功能。
 (global-set-key [(meta \~)] (lambda () (interactive) (other-frame -1)))
-(global-set-key [(f2)] 'kill-buffer-enhanced) ;关闭当前缓冲区 F2
 ;; (global-set-key [(control \8)] 'delete-window)
 (global-set-key [(control \8)] 'keyboard-escape-quit) ;当前窗口最大化
 (global-set-key [remap dabbrev-expand] 'hippie-expand) ;;替换默认自动补全为hippie-expand
