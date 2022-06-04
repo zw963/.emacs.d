@@ -46,8 +46,8 @@
 ;; 2. lsp-ui-doc-position 从 at-point 改为默认值 top
 ;; 3. lsp-modeline-diagnostics-enable 从 nil 改为默认值 t
 
-;; (require 'lsp-dired)
-;; (lsp-dired-mode t)
+(require 'lsp-dired)
+(lsp-dired-mode t)
 
 ;; lsp-ui auto config completion, code-actions, breadcrumb, ‘flycheck’,
 ;;‘flymake’, ‘imenu’, symbol highlighting, lenses, links, and so on.

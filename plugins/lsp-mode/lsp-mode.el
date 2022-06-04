@@ -176,7 +176,7 @@ As defined by the Language Server Protocol 3.16."
   '(ccls lsp-actionscript lsp-ada lsp-angular lsp-ansible lsp-bash lsp-beancount lsp-clangd lsp-clojure
          lsp-cmake lsp-crystal lsp-csharp lsp-css lsp-d lsp-dart lsp-dhall lsp-docker lsp-dockerfile
          lsp-elm lsp-elixir lsp-emmet lsp-erlang lsp-eslint lsp-fortran lsp-fsharp lsp-gdscript lsp-go
-         lsp-graphql lsp-hack lsp-grammarly lsp-groovy lsp-haskell lsp-haxe lsp-idris lsp-java lsp-javascript
+         lsp-gleam lsp-graphql lsp-hack lsp-grammarly lsp-groovy lsp-haskell lsp-haxe lsp-idris lsp-java lsp-javascript
          lsp-json lsp-kotlin lsp-latex lsp-ltex lsp-lua lsp-markdown lsp-nginx lsp-nim lsp-nix lsp-magik
          lsp-metals lsp-mssql lsp-ocaml lsp-openscad lsp-pascal lsp-perl lsp-perlnavigator lsp-php lsp-pwsh lsp-pyls lsp-pylsp
          lsp-pyright lsp-python-ms lsp-purescript lsp-r lsp-remark lsp-rf lsp-rust lsp-solargraph
@@ -191,6 +191,14 @@ As defined by the Language Server Protocol 3.16."
   "If non-nil, display LSP $/progress reports via a spinner in the modeline."
   :group 'lsp-mode
   :type 'boolean)
+
+(defcustom lsp-progress-spinner-type 'progress-bar
+  "Holds the type of spinner to be used in the mode-line.
+Takes a value accepted by `spinner-start'."
+  :group 'lsp-mode
+  :type `(choice :tag "Choose a spinner by name"
+                 ,@(mapcar (lambda (c) (list 'const (car c)))
+                           spinner-types)))
 
 (defvar-local lsp--cur-workspace nil)
 
@@ -829,7 +837,8 @@ Changes take effect only when a new session is started."
                                         (nginx-mode . "nginx")
                                         (magik-mode . "magik")
                                         (idris-mode . "idris")
-                                        (idris2-mode . "idris2"))
+                                        (idris2-mode . "idris2")
+                                        (gleam-mode . "gleam"))
   "Language id configuration.")
 
 (defvar lsp--last-active-workspaces nil
@@ -1150,8 +1159,9 @@ in emacs 27.
 
 See #2049"
   (when lsp--show-message
-    (let ((inhibit-message (and (minibufferp)
-                                (version< emacs-version "27.0"))))
+    (let ((inhibit-message (or inhibit-message
+                               (and (minibufferp)
+                                    (version< emacs-version "27.0")))))
       (apply #'message format args))))
 
 (defun lsp--info (format &rest args)
@@ -1326,7 +1336,7 @@ the lists according to METHOD."
 
 (defun lsp--spinner-start ()
   "Start spinner indication."
-  (condition-case _err (spinner-start 'progress-bar-filled) (error)))
+  (condition-case _err (spinner-start (lsp-progress-spinner-type)) (error)))
 
 (defun lsp--propertize (str type)
   "Propertize STR as per TYPE."
@@ -1869,7 +1879,7 @@ regex in IGNORED-FILES."
     lsp-actionscript lsp-ada lsp-angular lsp-bash lsp-beancount lsp-clangd
     lsp-clojure lsp-cmake lsp-crystal lsp-csharp lsp-css lsp-d lsp-dhall
     lsp-dockerfile lsp-elixir lsp-elm lsp-erlang lsp-eslint lsp-fortran lsp-fsharp lsp-gdscript
-    lsp-go lsp-graphql lsp-groovy lsp-hack lsp-haxe lsp-html lsp-idris lsp-javascript lsp-json lsp-kotlin lsp-lua
+    lsp-go lsp-gleam lsp-graphql lsp-groovy lsp-hack lsp-haxe lsp-html lsp-idris lsp-javascript lsp-json lsp-kotlin lsp-lua
     lsp-markdown lsp-nginx lsp-nim lsp-nix lsp-ocaml lsp-perl lsp-perlnavigator lsp-php lsp-prolog lsp-purescript lsp-pwsh
     lsp-pyls lsp-pylsp lsp-racket lsp-r lsp-rf lsp-rust lsp-solargraph lsp-sorbet lsp-sqls
     lsp-steep lsp-svelte lsp-terraform lsp-tex lsp-toml lsp-ttcn3 lsp-typeprof lsp-v lsp-vala lsp-verilog
@@ -2054,7 +2064,7 @@ WORKSPACE is the workspace that contains the progress token."
      (-let* (((&WorkDoneProgressBegin :title :percentage?) value)
              (reporter
               (if lsp-progress-via-spinner
-                  (let* ((spinner-strings (alist-get 'progress-bar spinner-types))
+                  (let* ((spinner-strings (alist-get (lsp-progress-spinner-type) spinner-types))
                          ;; Set message as a tooltip for the spinner strings
                          (propertized-strings
                           (seq-map (lambda (string) (propertize string 'help-echo title))
@@ -3483,8 +3493,8 @@ disappearing, unset all the variables related to it."
                       (formatting . ((dynamicRegistration . t)))
                       (rangeFormatting . ((dynamicRegistration . t)))
                       ,@(when (and lsp-semantic-tokens-enable
-                                   (boundp 'lsp-semantic-tokens-capabilities))
-                          lsp-semantic-tokens-capabilities)
+                                   (functionp 'lsp--semantic-tokens-capabilities))
+                          (lsp--semantic-tokens-capabilities))
                       (rename . ((dynamicRegistration . t) (prepareSupport . t)))
                       (codeAction . ((dynamicRegistration . t)
                                      (isPreferredSupport . t)
@@ -5861,7 +5871,8 @@ perform the request synchronously."
                              (setq lsp--document-symbols document-symbols
                                    lsp--document-symbols-tick tick)
                              (lsp--imenu-refresh))
-                           :mode 'alive)
+                           :mode 'alive
+                           :cancel-token :document-symbols)
         lsp--document-symbols))))
 
 (advice-add 'imenu-update-menubar :around
@@ -6463,7 +6474,7 @@ WORKSPACE is the active workspace."
   "Read json from the current buffer."
   (if (progn
         (require 'json)
-        (fboundp 'json-parse-string))
+        (fboundp 'json-parse-buffer))
       `(json-parse-buffer :object-type (if lsp-use-plists
                                            'plist
                                          'hash-table)
@@ -8526,6 +8537,11 @@ Errors if there are none."
   (lsp--warn "Restarting %s" (lsp--workspace-print workspace))
   (with-lsp-workspace workspace (lsp--shutdown-workspace t)))
 
+(defcustom lsp-warn-no-matched-clients t
+  "Don't show message when there are no supported clients."
+  :group 'lsp-mode
+  :type 'boolean)
+
 ;;;###autoload
 (defun lsp (&optional arg)
   "Entry point for the server startup.
@@ -8606,14 +8622,16 @@ You may find the installation instructions at https://emacs-lsp.github.io/lsp-mo
                               clients
                               " ")))
        ;; no matches
-       ((-> #'lsp--supports-buffer? lsp--filter-clients not)
+       ((and lsp-warn-no-matched-clients
+             (-> #'lsp--supports-buffer? lsp--filter-clients not))
         (lsp--error "There are no language servers supporting current mode `%s' registered with `lsp-mode'.
 This issue might be caused by:
 1. The language you are trying to use does not have built-in support in `lsp-mode'. You must install the required support manually. Examples of this are `lsp-java' or `lsp-metals'.
 2. The language server that you expect to run is not configured to run for major mode `%s'. You may check that by checking the `:major-modes' that are passed to `lsp-register-client'.
 3. `lsp-mode' doesn't have any integration for the language behind `%s'. Refer to https://emacs-lsp.github.io/lsp-mode/page/languages and https://langserver.org/ .
 4. You are over `tramp'. In this case follow https://emacs-lsp.github.io/lsp-mode/page/remote/.
-5. You have disabled the `lsp-mode' clients for that file. (Check `lsp-enabled-clients' and `lsp-disabled-clients')."
+5. You have disabled the `lsp-mode' clients for that file. (Check `lsp-enabled-clients' and `lsp-disabled-clients').
+You can customize `lsp-warn-no-matched-clients' to disable this message."
                     major-mode major-mode major-mode))))))
 
 (defun lsp--buffer-visible-p ()
@@ -8815,6 +8833,10 @@ This avoids overloading the server with many files when starting Emacs."
   (lsp-diagnostics-lsp-checker-if-needed)
   (unless (flycheck-checker-supports-major-mode-p 'lsp mode)
     (flycheck-add-mode 'lsp mode)))
+
+(defun lsp-progress-spinner-type ()
+  "Retrive the spinner type value, if value is not a symbol of `spinner-types defaults to 'progress-bar."
+  (or (car (assoc lsp-progress-spinner-type spinner-types)) 'progress-bar))
 
 (defun lsp-org ()
   (interactive)
