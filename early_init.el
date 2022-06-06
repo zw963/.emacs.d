@@ -11,6 +11,7 @@
 (require 'auto-compile_init)
 
 (setq zw/cursor-color-default "#00FF00")
+(setq create-lockfiles nil)
 
 (require 'server)
 ;; Emacs server 设定
