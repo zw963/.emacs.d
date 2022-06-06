@@ -201,9 +201,9 @@
   empty            ; empty lines at beginning/end of buffer
   ;; lines-tail       ; lines go beyond `fill-column'
   space-before-tab ; spaces before tab
-  tabs             ; tabs (show by face)
+  ;; tabs             ; tabs (show by face)
   trailing         ; trailing blanks
-  tab-mark         ; tabs (show by symbol)
+  ;; tab-mark         ; tabs (show by symbol)
   ;; lines space-after-tab
   ;; empty indentation
   ;; newline newline-mark
