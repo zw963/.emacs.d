@@ -8,7 +8,9 @@
                 yaml-mode-hook
                 python-mode-hook
                 dart-mode-hook
-                slim-mode-hook))
+                slim-mode-hook
+                web-mode
+                ))
   (add-hook hook 'highlight-indentation-mode))
 
 (provide 'highlight-indentation_init)
