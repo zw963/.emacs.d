@@ -482,6 +482,7 @@ used to restore window configuration after apply changed.")
     (define-key map (kbd "D") 'color-rg-remove-line-from-results)
 
     (define-key map (kbd "I") 'color-rg-rerun-toggle-ignore)
+    (define-key map (kbd "N") 'color-rg-rerun-toggle-node)
     (define-key map (kbd "C") 'color-rg-rerun-toggle-case)
     (define-key map (kbd "L") 'color-rg-rerun-literal)
     (define-key map (kbd "R") 'color-rg-rerun-regexp)
@@ -620,27 +621,22 @@ This function is called from `compilation-filter-hook'."
 
 (defun color-rg-update-header-line ()
   (setq header-line-format (concat
-                            (propertize "[COLOR-RG] Search '" 'font-lock-face 'color-rg-font-lock-header-line-text)
-                            (propertize (format "%s" (color-rg-search-keyword color-rg-cur-search)) 'font-lock-face 'color-rg-font-lock-header-line-keyword)
-                            (propertize "' in directory: " 'font-lock-face 'color-rg-font-lock-header-line-text)
-                            (propertize (format "%s" (color-rg-search-dir color-rg-cur-search)) 'font-lock-face 'color-rg-font-lock-header-line-directory)
-                            (propertize " Mode: " 'font-lock-face 'color-rg-font-lock-header-line-text)
-                            (propertize (format "%s" (color-rg-search-mode color-rg-cur-search)) 'font-lock-face 'color-rg-font-lock-header-line-edit-mode)
-                            (propertize " Hits: " 'font-lock-face 'color-rg-font-lock-header-line-text)
-                            (propertize (format "%s" color-rg-hit-count) 'font-lock-face 'color-rg-font-lock-header-line-edit-mode)
-                            (propertize " Keys:" 'font-lock-face 'color-rg-font-lock-header-line-text)
-                            (propertize " Navigation " 'font-lock-face 'color-rg-font-lock-header-line-text)
+                            (propertize (format "%s mode" (color-rg-search-mode color-rg-cur-search)) 'font-lock-face 'color-rg-font-lock-match)
+                            (propertize (format " %s matches" color-rg-hit-count) 'font-lock-face 'color-rg-font-lock-header-line-text)
+                            (propertize " [ " 'font-lock-face 'color-rg-font-lock-line-number)
+                            (propertize "Nav " 'font-lock-face 'color-rg-font-lock-header-line-text)
                             (propertize "j / k" 'font-lock-face 'color-rg-font-lock-header-line-edit-mode)
-                            (propertize " Replace " 'font-lock-face 'color-rg-font-lock-header-line-text)
+                            (propertize "  Replace " 'font-lock-face 'color-rg-font-lock-header-line-text)
                             (propertize "r" 'font-lock-face 'color-rg-font-lock-header-line-edit-mode)
-                            (propertize " Edit " 'font-lock-face 'color-rg-font-lock-header-line-text)
+                            (propertize "  Edit " 'font-lock-face 'color-rg-font-lock-header-line-text)
                             (propertize "e" 'font-lock-face 'color-rg-font-lock-header-line-edit-mode)
-                            (propertize " Filter files: " 'font-lock-face 'color-rg-font-lock-header-line-text)
+                            (propertize "  Filter files: " 'font-lock-face 'color-rg-font-lock-header-line-text)
                             (propertize "x / X / u" 'font-lock-face 'color-rg-font-lock-header-line-edit-mode)
-                            (propertize " Filter regex: " 'font-lock-face 'color-rg-font-lock-header-line-text)
+                            (propertize "  Filter regex: " 'font-lock-face 'color-rg-font-lock-header-line-text)
                             (propertize "f / F" 'font-lock-face 'color-rg-font-lock-header-line-edit-mode)
-                            (propertize " Customize " 'font-lock-face 'color-rg-font-lock-header-line-text)
+                            (propertize "  Customize " 'font-lock-face 'color-rg-font-lock-header-line-text)
                             (propertize "C" 'font-lock-face 'color-rg-font-lock-header-line-edit-mode)
+                            (propertize " ]" 'font-lock-face 'color-rg-font-lock-line-number)
                             )))
 
 (cl-defstruct (color-rg-search (:constructor color-rg-search-create)
@@ -653,6 +649,7 @@ This function is called from `compilation-filter-hook'."
   literal      ; literal patterh (t or nil)
   case-sensitive                        ; case-sensitive (t or nil)
   no-ignore                             ; toggle no-ignore (t or nil)
+  no-node                               ; toggle no-node (t or nil)
   mode                                  ; view or edit mode
   )
 
@@ -711,7 +708,7 @@ excluded."
   "Return non nil if FILES is a custom file pattern."
   (not (assoc globs (color-rg-get-type-aliases))))
 
-(defun color-rg-build-command (keyword dir globs &optional literal no-ignore case-sensitive file-exclude)
+(defun color-rg-build-command (keyword dir globs &optional literal no-ignore no-node case-sensitive file-exclude)
   "Create the command line for KEYWORD.
 LITERAL determines if search will be literal or regexp based.
 NO-IGNORE determinies if search not ignore the ignored files.
@@ -734,7 +731,8 @@ CASE-SENSITIVE determinies if search is case-sensitive."
           (when (or color-rg-search-no-ignore-file no-ignore)
             (list "--no-ignore"))
 
-          (list color-rg-search-ignore-rules)
+          (unless no-node
+            (list color-rg-search-ignore-rules))
 
           (when color-rg-search-compressed-file
             (list "-z"))
@@ -775,8 +773,8 @@ CASE-SENSITIVE determinies if search is case-sensitive."
           x))
     x))
 
-(defun color-rg-search (keyword directory globs &optional literal no-ignore case-sensitive file-exclude)
-  (let* ((command (color-rg-build-command keyword directory globs literal no-ignore case-sensitive file-exclude)))
+(defun color-rg-search (keyword directory globs &optional literal no-ignore no-node case-sensitive file-exclude)
+  (let* ((command (color-rg-build-command keyword directory globs literal no-ignore no-node case-sensitive file-exclude)))
     ;; Reset visit temp buffers.
     (setq color-rg-temp-visit-buffers nil)
     ;; Reset hit count.
@@ -808,6 +806,7 @@ CASE-SENSITIVE determinies if search is case-sensitive."
                      :globs globs
                      :file-exclude file-exclude
                      :no-ignore no-ignore
+                     :no-node no-node
                      :literal literal
                      :case-sensitive case-sensitive
                      :mode "View"))
@@ -867,9 +866,11 @@ user more freedom to use rg with special arguments."
 
 (defun color-rg-current-parse-state ()
   "Return parse state of point from beginning of defun."
-  (let ((point (point)))
-    (beginning-of-defun)
-    (parse-partial-sexp (point) point)))
+  (ignore-errors
+    (save-excursion
+      (let ((point (point)))
+        (beginning-of-defun)
+        (parse-partial-sexp (point) point)))))
 
 (defun color-rg-in-string-p (&optional state)
   (or (nth 3 (or state (color-rg-current-parse-state)))
@@ -1208,7 +1209,9 @@ This assumes that `color-rg-in-string-p' has already returned true, i.e.
 (defun color-rg-project-root-dir ()
   (let ((project (project-current)))
     (if project
-        (expand-file-name (cdr project))
+        (if (version< "27.0" emacs-version)
+            (expand-file-name (cdr project))
+          (expand-file-name (car (last project))))
       default-directory)))
 
 (defalias 'color-rg-search-input-in-project 'color-rg-search-project)
@@ -1300,7 +1303,9 @@ This assumes that `color-rg-in-string-p' has already returned true, i.e.
   (interactive)
   ;; Buffer locals will be reset in recompile so we need save them
   ;; here.
-  (let ((cur-search color-rg-cur-search))
+  (let ((cur-search color-rg-cur-search)
+        ;; Fix compatibility issues with doom-emacs, because it changed the value of compilation-buffer-name-function.
+        (compilation-buffer-name-function #'compilation--default-buffer-name))
     (recompile)
     (setq color-rg-cur-search cur-search)))
 
@@ -1314,9 +1319,10 @@ from `color-rg-cur-search'."
         (file-exclude (color-rg-search-file-exclude color-rg-cur-search))
         (literal (color-rg-search-literal color-rg-cur-search))
         (case-sensitive (color-rg-search-case-sensitive color-rg-cur-search))
-        (no-ignore (color-rg-search-no-ignore color-rg-cur-search)))
+        (no-ignore (color-rg-search-no-ignore color-rg-cur-search))
+        (no-node (color-rg-search-no-node color-rg-cur-search)))
     (setcar compilation-arguments
-            (color-rg-build-command keyword dir globs literal no-ignore case-sensitive file-exclude))
+            (color-rg-build-command keyword dir globs literal no-ignore no-node case-sensitive file-exclude))
     ;; Reset hit count.
     (setq color-rg-hit-count 0)
 
@@ -1397,6 +1403,14 @@ This function is the opposite of `color-rg-rerun-change-globs'"
   (let ((ignore (not (color-rg-search-no-ignore color-rg-cur-search))))
     (setf (color-rg-search-no-ignore color-rg-cur-search)
           ignore)
+    (color-rg-rerun)))
+
+(defun color-rg-rerun-toggle-node ()
+  "Rerun last search with toggled '--no-node' flag."
+  (interactive)
+  (let ((node (not (color-rg-search-no-node color-rg-cur-search))))
+    (setf (color-rg-search-no-node color-rg-cur-search)
+          node)
     (color-rg-rerun)))
 
 (defun isearch-toggle-color-rg ()
