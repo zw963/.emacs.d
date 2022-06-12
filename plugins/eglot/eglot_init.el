@@ -16,6 +16,8 @@
 
 (require 'eglot-flycheck_init)
 
+(require 'eldoc-box_init)
+
 (provide 'eglot_init)
 
 ;;; eglot_init.el ends here
