@@ -1,6 +1,6 @@
 ;;; lsp-dart-dap.el --- DAP support for lsp-dart -*- lexical-binding: t; -*-
 ;;
-;; Copyright (C) 2020 Eric Dallo
+;; Copyright (C) 2022 Eric Dallo
 ;;
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -29,7 +29,7 @@
 (require 'lsp-dart-flutter-daemon)
 (require 'lsp-dart-devtools)
 
-(defcustom lsp-dart-dap-extension-version "3.36.0"
+(defcustom lsp-dart-dap-extension-version "3.40.0"
   "The extension version."
   :group 'lsp-dart
   :type 'string)
@@ -194,9 +194,6 @@ Required to support 'Inspect Widget'."
       lsp-dart-dap--base-debugger-args
       (dap--put-if-absent :type "dart")
       (dap--put-if-absent :name "Dart")
-      (dap--put-if-absent :dap-server-path (if (lsp-dart-dap-use-sdk-debugger-p)
-                                               `(,(lsp-dart-dart-command) "debug_adapter")
-                                             lsp-dart-dap-dart-debugger-program))
       (dap--put-if-absent :program (or (lsp-dart-get-project-entrypoint)
                                        (buffer-file-name)))))
 
@@ -207,6 +204,7 @@ Required to support 'Inspect Widget'."
 ;; Flutter
 
 (declare-function all-the-icons-faicon "ext:all-the-icons")
+(declare-function all-the-icons-material "ext:all-the-icons")
 
 (defun lsp-dart-dap--device-label (id name is-device platform)
   "Return a friendly label for device with ID, NAME IS-DEVICE and PLATFORM.
@@ -222,6 +220,9 @@ Check for icons if supports it."
         (pcase platform
           ("web" (concat (all-the-icons-faicon "chrome" :face 'all-the-icons-blue :v-adjust 0.0) " " type-text " - " device-name))
           ("android" (concat (all-the-icons-faicon "android" :face 'all-the-icons-green  :v-adjust 0.0) " " type-text " - " device-name))
+          ("linux" (concat (all-the-icons-faicon "linux" :face 'all-the-icons-yellow  :v-adjust 0.0) " " type-text " - " device-name))
+          ("macos" (concat (all-the-icons-material "laptop_mac" :face 'all-the-icons-lsilver  :v-adjust 0.0) " " type-text " - " device-name))
+          ("windows" (concat (all-the-icons-faicon "windows" :face 'all-the-icons-blue  :v-adjust 0.0) " " type-text " - " device-name))
           ("ios" (concat (all-the-icons-faicon "apple" :face 'all-the-icons-lsilver :v-adjust 0.0) " " type-text " - " device-name))
           (_ default))
       default)))
@@ -247,9 +248,6 @@ Call CALLBACK when the device is chosen and started successfully."
                       lsp-dart-dap--base-debugger-args
                       (dap--put-if-absent :type "flutter")
                       (dap--put-if-absent :flutterMode "debug")
-                      (dap--put-if-absent :dap-server-path (if (lsp-dart-dap-use-sdk-debugger-p)
-                                                               `(,(lsp-dart-flutter-command) "debug_adapter")
-                                                             lsp-dart-dap-flutter-debugger-program))
                       (dap--put-if-absent :program (or (lsp-dart-get-project-entrypoint)
                                                        (buffer-file-name))))))
     (lambda (start-debugging-callback)
@@ -259,7 +257,11 @@ Call CALLBACK when the device is chosen and started successfully."
                   (-> pre-conf
                       (dap--put-if-absent :deviceId device-id)
                       (dap--put-if-absent :deviceName device-name)
+                      (dap--put-if-absent :dap-server-path (if (lsp-dart-dap-use-sdk-debugger-p)
+                                                               `(,(lsp-dart-flutter-command) "debug_adapter" "-d" ,device-id)
+                                                             lsp-dart-dap-flutter-debugger-program))
                       (dap--put-if-absent :flutterPlatform "default")
+                      (dap--put-if-absent :toolArgs `("-d" ,device-id))
                       (dap--put-if-absent :name (concat "Flutter (" device-name ")")))))))))
 
 (dap-register-debug-provider "flutter" 'lsp-dart-dap--populate-flutter-start-file-args)
@@ -358,6 +360,8 @@ Call CALLBACK when the device is chosen and started successfully."
 (cl-defmethod dap-handle-event ((_event (eql dart.flutter.updatePlatformOverride)) _session _params)
   "Ignore this event.")
 (cl-defmethod dap-handle-event ((_event (eql dart.flutter.updateIsWidgetCreationTracked)) _session _params)
+  "Ignore this event.")
+(cl-defmethod dap-handle-event ((_event (eql flutter.serviceExtensionStateChanged)) _session _params)
   "Ignore this event.")
 
 (cl-defmethod dap-handle-event ((_event (eql dart.testRunNotification)) _session _params)
@@ -482,7 +486,8 @@ Run program PATH if not nil passing ARGS if not nil."
   :lighter nil
   (cond
    (lsp-dart-dap-mode
-    (add-hook 'after-save-hook #'lsp-dart-dap--on-save))
+    (add-hook 'after-save-hook #'lsp-dart-dap--on-save)
+    (add-to-list 'dap-output-buffer-filter "console"))
    (t
     (remove-hook 'after-save-hook #'lsp-dart-dap--on-save))))
 

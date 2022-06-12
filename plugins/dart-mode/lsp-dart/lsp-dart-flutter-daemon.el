@@ -1,6 +1,6 @@
 ;;; lsp-dart-flutter-daemon.el --- Helper for the Flutter daemon -*- lexical-binding: t; -*-
 ;;
-;; Copyright (C) 2020 Eric Dallo
+;; Copyright (C) 2022 Eric Dallo
 ;;
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -155,8 +155,8 @@ of this command."
      "device.getDevices"
      nil
      (-lambda (devices)
-       (if-let (emulator-running? (-first (-lambda ((&FlutterDaemonDevice :emulator-id?)) (string= emulator-id? id)) (append devices nil)))
-           (funcall callback device)
+       (if-let (emulator-running (-first (-lambda ((&FlutterDaemonDevice :emulator-id?)) (string= emulator-id? id)) (append devices nil)))
+           (funcall callback emulator-running)
          (-let* ((params (lsp-make-flutter-daemon-emulator-launch :emulator-id id)))
            (add-to-list 'lsp-dart-flutter-daemon-device-added-listeners
                         (cons id (list :callback callback)))
