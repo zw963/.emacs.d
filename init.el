@@ -8,10 +8,14 @@
 (require 'treemacs_init)
 
 (require 'fancy-narrow_init)
+(require 'zoom-frm_init)
+;; (require 'helpful_init)
+(require 'back-button_init)
+(require 'bm_init)
+
 (require 'avy_init)
 (require 'beacon_init)
 (require 'which-key_init)
-(require 'zoom-frm_init)
 (require 'doom-modeline_init)
 (require 'rich-minority_init)
 (require 'show-point-mode_init)
@@ -24,15 +28,12 @@
 (require 'toggle-quotes_init)
 (require 'beyond-compare_init)
 ;; (require 'ido_init)
-(require 'helm_init) ;; helm 放到 ivy 后面，可以覆盖某些 ivy 覆盖的快捷键。
-;; (require 'helm-bindings_init) ; 和 ivy_init 冲突， 二者选其一.
-(require 'ivy_init)
+(require 'helm_init)
+(require 'helm-bindings_init) ; 和 ivy_init 冲突， 二者选其一.
+;; (require 'ivy_init)
 (require 'prescient_init) ;; 这个必须放在 ivy_init 后面.
 (require 'yasnippet_init)
 (require 'anzu_init)
-(require 'back-button_init)
-(require 'bm_init)
-(require 'helpful_init)
 (require 'wgrep_init)
 (require 'quickrun_init)
 (require 'amx_init)
