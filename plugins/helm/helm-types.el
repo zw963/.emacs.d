@@ -1,8 +1,8 @@
 ;;; helm-types.el --- Helm types classes and methods. -*- lexical-binding: t -*-
 
-;; Copyright (C) 2015 ~ 2020  Thierry Volpiatto <thierry.volpiatto@gmail.com>
+;; Copyright (C) 2015 ~ 2020  Thierry Volpiatto 
 
-;; Author: Thierry Volpiatto <thierry.volpiatto@gmail.com>
+;; Author: Thierry Volpiatto 
 ;; URL: http://github.com/emacs-helm/helm
 
 ;; This program is free software; you can redistribute it and/or modify
@@ -170,10 +170,12 @@
    "Switch to buffer(s)" 'helm-buffer-switch-buffers
    "Switch to buffer(s) other window `C-c o'"
    'helm-buffer-switch-buffers-other-window
-   "Switch to buffer other frame `C-c C-o'"
-   'switch-to-buffer-other-frame
+   "Switch to buffer(s) other frame `C-c C-o'"
+   'helm-buffer-switch-to-buffer-other-frame
+   "Raise buffer frame maybe"
+   'helm-buffers-maybe-raise-buffer-frame
    (lambda () (and (fboundp 'tab-bar-mode)
-                   "Switch to buffer other tab `C-c C-t'"))
+                   "Switch to buffer(s) other tab `C-c C-t'"))
    'helm-buffers-switch-to-buffer-other-tab
    "Switch to buffer at line number"
    'helm-switch-to-buffer-at-linum

@@ -1,6 +1,6 @@
 ;;; helm-sys.el --- System related functions for helm. -*- lexical-binding: t -*-
 
-;; Copyright (C) 2012 ~ 2021 Thierry Volpiatto <thierry.volpiatto@gmail.com>
+;; Copyright (C) 2012 ~ 2021 Thierry Volpiatto 
 
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -41,20 +41,20 @@
   "Top command used to display output of top.
 A format string where %s will be replaced with `frame-width'.
 
-To use 'top' command, a version supporting batch mode (-b option)
-is needed. On Mac OSX 'top' command doesn't support this, so the
+To use \\='top' command, a version supporting batch mode (-b option)
+is needed. On Mac OSX \\='top' command doesn't support this, so the
 'ps' command is used instead by default.
 
-Normally 'top' command output have 12 columns, but in some
+Normally \\='top' command output have 12 columns, but in some
 versions you may have less than this, so you can either customize
-top to use 12 columns with the interactives 'f' and 'W' commands
+top to use 12 columns with the interactives \\='f' and \\='W' commands
 of top, or modify `helm-top-sort-columns-alist' to fit with the
-number of columns your 'top' command is using.
+number of columns your \\='top' command is using.
 
-If you modify 'ps' command be sure that 'pid' comes in first and
+If you modify \\='ps' command be sure that \\='pid' comes in first and
 \"env COLUMNS=%s\" is specified at beginning of command. Ensure
 also that no elements contain spaces (e.g., use start_time and
-not start). Same as for 'top': you can customize
+not start). Same as for \\='top': you can customize
 `helm-top-sort-columns-alist' to make sort commands working
 properly according to your settings."
   :group 'helm-sys
@@ -65,9 +65,10 @@ properly according to your settings."
                                         (cpu . 8)
                                         (user . 1))
   "Allow defining which column to use when sorting output of top/ps command.
-Only com, mem, cpu and user are sorted, so no need to put something else there,
-it will have no effect.
-Note that column numbers are counted from zero, i.e. column 1 is the nth 0 column."
+Only com, mem, cpu and user are sorted, so no need to put something
+else there,it will have no effect.
+Note that column numbers are counted from zero, i.e. column 1 is the
+nth 0 column."
   :group 'helm-sys
   :type '(alist :key-type symbol :value-type (integer :tag "Column number")))
 
@@ -86,7 +87,7 @@ being idle."
 
 (defcustom helm-top-poll-preselection 'linum
   "Stay on same line or follow candidate when `helm-top-poll' updates display.
-Possible values are 'candidate or 'linum.
+Possible values are \\='candidate or \\='linum.
 This affects also sorting functions in the same way."
   :group'helm-sys
   :type '(radio :tag "Preferred preselection action for helm-top"

@@ -1,6 +1,6 @@
 ;;; helm-utils.el --- Utilities Functions for helm. -*- lexical-binding: t -*-
 
-;; Copyright (C) 2012 ~ 2021 Thierry Volpiatto <thierry.volpiatto@gmail.com>
+;; Copyright (C) 2012 ~ 2021 Thierry Volpiatto 
 
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -45,7 +45,7 @@
 (defvar helm-buffers-maybe-switch-to-tab)
 (defvar helm-ff-transformer-show-only-basename)
 (defvar helm-popup-tip-mode)
-
+(defvar helm-ff-last-expanded-candidate-regexp)
 
 
 (defgroup helm-utils nil
@@ -85,10 +85,11 @@ Possible value are:
                        (integer :tag "Match after"))
                  (const :tag "Match in line only" 0)
                  (integer :tag "Match after or before (+/-)")
-                 (const  :tag "Never match" 'never)))
+                 (const  :tag "Never match" never)))
 
 (defcustom helm-buffers-to-resize-on-pa nil
-  "A list of helm buffers where the helm-window should be reduced on persistent actions."
+  "A list of helm buffers where the helm-window should be reduced on PA.
+Where PA means persistent action."
   :group 'helm-utils
   :type '(repeat (choice string)))
 
@@ -104,8 +105,9 @@ Possible value are:
 
 (defcustom helm-html-decode-entities-function #'helm-html-decode-entities-string
   "Function used to decode HTML entities in HTML bookmarks.
-Helm comes by default with `helm-html-decode-entities-string', if you need something
-more sophisticated you can use `w3m-decode-entities-string' if available.
+Helm comes by default with `helm-html-decode-entities-string', if
+you need something more sophisticated you can use
+`w3m-decode-entities-string' if available.
 
 In Emacs itself org-entities seem broken and `xml-substitute-numeric-entities'
 supports only numeric entities."
@@ -626,7 +628,7 @@ from its directory."
 
 (defun helm-generic-sort-fn (s1 s2)
   "Sort predicate function for helm candidates.
-Args S1 and S2 can be single or \(display . real\) candidates,
+Args S1 and S2 can be single or (display . real) candidates,
 that is sorting is done against real value of candidate."
   (let* ((qpattern (regexp-quote helm-pattern))
          (reg1  (concat "\\_<" qpattern "\\_>"))
@@ -717,14 +719,14 @@ Availables keys are:
 - GID-CHANGE: See nth 9 `files-attributes'.
 - INODE: See nth 10 `files-attributes'.
 - DEVICE-NUM: See nth 11 `files-attributes'.
-- DIRED: A line similar to what 'ls -l' return.
+- DIRED: A line similar to what \\='ls -l' return.
 - HUMAN-SIZE: The size in human form, see `helm-file-human-size'.
 - MODE-TYPE, mode-owner,mode-group, mode-other: Split what
   nth 7 `files-attributes' return in four categories.
 - STRING: When non--nil (default) `helm-file-attributes' return
           more friendly values.
 If you want the same behavior as `files-attributes' ,
-\(but with return values in proplist\) use a nil value for STRING.
+\(but with return values in proplist) use a nil value for STRING.
 However when STRING is non--nil, time and type value are different from what
 you have in `file-attributes'."
   (helm-aif (file-attributes file string)

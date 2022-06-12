@@ -1,6 +1,6 @@
 ;;; helm-imenu.el --- Helm interface for Imenu -*- lexical-binding: t -*-
 
-;; Copyright (C) 2012 ~ 2021 Thierry Volpiatto <thierry.volpiatto@gmail.com>
+;; Copyright (C) 2012 ~ 2021 Thierry Volpiatto 
 
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -24,7 +24,14 @@
 (require 'helm-utils)
 (require 'helm-help)
 
+(defvar all-the-icons-default-adjust)
+(defvar all-the-icons-scale-factor)
+
 (declare-function which-function "which-func")
+(declare-function all-the-icons-material "ext:all-the-icons.el")
+(declare-function all-the-icons-octicon  "ext:all-the-icons.el")
+(declare-function all-the-icons-faicon   "ext:all-the-icons.el")
+(declare-function all-the-icons-wicon    "ext:all-the-icons.el")
 
 
 (defgroup helm-imenu nil
@@ -46,8 +53,8 @@
   "Major mode association alist for `helm-imenu-in-all-buffers'.
 Allow `helm-imenu-in-all-buffers' searching in these associated
 buffers even if they are not derived from each other.  The alist
-is bidirectional, i.e. no need to add '((foo . bar) (bar . foo)),
-only '((foo . bar)) is needed."
+is bidirectional, i.e. no need to add \\='((foo . bar) (bar . foo)),
+only \\='((foo . bar)) is needed."
   :type '(alist :key-type symbol :value-type symbol)
   :group 'helm-imenu)
 
@@ -84,6 +91,101 @@ string."
   "Extra modes where `helm-imenu-in-all-buffers' should look into."
   :group 'helm-imenu
   :type '(repeat symbol))
+
+(defcustom helm-imenu-hide-item-type-name nil
+  "Hide display name of imenu item type along with the icon when non nil.
+
+This value can be toggled with \\<helm-imenu-map>\\[helm-imenu-toggle-type-view]."
+  :group 'helm-imenu
+  :type 'boolean)
+
+(defcustom helm-imenu-use-icon nil
+  "Display an icon from all-the-icons package when non nil."
+  :group 'helm-imenu
+  :type 'boolean)
+
+(defcustom helm-imenu-icon-type-alist
+  '(("Array"           . (all-the-icons-material "crop" :face font-lock-builtin-face))
+    ("Array"           . (all-the-icons-material "crop" :face font-lock-builtin-face))
+    ("Boolean"         . (all-the-icons-material "crop" :face font-lock-builtin-face))
+    ("Boolean"         . (all-the-icons-material "crop" :face font-lock-builtin-face))
+    ("Class"           . (all-the-icons-octicon "package" :face font-lock-type-face))
+    ("Class"           . (all-the-icons-octicon "package" :face font-lock-type-face))
+    ("Color"           . (all-the-icons-material "color_lens" :face font-lock-builtin-face))
+    ("Colors"          . (all-the-icons-material "color_lens" :face font-lock-builtin-face))
+    ("Constant"        . (all-the-icons-material "crop" :face font-lock-builtin-face))
+    ("Constants"       . (all-the-icons-material "crop" :face font-lock-builtin-face))
+    ("Constructor"     . (all-the-icons-faicon "cube" :face font-lock-function-name-face))
+    ("Constructors"    . (all-the-icons-faicon "cube" :face font-lock-function-name-face))
+    ("Enum Member"     . (all-the-icons-octicon "three-bars" :face font-lock-type-face))
+    ("Enum Members"    . (all-the-icons-octicon "three-bars" :face font-lock-type-face))
+    ("Enum"            . (all-the-icons-faicon "cog" :face font-lock-type-face))
+    ("Enums"           . (all-the-icons-faicon "cog" :face font-lock-type-face))
+    ("Event"           . (all-the-icons-wicon "lightning" :face font-lock-builtin-face))
+    ("Events"          . (all-the-icons-wicon "lightning" :face font-lock-builtin-face))
+    ("Field"           . (all-the-icons-octicon "three-bars" :face font-lock-type-face))
+    ("Fields"          . (all-the-icons-octicon "three-bars" :face font-lock-type-face))
+    ("File"            . (all-the-icons-faicon "file" :face font-lock-variable-name-face))
+    ("Files"           . (all-the-icons-faicon "file" :face font-lock-variable-name-face))
+    ("Folder"          . (all-the-icons-faicon "folder" :face font-lock-variable-name-face))
+    ("Folders"         . (all-the-icons-faicon "folder" :face font-lock-variable-name-face))
+    ("Interface"       . (all-the-icons-octicon "package" :face font-lock-builtin-face))
+    ("Interfaces"      . (all-the-icons-octicon "package" :face font-lock-builtin-face))
+    ("Keyword"         . (all-the-icons-octicon "key" :face font-lock-builtin-face))
+    ("Keywords"        . (all-the-icons-octicon "key" :face font-lock-builtin-face))
+    ("Method"          . (all-the-icons-faicon "cube" :face font-lock-function-name-face))
+    ("Methods"         . (all-the-icons-faicon "cube" :face font-lock-function-name-face))
+    ("Defun"           . (all-the-icons-faicon "cube" :face font-lock-function-name-face))
+    ("Defuns"          . (all-the-icons-faicon "cube" :face font-lock-function-name-face))
+    ("Fn"              . (all-the-icons-faicon "cube" :face font-lock-function-name-face))
+    ("Fns"             . (all-the-icons-faicon "cube" :face font-lock-function-name-face))
+    ("Function"        . (all-the-icons-faicon "cube" :face font-lock-function-name-face))
+    ("Functions"       . (all-the-icons-faicon "cube" :face font-lock-function-name-face))
+    ("Misc"            . (all-the-icons-faicon "globe" :face font-lock-function-name-face))
+    ("Miscs"           . (all-the-icons-faicon "globe" :face font-lock-function-name-face))
+    ("Module"          . (all-the-icons-faicon "angle-double-right" :face font-lock-builtin-face))
+    ("Modules"         . (all-the-icons-faicon "angle-double-right" :face font-lock-builtin-face))
+    ("Numeric"         . (all-the-icons-material "crop" :face font-lock-builtin-face))
+    ("Numeric"         . (all-the-icons-material "crop" :face font-lock-builtin-face))
+    ("Object"          . (all-the-icons-faicon "angle-double-right" :face font-lock-builtin-face))
+    ("Objects"         . (all-the-icons-faicon "angle-double-right" :face font-lock-builtin-face))
+    ("Operator"        . (all-the-icons-faicon "calculator" :face font-lock-builtin-face))
+    ("Operators"       . (all-the-icons-faicon "calculator" :face font-lock-builtin-face))
+    ("Property"        . (all-the-icons-octicon "book" :face font-lock-variable-name-face))
+    ("Properties"      . (all-the-icons-octicon "book" :face font-lock-variable-name-face))
+    ("Reference"       . (all-the-icons-octicon "book" :face font-lock-variable-name-face))
+    ("References"      . (all-the-icons-octicon "book" :face font-lock-variable-name-face))
+    ("Snippet"         . (all-the-icons-material "border_style" :face font-lock-variable-name-face))
+    ("Snippet"         . (all-the-icons-material "border_style" :face font-lock-variable-name-face))
+    ("String"          . (all-the-icons-material "text_fields" :face font-lock-variable-name-face))
+    ("Strings"         . (all-the-icons-material "text_fields" :face font-lock-variable-name-face))
+    ("Struct"          . (all-the-icons-faicon "cog" :face font-lock-type-face))
+    ("Structs"         . (all-the-icons-faicon "cog" :face font-lock-type-face))
+    ("Text"            . (all-the-icons-material "text_fields" :face font-lock-variable-name-face))
+    ("Texts"           . (all-the-icons-material "text_fields" :face font-lock-variable-name-face))
+    ("Top level"       . (all-the-icons-faicon "globe" :face font-lock-function-name-face))
+    ("Trait"           . (all-the-icons-octicon "package" :face font-lock-builtin-face))
+    ("Traits"          . (all-the-icons-octicon "package" :face font-lock-builtin-face))
+    ("Type"            . (all-the-icons-faicon "cog" :face font-lock-type-face))
+    ("Types"           . (all-the-icons-faicon "cog" :face font-lock-type-face))
+    ("Type Parameter"  . (all-the-icons-material "code" :face font-lock-type-face))
+    ("Type Parameters" . (all-the-icons-material "code" :face font-lock-type-face))
+    ("Unit"            . (all-the-icons-faicon "bar-chart" :face font-lock-builtin-face))
+    ("Units"           . (all-the-icons-faicon "bar-chart" :face font-lock-builtin-face))
+    ("Value"           . (all-the-icons-faicon "cog" :face font-lock-type-face))
+    ("Values"          . (all-the-icons-faicon "cog" :face font-lock-type-face))
+    ("Variable"        . (all-the-icons-octicon "book" :face font-lock-variable-name-face))
+    ("Variables"       . (all-the-icons-octicon "book":face font-lock-variable-name-face)))
+  "An alist of types associated with a sexp returning an icon.
+The sexp should be an `all-the-icons' function with its args."
+  :type '(alist :key-type string :value-type sexp)
+  :group 'helm-imenu)
+
+(defcustom helm-imenu-default-type-sexp
+  '(all-the-icons-faicon "globe" :face font-lock-function-name-face)
+  "Default sexp to use when no type for an object is found."
+  :type 'sexp
+  :group 'helm-imenu)
 
 ;;; keymap
 (defvar helm-imenu-map
@@ -91,7 +193,25 @@ string."
     (set-keymap-parent map helm-map)
     (define-key map (kbd "M-<down>") 'helm-imenu-next-section)
     (define-key map (kbd "M-<up>")   'helm-imenu-previous-section)
+    (define-key map (kbd "C-]") 'helm-imenu-toggle-type-view)
     map))
+
+(defun helm-imenu-toggle-type-view ()
+  "Toggle candidate type view."
+  (interactive)
+  (with-helm-window
+    (setq helm-imenu-hide-item-type-name (not helm-imenu-hide-item-type-name))
+    (let* ((sel  (substring (helm-get-selection nil 'withprop)
+                            (if helm-imenu-use-icon 2 0)))
+           (type (get-text-property 1 'type-name sel)))
+      (setq sel (substring-no-properties sel))
+      (helm-force-update (if helm-imenu-hide-item-type-name
+                             (format "^[ ]*%s$"
+                                     (car (last (split-string
+                                                 sel helm-imenu-delimiter t))))
+                           (format "^[ ]*%s / %s$"
+                                   type sel))))))
+(put 'helm-imenu-toggle-type-view 'no-helm-mx t)
 
 (defcustom helm-imenu-lynx-style-map nil
   "Use Arrow keys to jump to occurences."
@@ -109,10 +229,11 @@ string."
 (defun helm-imenu-next-or-previous-section (n)
   (with-helm-window
     (let* ((fn (lambda ()
-                 (car (split-string
-                       (buffer-substring
-                        (point-at-bol) (point-at-eol))
-                       helm-imenu-delimiter))))
+                 (let ((str (buffer-substring
+                             (point-at-bol) (point-at-eol))))
+                   (if helm-imenu-hide-item-type-name
+                       (get-text-property 1 'type-name str)
+                   (car (split-string str helm-imenu-delimiter))))))
            (curtype (funcall fn))
            (stop-fn (if (> n 0)
                         #'helm-end-of-source-p
@@ -143,6 +264,7 @@ string."
 (make-variable-buffer-local 'helm-cached-imenu-tick)
 
 (defvar helm-imenu--in-all-buffers-cache nil)
+
 
 (defvar helm-source-imenu nil "See (info \"(emacs)Imenu\")")
 (defvar helm-source-imenu-all nil)
@@ -294,6 +416,19 @@ string."
         (and prop (push prop lst)))
       lst)))
 
+(defun helm-imenu-icon-for-type (type)
+  "Return an icon for type TYPE.
+The icon is found in `helm-imenu-icon-type-alist', if not
+`helm-imenu-default-type-sexp' is evaled to provide a default icon."
+  (require 'all-the-icons)
+  (let ((all-the-icons-scale-factor 1.0)
+        (all-the-icons-default-adjust 0.0))
+    (or (helm-aand (assoc-default
+                    type helm-imenu-icon-type-alist)
+                   (apply (car it) (cdr it)))
+        (apply (car helm-imenu-default-type-sexp)
+               (cdr helm-imenu-default-type-sexp)))))
+
 (defun helm-imenu-transformer (candidates)
   (cl-loop for (k . v) in candidates
            ;; (k . v) == (symbol-name . marker)
@@ -308,17 +443,30 @@ string."
                                      "Function"
                                    "Top level")
                                  k))
-           for disp1 = (mapconcat
-                        (lambda (x)
-                          (propertize
-                           x 'face
-                           (cl-loop for (p . f) in helm-imenu-type-faces
-                                    when (string-match p x) return f
-                                    finally return 'default)))
-                        types helm-imenu-delimiter)
-           for disp = (propertize disp1 'help-echo bufname 'types types)
+           for type-icon = (and helm-imenu-use-icon
+                                (helm-imenu-icon-for-type (car types)))
+           for type-name = (propertize
+                            (car types) 'face
+                            (cl-loop for (p . f) in helm-imenu-type-faces
+                                     when (string-match p (car types))
+                                     return f
+                                     finally return 'default))
+           for disp1 = (mapconcat 'identity
+                                  (cdr types)
+                                  (propertize helm-imenu-delimiter
+                                              'face 'shadow))
+           for disp = (concat (if helm-imenu-use-icon
+                                  (concat (propertize " " 'display type-icon) " ")
+                                "")
+                              (if helm-imenu-hide-item-type-name
+                                  ""
+                                (concat type-name
+                                        (propertize helm-imenu-delimiter
+                                                    'face 'shadow)))
+                              (propertize disp1 'help-echo bufname 'types types))
            collect
-           (cons disp (cons k v))))
+           (cons (propertize disp 'type-name type-name) (cons k v))))
+
 
 ;;;###autoload
 (defun helm-imenu ()
@@ -344,7 +492,7 @@ string."
 
 ;;;###autoload
 (defun helm-imenu-in-all-buffers ()
-  "Preconfigured `helm' for fetching imenu entries in all buffers with similar mode as current.
+  "Fetch Imenu entries in all buffers with similar mode as current.
 A mode is similar as current if it is the same, it is derived
 i.e. `derived-mode-p' or it have an association in
 `helm-imenu-all-buffer-assoc'."

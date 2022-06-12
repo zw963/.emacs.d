@@ -1,8 +1,8 @@
 ;;; helm-source.el --- Helm source creation. -*- lexical-binding: t -*-
 
-;; Copyright (C) 2015 ~ 2020  Thierry Volpiatto <thierry.volpiatto@gmail.com>
+;; Copyright (C) 2015 ~ 2020  Thierry Volpiatto 
 
-;; Author: Thierry Volpiatto <thierry.volpiatto@gmail.com>
+;; Author: Thierry Volpiatto 
 ;; URL: http://github.com/emacs-helm/helm
 
 ;; This program is free software; you can redistribute it and/or modify
@@ -44,14 +44,15 @@
 ;;  Make Classes's docstrings more readable by removing al the
 ;;  unnecessary crap.
 
-(defun helm-source--cl--print-table (_header rows)
+(defun helm-source--cl--print-table (&rest args)
   "Advice for `cl--print-table' to make readable class slots docstrings."
-  (let ((format "%s\n\n  Initform=%s\n\n%s"))
-    (dolist (row rows)
-      (setcar row (propertize (car row) 'face 'bold))
-      (setcdr row (nthcdr 1 (cdr row)))
-      (insert "\n* " (apply #'format format row) "\n"))))
-
+  (cl-flet ((print-rows (rows)
+              (let ((format "%s\n\n  Initform=%s\n\n%s"))
+                (dolist (row rows)
+                  (setcar row (propertize (car row) 'face 'bold))
+                  (setcdr row (nthcdr 1 (cdr row)))
+                  (insert "\n* " (apply #'format format row) "\n")))))
+    (print-rows (cadr args))))
 
 (cl-defgeneric helm--setup-source (source)
   "Prepare slots and handle slot errors before creating a helm source.")
@@ -186,9 +187,9 @@
     (defun foo-persistent-action (candidate)
        (do-something candidate))
 
-    :persistent-action '(foo-persistent-action . never-split) ; Don't split
+    :persistent-action \\='(foo-persistent-action . never-split) ; Don't split
   or
-    :persistent-action 'foo-persistent-action ; Split
+    :persistent-action \\='foo-persistent-action ; Split
 
   When specifying :persistent-action by slot directly, foo-persistent-action
   will be executed without quitting helm when hitting `C-j'.
@@ -204,8 +205,8 @@
        \"Delete current candidate without quitting.\"
        (interactive)
        (with-helm-alive-p
-         (helm-set-attr 'quick-delete '(helm-ff-quick-delete . never-split))
-         (helm-execute-persistent-action 'quick-delete)))
+         (helm-set-attr \\='quick-delete \\='(helm-ff-quick-delete . never-split))
+         (helm-execute-persistent-action \\='quick-delete)))
 
   This function is then bound in `helm-find-files-map'.")
 
@@ -224,13 +225,13 @@
               ;; Don't split helm-window.
               (cons (lambda (_ignore)
                       (do-something candidate))
-                    'no-split))
+                    \\='no-split))
              ;; Split helm-window.
              (something-else
               (lambda (_ignore)
                 (do-something-else candidate)))))
 
-     :persistent-action-if 'foo-persistent-action
+     :persistent-action-if \\='foo-persistent-action
 
   Here when hitting `C-j' one of the lambda's will be executed
   depending on something or something-else condition, splitting or not
@@ -362,7 +363,7 @@
   Example:
 
     (helm :sources (helm-build-sync-source \"test\"
-                 :candidates '(a b c d e)
+                 :candidates \\='(a b c d e)
                  :display-to-real (lambda (c) (concat c \":modified by d-t-r\")))
       :buffer \"*helm test*\")
 
@@ -383,7 +384,7 @@
   Example:
 
     (helm :sources (helm-build-sync-source \"test\"
-                 :candidates '((\"foo\" . 1) (\"bar\" . 2) (\"baz\". 3))
+                 :candidates \\='((\"foo\" . 1) (\"bar\" . 2) (\"baz\". 3))
                  :real-to-display (lambda (c) (format \"%s\" (1+ c))))
       :buffer \"*helm test*\")
 
@@ -396,7 +397,7 @@
     :documentation
     "  Get candidates with their properties in `helm-marked-candidates'.
   Allow using the FORCE-DISPLAY-PART of `helm-get-selection' in marked
-  candidates, use t or 'withprop to pass it to `helm-get-selection'.")
+  candidates, use t or \\='withprop to pass it to `helm-get-selection'.")
 
    (action-transformer
     :initarg :action-transformer
@@ -469,14 +470,18 @@
   in the list of results and then results from the other
   functions, respectively.
 
-  If the special symbol `diacritics' is given as value helm will match
-  diacritics candidates with `char-fold-to-regexp'.
- 
   This attribute has no effect for asynchronous sources (see
   attribute `candidates'), and sources using `match-dynamic'
   since they perform pattern matching themselves.
 
   Note that FUZZY-MATCH slot will overhide value of this slot.")
+
+   (diacritics
+    :initarg :diacritics
+    :initform nil
+    :custom boolean
+    :documentation
+    "  Ignore diacritics when searching.")
 
    (match-on-real
     :initarg :match-on-real
@@ -594,8 +599,8 @@
     :documentation
     "  Function called with no parameters at end of initialization
   when `helm-resume' is started.
-  If this function try to do something against `helm-buffer', \(e.g updating,
-  searching etc...\) probably you should run it in a timer to ensure
+  If this function try to do something against `helm-buffer', (e.g updating,
+  searching etc...) probably you should run it in a timer to ensure
   `helm-buffer' is ready.")
 
    (follow
@@ -718,7 +723,7 @@
     :custom boolean
     :documentation
     "  Enable migemo.
-  When multimatch is disabled, you can give the symbol 'nomultimatch as value
+  When multimatch is disabled, you can give the symbol \\='nomultimatch as value
   to force not using generic migemo matching function.
   In this case you have to provide your own migemo matching funtion
   that kick in when `helm-migemo-mode' is enabled.
@@ -806,7 +811,7 @@ inherit from `helm-source'.")
     :custom boolean
     :documentation
     "  Enable migemo.
-  When multimatch is disabled, you can give the symbol 'nomultimatch as value
+  When multimatch is disabled, you can give the symbol \\='nomultimatch as value
   to force not using generic migemo matching function.
   In this case you have to provide your own migemo matching funtion
   that kick in when `helm-migemo-mode' is enabled.
@@ -821,7 +826,7 @@ inherit from `helm-source'.")
 
    (match
     :initform '(identity))
-
+   
    (get-line
     :initarg :get-line
     :initform 'buffer-substring-no-properties
@@ -977,10 +982,12 @@ Arguments ARGS are keyword value pairs as defined in CLASS."
 (defvar helm-mm-default-match-functions)
 
 (defun helm-source-mm-get-search-or-match-fns (source method)
-  (let* (diacritics
+  "Prepare match or search functions for class SOURCE.
+Argument METHOD is the matching method used by SOURCE either `match'
+or `search'."
+  (let* ((diacritics       (slot-value source 'diacritics))
          (defmatch         (helm-aif (slot-value source 'match)
-                               (unless (setq diacritics (eq it 'diacritics))
-                                 (helm-mklist it))))
+                               (helm-mklist it)))
          (defmatch-strict  (helm-aif (and (eq method 'match)
                                           (slot-value source 'match-strict))
                                (helm-mklist it)))
@@ -993,18 +1000,33 @@ Arguments ARGS are keyword value pairs as defined in CLASS."
          (migemo           (slot-value source 'migemo)))
     (cl-case method
       (match (cond (defmatch-strict)
+                   ((and migemo diacritics)
+                    (append (list 'helm-mm-exact-match
+                                  'helm-mm-3-match-on-diacritics)
+                            defmatch '(helm-mm-3-migemo-match)))
                    (migemo
                     (append helm-mm-default-match-functions
                             defmatch '(helm-mm-3-migemo-match)))
+                   (diacritics
+                    (delq nil
+                          `(helm-mm-exact-match
+                            ,@defmatch helm-mm-3-match-on-diacritics)))
                    (defmatch
                     (append helm-mm-default-match-functions defmatch))
-                   (t (if diacritics
-                          (list 'helm-mm-exact-match 'helm-mm-3-match-on-diacritics)
-                        helm-mm-default-match-functions))))
+                   (t helm-mm-default-match-functions)))
       (search (cond (defsearch-strict)
+                    ((and migemo diacritics)
+                     (append '(helm-mm-exact-search)
+                             defsearch
+                             '(helm-mm-3-migemo-search
+                               helm-mm-3-search-on-diacritics)))
                     (migemo
                      (append helm-mm-default-search-functions
                              defsearch '(helm-mm-3-migemo-search)))
+                    (diacritics
+                     (delq nil
+                           `(helm-mm-exact-search
+                             ,@defsearch helm-mm-3-search-on-diacritics)))
                     (defsearch
                      (append helm-mm-default-search-functions defsearch))
                     (t helm-mm-default-search-functions))))))

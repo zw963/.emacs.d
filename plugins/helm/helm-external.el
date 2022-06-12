@@ -1,6 +1,6 @@
 ;;; helm-external.el --- Run Externals commands within Emacs with helm completion. -*- lexical-binding: t -*-
 
-;; Copyright (C) 2012 ~ 2021 Thierry Volpiatto <thierry.volpiatto@gmail.com>
+;; Copyright (C) 2012 ~ 2021 Thierry Volpiatto 
 
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -39,7 +39,7 @@ This will be use with `format', so use something like \"wmctrl -xa %s\"."
 (defcustom helm-external-programs-associations nil
   "Alist to store externals programs associated with file extension.
 This variable overhide setting in .mailcap file.
-E.g.: '\(\(\"jpg\" . \"gqview\"\) (\"pdf\" . \"xpdf\"\)\) "
+E.g.: \\='((\"jpg\" . \"gqview\") (\"pdf\" . \"xpdf\")) "
   :type '(alist :key-type string :value-type string)
   :group 'helm-external)
 

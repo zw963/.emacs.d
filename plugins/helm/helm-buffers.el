@@ -1,6 +1,6 @@
 ;;; helm-buffers.el --- helm support for buffers. -*- lexical-binding: t -*-
 
-;; Copyright (C) 2012 ~ 2021 Thierry Volpiatto <thierry.volpiatto@gmail.com>
+;; Copyright (C) 2012 ~ 2021 Thierry Volpiatto 
 
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -292,7 +292,7 @@ Note that this variable is buffer-local.")
   ;; directly so that each list of candidates is local to source.
   (helm-set-attr 'candidates (funcall (helm-get-attr 'buffer-list)))
   (let ((result (cl-loop with allbufs = (memq 'helm-shadow-boring-buffers
-                                              (helm-attr
+                                              (helm-get-attr
                                                'filtered-candidate-transformer
                                                helm-source-buffers-list))
                          for b in (if allbufs
@@ -960,11 +960,25 @@ If REGEXP-FLAG is given use `query-replace-regexp'."
     (helm-exit-and-execute-action 'helm-buffer-switch-buffers-other-window)))
 (put 'helm-buffer-switch-other-window 'helm-only t)
 
+(defun helm-buffer-switch-to-buffer-other-frame (_candidate)
+  "Display marked buffers in other frame."
+  (let ((bufs (helm-marked-candidates)))
+    (select-frame (make-frame))
+    (helm-window-show-buffers bufs)))
+
+(defun helm-buffers-maybe-raise-buffer-frame (candidate)
+  "Raise buffer frame handling buffer CANDIDATE and switch to it."
+  (let ((oframe (window-frame (get-buffer-window candidate 0))))
+    (unless (eql oframe (selected-frame))
+      (raise-frame oframe))
+    (with-selected-frame oframe
+      (switch-to-buffer candidate))))
+
 (defun helm-buffer-switch-other-frame ()
   "Run switch to other frame action from `helm-source-buffers-list'."
   (interactive)
   (with-helm-alive-p
-    (helm-exit-and-execute-action 'switch-to-buffer-other-frame)))
+    (helm-exit-and-execute-action 'helm-buffer-switch-to-buffer-other-frame)))
 (put 'helm-buffer-switch-other-frame 'helm-only t)
 
 (defun helm-buffers-switch-to-buffer-other-tab (_candidate)

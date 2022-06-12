@@ -1,6 +1,6 @@
 ;;; helm-occur.el --- Incremental Occur for Helm. -*- lexical-binding: t -*-
 
-;; Copyright (C) 2012 ~ 2021 Thierry Volpiatto <thierry.volpiatto@gmail.com>
+;; Copyright (C) 2012 ~ 2021 Thierry Volpiatto 
 
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -126,7 +126,13 @@ Note that when using `buffer-substring' initialization will be slower."
 
 (defcustom helm-occur-keep-closest-position t
   "When non nil select closest candidate from point after update.
-This happen only in `helm-source-occur' which is always related to `current-buffer'."
+This happen only in `helm-source-occur' which is always related to
+`current-buffer'."
+  :group 'helm-regexp
+  :type 'boolean)
+
+(defcustom helm-occur-ignore-diacritics nil
+  "When non nil helm-occur will ignore diacritics in patterns."
   :group 'helm-regexp
   :type 'boolean)
 
@@ -246,17 +252,22 @@ engine beeing completely different and also much faster."
 (defun helm-occur-transformer (candidates source)
   "Return CANDIDATES prefixed with line number."
   (cl-loop with buf = (helm-get-attr 'buffer-name source)
-           for c in candidates collect
-           (when (string-match helm-occur--search-buffer-regexp c)
-             (let ((linum (match-string 1 c))
-                   (disp (match-string 2 c)))
-               (cons (format "%s:%s"
-                             (propertize
-                              linum 'face 'helm-grep-lineno
-                              'help-echo (buffer-file-name
-                                          (get-buffer buf)))
-                             disp)
-                     (string-to-number linum))))))
+           for c in candidates
+           for cand = (when (string-match helm-occur--search-buffer-regexp c)
+                        (let ((linum (match-string 1 c))
+                              (disp  (match-string 2 c)))
+                          (when (and disp (not (string= disp "")))
+                            (cons (concat
+                                   (propertize " " 'display
+                                               (concat
+                                                (propertize
+                                                 linum 'face 'helm-grep-lineno
+                                                 'help-echo (buffer-file-name
+                                                             (get-buffer buf)))
+                                                ":"))
+                                   disp)
+                                  (string-to-number linum)))))
+           when cand collect cand))
 
 (defclass helm-moccur-class (helm-source-in-buffer)
   ((buffer-name :initarg :buffer-name
@@ -284,6 +295,7 @@ engine beeing completely different and also much faster."
                (when (string-match helm-occur--search-buffer-regexp
                                    candidate)
                  (match-string 2 candidate)))
+             :diacritics helm-occur-ignore-diacritics
              :search (lambda (pattern)
                        (when (string-match "\\`\\^\\([^ ]*\\)" pattern)
                          (setq pattern (concat "^[0-9]* \\{1\\}" (match-string 1 pattern))))
@@ -583,7 +595,7 @@ persistent action."
 
 (defun helm-occur-buffer-substring-with-linums ()
   "Return current-buffer contents as a string with all lines
-numbered.  The property 'buffer-name is added to the whole string."
+numbered.  The property \\='buffer-name is added to the whole string."
   (let ((bufstr (buffer-substring-no-properties (point-min) (point-max)))
         (bufname (buffer-name)))
     (with-temp-buffer

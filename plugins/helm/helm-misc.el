@@ -1,6 +1,6 @@
 ;;; helm-misc.el --- Various functions for helm -*- lexical-binding: t -*-
 
-;; Copyright (C) 2012 ~ 2021 Thierry Volpiatto <thierry.volpiatto@gmail.com>
+;; Copyright (C) 2012 ~ 2021 Thierry Volpiatto 
 
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -198,11 +198,11 @@ It is added to `extended-command-history'.
     map))
 
 (defcustom helm-minibuffer-history-must-match t
-  "Allow inserting non matching elements when nil or 'confirm."
+  "Allow inserting non matching elements when nil or \\='confirm."
   :group 'helm-misc
   :type '(choice
           (const :tag "Must match" t)
-          (const :tag "Confirm" 'confirm)
+          (const :tag "Confirm" confirm)
           (const :tag "Always allow" nil)))
 
 (defcustom helm-minibuffer-history-key "C-r"

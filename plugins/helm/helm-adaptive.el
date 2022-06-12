@@ -3,7 +3,7 @@
 ;; Original Author: Tamas Patrovics
 
 ;; Copyright (C) 2007 Tamas Patrovics
-;; Copyright (C) 2012 ~ 2021 Thierry Volpiatto <thierry.volpiatto@gmail.com>
+;; Copyright (C) 2012 ~ 2021 Thierry Volpiatto 
 
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -65,7 +65,8 @@ selection.")
 
 (defvar helm-adaptive-history nil
   "Contains the stored history information.
-Format: ((SOURCE-NAME (SELECTED-CANDIDATE (PATTERN . NUMBER-OF-USE) ...) ...) ...)")
+Format: ((SOURCE-NAME
+         (SELECTED-CANDIDATE (PATTERN . NUMBER-OF-USE) ...) ...) ...)")
 
 (defconst helm-adaptive-freq-coefficient 5)
 (defconst helm-adaptive-recent-coefficient 2)

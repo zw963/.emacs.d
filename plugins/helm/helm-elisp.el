@@ -1,6 +1,6 @@
 ;;; helm-elisp.el --- Elisp symbols completion for helm. -*- lexical-binding: t -*-
 
-;; Copyright (C) 2012 ~ 2021 Thierry Volpiatto <thierry.volpiatto@gmail.com>
+;; Copyright (C) 2012 ~ 2021 Thierry Volpiatto
 
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -32,6 +32,7 @@
 (declare-function helm-read-file-name "helm-mode")
 (declare-function helm-comp-read "helm-mode")
 (declare-function helm-M-x-transformer-no-sort-no-props "helm-command")
+(defvar helm-M-x-show-short-doc)
 
 ;;; Customizable values
 
@@ -55,14 +56,14 @@ This is used in macro `with-helm-show-completion'."
     callf callf2 cl-callf cl-callf2 fset
     fboundp fmakunbound symbol-function)
   "List of function where quoted function completion happen.
-E.g. give only function names after \(funcall '."
+E.g. give only function names after (funcall \\='."
   :group 'helm-elisp
   :type '(repeat (choice symbol)))
 
 (defcustom helm-lisp-unquoted-function-list
   '(function defadvice)
   "List of function where unquoted function completion happen.
-E.g. give only function names after \(function ."
+E.g. give only function names after (function ."
   :group 'helm-elisp
   :type '(repeat (choice symbol)))
 
@@ -273,7 +274,7 @@ of symbol before point."
 
 (defun helm-bounds-of-thing-before-point (&optional regexp)
   "Get the beginning and end position of `helm-thing-before-point'.
-Return a cons \(beg . end\)."
+Return a cons (beg . end)."
   (helm-thing-before-point 'limits regexp))
 
 (defun helm-insert-completion-at-point (beg end str)
@@ -360,16 +361,16 @@ other window according to the value of
 
 (defun helm-elisp--show-help-1 (candidate &optional name)
   (let ((sym (intern-soft candidate)))
-    (cl-typecase sym
-      ((and fboundp boundp)
+    (pcase sym
+      ((and (pred fboundp) (pred boundp))
        (if (member name `(,helm-describe-function-function ,helm-describe-variable-function))
            (funcall (intern (format "helm-%s" name)) sym)
            ;; When there is no way to know what to describe
            ;; prefer describe-function.
            (helm-describe-function sym)))
-      (fbound  (helm-describe-function sym))
-      (bound    (helm-describe-variable sym))
-      (face     (helm-describe-face sym)))))
+      ((pred fboundp)  (helm-describe-function sym))
+      ((pred boundp)    (helm-describe-variable sym))
+      ((pred facep)     (helm-describe-face sym)))))
 
 (defun helm-elisp-show-help (candidate &optional name)
   "Show full help for the function CANDIDATE.
@@ -394,35 +395,44 @@ the same time to variable and a function."
   "Helm candidates transformer for Lisp completion."
   (cl-loop for c in candidates
         for sym = (intern c)
-        for annot = (cl-typecase sym
-                      (command " (Com)")
-                      (class   " (Class)")
-                      (cl-generic " (Gen)")
-                      (fbound  " (Fun)")
-                      (bound   " (Var)")
-                      (face    " (Face)"))
+        for annot = (pcase sym
+                      ((pred commandp) " (Com)")
+                      ((pred class-p)   " (Class)")
+                      ((pred cl-generic-p) " (Gen)")
+                      ((pred fboundp)  " (Fun)")
+                      ((pred boundp)   " (Var)")
+                      ((pred facep)    " (Face)"))
         for spaces = (make-string (- helm-lgst-len (length c)) ? )
         collect (cons (concat c spaces annot) c) into lst
         finally return (sort lst #'helm-generic-sort-fn)))
 
-(defun helm-get-first-line-documentation (sym &optional name)
-  "Return first line documentation of symbol SYM.
-If SYM is not documented, return \"Not documented\"."
-  (let ((doc (cl-typecase sym
-               ((and fboundp boundp)
-                (cond ((string= name "describe-function")
-                       (documentation sym t))
-                      ((string= name  "describe-variable")
-                       (documentation-property sym 'variable-documentation t))
-                      (t (documentation sym t))))
-               (fbound  (documentation sym t))
-               (bound   (documentation-property sym 'variable-documentation t))
-               (face    (face-documentation sym)))))
+(cl-defun helm-get-first-line-documentation (sym &optional
+                                                   (name "describe-function")
+                                                   (end-column 72))
+  "Return first line documentation of symbol SYM truncated at END-COLUMN.
+If SYM is not documented, return \"Not documented\".
+Argument NAME allows specifiying what function to use to display
+documentation when SYM name is the same for function and variable."
+  (let ((doc (pcase sym
+               ((and (pred fboundp) (pred boundp))
+                (pcase name
+                  ("describe-function"
+                   (documentation sym t))
+                  ("describe-variable"
+                   (documentation-property sym 'variable-documentation t))
+                  (_ (documentation sym t))))
+               ((pred fboundp)  (documentation sym t))
+               ((pred boundp)   (documentation-property
+                                 sym 'variable-documentation t))
+               ((pred facep)   (face-documentation sym)))))
     (if (and doc (not (string= doc ""))
              ;; `documentation' return "\n\n(args...)"
              ;; for CL-style functions.
              (not (string-match-p "^\n\n" doc)))
-        (car (split-string doc "\n"))
+        ;; Some commands specify key bindings in their first line.
+        (truncate-string-to-width
+         (substitute-command-keys (car (split-string doc "\n")))
+         end-column nil nil t)
       "Not documented")))
 
 ;;; File completion.
@@ -740,13 +750,14 @@ In non interactives calls DEFAULT argument should be provided as
 a string, i.e. the `symbol-name' of any existing symbol."
   (interactive (list (with-syntax-table emacs-lisp-mode-syntax-table
                        (thing-at-point 'symbol))))
-  (helm :sources
-        (mapcar (lambda (func)
-                  (funcall func default))
-                helm-apropos-function-list)
-        :history 'helm-apropos-history
-        :buffer "*helm apropos*"
-        :preselect (and default (concat "\\_<" (regexp-quote default) "\\_>"))))
+  (let (helm-M-x-show-short-doc)
+    (helm :sources
+          (mapcar (lambda (func)
+                    (funcall func default))
+                  helm-apropos-function-list)
+          :history 'helm-apropos-history
+          :buffer "*helm apropos*"
+          :preselect (and default (concat "\\_<" (regexp-quote default) "\\_>")))))
 
 
 ;;; Advices
@@ -900,7 +911,9 @@ a string, i.e. the `symbol-name' of any existing symbol."
   (format "%s repeat=%s %s(%s)"
           (let ((time (timer--time timer)))
             (if (timer--idle-delay timer)
-                (format-time-string "idle-for=%5s" time)
+                (format "idle-for=[%s]"
+                        (format-seconds "%dd %hh %mmin %z%,3ss"
+                                        (time-convert time t)))
               (format-time-string "%m/%d %T" time)))
           (or (timer--repeat-delay timer) "nil")
           (mapconcat 'identity (split-string

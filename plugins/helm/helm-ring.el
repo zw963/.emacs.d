@@ -1,6 +1,6 @@
 ;;; helm-ring.el --- kill-ring, mark-ring, and register browsers for helm. -*- lexical-binding: t -*-
 
-;; Copyright (C) 2012 ~ 2021 Thierry Volpiatto <thierry.volpiatto@gmail.com>
+;; Copyright (C) 2012 ~ 2021 Thierry Volpiatto 
 
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -495,7 +495,8 @@ This is a command for `helm-kill-ring-map'."
 
 ;;;###autoload
 (defun helm-all-mark-rings ()
-  "Preconfigured `helm' for `helm-source-global-mark-ring' and \
+  "Preconfigured `helm' for mark rings.
+Source used are `helm-source-global-mark-ring' and
 `helm-source-mark-ring'."
   (interactive)
   (helm :sources '(helm-source-mark-ring

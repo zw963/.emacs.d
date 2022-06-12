@@ -3,9 +3,9 @@
 ;; Original Author: rubikitch
 
 ;; Copyright (C) 2008 ~ 2011 rubikitch
-;; Copyright (C) 2011 ~ 2020 Thierry Volpiatto <thierry.volpiatto@gmail.com>
+;; Copyright (C) 2011 ~ 2020 Thierry Volpiatto 
 
-;; Author: Thierry Volpiatto <thierry.volpiatto@gmail.com>
+;; Author: Thierry Volpiatto 
 ;; URL: http://github.com/emacs-helm/helm
 
 ;; This program is free software; you can redistribute it and/or modify
@@ -80,7 +80,7 @@ If GREP-SPACE is used translate escaped space to \"\\s\" instead of \"\\s-\"."
     (if grep-space "\\s" "\\s-") pattern nil t)))
 
 (defun helm-mm-1-make-regexp (pattern)
-  "Replace spaces in PATTERN with \"\.*\"."
+  "Replace spaces in PATTERN with \".*\"."
   (mapconcat 'identity (helm-mm-split-pattern pattern) ".*"))
 
 
@@ -207,7 +207,7 @@ E.g., ((identity . \"foo\") (not . \"bar\"))."
                     (cons 'identity pat)))))
 
 (defun helm-mm-regexp-p (string)
-  (string-match-p "[[]*+^$.?\\]" string))
+  (string-match-p "[][*+^$.?]" string))
 
 (defvar helm-mm--match-on-diacritics nil)
 
@@ -245,19 +245,30 @@ i.e (identity (re-search-forward \"foo\" (point-at-eol) t)) => t."
   (cl-loop with pat = (if (stringp pattern)
                           (helm-mm-3-get-patterns pattern)
                           pattern)
+           with regex = (cdar pat)
+           with regex1 = (if (and regex
+                                  (not (helm-mm-regexp-p regex))
+                                  helm-mm--match-on-diacritics)
+                             (char-fold-to-regexp regex)
+                           regex)
            when (eq (caar pat) 'not) return
            ;; Pass the job to `helm-search-match-part'.
            (prog1 (list (point-at-bol) (point-at-eol))
              (forward-line 1))
            while (condition-case _err
-                     (funcall searchfn1 (or (cdar pat) "") nil t)
+                     (funcall searchfn1 (or regex1 "") nil t)
                    (invalid-regexp nil))
            for bol = (point-at-bol)
            for eol = (point-at-eol)
-           if (cl-loop for (pred . str) in (cdr pat) always
+           if (cl-loop for (pred . str) in (cdr pat)
+                       for regexp = (if (and (not (helm-mm-regexp-p str))
+                                             helm-mm--match-on-diacritics)
+                                        (char-fold-to-regexp str)
+                                      str)
+                       always
                        (progn (goto-char bol)
                               (funcall pred (condition-case _err
-                                                (funcall searchfn2 str eol t)
+                                                (funcall searchfn2 regexp eol t)
                                               (invalid-regexp nil)))))
            do (goto-char eol) and return t
            else do (goto-char eol)
@@ -266,6 +277,10 @@ i.e (identity (re-search-forward \"foo\" (point-at-eol) t)) => t."
 (defun helm-mm-3-search (pattern &rest _ignore)
   (helm-mm-3-search-base
    pattern 're-search-forward 're-search-forward))
+
+(defun helm-mm-3-search-on-diacritics (pattern &rest _ignore)
+  (let ((helm-mm--match-on-diacritics t))
+    (helm-mm-3-search pattern)))
 
 ;;; mp-3 with migemo
 ;;  Needs https://github.com/emacs-jp/migemo
@@ -305,6 +320,19 @@ i.e. the sources which have the slot :migemo with non--nil value."
             (push (cons pattern (helm-mm-migemo-get-pattern pattern))
                   helm-mm--previous-migemo-info))))
   (string-match (assoc-default pattern helm-mm--previous-migemo-info) str))
+
+(defun helm-mm-diacritics-string-match (pattern str)
+  "Check if PATTERN match STR ignoring diacritics.
+
+If PATTERN is a regexp (i.e. `helm-mm-regexp-p') use PATTERN
+unmodified, otherwise transform PATTERN with `char-fold-to-regexp'.
+
+This function is used to search match-part of candidate in in-buffer
+sources."
+  (string-match (if (helm-mm-regexp-p pattern)
+                    pattern
+                  (char-fold-to-regexp pattern))
+                str))
 
 (cl-defun helm-mm-3-migemo-match (candidate &optional (pattern helm-pattern))
   (and helm-migemo-mode

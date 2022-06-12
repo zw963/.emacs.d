@@ -1,6 +1,6 @@
 ;;; helm-dabbrev.el --- Helm implementation of dabbrev. -*- lexical-binding: t -*-
 
-;; Copyright (C) 2012 ~ 2021 Thierry Volpiatto <thierry.volpiatto@gmail.com>
+;; Copyright (C) 2012 ~ 2021 Thierry Volpiatto 
 
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -72,12 +72,12 @@ When nil all buffers are considered related to `current-buffer'."
 
 This allow helm-dabbrev searching in buffers with the associated
 `major-mode'.
-E.g. \(emacs-lisp-mode . lisp-interaction-mode\)
+E.g. (emacs-lisp-mode . lisp-interaction-mode)
 
 will allow searching in the lisp-interaction-mode buffer when
 `current-buffer' is an `emacs-lisp-mode' buffer and vice versa
-i.e. no need to provide \(lisp-interaction-mode .
-emacs-lisp-mode\) association.
+i.e. no need to provide (lisp-interaction-mode .
+emacs-lisp-mode) association.
 
 When nil check is the searched buffer has same `major-mode' than
 the `current-buffer'.
@@ -106,7 +106,7 @@ initial search for all candidates in buffer(s)."
   :group 'helm-dabbrev
   :type '(choice (const :tag "Ignore case" t)
           (const :tag "Respect case" nil)
-          (other :tag "Smart" 'smart)))
+          (other :tag "Smart" smart)))
 
 (defvaralias 'helm-dabbrev--regexp 'helm-dabbrev-separator-regexp)
 (make-obsolete-variable 'helm-dabbrev--regexp
