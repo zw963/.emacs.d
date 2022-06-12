@@ -433,6 +433,10 @@ used to restore buffer point after finish search.")
   "Save window configuration before apply changed,
 used to restore window configuration after apply changed.")
 
+(defvar color-rg-window-configuration-before-open nil
+  "Save window configuration before open file,
+used to restore window configuration after file content changed.")
+
 (defvar color-rg-hit-count 0
   "Search keyword hit counter.")
 
@@ -1275,13 +1279,15 @@ This assumes that `color-rg-in-string-p' has already returned true, i.e.
   (interactive)
   (save-excursion
     (with-current-buffer color-rg-buffer
-      (let ((inhibit-read-only t))
+      (let ((inhibit-read-only t)
+            (old-compilation-arguments compilation-arguments))
         (color-rg-mode) ; switch to `color-rg-mode' first, otherwise `erase-buffer' will cause "save-excursion: end of buffer" error.
         (read-only-mode -1)
         (erase-buffer)
         (insert (with-current-buffer color-rg-temp-buffer
                   (buffer-substring (point-min) (point-max))))
         (read-only-mode 1)
+        (setq-local compilation-arguments old-compilation-arguments)
         )
       ;; Update hit number in header line.
       (color-rg-update-header-line-hits))))
@@ -1371,7 +1377,7 @@ This function is the opposite of `color-rg-rerun-change-globs'"
   "Rerun last command but prompt for new dir."
   (interactive)
   (setf (color-rg-search-dir color-rg-cur-search)
-        (read-file-name "In file: "
+        (read-file-name "In directory: "
                         (file-name-directory (color-rg-search-dir color-rg-cur-search)) nil))
   (color-rg-rerun))
 
@@ -1504,6 +1510,7 @@ This function is the opposite of `color-rg-rerun-change-globs'"
 
 (defun color-rg-open-file (&optional stay)
   (interactive)
+  (setq color-rg-window-configuration-before-open (current-window-configuration))
   (let* ((match-file (color-rg-get-match-file))
          (match-line (color-rg-get-match-line))
          (match-column (color-rg-get-match-column))
@@ -1553,6 +1560,11 @@ This function is the opposite of `color-rg-rerun-change-globs'"
     ;; Ajust column position.
     (color-rg-move-to-column match-column)
     ))
+
+(defun color-rg-back ()
+  (interactive)
+  (when color-rg-window-configuration-before-open
+    (set-window-configuration color-rg-window-configuration-before-open)))
 
 (defun color-rg-open-file-and-stay ()
   (interactive)

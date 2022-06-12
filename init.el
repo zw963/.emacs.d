@@ -29,7 +29,6 @@
 (require 'hydra_init);; depend by treemacs
 (require 'edit-server_init)
 (require 'iedit_init)
-(require 'multiple-cursors_init)
 (require 'undo-tree_init)
 (require 'toggle-quotes_init)
 (require 'beyond-compare_init)
