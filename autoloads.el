@@ -63,3 +63,6 @@
 (autoload 'just-mode "just-mode" nil t)
 (add-to-list 'auto-mode-alist '("/[Jj]ustfile\\'" . just-mode))
 (add-to-list 'auto-mode-alist '("\\.[Jj]ust\\(file\\)?\\'" . just-mode))
+
+(autoload 'json-mode "json-mode_init" nil t)
+(add-to-list 'auto-mode-alist '("\\.json" . yaml-mode))

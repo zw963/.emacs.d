@@ -76,7 +76,6 @@
 ;; (require 'mini-frame_init)
 (require 'rainbow-mode_init)
 (require 'scss-css-mode_init)
-(require 'json-mode_init)
 ;; (require 'tree-sitter_init)
 
 (require 'dpaste_init)
