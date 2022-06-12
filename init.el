@@ -11,7 +11,7 @@
 (require 'zoom-frm_init)
 ;; (require 'helpful_init)
 (require 'back-button_init)
-(require 'bm_init)
+;; (require 'bm_init)
 
 (require 'avy_init)
 (require 'beacon_init)
@@ -36,7 +36,7 @@
 (require 'anzu_init)
 (require 'wgrep_init)
 (require 'quickrun_init)
-(require 'amx_init)
+;; (require 'amx_init)
 ;; (require 'spaceline_init)
 
 ;; (require 'valign_init)
