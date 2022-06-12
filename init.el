@@ -20,7 +20,7 @@
 ;; (require 'bm_init)
 ;; (require 'beacon_init)
 ;; (require 'which-key_init)
-;; (require 'anzu_init)
+(require 'anzu_init)
 
 (require 'avy_init)
 (require 'doom-modeline_init)
