@@ -11,6 +11,12 @@
      (string-prefix-p "*helm" name)
      (string-prefix-p "*Compile-Log*" name)
      (string-prefix-p "*lsp" name)
+     (string-prefix-p "*LSP" name)
+     (string-prefix-p "*Async-native" name)
+     (string-prefix-p "*gopls" name)
+     (string-prefix-p "*Dlv" name)
+     (string-prefix-p "*ruby-ls" name)
+     (string-prefix-p "*scry" name)
      (string-prefix-p "*flycheck" name)
      (string-prefix-p "*etags-plus:" name)
 
