@@ -4,8 +4,8 @@
 
 ;; Author: Vincent Zhang <seagle0128@gmail.com>
 ;; Homepage: https://github.com/seagle0128/doom-modeline
-;; Version: 3.2.2
-;; Package-Requires: ((emacs "25.1") (all-the-icons "2.2.0") (shrink-path "0.2.0") (dash "2.11.0"))
+;; Version: 3.3.0
+;; Package-Requires: ((emacs "25.1") (shrink-path "0.2.0") (dash "2.11.0"))
 ;; Keywords: faces mode-line
 
 ;; This file is not part of GNU Emacs.
@@ -234,7 +234,7 @@ If DEFAULT is non-nil, set the default mode-line for all buffers."
 
 ;; Suppress warnings
 (defvar 2C-mode-line-format)
-(declare-function helm-display-mode-line 'helm)
+(declare-function helm-display-mode-line "ext:helm-core")
 
 ;;;###autoload
 (define-minor-mode doom-modeline-mode
