@@ -18,7 +18,7 @@
             (define-key color-rg-mode-map (kbd "p") 'color-rg-jump-prev-file)
             ))
 
-(global-set-key [(control meta r)] 'color-rg-search-symbol-in-project)
+(global-set-key [(control meta r)] 'color-rg-search-input-in-project)
 
 
 (provide 'color-rg_init)

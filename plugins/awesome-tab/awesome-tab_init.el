@@ -17,6 +17,8 @@
      (string-prefix-p "*Dlv" name)
      (string-prefix-p "*ruby-ls" name)
      (string-prefix-p "*scry" name)
+     (string-prefix-p "*Flutter" name)
+     (string-prefix-p "*dart_" name)
      (string-prefix-p "*flycheck" name)
      (string-prefix-p "*etags-plus:" name)
 

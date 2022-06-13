@@ -52,6 +52,7 @@ we have to run `helm-do-ag' on DEFAULT-DIRECTORY first, then up one level functi
 (define-key helm-do-ag-map [(control r)] 'helm-ag--do-ag-up-one-level)
 (add-hook 'helm-quit-hook (lambda () (setq helm-do-ag-on-current-directory-p nil)))
 
+;; 这个快捷键可能会被 helm-git-grep 覆盖掉。
 (global-set-key [(meta r)] 'helm-do-ag-project-root)
 ;; (global-set-key [(control meta r)] 'helm-do-ag-buffers)
 
