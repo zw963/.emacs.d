@@ -52,28 +52,28 @@
 ;; lsp-ui auto config completion, code-actions, breadcrumb, ‘flycheck’,
 ;;‘flymake’, ‘imenu’, symbol highlighting, lenses, links, and so on.
 
-;; (require 'lsp-ui)
-;; (with-eval-after-load 'lsp-ui
-;;   ;; 关闭这个，会让 diagnostics(从 lsp-server 返回的诊断信息) 和 flycheck 信息在 minibuffer 合并显示.
-;;   (setq lsp-ui-sideline-show-diagnostics nil)
+(require 'lsp-ui)
+(with-eval-after-load 'lsp-ui
+  ;; 关闭这个，会让 diagnostics(从 lsp-server 返回的诊断信息) 和 flycheck 信息在 minibuffer 合并显示.
+  (setq lsp-ui-sideline-show-diagnostics nil)
 
-;;   ;; code actions 是问题的修复策略, 在右侧显示问题的修复策略。
-;;   (setq lsp-ui-sideline-show-code-actions t)
+  ;; code actions 是问题的修复策略, 在右侧显示问题的修复策略。
+  ;; (setq lsp-ui-sideline-show-code-actions nil)
 
-;;   (setq lsp-ui-doc-delay 3)
+  (setq lsp-ui-doc-delay 3)
 
-;;   ;; (setq lsp-ui-sideline-show-hover nil) ; 这是默认值
-;;   ;; (setq lsp-ui-doc-enable t) ; 这是默认值
-;;   ;; (setq lsp-ui-imenu-enable t) ; 这是默认值
+  ;; (setq lsp-ui-sideline-show-hover nil) ; 这是默认值
+  ;; (setq lsp-ui-doc-enable t) ; 这是默认值
+  ;; (setq lsp-ui-imenu-enable t) ; 这是默认值
 
-;;   ;; (require 'lsp-ui-flycheck)
-;;   ;; (lsp-ui-flycheck-list-mode)
+  ;; (require 'lsp-ui-flycheck)
+  ;; (lsp-ui-flycheck-list-mode)
 
-;;   ;; M-.
-;;   (define-key lsp-ui-mode-map [remap xref-find-definitions] #'lsp-ui-peek-find-definitions)
-;;   ;; M-?
-;;   (define-key lsp-ui-mode-map [remap xref-find-references] #'lsp-ui-peek-find-references)
-;;   )
+  ;; M-.
+  (define-key lsp-ui-mode-map [remap xref-find-definitions] #'lsp-ui-peek-find-definitions)
+  ;; M-?
+  (define-key lsp-ui-mode-map [remap xref-find-references] #'lsp-ui-peek-find-references)
+  )
 
 ;; 这个不是每个 backend 都支持
 ;; (require 'lsp-iedit)
