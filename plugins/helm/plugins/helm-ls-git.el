@@ -1,6 +1,6 @@
 ;;; helm-ls-git.el --- list git files. -*- lexical-binding: t -*-
 
-;; Copyright (C) 2012 ~ 2015 Thierry Volpiatto <thierry.volpiatto@gmail.com>
+;; Copyright (C) 2012 ~ 2022 Thierry Volpiatto
 
 ;; Package-Requires: ((helm "1.7.8"))
 
@@ -192,6 +192,7 @@ This happen only when deleting a remote branch e.g. remotes/origin/foo."
     (define-key map (kbd "M-g g") 'helm-ls-git-run-grep)
     (define-key map (kbd "C-c g") 'helm-ff-run-gid)
     (define-key map (kbd "C-c i") 'helm-ls-git-ls-files-show-others)
+    (define-key map (kbd "M-e") 'helm-ls-git-run-switch-to-shell)
     map))
 
 (defvar helm-ls-git-buffer-map
@@ -208,6 +209,7 @@ This happen only when deleting a remote branch e.g. remotes/origin/foo."
     (define-key map (kbd "C-c P") 'helm-ls-git-run-push)
     (define-key map (kbd "C-c F") 'helm-ls-git-run-pull)
     (define-key map (kbd "C-c f") 'helm-ls-git-run-fetch)
+    (define-key map (kbd "M-e") 'helm-ls-git-run-switch-to-shell)
     map))
 
 (defvar helm-ls-git-status-map
@@ -219,6 +221,7 @@ This happen only when deleting a remote branch e.g. remotes/origin/foo."
     (define-key map (kbd "C-c e") 'helm-ls-git-run-stage-marked-and-extend-commit)
     (define-key map (kbd "C-c z") 'helm-ls-git-run-stash)
     (define-key map (kbd "C-c Z") 'helm-ls-git-run-stash-snapshot)
+    (define-key map (kbd "M-e") 'helm-ls-git-run-switch-to-shell)
     map))
 
 (defvar helm-ls-git-help-message
@@ -266,6 +269,10 @@ major-mode `helm-ls-git-commmit-mode' which provide following commands:
 |-------------+--------------|
 |\\[helm-ls-git-server-edit]|Exit when done
 |\\[helm-ls-git-server-edit-abort]|Abort
+
+If you want to specify another author, use a prefix arg when
+calling commit action, you will be prompted for author name and
+email.
 
 NOTE: This mode is based on diff-mode, this to show a colorized
 diff of your commit, you can use any regular emacs editing
@@ -335,6 +342,7 @@ See docstring of `helm-ls-git-ls-switches'.
 |\\[helm-ls-git-run-grep]|Run git-grep.
 |\\[helm-ff-run-gid]|Run Gid.
 |\\[helm-ls-git-ls-files-show-others]|Toggle tracked/non tracked files view.
+|\\[helm-ls-git-run-switch-to-shell]|Switch to shell
 |\\<helm-generic-files-map>
 |\\[helm-ff-run-toggle-basename]|Toggle basename.
 |\\[helm-ff-run-zgrep]|Run zgrep.
@@ -464,7 +472,8 @@ See docstring of `helm-ls-git-ls-switches'.
                       'helm-ls-git-grep
                       "Gid" 'helm-ff-gid
                       "Search in Git log (C-u show patch)"
-                      'helm-ls-git-search-log)
+                      'helm-ls-git-search-log
+                      "Switch to shell" 'helm-ls-git-switch-to-shell)
    1))
 
 (defun helm-ls-git-match-part (candidate)
@@ -481,13 +490,13 @@ See docstring of `helm-ls-git-ls-switches'.
                        (helm-set-local-variable
                         'helm-ls-git--current-branch nil)))
    (keymap :initform 'helm-ls-git-map)
-   (help-message :initform helm-ls-git-help-message)
+   (help-message :initform 'helm-ls-git-help-message)
    (match-part :initform 'helm-ls-git-match-part)
    (filtered-candidate-transformer
     :initform '(helm-ls-git-transformer
                 helm-ls-git-sort-fn))
    (action-transformer :initform 'helm-transform-file-load-el)
-   (action :initform (helm-ls-git-actions-list helm-type-file-actions))))
+   (group :initform 'helm-ls-git)))
 
 (defclass helm-ls-git-status-source (helm-source-in-buffer)
   ((header-name :initform 'helm-ls-git-header-name)
@@ -499,14 +508,16 @@ See docstring of `helm-ls-git-ls-switches'.
    (filtered-candidate-transformer :initform 'helm-ls-git-status-transformer)
    (persistent-action :initform 'helm-ls-git-diff)
    (persistent-help :initform "Diff")
-   (help-message :initform helm-ls-git-help-message)
+   (help-message :initform 'helm-ls-git-help-message)
    (action-transformer :initform 'helm-ls-git-status-action-transformer)
    (action :initform
            (helm-make-actions
             "Find file" 'helm-find-many-files
             "Git status" (lambda (_candidate)
                            (funcall helm-ls-git-status-command
-                                    (helm-default-directory)))))))
+                                    (helm-default-directory)))
+            "Switch to shell" #'helm-ls-git-switch-to-shell))
+   (group :initform 'helm-ls-git)))
 
 (defun helm-ls-git-revert-buffers-in-project ()
   (cl-loop for buf in (helm-browse-project-get-buffers (helm-ls-git-root-dir))
@@ -621,7 +632,8 @@ See docstring of `helm-ls-git-ls-switches'.
                                 collect (propertize
                                          cand 'rev (if (zerop count)
                                                        name
-                                                     (format "%s~%s" name count))))))
+                                                     (format "%s~%s" name count)))))
+                     :group 'helm-ls-git)
           :buffer "*helm-ls-git log*")))
 
 (defun helm-ls-git-log-show-commit-1 (candidate)
@@ -1109,8 +1121,10 @@ object will be passed git rebase i.e. git rebase -i <hash>."
     :action '(("Git status" . (lambda (_candidate)
                                 (funcall helm-ls-git-status-command
                                          (helm-default-directory))))
-              ("Git log (M-L)" . helm-ls-git-show-log))
-    :keymap 'helm-ls-git-branches-map))
+              ("Git log (M-L)" . helm-ls-git-show-log)
+              ("Switch to shell" . helm-ls-git-switch-to-shell))
+    :keymap 'helm-ls-git-branches-map
+    :group 'helm-ls-git))
 
 
 ;;; Stashing
@@ -1221,7 +1235,8 @@ object will be passed git rebase i.e. git rebase -i <hash>."
     :persistent-action 'helm-ls-git-stash-show
     :action '(("Apply stash" . helm-ls-git-stash-apply)
               ("Pop stash" . helm-ls-git-stash-pop)
-              ("Drop stashe(s)" . helm-ls-git-stash-drop-marked))))
+              ("Drop stashe(s)" . helm-ls-git-stash-drop-marked))
+    :group 'helm-ls-git))
 
 ;;; Git status
 (defun helm-ls-git-status (&optional ignore-untracked)
@@ -1412,6 +1427,18 @@ object will be passed git rebase i.e. git rebase -i <hash>."
   (with-helm-default-directory (helm-default-directory)
     (let ((files (helm-marked-candidates)))
     (apply #'process-file "git" nil nil nil "rm" files))))
+
+(defun helm-ls-git-switch-to-shell (_candidate)
+  (let ((helm-ff-default-directory
+         (helm-ls-git-root-dir)))
+    (helm-ff-switch-to-shell nil)))
+
+(defun helm-ls-git-run-switch-to-shell ()
+  (interactive)
+  (with-helm-alive-p
+    (helm-exit-and-execute-action 'helm-ls-git-switch-to-shell)))
+(put 'helm-ls-git-run-switch-to-shell 'no-helm-mx t)
+
 
 ;;; Stage and commit
 ;;
@@ -1512,7 +1539,10 @@ context i.e. use it in helm actions."
                             (helm-ls-git-root-dir
                              (helm-default-directory))))
         (process-environment process-environment)
-        (bname (format "*helm-ls-git %s*" (car args))))
+        (bname (format "*helm-ls-git %s*" (car args)))
+        (alt-auth (and helm-current-prefix-arg
+                       (list (read-string "Author name: ")
+                             (read-string "Author email: ")))))
     ;; It seems git once it knows GIT_EDITOR reuse the same value
     ;; along its whole process e.g. when squashing in a rebase
     ;; process, so even if the env setting goes away after initial
@@ -1520,6 +1550,9 @@ context i.e. use it in helm actions."
     ;; commits.
     (when (get-buffer bname) (kill-buffer bname))
     (push "GIT_EDITOR=emacsclient $@" process-environment)
+    (when (and alt-auth (not (member "" alt-auth)))
+      (push (format "GIT_AUTHOR_NAME=%s" (car alt-auth)) process-environment)
+      (push (format "GIT_AUTHOR_EMAIL=%s" (cadr alt-auth)) process-environment))
     (unless (server-running-p)
       (server-start))
     (apply #'start-file-process "git" bname "git" args)))
@@ -1563,7 +1596,9 @@ Commands:
 
 (defun helm-ls-git-with-editor-setup ()
   (setq fill-column 70)
-  (setq buffer-read-only nil)
+  ;; For some reasons, using (setq buffer-read-only nil) in emacs-29
+  ;; doesn't work anymore.
+  (read-only-mode -1)
   (set (make-local-variable 'comment-start) "#")
   (set (make-local-variable 'comment-end) "")
   (auto-fill-mode 1)
@@ -1706,6 +1741,7 @@ Do nothing when `helm-source-ls-git' is not member of
   (and (memq 'helm-source-ls-git helm-ls-git-default-sources)
        (helm-make-source "Git files" 'helm-ls-git-source
          :fuzzy-match helm-ls-git-fuzzy-match
+         :action (helm-ls-git-actions-list helm-type-file-actions)
          :group 'helm-ls-git)))
 
 (defun helm-ls-git-build-buffers-source ()

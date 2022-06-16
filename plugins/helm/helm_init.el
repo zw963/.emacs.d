@@ -7,7 +7,8 @@
 ;; 如果 helm-git-grep 开启，会覆盖 helm-ag_init 的 M-R 快捷键
 (require 'helm-git-grep_init)
 (require 'helm-ls-git_init)
-(require 'helm-fasd)
+;; (require 'helm-fasd)
+;; (require 'helm-rg)
 
 (provide 'helm_init)
 ;;; helm_init.el ends here
