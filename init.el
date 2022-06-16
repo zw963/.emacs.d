@@ -18,10 +18,9 @@
 ;; (require 'helpful_init)
 ;; (require 'winum_init)
 ;; (require 'bm_init)
-;; (require 'beacon_init)
 ;; (require 'which-key_init)
 (require 'anzu_init)
-
+(require 'beacon_init)
 (require 'avy_init)
 (require 'doom-modeline_init)
 (require 'rich-minority_init)
