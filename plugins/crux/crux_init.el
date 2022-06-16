@@ -43,7 +43,7 @@
 ;; (require 'mark-lines)
 
 (global-set-key [(control x) (\4) (t)] 'crux-transpose-windows)
-(global-set-key [(control k)] 'crux-smart-kill-line)
+;; (global-set-key [(control k)] 'crux-smart-kill-line)
 (global-set-key [(control shift return)] 'crux-smart-open-line-above)
 (global-set-key [(control return)] 'crux-smart-open-line)
 ;; (global-set-key [(control c) (r)] 'crux-rename-file-and-buffer)
