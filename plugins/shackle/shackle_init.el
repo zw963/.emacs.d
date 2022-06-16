@@ -7,6 +7,7 @@
       shackle-rules
       '(
         (("*Warnings*" "*Messages*" "*Completions*" "*Alerts*" "*Compile-Log*") :size 0.3 :align 'below :autoclose t)
+        (("*color-rg*") :size 0.3 :autoclose t)
         ;; (("\\*RuboCop ") :regexp t :size 0.3 :align 'below :autoclose t)
         ((compilation-mode rustic-compilation-mode rustic-cargo-clippy-mode rustic-cargo-outdated-mode rustic-cargo-test-mode cargo-process-mode) :select t :size 0.3 :align 'below :autoclose t)
         ("*quickrun*" :select t :size 15 :align 'below :autoclose t)
