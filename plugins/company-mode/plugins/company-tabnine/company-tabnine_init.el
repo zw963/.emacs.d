@@ -8,10 +8,11 @@
   (add-to-list 'company-backends #'company-tabnine)
   )
 
-(add-hook 'sh-mode-hook 'add-tabnine-backend)
-(with-eval-after-load 'rust-mode (add-hook 'rust-mode-hook 'add-tabnine-backend))
-(with-eval-after-load 'rustic-mode (add-hook 'rustic-mode-hook 'add-tabnine-backend))
-(with-eval-after-load 'ruby-mode (add-hook 'ruby-mode-hook 'add-tabnine-backend))
+;; (add-hook 'sh-mode-hook 'add-tabnine-backend)
+;; (with-eval-after-load 'rust-mode (add-hook 'rust-mode-hook 'add-tabnine-backend))
+;; (with-eval-after-load 'rustic-mode (add-hook 'rustic-mode-hook 'add-tabnine-backend))
+;; (with-eval-after-load 'crystal-mode (add-hook 'crystal-mode-hook 'add-tabnine-backend))
+;; (with-eval-after-load 'ruby-mode (add-hook 'ruby-mode-hook 'add-tabnine-backend))
 
 ;; dart-mode 开启的话，很卡
 ;; (with-eval-after-load 'dart-mode (add-hook 'dart-mode-hook 'add-tabnine-backend))

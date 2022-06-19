@@ -114,6 +114,7 @@
                 yaml-mode-hook
                 conf-mode-hook
                 sh-mode-hook
+                web-mode
                 ))
   (add-hook hook
             (lambda ()
