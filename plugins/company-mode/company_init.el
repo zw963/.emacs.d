@@ -231,7 +231,7 @@ ac-auto-show-menu 为 nil 的情形, 这种模式比较适合在 yasnippet 正�
 ;;         desktop-minor-mode-table)
 ;;   )
 
-(require 'company-tabnine_init)
+;; (require 'company-tabnine_init)
 
 ;; toggle-company-english-helper 来开启英文自动补全。
 ;; 包含了一个 py 脚本，用来转化 stardict 的词库，模式是 KDict, 包含 11 万单词.
