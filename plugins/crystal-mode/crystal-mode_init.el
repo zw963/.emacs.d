@@ -4,8 +4,8 @@
 (require 'crystal-mode_keyword_highlight_init)
 
 ;; (require 'ameba)
-;; (require 'flycheck-ameba)
-;; (flycheck-ameba-setup)
+(require 'flycheck-ameba)
+(flycheck-ameba-setup)
 
 (provide 'crystal-mode_init)
 
