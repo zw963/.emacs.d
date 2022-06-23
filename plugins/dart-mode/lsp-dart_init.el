@@ -2,6 +2,11 @@
 (require 'dap-mode_init)
 (require 'lsp-dart)
 
+(defun special-mode-lsp-dart-dap-flutter-hot-reload ()
+  (interactive)
+  (goto-char (point-max))
+  (lsp-dart-dap-flutter-hot-reload))
+
 (defun special-mode-lsp-dart-dap-flutter-hot-restart ()
   (interactive)
   (goto-char (point-max))
