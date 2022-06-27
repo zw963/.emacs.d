@@ -3,4 +3,6 @@
 # key: if
 # binding: M-c i
 # --
-<% if ${1:cond} %>`(def)`
+<% if ${1:cond} %>
+  $0
+<% end %>

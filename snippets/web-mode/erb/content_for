@@ -1,0 +1,7 @@
+# -*- mode: snippet -*-
+# name: content_for
+# key: content_for
+# --
+<% content_for(:${1:template}) do %>
+  $0
+<% end %>

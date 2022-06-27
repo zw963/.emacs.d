@@ -3,4 +3,6 @@
 # key: each
 # binding: M-c e
 # --
-<% ${1:set}.each do`(field "2" "e" " |" "|")` %>`(def)`
+<% ${1:set}.each do`(field "2" "e" " |" "|")` %>
+   $0
+<% end %>
