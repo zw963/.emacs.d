@@ -402,8 +402,8 @@
 ;; 开启试一下
 (setq
  frame-resize-pixelwise t
- mouse-wheel-scroll-amount '(1 ((shift) . 1) ((control) . nil))
- mouse-wheel-progressive-speed nil
+ ;; mouse-wheel-scroll-amount '(1 ((shift) . 1) ((control) . nil))
+ ;; mouse-wheel-progressive-speed nil
  )
 
  ;; Disable margin for overline and underline
@@ -456,8 +456,8 @@
 (setq what-cursor-show-names t)
 (minibuffer-electric-default-mode t)
 (minibuffer-depth-indicate-mode t)
-;; 开启minibuffer递归调用.
-(setq enable-recursive-minibuffers t)
+;; 我为什么要打开这个？
+;; (setq enable-recursive-minibuffers t)
 (setq toggle-truncate-lines nil)
 (setq comment-auto-fill-only-comments t)
 (setq x-gtk-use-system-tooltips nil)

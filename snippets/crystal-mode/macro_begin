@@ -1,6 +1,6 @@
 # -*- mode: snippet -*-
 # name: macro begin
-# key: macro
+# key: macro_begin
 # binding: M-c b
 # condition: (yas-use-region-p)
 # --
