@@ -27,7 +27,6 @@
 
 (require 'dired-x)
 (setq dired-omit-files (concat dired-omit-files "\\|~$"))
-(add-hook 'dired-mode-hook (lambda () (dired-omit-mode)))
 
 (require 'dired-aux)
 (unless (version-list-<= (version-to-list emacs-version) '(24 3 1))
@@ -69,8 +68,11 @@
 (setq ripgrep-dired-rg-basic-args "-nH --no-heading --smart-case \
 -g '!*~' -g '!#*#' -g '!.#*'")
 
+(require 'dired+)
 (add-hook 'dired-mode-hook
           (lambda ()
+            (dired-omit-mode)
+            (diredp-toggle-find-file-reuse-dir t)
             (dired-hide-details-mode -1)
             ;; 这行代码在 hook 里面是必须的, 因为 dired-efap 改写了 meta b 参数.
             (define-key dired-mode-map  [(meta b)] nil)

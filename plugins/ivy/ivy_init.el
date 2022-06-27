@@ -26,7 +26,6 @@
 (ivy-mode 1)
 
 (setq ivy-use-virtual-buffers t) ;; Enable bookmarks and recentf
-;; (setq enable-recursive-minibuffers t)
 ;; (setq ivy-use-selectable-prompt t)
 
 (global-set-key (kbd "C-x C-r") 'ivy-resume)
