@@ -1,0 +1,9 @@
+Number
+Bool
+String
+Object
+Time
+Html
+Void
+Never
+Tuple

@@ -66,3 +66,6 @@
 
 (autoload 'json-mode "json-mode_init" nil t)
 (add-to-list 'auto-mode-alist '("\\.json" . yaml-mode))
+
+(autoload 'mint-mode "mint-mode" nil t)
+(add-to-list 'auto-mode-alist '("\\.mint\\'" . mint-mode))
