@@ -100,7 +100,7 @@
 (defvar eshell-debug-command)
 (defvar eshell-current-command)
 (defvar tramp-archive-enabled)
-
+(defvar password-cache)
 
 (defgroup helm-files nil
   "Files applications and libraries for Helm."
@@ -1041,7 +1041,11 @@ directories belonging to each visible windows."
 
 (defun helm-dwim-target-directory ()
   "Try to return a suitable directory according to `helm-dwim-target'."
-  (with-selected-window (get-buffer-window helm-current-buffer)
+  (with-selected-window (or
+                         ;; Try next-window if current-buffer has been
+                         ;; killed during this session probably by C-d.
+                         (get-buffer-window helm-current-buffer)
+                         (next-window (helm-window) 1))
     (let ((wins (remove (get-buffer-window helm-marked-buffer-name)
                         (window-list))))
       (expand-file-name
@@ -3622,6 +3626,22 @@ in cache."
         (file-notify-rm-watch (gethash directory helm-ff--file-notify-watchers))
         (remhash directory helm-ff--file-notify-watchers)))))
 
+(defun helm-ff-tramp-cleanup-hook (vec)
+  "Remove remote directories related to VEC in helm-ff* caches.
+Remove as well all related file-notify watchers.
+
+This is meant to run in `tramp-cleanup-connection-hook'."
+  (cl-loop for key being the hash-keys in helm-ff--list-directory-cache
+           when (equal (file-remote-p key 'method) (cadr vec)) 
+           do (remhash key helm-ff--list-directory-cache))
+  (cl-loop for key being the hash-keys in helm-ff--file-notify-watchers
+           when (equal (file-remote-p key 'method) (cadr vec))
+           do (progn
+                (file-notify-rm-watch
+                 (gethash key helm-ff--file-notify-watchers))
+                (remhash key helm-ff--file-notify-watchers))))
+(add-hook 'tramp-cleanup-connection-hook #'helm-ff-tramp-cleanup-hook)
+
 (defun helm-ff-handle-backslash (fname)
   ;; Allow creation of filenames containing a backslash.
   (cl-loop with bad = '((92 . ""))
@@ -5232,7 +5252,10 @@ Use it for non-interactive calls of `helm-find-files'."
                (not (minibuffer-window-active-p (minibuffer-window)))))
          (tap (thing-at-point 'filename))
          (def (and tap (or (file-remote-p tap)
-                           (expand-file-name tap)))))
+                           (expand-file-name tap))))
+         ;; Ensure not being prompted for password each time we
+         ;; navigate to a directory.
+         (password-cache t))
     (helm-set-local-variable 'helm-follow-mode-persistent nil
                              'helm-drag-mouse-1-fn 'helm-ff-drag-mouse-1-fn)
     (unless helm-source-find-files
@@ -5460,7 +5483,7 @@ Find inside `require' and `declare-function' sexp."
                              &key action follow (files (dired-get-marked-files)))
   "Execute ACTION on FILES to DESTINATION.
 Where ACTION is a symbol that can be one of:
-'copy, \\='rename, \\='symlink,'relsymlink, \\='hardlink or \\='backup.
+'copy', 'rename', 'symlink', 'relsymlink', 'hardlink' or 'backup'.
 Argument FOLLOW when non-nil specifies to follow FILES to
 DESTINATION for the actions copy and rename."
   (require 'dired-async)
@@ -6494,36 +6517,6 @@ files."
                                     (format helm-ff-last-expanded-candidate-regexp
                                             (regexp-quote presel)))))))
 
-;;;###autoload
-(defun helm-delete-tramp-connection ()
-  "Allow deleting tramp connection or marked tramp connections at once.
-
-This replace `tramp-cleanup-connection' which is partially broken
-in Emacs < to 25.1.50.1 (See Emacs bug http://debbugs.gnu.org/cgi/bugreport.cgi?bug=24432).
-
-It allows additionally to delete more than one connection at
-once."
-  (interactive)
-  (let ((helm-quit-if-no-candidate
-         (lambda ()
-           (message "No Tramp connection found"))))
-    (helm :sources (helm-build-sync-source "Tramp connections"
-                     :candidates (tramp-list-connections)
-                     :candidate-transformer (lambda (candidates)
-                                              (cl-loop for v in candidates
-                                                       for name = (apply #'tramp-make-tramp-file-name
-                                                                         (cl-loop with v = (helm-ff--tramp-cons-or-vector v)
-                                                                                  for i across v collect i))
-                                                       when (or (processp (tramp-get-connection-process v))
-                                                                (buffer-live-p (get-buffer (tramp-buffer-name v))))
-                                                       collect (cons name v)))
-                     :action (lambda (_vec)
-                               (let ((vecs (helm-marked-candidates)))
-                                 (cl-loop for v in vecs
-                                          do (progn
-                                               (tramp-cleanup-connection v)
-                                               (remhash v tramp-cache-data))))))
-          :buffer "*helm tramp connections*")))
 
 
 (provide 'helm-files)

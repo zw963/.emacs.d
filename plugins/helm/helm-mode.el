@@ -28,6 +28,7 @@
 (defvar completion-flex-nospace)
 (defvar helm-completion--sorting-done)
 (defvar helm-mode)
+(defvar password-cache)
 
 ;; No warnings in Emacs built --without-x
 (declare-function x-file-dialog "xfns.c")
@@ -36,6 +37,8 @@
 (declare-function helm-apropos-init "helm-elisp")
 (declare-function helm-lisp-completion-persistent-action "helm-elisp")
 (declare-function helm-lisp-completion-persistent-help "helm-elisp")
+(declare-function help--symbol-class "help-fns.el")
+(declare-function helm-get-first-line-documentation "helm-elisp")
 
 (defgroup helm-mode nil
   "Enable helm completion."
@@ -990,6 +993,8 @@ This handler uses dynamic matching which allows honouring `completion-styles'."
                        '(metadata)))
          (afun (or (plist-get completion-extra-properties :annotation-function)
                    (completion-metadata-get metadata 'annotation-function)))
+         (afix (or (plist-get completion-extra-properties :affixation-function)
+                   (completion-metadata-get metadata 'affixation-function)))
          (file-comp-p (eq (completion-metadata-get metadata 'category) 'file))
          (compfn (lambda (str _predicate _action)
                    (let* ((completion-ignore-case (helm-set-case-fold-search))
@@ -1033,10 +1038,15 @@ This handler uses dynamic matching which allows honouring `completion-styles'."
                                   (memq helm-completion-style '(helm helm-fuzzy))
                                   (list default))
                              (helm-completion-in-region--initial-filter
-                              (if (and sort-fn (> (length str) 0))
-                                  (funcall sort-fn all)
-                                all)
-                              afun file-comp-p)))))
+                              (pcase-let ((lst (if (and sort-fn (> (length str) 0))
+                                                   (funcall sort-fn all)
+                                                 all)))
+                                (if (and default afix)
+                                    (prog1 (append (list default)
+                                                   (delete default lst))
+                                      (setq default nil))
+                                  lst))
+                              afun afix file-comp-p)))))
          (data (if (memq helm-completion-style '(helm helm-fuzzy))
                    (funcall compfn (or input "") nil nil)
                  compfn))
@@ -1059,7 +1069,7 @@ This handler uses dynamic matching which allows honouring `completion-styles'."
          :reverse-history helm-mode-reverse-history
          ;; In helm h-c-styles default is passed directly in
          ;; candidates.
-         :default (and (eq helm-completion-style 'emacs) default)
+         :default (and (eq helm-completion-style 'emacs) (null afix) default)
          :fc-transformer
          ;; Ensure sort fn is at the end.
          (append '(helm-cr-default-transformer)
@@ -1368,6 +1378,9 @@ Keys description:
          (helm-ff--RET-disabled noret)
          (minibuffer-completion-predicate test)
          (minibuffer-completing-file-name t)
+         ;; Ensure not being prompted for password each time we
+         ;; navigate to a directory.
+         (password-cache t)
          (helm--completing-file-name t)
          (helm-read-file-name-mode-line-string
           (replace-regexp-in-string "helm-maybe-exit-minibuffer"
@@ -1660,32 +1673,55 @@ The `helm-find-files' history `helm-ff-history' is used here."
       (propertize str 'read-only t 'face 'helm-mode-prefix 'rear-nonsticky t)
     str))
 
-(defun helm-completion-in-region--initial-filter (comps afun file-comp-p)
-  "Add annotations at end of candidates and filter out dot files."
+(defun helm--symbol-completion-table-affixation (completions)
+  "Same as `help--symbol-completion-table-affixation' but for helm.
+
+Return a list of cons cells of the form (disp . real)."
+  (mapcar (lambda (c)
+            (let* ((s   (intern c))
+                   (doc (ignore-errors
+                          (helm-get-first-line-documentation s))))
+              (cons (concat (propertize
+                             (format "%-4s" (help--symbol-class s))
+                             'face 'completions-annotations)
+                            c
+                            (if doc
+                                (propertize (format " -- %s" doc)
+                                            'face 'completions-annotations)
+                              ""))
+                    c)))
+          completions))
+
+(defun helm-completion-in-region--initial-filter (comps afun afix file-comp-p)
+  "Compute COMPS with function AFUN or AFIX unless FILE-COMP-P non nil.
+
+If both AFUN and AFIX are provided only AFIX is used.
+When FILE-COMP-P is provided only filter out dot files."
   (if file-comp-p
       ;; Filter out dot files in file completion.
       (cl-loop for f in comps unless
                (string-match "\\`\\.\\{1,2\\}/\\'" f)
                collect f)
-    (if afun
-        ;; Add annotation at end of
-        ;; candidate if needed, e.g. foo<f>, this happen when
-        ;; completing against a quoted symbol.
-        (mapcar (lambda (s)
-                  (let ((ann (funcall afun s)))
-                    (if ann
-                        (cons
-                         (concat
-                          s
-                          (propertize
-                           " " 'display
-                           (propertize
-                            ann
-                            'face 'completions-annotations)))
-                         s)
-                      s)))
-                comps)
-      comps)))
+    (cond (afix (helm--symbol-completion-table-affixation comps))
+          (afun
+           ;; Add annotation at end of
+           ;; candidate if needed, e.g. foo<f>, this happen when
+           ;; completing against a quoted symbol.
+           (mapcar (lambda (s)
+                     (let ((ann (funcall afun s)))
+                       (if ann
+                           (cons
+                            (concat
+                             s
+                             (propertize
+                              " " 'display
+                              (propertize
+                               ann
+                               'face 'completions-annotations)))
+                            s)
+                         s)))
+                   comps))
+          (t comps))))
 
 ;; Helm multi matching style
 
@@ -1913,12 +1949,20 @@ Can be used for `completion-in-region-function' by advicing it with an
                  ;; See Bug#407.
                  (afun (or (plist-get completion-extra-properties :annotation-function)
                            (completion-metadata-get metadata 'annotation-function)))
+                 ;; Not sure if affixations are provided in
+                 ;; completion-in-region, try anyway never know.
+                 (afix (or (plist-get completion-extra-properties :affixation-function)
+                           (completion-metadata-get metadata 'affixation-function)))
                  (init-space-suffix (unless (or (memq helm-completion-style '(helm-fuzzy emacs))
                                                 (string-suffix-p " " input)
                                                 (string= input ""))
                                       " "))
                  (file-comp-p (or (eq (completion-metadata-get metadata 'category) 'file)
-                                  (helm-mode--in-file-completion-p)
+                                  (and (helm-mode--in-file-completion-p)
+                                       ;; Probably unneeded at this
+                                       ;; point but never know.
+                                       (setq metadata (append metadata '((category . file))))
+                                       t)
                                   ;; Assume that when `afun' and `predicate' are null
                                   ;; we are in filename completion.
                                   (and (null afun) (null predicate))))
@@ -1939,7 +1983,23 @@ Can be used for `completion-in-region-function' by advicing it with an
                                     metadata))
                                   (last-data (last comps))
                                   (bs (helm-aif (cdr last-data)
-                                          (prog1 it
+                                          ;; Try to fix eshell completion
+                                          ;; which fails to complete a
+                                          ;; filename not preceded by
+                                          ;; a meaningful
+                                          ;; command like cd or ls
+                                          ;; (bug #2504) so
+                                          ;; try to find the last
+                                          ;; leading / and set
+                                          ;; base-size from it.
+                                          (prog1 (if (and (zerop it) file-comp-p)
+                                                     (or (helm-aand
+                                                          (save-excursion
+                                                            (re-search-backward
+                                                             "/" start t))
+                                                          (- (1+ it) start))
+                                                         it)
+                                                   it)
                                             ;; Remove the last element of
                                             ;; comps by side-effect.
                                             (setcdr last-data nil))
@@ -1975,7 +2035,7 @@ Can be used for `completion-in-region-function' by advicing it with an
                               (if (and sort-fn (> (length str) 0))
                                   (funcall sort-fn all)
                                 all)
-                              afun file-comp-p))))
+                              afun afix file-comp-p))))
                  (data (if (memq helm-completion-style '(helm helm-fuzzy))
                            (funcall compfn input nil nil)
                          compfn))
