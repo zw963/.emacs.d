@@ -60,6 +60,7 @@
 (require 'prog-mode_init)
 ;; (require 'apheleia_init)
 (require 'git_init)
+;; (require 'reformatter_init)
 (require 'flycheck_init)
 (require 'company_init)
 (require 'dart-mode_init)
@@ -75,6 +76,7 @@
 (require 'rainbow-mode_init)
 (require 'scss-css-mode_init)
 ;; (require 'tree-sitter_init)
+(require 'format-all_init)
 
 (require 'dpaste_init)
 (require 'ws-butler_init)
