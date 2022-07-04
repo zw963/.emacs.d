@@ -7,6 +7,8 @@
 (require 'helm-common_init)
 (require 'helm-ag_init)
 
+(setq helm-source-names-using-follow '("Git-Grep"))
+
 ;; 如果 helm-git-grep 开启，会覆盖 helm-ag_init 的 M-R 快捷键
 ;; (require 'helm-git-grep_init)
 
