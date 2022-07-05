@@ -1,6 +1,6 @@
 (require 'symbol-overlay)
 
-(global-set-key (kbd "M-i") 'symbol-overlay-put)
+;; (global-set-key (kbd "M-i") 'symbol-overlay-put)
 
 ;; 不需要这个, 因为 n, p 就是类似功能, 下面是所有可用快捷键.
 
