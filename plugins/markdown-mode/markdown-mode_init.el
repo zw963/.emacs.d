@@ -6,6 +6,8 @@
             (local-unset-key (kbd "C-x n"))
             (define-key markdown-mode-map [(control c) (return)] 'markdown-preview)
             (define-key markdown-mode-map [(meta c) (n)] 'markdown-narrow-to-subtree)
+            (define-key markdown-mode-map [(meta n)] 'window-move-up)
+            (define-key markdown-mode-map [(meta p)] 'window-move-down)
             ))
 (setq markdown-command "pulldown-cmark"
       markdown-open-command "pulldown-cmark"
