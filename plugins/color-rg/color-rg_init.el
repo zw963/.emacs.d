@@ -12,6 +12,8 @@
 -g \"!*.log\" \
 ")
 
+(setq color-rg-search-no-ignore-file nil)
+
 (add-hook 'color-rg-mode-hook
           (lambda ()
             (define-key color-rg-mode-map (kbd "n") 'color-rg-jump-next-file)
