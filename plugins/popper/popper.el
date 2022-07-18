@@ -137,7 +137,7 @@ Choices are:
  nil : Do not control popup placement.
  t   : Control placement of all popups."
   :group 'popper
-  :type '(choice (const :tag "Explicitly set popups only" 'user)
+  :type '(choice (const :tag "Explicitly set popups only" user)
                  (const :tag "All popups" t)
                  (const :tag "Never" nil)))
 
@@ -255,24 +255,26 @@ grouped by the predicate `popper-group-function'.")
    (floor (frame-height) 3)
    (floor (frame-height) 6)))
 
-(defun popper-select-popup-at-bottom (buffer &optional _alist)
+(defun popper-select-popup-at-bottom (buffer &optional alist)
   "Display and switch to popup-buffer BUFFER at the bottom of the screen."
-  (let ((window (popper-display-popup-at-bottom buffer _alist)))
+  (let ((window (popper-display-popup-at-bottom buffer alist)))
     (select-window window)))
 
-(defun popper-display-popup-at-bottom (buffer &optional _alist)
+(defun popper-display-popup-at-bottom (buffer &optional alist)
   "Display popup-buffer BUFFER at the bottom of the screen."
   (display-buffer-in-side-window
    buffer
-   `((window-height . ,popper-window-height)
-     (side . bottom)
-     (slot . 1))))
+   (append alist 
+           `((window-height . ,popper-window-height)
+             (side . bottom)
+             (slot . 1)))))
 
 (defun popper-popup-p (buf)
-  "Predicate to test if buffer BUF meets the criteria listed in `popper-reference-buffers'."
+  "Predicate to test if buffer BUF qualifies for popper handling.
+Criteria are listed in `popper-reference-buffers'."
   (or (seq-some (lambda (buf-regexp)
-               (string-match-p buf-regexp (buffer-name buf)))
-             popper--reference-names)
+                  (string-match-p buf-regexp (buffer-name buf)))
+                popper--reference-names)
       (member (buffer-local-value 'major-mode buf) popper--reference-modes)
       (seq-some (lambda (pred) (funcall pred buf)) popper--reference-predicates)))
 
@@ -286,9 +288,9 @@ This is intended to be used in `display-buffer-alist'."
        (with-current-buffer buffer
          (eq popper-popup-status 'user-popup)))
       ('t (with-current-buffer buffer
-            (or (memq popper-popup-status '(popup user-popup))
-                (unless (eq popper-popup-status 'raised)
-                  (popper-popup-p buffer))))))))
+           (or (memq popper-popup-status '(popup user-popup))
+               (unless (eq popper-popup-status 'raised)
+                 (popper-popup-p buffer))))))))
 
 (defun popper-group-by-directory ()
   "Return an identifier (default directory) to group popups.
@@ -465,11 +467,14 @@ a popup buffer to open."
 (defun popper--modified-mode-line ()
   "Return modified mode-line string."
   (when popper-mode-line
-    (if (member popper-mode-line mode-line-format)
-        mode-line-format
-      (append (cl-subseq (default-value 'mode-line-format) 0 popper-mode-line-position)
-              (cons popper-mode-line (nthcdr popper-mode-line-position
-                                             (default-value 'mode-line-format)))))))
+    (if (consp mode-line-format)
+        (if (member popper-mode-line mode-line-format)
+            mode-line-format
+          (append (cl-subseq (default-value 'mode-line-format) 0 popper-mode-line-position)
+                  (list popper-mode-line
+                        (nthcdr popper-mode-line-position
+                                (default-value 'mode-line-format)))))
+      mode-line-format)))
 
 (defun popper--restore-mode-lines (win-buf-alist)
   "Restore the default value of `mode-line-format'.
@@ -582,7 +587,7 @@ If BUFFER is not specified act on the current buffer instead."
     (`(,win . ,buf)
      (popper--delete-popup win)
      (kill-buffer buf))
-    (t
+    (_
      (message "No open popups!"))))
 
 (defun popper--suppress-p (buf)
@@ -646,7 +651,7 @@ If BUFFER is not specified act on the current buffer instead."
                  ('mode (cl-pushnew (car elm) popper--suppressed-modes))
                  ('pred (cl-pushnew (car elm) popper--suppressed-predicates))))
              (popper--insert-type (car elm)))))
-  
+
   (dolist (entry popper-reference-buffers nil)
     (popper--insert-type entry)))
 

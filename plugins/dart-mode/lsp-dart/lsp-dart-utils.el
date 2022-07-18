@@ -65,6 +65,10 @@ Used by features that needs to know project entrypoint like DAP support."
 
 (defvar-local lsp-dart--project-type-cache nil)
 
+(defvar lsp-dart--executable-suffixes (if (eq system-type 'windows-nt)
+                                          '(".exe" ".bat")
+                                        '("")))
+
 (defun lsp-dart--set-project-type-cache (flutter?)
   "Update project type cache checking FLUTTER?."
   (if flutter?
@@ -135,42 +139,45 @@ FLUTTER_ROOT environment variable."
         file-truename)
       (getenv "FLUTTER_ROOT")))
 
+(defun lsp-dart-dart-command ()
+  "Return the dart executable from Dart SDK dir."
+  (let* ((command (lsp-dart--executable-find "dart" (lsp-dart-get-sdk-dir))))
+    (if command
+        command
+      (lsp-dart-log "Dart command not found in path '%s'" command))))
+
 (defun lsp-dart-pub-command ()
   "Return the pub executable path from Dart SDK path."
-  (if (eq system-type 'windows-nt)
-      (expand-file-name "bin/pub.bat" (lsp-dart-get-sdk-dir)))
-  (expand-file-name "bin/pub" (lsp-dart-get-sdk-dir)))
+  (if (lsp-dart-version-at-least-p "2.16.0")
+      (list (lsp-dart-dart-command) "pub")
+    (list (lsp-dart--executable-find "pub" (lsp-dart-get-sdk-dir)))))
 
 (defun lsp-dart-pub-snapshot-command ()
   "Return the pub snapshot executable path from Dart SDK path."
   (expand-file-name "bin/snapshots/pub.dart.snapshot" (lsp-dart-get-sdk-dir)))
 
-(defun lsp-dart-dart-command ()
-  "Return the dart executable from Dart SDK dir."
-  (let* ((executable-path (if (eq system-type 'windows-nt) "bin/dart.bat" "bin/dart"))
-         (command (expand-file-name executable-path (lsp-dart-get-sdk-dir))))
-    (if (file-exists-p command)
-        command
-      (lsp-dart-log "Dart command not found in path '%s'" command))))
-
 (defun lsp-dart-flutter-command ()
   "Return the flutter executable from Flutter SDK dir."
-  (let* ((executable-path (if (eq system-type 'windows-nt)
-                              "bin/flutter.bat"
-                            (concat "bin/" lsp-dart-flutter-executable)))
-         (command (expand-file-name executable-path (lsp-dart-get-flutter-sdk-dir))))
-    (if (file-exists-p command)
-        command
+  (let ((command (lsp-dart--executable-find lsp-dart-flutter-executable (lsp-dart-get-flutter-sdk-dir))))
+    (if command
+        (list command)
       (lsp-dart-log "Flutter command not found in path '%s'" command))))
+
+(defun lsp-dart--executable-find (name dir)
+  "Find an executable named `name' in `dir'."
+  (let* ((bin-dir (expand-file-name "bin" dir))
+         (candidates (--map (expand-file-name (concat name it) bin-dir) lsp-dart--executable-suffixes)))
+    (-find #'file-regular-p candidates)))
 
 
 ;; Project
 
 (defun lsp-dart-get-project-root ()
   "Return the dart or flutter project root."
-  (-some-> default-directory
-    (locate-dominating-file "pubspec.yaml")
-    file-truename))
+  (or (lsp-workspace-root)
+      (-some-> default-directory
+        (locate-dominating-file "pubspec.yaml")
+        file-truename)))
 
 (defun lsp-dart-get-project-entrypoint ()
   "Return the dart or flutter project entrypoint."
@@ -229,7 +236,7 @@ FLUTTER_ROOT environment variable."
 
 (defun lsp-dart-get-full-flutter-version ()
   "Retrieve the Flutter version from shell command."
-  (->> (concat (lsp-dart-flutter-command) " --version")
+  (->> (concat (string-join (lsp-dart-flutter-command) " ") " --version")
        shell-command-to-string))
 
 (defun lsp-dart-get-dart-version ()

@@ -29,8 +29,8 @@
 (defface treemacs-directory-collapsed-face
   '((t :inherit treemacs-directory-face))
   "Face used by treemacs for collapsed directories.
-This is the face used for the collapsed part of nodes, so
-if the node is 'foo/bar/baz', the face is used for 'foo/bar/'.
+This is the face used for the collapsed part of nodes, so if the node is
+\"foo/bar/baz\", the face is used for \"foo/bar/\".
 
 Using this face is incompatible with `treemacs-git-mode' (exept for the simple
 variant), so it will only be used if git-mode is disabled or set to simple."
@@ -155,6 +155,11 @@ Applies to buttons like
 (defface treemacs-marked-file-face
   '((t :foreground "#F0C674" :background "#AB3737" :bold t))
   "Face for files marked by treemacs."
+  :group 'treemacs-faces)
+
+(defface treemacs-git-commit-diff-face
+  '((t :inherit 'font-lock-comment-face))
+  "Face for `treemacs-git-commit-diff-mode' annotations."
   :group 'treemacs-faces)
 
 (provide 'treemacs-faces)

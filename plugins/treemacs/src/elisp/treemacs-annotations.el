@@ -94,7 +94,7 @@ FACE: Face
 SOURCE: String"
   (inline-letevals (source path face)
     (inline-quote
-     (if-let* ((ann (treemacs-get-annotation ,path)))
+     (-if-let* ((ann (treemacs-get-annotation ,path)))
          (let* ((face-list (treemacs-annotation->face ann))
                 (old-face (--first (string= ,source (car it)) face-list)))
            (if old-face
@@ -117,7 +117,7 @@ PATH: Node Path
 SOURCE: String"
   (inline-letevals (path source)
     (inline-quote
-     (when-let* ((ann (treemacs-get-annotation ,path)))
+     (-when-let (ann (treemacs-get-annotation ,path))
        (let* ((git-face (treemacs-annotation->git-face ann))
               (old-faces (treemacs-annotation->face ann))
               (new-faces (--reject-first
@@ -168,7 +168,7 @@ SOURCE: String"
     (inline-quote
      (progn
        (put-text-property 0 (length ,suffix) 'treemacs-suffix-annotation t ,suffix)
-       (if-let* ((ann (treemacs-get-annotation ,path)))
+       (-if-let (ann (treemacs-get-annotation ,path))
            (let* ((suffix-list (treemacs-annotation->suffix ann))
                   (old-suffix (--first (string= ,source (car it)) suffix-list)))
              (if old-suffix
@@ -190,7 +190,7 @@ PATH: Node Path
 SOURCE: String"
   (inline-letevals (path source)
     (inline-quote
-     (when-let* ((ann (treemacs-get-annotation ,path)))
+     (-when-let (ann (treemacs-get-annotation ,path))
        (let* ((old-suffixes (treemacs-annotation->suffix ann))
               (new-suffixes (--reject-first
                              (string= ,source (car it))
@@ -294,22 +294,22 @@ GIT-FACE is taken from the latest git cache, or nil if it's not known."
              ;; annotations are present, value needs updating if the git face
              ;; has changed
              (let ((new-face-value
-                    (cond
-                     ((and ,git-face (not (equal ,git-face old-git-face)))
-                      (append (mapcar #'cdr faces)
-                              (list ,git-face)))
-                     ((and old-git-face (null ,git-face))
-                      (mapcar #'cdr faces))
-                     (t face-value))))
-               (when new-face-value
-                 (setf
-                  (treemacs-annotation->face-value ann)
-                  new-face-value
-                  (treemacs-annotation->git-face ann)
-                  ,git-face)
-                 (put-text-property
-                  btn-start btn-end 'face
-                  new-face-value))))
+                    (or
+                     (cond
+                      ((and ,git-face (not (equal ,git-face old-git-face)))
+                       (append (mapcar #'cdr faces)
+                               (list ,git-face)))
+                      ((and old-git-face (null ,git-face))
+                       (mapcar #'cdr faces))
+                      (t face-value))
+                     (treemacs-button-get ,btn :default-face))))
+               (setf (treemacs-annotation->face-value ann)
+                     new-face-value
+                     (treemacs-annotation->git-face ann)
+                     ,git-face)
+               (put-text-property
+                btn-start btn-end 'face
+                new-face-value)))
 
            ;; Suffix
            (goto-char ,btn)
@@ -321,6 +321,20 @@ GIT-FACE is taken from the latest git cache, or nil if it's not known."
                           btn-end))
            (delete-region (point) (point-at-eol))
            (when suffix-value (insert suffix-value))))))))
+
+(defun treemacs-apply-single-annotation (path)
+  "Apply annotations for a single node at given PATH."
+  (treemacs-run-in-all-derived-buffers
+   (-when-let (btn (treemacs-find-node path))
+     (treemacs-with-writable-buffer
+      (save-excursion
+        (treemacs--do-apply-annotation
+         btn
+         (-when-let (git-cache
+                     (->> path
+                          (treemacs--parent-dir)
+                          (ht-get treemacs--git-cache)))
+           (ht-get git-cache path))))))))
 
 (defun treemacs-apply-annotations (path)
   "Apply annotations for all nodes under the given PATH.

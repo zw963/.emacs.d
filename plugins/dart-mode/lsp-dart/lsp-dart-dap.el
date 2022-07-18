@@ -194,6 +194,9 @@ Required to support 'Inspect Widget'."
       lsp-dart-dap--base-debugger-args
       (dap--put-if-absent :type "dart")
       (dap--put-if-absent :name "Dart")
+      (dap--put-if-absent :dap-server-path (if (lsp-dart-dap-use-sdk-debugger-p)
+                                               `(,(lsp-dart-dart-command) "debug_adapter")
+                                             lsp-dart-dap-dart-debugger-program))
       (dap--put-if-absent :program (or (lsp-dart-get-project-entrypoint)
                                        (buffer-file-name)))))
 
@@ -258,7 +261,7 @@ Call CALLBACK when the device is chosen and started successfully."
                       (dap--put-if-absent :deviceId device-id)
                       (dap--put-if-absent :deviceName device-name)
                       (dap--put-if-absent :dap-server-path (if (lsp-dart-dap-use-sdk-debugger-p)
-                                                               `(,(lsp-dart-flutter-command) "debug_adapter" "-d" ,device-id)
+                                                               (append (lsp-dart-flutter-command) (list "debug_adapter" "-d" device-id))
                                                              lsp-dart-dap-flutter-debugger-program))
                       (dap--put-if-absent :flutterPlatform "default")
                       (dap--put-if-absent :toolArgs `("-d" ,device-id))
@@ -304,10 +307,11 @@ Call CALLBACK when the device is chosen and started successfully."
 
 (cl-defmethod dap-handle-event ((_event (eql dart.log)) _session params)
   "Handle debugger uris EVENT for SESSION with PARAMS."
-  (when-let (dap-session (dap--cur-session))
-    (-let* (((&hash "message") params))
-      (when-let (msg (lsp-dart-dap--parse-log-message message))
-        (dap--print-to-output-buffer dap-session msg)))))
+  (when (lsp-dart-dap-use-sdk-debugger-p)
+    (when-let (dap-session (dap--cur-session))
+      (-let* (((&hash "message") params))
+        (when-let (msg (lsp-dart-dap--parse-log-message message))
+          (dap--print-to-output-buffer dap-session msg))))))
 
 (cl-defmethod dap-handle-event ((_event (eql dart.progressStart)) _session params)
   "Handle debugger uris EVENT for SESSION with PARAMS."
@@ -342,6 +346,11 @@ Call CALLBACK when the device is chosen and started successfully."
   (-let (((&hash "launched" "url") params))
     (unless launched
       (browse-url url))))
+
+(declare-function lsp-dart-test--handle-notification "lsp-dart-test-support")
+(cl-defmethod dap-handle-event ((_event (eql dart.testNotification)) _session params)
+  "Handle dart test notifications where PARAMS is the test notification."
+  (lsp-dart-test--handle-notification (intern (lsp-get params :type)) params))
 
 (cl-defmethod dap-handle-event ((_event (eql dart.hotRestartRequest)) _session _params)
   "Ignore this event.")
@@ -444,7 +453,7 @@ Run program PATH if not nil passing ARGS if not nil."
   (-> (list :name "Flutter Tests"
             :type "flutter"
             :dap-server-path (if (lsp-dart-dap-use-sdk-debugger-p)
-                                 `(,(lsp-dart-flutter-command) "debug_adapter" "--test")
+                                 (append (lsp-dart-flutter-command) '("debug_adapter" "--test"))
                                lsp-dart-dap-flutter-test-debugger-program)
             :program path
             :noDebug nil

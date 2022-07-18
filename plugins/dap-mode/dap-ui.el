@@ -286,7 +286,7 @@ DEBUG-SESSION is the debug session triggering the event."
   (when debug-session
     (-if-let* (((stack-frame &as &hash "source" "line" "column")
                 (dap--debug-session-active-frame debug-session))
-               (path (dap--get-path-for-frame stack-frame))
+               (path (dap--get-path-for-frame debug-session stack-frame))
                (buffer (find-buffer-visiting path)))
         (with-current-buffer buffer
           (goto-char (point-min))
@@ -493,7 +493,7 @@ DEBUG-SESSION is the debug session triggering the event."
       (setq-local lsp--cur-workspace workspace)
       (run-hooks 'dap-ui-breakpoints-ui-list-displayed-hook))))
 
-(defun dap-ui--brekapoints-list-cleanup ()
+(defun dap-ui--breakpoints-list-cleanup ()
   "Cleanup when buffer list has been deleted."
   (remove-hook 'dap-breakpoints-changed-hook 'dap-ui-refresh-breakpoints-list))
 
@@ -501,7 +501,7 @@ DEBUG-SESSION is the debug session triggering the event."
  'dap-ui-breakpoints-ui-list-mode-hook
  (lambda ()
    (add-hook 'dap-breakpoints-changed-hook 'dap-ui-refresh-breakpoints-list)
-   (add-hook 'kill-buffer-hook 'dap-ui--brekapoints-list-cleanup nil t)))
+   (add-hook 'kill-buffer-hook 'dap-ui--breakpoints-list-cleanup nil t)))
 
 ;;;###autoload
 (defun dap-ui-breakpoints-list ()
