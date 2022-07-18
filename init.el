@@ -53,6 +53,7 @@
 (require 'goto-chg_init)
 (require 'symbol-overlay_init)
 (require 'color-rg_init)
+(require 'markdown-mode_init)
 
 ;; ============================== 编程相关 ==============================
 
