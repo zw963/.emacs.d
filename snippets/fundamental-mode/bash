@@ -1,5 +1,5 @@
 # -*- mode: snippet -*-
 # name: bash shebang!
-# key: sh
+# key: bash
 # --
-`(sh-mode)`#!/bin/bash
+`(sh-mode)`#!/bin/env bash
