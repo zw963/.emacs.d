@@ -1,8 +1,8 @@
 # -*- mode: snippet -*-
-# name: ruby #{...}
-# key: ruby string interpolated
+# name: crystal #{...}
+# key: crystal string interpolated
 # binding: #
 # condition: (and (yas-in-interpolated-string-p) (yas-not-escaped-p))
 # expand-env: ((yas-indent-line 'fixed))
 # --
-#`(key-field "1" "exp" "{" "}")`
+#`(key-field "1" "exp" "{" "}")``

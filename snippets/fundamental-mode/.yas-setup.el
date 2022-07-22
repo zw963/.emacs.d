@@ -98,12 +98,11 @@ not-exist-after-field-delimiter：delimiter 有时候可能是只有前面有，
   (if (and (expand-with-binding) (region-active-p))
       (insert
        (concat
-        (_yas-field-func field-index (or field-seperator (_yas-field-seperator)) nil field-seperator-function)
+        (or field-seperator (_yas-field-seperator))
         (_yas-expand-func before-field-delimiter nil before-field-delimiter-function)
         (yas-stripped-selected-text "" "" "")
         (unless not-exist-after-field-delimiter
           (_yas-expand-func after-field-delimiter nil after-field-delimiter-function))
-
         ))
     (field
      field-index
@@ -123,7 +122,7 @@ not-exist-after-field-delimiter：delimiter 有时候可能是只有前面有，
                          after-field-delimiter
                          field-seperator)
   "Insert string key-field."
-  (key-field
+  (key-field-
    field-index
    field-content
    (or before-field-delimiter nil)
