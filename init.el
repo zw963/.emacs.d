@@ -105,4 +105,12 @@
 (require 'all-the-icons_init)
 ;; (require 'dashboard_init)
 
+(add-hook 'prog-mode-hook 'display-line-numbers-mode)
+(add-hook 'sgml-mode-hook 'display-line-numbers-mode)
+(add-hook 'feature-mode-hook 'display-line-numbers-mode)
+(add-hook 'yaml-mode-hook 'display-line-numbers-mode)
+(add-hook 'markdown-mode-hook 'display-line-numbers-mode)
+;; (setq display-line-numbers 'relative)
+
+
 (setenv "LOAD_INIT" "true")

@@ -5,12 +5,6 @@
 ;; (require 'ligature_init)
 (require 'context-menu-mode_init)
 
-(add-hook 'prog-mode-hook 'display-line-numbers-mode)
-(add-hook 'sgml-mode-hook 'display-line-numbers-mode)
-(add-hook 'feature-mode-hook 'display-line-numbers-mode)
-(add-hook 'yaml-mode-hook 'display-line-numbers-mode)
-;; (setq display-line-numbers 'relative)
-
 (add-hook 'prog-mode-hook 'goto-address-mode)
 
 (setq diff-switches "-Naur")                     ;Default to unified diffs
@@ -48,7 +42,7 @@
                    (local-set-key [(control c) (control c)] 'format-buffer)
                    (local-set-key [(?\,)] 'input-comma-with-space)
                    (local-set-key [(?\;)] 'input-semicolon-with-space)
-                   (global-set-key [(meta c) (\.)] 'input-rocket-with-space)
+                   (global-set-key [(control ?.)] 'input-rocket-with-space)
                    (global-set-key [(meta c) (=)] 'input-add-equal)
                    )))
 
