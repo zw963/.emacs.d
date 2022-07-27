@@ -336,8 +336,8 @@
       ;; truncate-partial-width-windows t          ;不能在一行显示时，自动截断, this will cause lsp the first candidate is blank.
       ;; create-lockfiles nil                      ; 禁用锁定文件, .# 开头的文件, 例如：.#ruby.rb
       mouse-yank-at-point t                     ;而是使用鼠标中键在光标处 yank.
-      browse-url-browser-function 'browse-url-generic
-      browse-url-generic-program "firefox"
+      ;; browse-url-browser-function 'browse-url-generic
+      ;; browse-url-generic-program "firefox"
       ;; browse-url-generic-args nil
       vc-handled-backends '(Git)
       )
