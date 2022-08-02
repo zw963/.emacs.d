@@ -39,35 +39,38 @@
   "Debounced display of the current project for `treemacs-project-follow-mode'.
 Used as a hook for `window-buffer-change-functions', thus the ignored parameter."
   (treemacs-debounce treemacs--project-follow-timer treemacs--project-follow-delay
-    (-when-let (window (treemacs-get-local-window))
-      (treemacs-block
-       (let* ((ws (treemacs-current-workspace))
-              (new-project-path (treemacs--find-current-user-project))
-              (old-project-path (-some-> ws
-                             (treemacs-workspace->projects)
-                             (car)
-                             (treemacs-project->path))))
-         (treemacs-return-if
-             (or treemacs--in-this-buffer
-                 (null new-project-path)
-                 (bound-and-true-p edebug-mode)
-                 (frame-parent)
-                 (and (= 1 (length (treemacs-workspace->projects ws)))
-                      (string= new-project-path old-project-path))))
-         (-let [new-project-name (treemacs--filename new-project-path)]
-           (setf (treemacs-workspace->projects ws) nil)
-           (-let [add-result (treemacs-do-add-project-to-workspace
-                              new-project-path new-project-name)]
-             (treemacs-return-if (not (eq 'success (car add-result)))
-               (treemacs-log-err "Something went wrong when adding project at '%s': %s"
-                 (propertize new-project-path 'face 'font-lock-string-face)
-                 add-result)))
-           (with-selected-window window
-             (treemacs--consolidate-projects))
-           (treemacs--follow)))))))
+    (treemacs-without-following
+     (-when-let (window (treemacs-get-local-window))
+       (treemacs-block
+        (let* ((ws (treemacs-current-workspace))
+               (new-project-path (treemacs--find-current-user-project))
+               (old-project-path (-some-> ws
+                                   (treemacs-workspace->projects)
+                                   (car)
+                                   (treemacs-project->path))))
+          (treemacs-return-if
+              (or treemacs--in-this-buffer
+                  (null new-project-path)
+                  (string= (expand-file-name "~")
+                           new-project-path)
+                  (bound-and-true-p edebug-mode)
+                  (frame-parent)
+                  (and (= 1 (length (treemacs-workspace->projects ws)))
+                       (string= new-project-path old-project-path))))
+          (-let [new-project-name (treemacs--filename new-project-path)]
+            (setf (treemacs-workspace->projects ws)
+                  (list (treemacs-project->create!
+                         :name new-project-name
+                         :path new-project-path
+                         :path-status (treemacs--get-path-status new-project-path))))
+            (with-selected-window window
+              (treemacs--consolidate-projects)))))))
+    (treemacs--follow)))
 
 (defun treemacs--setup-project-follow-mode ()
   "Setup all the hooks needed for `treemacs-project-follow-mode'."
+  (when treemacs--project-follow-timer (cancel-timer treemacs--project-follow-timer))
+  (setf treemacs--project-follow-timer nil)
   (add-hook 'window-buffer-change-functions #'treemacs--follow-project)
   (add-hook 'window-selection-change-functions #'treemacs--follow-project)
   (treemacs--follow-project nil))
