@@ -22,5 +22,10 @@
 (add-to-list 'auto-mode-alist '("\\.md$" . gfm-mode))
 (add-to-list 'auto-mode-alist '("\\.mkdn$\\|\\.mkd$\\|\\.mdown$" . gfm-mode))
 
+(add-hook 'markdown-mode-hook
+          (lambda ()
+            (define-key edit-indirect-mode-map (kbd "C-c C-c") #'format-buffer)
+            ))
+
 (provide 'markdown-mode_init)
 ;;; markdown-mode_init.el ends here
