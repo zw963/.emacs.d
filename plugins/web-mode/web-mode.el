@@ -2,7 +2,7 @@
 
 ;; Copyright 2011-2022 François-Xavier Bois
 
-;; Version: 17.2.1
+;; Version: 17.2.3
 ;; Author: François-Xavier Bois
 ;; Maintainer: François-Xavier Bois <fxbois@gmail.com>
 ;; Package-Requires: ((emacs "23.1"))
@@ -23,7 +23,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "17.2.1"
+(defconst web-mode-version "17.2.3"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -879,6 +879,7 @@ Must be used in conjunction with web-mode-enable-block-face."
 
 (defvar web-mode-engines
   '(("angular"          . ("angularjs"))
+    ("anki"             . ())
     ("archibus"         . ())
     ("artanis"          . ())
     ("asp"              . ())
@@ -958,6 +959,7 @@ Must be used in conjunction with web-mode-enable-block-face."
 
 (defvar web-mode-engine-file-regexps
   '(("angular"          . "\\.component.html\\'")
+    ("anki"             . "\\.anki\\'")
     ("archibus"         . "\\.axvw\\'")
     ("artanis"          . "\\.html\\.tpl\\'")
     ("asp"              . "\\.asp\\'")
@@ -1146,6 +1148,7 @@ Must be used in conjunction with web-mode-enable-block-face."
 
 (defvar web-mode-engines-auto-pairs
   '(("angular"          . (("{{ " . " }}")))
+    ("anki"             . (("{{ " . " }}")))
     ("artanis"          . (("<% "       . " %>")
                            ("<%="       . " | %>")
                            ("<@css"     . " | %>")
@@ -1305,6 +1308,7 @@ Must be used in conjunction with web-mode-enable-block-face."
 (defvar web-mode-engine-open-delimiter-regexps
   (list
    '("angular"          . "{{")
+   '("anki"             . "{{")
    '("artanis"          . "<%\\|<@\\(css\\|icon\\|include\\|js\\)")
    '("asp"              . "<%\\|</?[[:alpha:]]+:[[:alpha:]]+\\|</?[[:alpha:]]+Template")
    '("aspx"             . "<%.")
@@ -1315,7 +1319,7 @@ Must be used in conjunction with web-mode-enable-block-face."
    '("ctemplate"        . "[$]?{[{~].")
    '("django"           . "{[#{%]\\|^#")
    '("dust"             . "{.")
-   '("elixir"           . "<%")
+   '("elixir"           . "<%\\|</?[.:]")
    '("ejs"              . "<%")
    '("erb"              . "<%\\|^%.")
    '("expressionengine" . "{.")
@@ -1977,6 +1981,15 @@ shouldn't be moved back.)")
    '("/?>" 0 'web-mode-html-tag-bracket-face)
   ))
 
+(defvar web-mode-anki-font-lock-keywords
+  (list
+   '("{{[#/^]\\([[:alnum:]_.]+\\)" 1 'web-mode-block-control-face)
+   ;;'("\\_<\\([[:alnum:]_]+=\\)\\(\"[^\"]*\"\\|[[:alnum:]_.: ]*\\)"
+   ;;  (1 'web-mode-block-attr-name-face)
+   ;;  (2 'web-mode-block-attr-value-face))
+   '("{{\\(.+\\)}}" 1 'web-mode-variable-name-face)
+   ))
+
 (defvar web-mode-dust-font-lock-keywords
   (list
    '("{[#:/?@><+^]\\([[:alpha:]_.]+\\)" 1 'web-mode-block-control-face)
@@ -2384,6 +2397,7 @@ shouldn't be moved back.)")
 
 (defvar web-mode-engines-font-lock-keywords
   '(("angular"          . web-mode-angular-font-lock-keywords)
+    ("anki"             . web-mode-anki-font-lock-keywords)
     ("artanis"          . web-mode-artanis-font-lock-keywords)
     ("blade"            . web-mode-blade-font-lock-keywords)
     ("cl-emb"           . web-mode-cl-emb-font-lock-keywords)
@@ -3330,6 +3344,12 @@ Also return non-nil if it is the command `self-insert-command' is remapped to."
            )
           ) ;django
 
+         ((string= web-mode-engine "anki")
+          (setq closing-string "}}"
+                delim-open "{{[#/^]?"
+                delim-close "}}")
+          ) ;anki
+
          ((string= web-mode-engine "ejs")
           (setq closing-string "%>"
                 delim-open "<%[=-]?"
@@ -4184,7 +4204,7 @@ Also return non-nil if it is the command `self-insert-command' is remapped to."
   "Set text-property 'block-token to 'delimiter-(beg|end) on block delimiters (e.g. <?php and ?>)"
   ;;(message "reg-beg(%S) reg-end(%S) delim-open(%S) delim-close(%S)" reg-beg reg-end delim-open delim-close)
   (when (member web-mode-engine
-                '("artanis" "asp" "aspx" "cl-emb" "clip" "closure" "ctemplate" "django" "dust"
+                '("artanis" "anki" "asp" "aspx" "cl-emb" "clip" "closure" "ctemplate" "django" "dust"
                   "elixir" "ejs" "erb" "expressionengine" "freemarker" "go" "hero" "jsp" "lsp"
                   "mako" "mason" "mojolicious"
                   "smarty" "template-toolkit" "web2py" "xoops" "svelte"))
@@ -4861,6 +4881,15 @@ Also return non-nil if it is the command `self-insert-command' is remapped to."
           (setq controls (append controls (list (cons 'open (match-string-no-properties 1))))))
          )
         ) ;dust
+
+       ((string= web-mode-engine "anki")
+        (cond
+         ((looking-at "{{[#^]\\([[:alpha:].]+\\)")
+          (setq controls (append controls (list (cons 'open (match-string-no-properties 1))))))
+         ((looking-at "{{/\\([[:alpha:].]+\\)")
+          (setq controls (append controls (list (cons 'close (match-string-no-properties 1))))))
+         )
+        ) ;anki
 
        ((member web-mode-engine '("mojolicious"))
         (cond
@@ -6983,10 +7012,11 @@ Also return non-nil if it is the command `self-insert-command' is remapped to."
     (when (and dec-beg dec-end)
       (goto-char dec-beg)
       (while (and web-mode-enable-css-colorization
-                  (re-search-forward "black\\|silver\\|gray\\|white\\|maroon\\|red\\|purple\\|fuchsia\\|green\\|lime\\|olive\\|yellow\\|navy\\|blue\\|teal\\|aqua\\|orange\\|aliceblue\\|antiquewhite\\|aquamarine\\|azure\\|beige\\|bisque\\|blanchedalmond\\|blueviolet\\|brown\\|burlywood\\|cadetblue\\|chartreuse\\|chocolate\\|coral\\|cornflowerblue\\|cornsilk\\|crimson\\|cyan\\|darkblue\\|darkcyan\\|darkgoldenrod\\|darkgray\\|darkgreen\\|darkgrey\\|darkkhaki\\|darkmagenta\\|darkolivegreen\\|darkorange\\|darkorchid\\|darkred\\|darksalmon\\|darkseagreen\\|darkslateblue\\|darkslategray\\|darkslategrey\\|darkturquoise\\|darkviolet\\|deeppink\\|deepskyblue\\|dimgray\\|dimgrey\\|dodgerblue\\|firebrick\\|floralwhite\\|forestgreen\\|gainsboro\\|ghostwhite\\|gold\\|goldenrod\\|greenyellow\\|grey\\|honeydew\\|hotpink\\|indianred\\|indigo\\|ivory\\|khaki\\|lavender\\|lavenderblush\\|lawngreen\\|lemonchiffon\\|lightblue\\|lightcoral\\|lightcyan\\|lightgoldenrodyellow\\|lightgray\\|lightgreen\\|lightgrey\\|lightpink\\|lightsalmon\\|lightseagreen\\|lightskyblue\\|lightslategray\\|lightslategrey\\|lightsteelblue\\|lightyellow\\|limegreen\\|linen\\|magenta\\|mediumaquamarine\\|mediumblue\\|mediumorchid\\|mediumpurple\\|mediumseagreen\\|mediumslateblue\\|mediumspringgreen\\|mediumturquoise\\|mediumvioletred\\|midnightblue\\|mintcream\\|mistyrose\\|moccasin\\|navajowhite\\|oldlace\\|olivedrab\\|orangered\\|orchid\\|palegoldenrod\\|palegreen\\|paleturquoise\\|palevioletred\\|papayawhip\\|peachpuff\\|peru\\|pink\\|plum\\|powderblue\\|rosybrown\\|royalblue\\|saddlebrown\\|salmon\\|sandybrown\\|seagreen\\|seashell\\|sienna\\|skyblue\\|slateblue\\|slategray\\|slategrey\\|snow\\|springgreen\\|steelblue\\|tan\\|thistle\\|tomato\\|turquoise\\|violet\\|wheat\\|whitesmoke\\|yellowgreen\\|#[0-9a-fA-F]\\{6\\}\\|#[0-9a-fA-F]\\{3\\}\\|rgba?([ ]*\\([[:digit:]]\\{1,3\\}\\)[ ]*,[ ]*\\([[:digit:]]\\{1,3\\}\\)[ ]*,[ ]*\\([[:digit:]]\\{1,3\\}\\)\\(.*?\\))" dec-end t)
+                  (re-search-forward "\\(?1:#[0-9a-fA-F]\\{6\\}\\)\\|\\(?1:#[0-9a-fA-F]\\{3\\}\\)\\|\\(?1:rgba?([ ]*\\(?2:[[:digit:]]\\{1,3\\}\\)[ ]*,[ ]*\\(?3:[[:digit:]]\\{1,3\\}\\)[ ]*,[ ]*\\(?4:[[:digit:]]\\{1,3\\}\\)\\(.*?\\))\\)\\|[: ]\\(?1:black\\|silver\\|gray\\|white\\|maroon\\|red\\|purple\\|fuchsia\\|green\\|lime\\|olive\\|yellow\\|navy\\|blue\\|teal\\|aqua\\|orange\\|aliceblue\\|antiquewhite\\|aquamarine\\|azure\\|beige\\|bisque\\|blanchedalmond\\|blueviolet\\|brown\\|burlywood\\|cadetblue\\|chartreuse\\|chocolate\\|coral\\|cornflowerblue\\|cornsilk\\|crimson\\|cyan\\|darkblue\\|darkcyan\\|darkgoldenrod\\|darkgray\\|darkgreen\\|darkgrey\\|darkkhaki\\|darkmagenta\\|darkolivegreen\\|darkorange\\|darkorchid\\|darkred\\|darksalmon\\|darkseagreen\\|darkslateblue\\|darkslategray\\|darkslategrey\\|darkturquoise\\|darkviolet\\|deeppink\\|deepskyblue\\|dimgray\\|dimgrey\\|dodgerblue\\|firebrick\\|floralwhite\\|forestgreen\\|gainsboro\\|ghostwhite\\|gold\\|goldenrod\\|greenyellow\\|grey\\|honeydew\\|hotpink\\|indianred\\|indigo\\|ivory\\|khaki\\|lavender\\|lavenderblush\\|lawngreen\\|lemonchiffon\\|lightblue\\|lightcoral\\|lightcyan\\|lightgoldenrodyellow\\|lightgray\\|lightgreen\\|lightgrey\\|lightpink\\|lightsalmon\\|lightseagreen\\|lightskyblue\\|lightslategray\\|lightslategrey\\|lightsteelblue\\|lightyellow\\|limegreen\\|linen\\|magenta\\|mediumaquamarine\\|mediumblue\\|mediumorchid\\|mediumpurple\\|mediumseagreen\\|mediumslateblue\\|mediumspringgreen\\|mediumturquoise\\|mediumvioletred\\|midnightblue\\|mintcream\\|mistyrose\\|moccasin\\|navajowhite\\|oldlace\\|olivedrab\\|orangered\\|orchid\\|palegoldenrod\\|palegreen\\|paleturquoise\\|palevioletred\\|papayawhip\\|peachpuff\\|peru\\|pink\\|plum\\|powderblue\\|rosybrown\\|royalblue\\|saddlebrown\\|salmon\\|sandybrown\\|seagreen\\|seashell\\|sienna\\|skyblue\\|slateblue\\|slategray\\|slategrey\\|snow\\|springgreen\\|steelblue\\|tan\\|thistle\\|tomato\\|turquoise\\|violet\\|wheat\\|whitesmoke\\|yellowgreen\\)[ ;]" dec-end t)
                   ;;(progn (message "%S %S" end (point)) t)
                   (<= (point) dec-end))
-        (web-mode-colorize (match-beginning 0) (match-end 0))
+        ;;(message "web-mode-colorize beg=%S end=%S match=%S" (match-beginning 0) (match-end 0) (buffer-substring-no-properties (match-beginning 0) (match-end 0)))
+        (web-mode-colorize (match-beginning 1) (match-end 1))
         ) ;while
       ) ;when
     ;;) ;let
@@ -7001,18 +7031,22 @@ Also return non-nil if it is the command `self-insert-command' is remapped to."
         "white" "black")))
 
 (defun web-mode-colorize (beg end)
-  (let (str plist)
+  (let (str str1 plist)
     (setq str (buffer-substring-no-properties beg end))
-    ;;(message "%S" str)
+    ;;(setq str1 (match-string-no-properties 1))
+    ;;(message "str=%S" str str1)
     (cond
+     ;;(t
+     ;; (message "%S %S %S %S %S" (match-string-no-properties 0) (match-string-no-properties 1) (match-string-no-properties 2) (match-string-no-properties 3) (match-string-no-properties 4))
+     ;; )
      ((string= (substring str 0 1) "#")
       (setq plist (list :background str
                         :foreground (web-mode-colorize-foreground str))))
-     ((or (string= (substring str 0 4) "rgb(") (string= (substring str 0 5) "rgba("))
+     ((and (>= (length str) 3) (string= (substring str 0 3) "rgb"))
       (setq str (format "#%02X%02X%02X"
-                        (string-to-number (match-string-no-properties 1))
                         (string-to-number (match-string-no-properties 2))
-                        (string-to-number (match-string-no-properties 3))))
+                        (string-to-number (match-string-no-properties 3))
+                        (string-to-number (match-string-no-properties 4))))
       (setq plist (list :background str
                         :foreground (web-mode-colorize-foreground str))))
      ((string= str "black") (setq plist (list :background "#000000" :foreground (web-mode-colorize-foreground "#000000"))))
