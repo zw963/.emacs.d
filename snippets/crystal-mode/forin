@@ -1,6 +1,6 @@
 # -*- mode: snippet -*-
 # name: macro forin
-# key: macro
+# key: forin
 # condition: (yas-use-region-p)
 # --
 {% for ${1:i} in $2 %}
