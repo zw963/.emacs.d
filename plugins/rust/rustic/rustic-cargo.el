@@ -19,6 +19,26 @@
   :type 'string
   :group 'rustic-cargo)
 
+(defcustom rustic-cargo-check-exec-command "check"
+  "Execute command to run cargo check."
+  :type 'string
+  :group 'rustic-cargo)
+
+(defcustom rustic-cargo-test-exec-command "test"
+  "Execute command to run cargo test."
+  :type 'string
+  :group 'rustic-cargo)
+
+(defcustom rustic-cargo-run-exec-command "run"
+  "Execute command to run cargo run."
+  :type 'string
+  :group 'rustic-cargo)
+
+(defcustom rustic-cargo-build-exec-command "build"
+  "Execute command to run cargo build."
+  :type 'string
+  :group 'rustic-cargo)
+
 (defcustom rustic-cargo-bin-remote "~/.cargo/bin/cargo"
   "Path to remote cargo executable."
   :type 'string
@@ -43,6 +63,11 @@ If nil then the project is simply created."
 (defcustom rustic-default-test-arguments "--benches --tests --all-features"
   "Default arguments when running 'cargo test'."
   :type 'string
+  :group 'rustic-cargo)
+
+(defcustom rustic-cargo-default-install-arguments '("--path" ".")
+  "Default arguments when running 'cargo install'."
+  :type '(list string)
   :group 'rustic-cargo)
 
 (defcustom rustic-cargo-check-arguments "--benches --tests --all-features"
@@ -89,7 +114,7 @@ stored in this variable.")
 (defvar rustic-cargo-test-mode-map
   (let ((map (make-sparse-keymap)))
     (set-keymap-parent map rustic-compilation-mode-map)
-    (define-key map (kbd "g") 'rustic-cargo-test-rerun)
+    (define-key map [remap recompile] 'rustic-cargo-test-rerun)
     map)
   "Local keymap for `rustic-cargo-test-mode' buffers.")
 
@@ -102,7 +127,7 @@ stored in this variable.")
 
 (defun rustic-cargo-run-test (test)
   "Run TEST which can be a single test or mod name."
-  (let* ((c (list (rustic-cargo-bin) "test" test))
+  (let* ((c (list (rustic-cargo-bin) rustic-cargo-test-exec-command test))
          (buf rustic-test-buffer-name)
          (proc rustic-test-process-name)
          (mode 'rustic-cargo-test-mode))
@@ -113,7 +138,7 @@ stored in this variable.")
   "Start compilation process for 'cargo test' with optional TEST-ARGS."
   (interactive)
   (rustic-compilation-process-live)
-  (let* ((command (list (rustic-cargo-bin) "test"))
+  (let* ((command (list (rustic-cargo-bin) rustic-cargo-test-exec-command))
          (c (append command (split-string (if test-args test-args ""))))
          (buf rustic-test-buffer-name)
          (proc rustic-test-process-name)
@@ -521,7 +546,7 @@ If BIN is not nil, create a binary application, otherwise a library."
 
 (defvar rustic-cargo-run-mode-map
   (let ((map (make-sparse-keymap)))
-    (define-key map (kbd "g") 'rustic-cargo-run-rerun)
+    (define-key map [remap recompile] 'rustic-cargo-run-rerun)
     map)
   "Local keymap for `rustic-cargo-test-mode' buffers.")
 
@@ -533,7 +558,7 @@ If BIN is not nil, create a binary application, otherwise a library."
   "Start compilation process for 'cargo run' with optional RUN-ARGS."
   (interactive)
   (rustic-compilation-process-live)
-  (let* ((command (list (rustic-cargo-bin) "run"))
+  (let* ((command (list (rustic-cargo-bin) rustic-cargo-run-exec-command))
          (c (append command (split-string (if run-args run-args ""))))
          (buf rustic-run-buffer-name)
          (proc rustic-run-process-name)
@@ -599,16 +624,16 @@ in your project like `pwd'"
   (let ((c (if (listp command)
                command
              (split-string command))))
-    (rustic-compilation-start c args)))
+    (rustic-compilation-start c (append (list :no-default-dir t) args))))
 
 ;;;###autoload
 (defun rustic-cargo-build ()
   "Run 'cargo build' for the current project."
   (interactive)
   (rustic-run-cargo-command `(,(rustic-cargo-bin)
-                              "build"
+                              ,rustic-cargo-build-exec-command
                               ,@(split-string rustic-cargo-build-arguments))
-                              (list :clippy-fix t)))
+                            (list :clippy-fix t)))
 
 (defvar rustic-clean-arguments nil
   "Holds arguments for 'cargo clean', similar to `compilation-arguments`.")
@@ -637,7 +662,7 @@ When calling this function from `rustic-popup-mode', always use the value of
   "Run 'cargo check' for the current project."
   (interactive)
   (rustic-run-cargo-command `(,(rustic-cargo-bin)
-                              "check"
+                              ,rustic-cargo-check-exec-command
                               ,@(split-string rustic-cargo-check-arguments))))
 
 ;;;###autoload
@@ -652,7 +677,7 @@ When calling this function from `rustic-popup-mode', always use the value of
   (interactive)
   (if (y-or-n-p "Create documentation for dependencies?")
       (rustic-run-cargo-command (list (rustic-cargo-bin) "doc"))
-    (rustic-run-cargo-command (list (rustic-cargo-bin) "doc --no-deps"))))
+    (rustic-run-cargo-command (list (rustic-cargo-bin) "doc" "--no-deps"))))
 
 ;; TODO: buffer with cargo output should be in rustic-compilation-mode
 ;;;###autoload
@@ -662,8 +687,8 @@ The documentation is built if necessary."
   (interactive)
   (if (y-or-n-p "Open docs for dependencies as well?")
       ;; open docs only works with synchronous process
-      (shell-command (list (rustic-cargo-bin) "doc --open"))
-    (shell-command (list (rustic-cargo-bin) "doc --open --no-deps"))))
+      (shell-command (format "%s doc --open" (rustic-cargo-bin)))
+    (shell-command (format "%s doc --open --no-deps" (rustic-cargo-bin)))))
 
 ;;; cargo edit
 
@@ -708,6 +733,72 @@ If running with prefix command `C-u', read whole command from minibuffer."
                                               (rustic-cargo-bin) " upgrade ")
                       (concat (rustic-cargo-bin) " upgrade"))))
       (rustic-run-cargo-command command))))
+
+;;;###autoload
+(defun rustic-cargo-login (token)
+  "Add crates.io API token using `cargo login'.
+
+`TOKEN' the token for interacting with crates.io. Visit [1] for
+        how to get one
+
+[1] https://doc.rust-lang.org/cargo/reference/publishing.html#before-your-first-publish"
+
+  (interactive "sAPI token: ")
+  (shell-command (format "%s login %s" (rustic-cargo-bin) token)))
+
+;; Install
+
+(defvar rustic-install-process-name "rustic-cargo-install-process"
+  "Process name for install processes.")
+
+(defvar rustic-install-buffer-name "*cargo-install*"
+  "Buffer name for install buffers.")
+
+(defvar rustic-install-arguments ""
+  "Holds arguments for 'cargo install', similar to `compilation-arguments`.
+Installs that are executed by `rustic-cargo-current-install' will also be
+stored in this variable.")
+
+(defvar rustic-install-project-dir nil
+  "Crate directory where rustic install should be done.")
+
+(defvar rustic-cargo-install-mode-map
+  (let ((map (make-sparse-keymap)))
+    (set-keymap-parent map rustic-compilation-mode-map)
+    (define-key map [remap recompile] 'rustic-cargo-install-rerun)
+    map)
+  "Local keymap for `rustic-cargo-install-mode' buffers.")
+
+(define-derived-mode rustic-cargo-install-mode rustic-compilation-mode "cargo-install"
+  :group 'rustic)
+
+;;;###autoload
+(defun rustic-cargo-install-rerun ()
+  "Run 'cargo install' with `rustic-install-arguments'."
+  (interactive)
+  (rustic-compilation-start rustic-install-arguments
+                              (list :buffer rustic-install-buffer-name
+                                    :process rustic-install-process-name
+                                    :mode 'rustic-cargo-install-mode
+                                    :directory rustic-install-project-dir)))
+;;;###autoload
+(defun rustic-cargo-install (&optional arg)
+  "Install rust binary using 'cargo install'.
+If running with prefix command `C-u', read whole command from minibuffer."
+  (interactive)
+  (let* ((command (if arg
+                      (read-from-minibuffer "Cargo install command: "
+                                            (rustic-cargo-bin) " install ")
+                    (s-join " " (cons (rustic-cargo-bin) (cons "install" rustic-cargo-default-install-arguments)))))
+         (c (s-split " " command))
+         (buf rustic-install-buffer-name)
+         (proc rustic-install-process-name)
+         (mode 'rustic-cargo-install-mode)
+         (default-directory (rustic-buffer-crate)))
+    (setq rustic-install-arguments c)
+    (setq rustic-install-project-dir default-directory)
+    (rustic-compilation-start c (list :buffer buf :process proc :mode mode
+                                      :directory default-directory))))
 
 (provide 'rustic-cargo)
 ;;; rustic-cargo.el ends here
