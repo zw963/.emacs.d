@@ -2,13 +2,16 @@
 ;; For better performance and results, use company-capf (default)
 (require 'company-capf)
 
+(require 'company-dabbrev-code)
+(setq company-dabbrev-other-buffers t) ;; 设为 true, 则仅在同一个 major-mode buffer 里面找
+(setq company-dabbrev-downcase nil) ;; make dabbrev case-sensitive
+;; (setq company-dabbrev-code-ignore-case nil)
+;; (setq company-dabbrev-code-everywhere t)
 
 ;; FIXME: 测试一下啥效果
 ;; (setq company-tooltip-limit 5)                      ; bigger popup window
 (setq company-tooltip-flip-when-above t)
 (setq company-tooltip-width-grow-only t) ; 如果 candidates 变宽，tooltip 也跟着变宽，但是不会重新变窄。
-
-
 (setq company-text-icons-add-background t) ; 生成 icon 的背景
 
 ;; FIXME: 测试一下这个
@@ -18,6 +21,7 @@
                       (delete 'c-electric-lt-gt
                               (delete 'c-electric-slash
                                       company-begin-commands)))))
+
 ;; (setq company-tooltip-align-annotations t) ;; candidate 的注释在 tooltip 右边靠齐
 ;; (global-set-key (kbd "C-c /") 'company-files)
 
@@ -45,7 +49,7 @@
 
 ;; (global-set-key (kbd "<tab>") #'company-indent-or-complete-common)
 (define-key company-active-map (kbd "C-s") 'company-filter-candidates) ;; 这个可以随时 C-o 随时切换
-(define-key company-active-map (kbd "M-/") #'company-complete)
+(define-key company-active-map (kbd "M-/") #'company-complete) ;; 这个和 hippie-expand 等价？
 (global-set-key (kbd "C-c C-/") #'company-other-backend)
 
 ;; Use M-1,2 ... to select a candidation.
@@ -66,70 +70,42 @@
 ;;         company-preview-frontend
 ;;         company-echo-metadata-frontend))
 
-;; company-backends 工厂默认值为
-;; (company-bbdb company-semantic company-cmake company-capf company-clang company-files
-;;            (company-dabbrev-code company-gtags company-etags company-keywords)
-;;            company-oddmuse company-dabbrev)
+;; 默认
+;; (company-bbdb company-cmake company-capf company-files
+;;               (company-dabbrev-code company-gtags company-etags company-keywords)
+;;               company-dabbrev)
 
-;;  删除后的默认为：
-
-;; (company-files company-dabbrev)
-
-
+;; 删除一些无用的或可以被 company-capf 替代的 backend
 (add-hook 'company-mode-hook
           (lambda ()
             (setq company-backends
+                  ;; 根据文档，company-semantic 以及 company-etags 现在都属于 company-capf
+                  ;; company-semantic 要开启 semantic-mode 来支持，但是因为只支持有限的语言，因此不用打开。
                   (delete 'company-semantic
                           (delete 'company-oddmuse
-                                  (delete 'company-bbdb
-                                          (delete 'company-cmake
-                                                  (delete 'company-clang
-                                                          (delete '(company-dabbrev-code company-gtags company-etags company-keywords) company-backends)))))))
+                                  (delete 'company-files
+                                          (delete 'company-clang
+                                                  company-backends)))))
             ))
 
-;; 根据文档，company-semantic 以及  company-etags 现在都属于 company-capf
-;; company-semantic 要开启 semantic-mode 来支持，但是因为只支持有限的语言，因此不用打开。
-;;
-
-;; 想完成本 buffer 内的内容，需要加入 company-dabbrev-code
-;; 但是，如果开启这个，会让 lsp 出现很多和上下文无关的结果。
-;; 因此只是有选择的在几个没有开启 lsp 的模式下开启。
-
-;; (add-hook 'prog-mode-hook
-;;           (lambda ()
-;;             ;; 如果没有使用 lsp, 返回多一点结果。
-;;             (unless (bound-and-true-p lsp-mode)
-;;               (add-to-list 'company-backends '(company-capf company-dabbrev-code company-keywords))
-;;               )
-;;             ))
-
-(require 'company-dabbrev-code)
-(setq company-dabbrev-other-buffers t) ;; 设为 true, 则仅在同一个 major-mode buffer 里面找
-(setq company-dabbrev-downcase nil) ;; make dabbrev case-sensitive
-;; (setq company-dabbrev-code-ignore-case nil)
-;; (setq company-dabbrev-code-everywhere t)
-
+;; 对于一些简单的模式，组合 company-capf 和 company-ddbbrev-code 会带来大部分期望的结果。
 (dolist (hook '(
                 graphql-mode-hook
                 yaml-mode-hook
                 conf-mode-hook
                 sh-mode-hook
                 web-mode
+                crystal-mode
                 ))
   (add-hook hook
             (lambda ()
-              (add-to-list 'company-backends 'company-dabbrev-code)
+              (set (make-local-variable 'company-backends) '((company-capf company-dabbrev-code)))
               )))
 
 (setq company-files-exclusions '(".git/" ".DS_Store"))
 
 
 ;; (setq company-dabbrev-minimum-length 4)
-
-;; (dolist (hook '(sh-mode-hook graphql-mode-hook))
-;;   (add-hook hook (lambda ()
-;;                    (add-to-list (make-local-variable 'company-backends) '(company-capf company-dabbrev-code company-keywords))
-;;                    )))
 
 ;; C-n, C-s 如果可以自动打断 tooltip, 其实效果不错。
 ;; (define-key company-active-map (kbd "C-n") 'company-select-next)
@@ -235,14 +211,17 @@ ac-auto-show-menu 为 nil 的情形, 这种模式比较适合在 yasnippet 正�
 
 ;; toggle-company-english-helper 来开启英文自动补全。
 ;; 包含了一个 py 脚本，用来转化 stardict 的词库，模式是 KDict, 包含 11 万单词.
+;; Execute command `toggle-company-english-helper' to write english on the fly!
 (require 'company-english-helper)
 
 (with-eval-after-load 'web-mode
   (require 'company-web-html)
   (add-hook 'web-mode-hook
             (lambda ()
-              (set (make-local-variable 'company-backends) '(company-web-html))
-              (company-mode t))))
+              (set (make-local-variable 'company-backends) '((company-web-html company-dabbrev-code)))
+              (company-mode t))
+            )
+  )
 
 (provide 'company_init)
 

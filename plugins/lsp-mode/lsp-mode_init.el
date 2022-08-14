@@ -101,10 +101,27 @@
   (setq lsp-treemacs-error-list-current-project-only t)
   )
 
+;; 想完成本 buffer 内的内容，需要加入 company-dabbrev-code
+;; 但是，如果开启这个，会让 lsp 出现很多和上下文无关的结果。
+;; 因此只是有选择的在几个没有开启 lsp 的模式下开启。
+
+;; (add-hook 'prog-mode-hook
+;;           (lambda ()
+;;             ;; 如果没有使用 lsp, 返回多一点结果。
+;;             (unless (bound-and-true-p lsp-mode)
+;;               (add-to-list 'company-backends '(company-capf company-dabbrev-code company-keywords))
+;;               )
+;;             ))
+
 ;; (with-eval-after-load 'company
 ;;   (add-hook 'lsp-mode-hook
 ;;             (lambda ()
-;;               (setq-local company-format-margin-function #'company-vscode-dark-icons-margin))))
+;;               (set (make-local-variable 'company-backends)
+;;                    (delete '(company-dabbrev-code company-gtags company-etags company-keywords)
+;;                            company-backends))
+
+;;               (setq-local company-format-margin-function #'company-vscode-dark-icons-margin))
+;;             ))
 
 (with-eval-after-load 'which-key
   (add-hook 'lsp-after-open-hook 'lsp-enable-which-key-integration))
