@@ -10,7 +10,6 @@
 
 ;; FIXME: 测试一下啥效果
 ;; (setq company-tooltip-limit 5)                      ; bigger popup window
-(setq company-tooltip-flip-when-above t)
 (setq company-tooltip-width-grow-only t) ; 如果 candidates 变宽，tooltip 也跟着变宽，但是不会重新变窄。
 (setq company-text-icons-add-background t) ; 生成 icon 的背景
 
