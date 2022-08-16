@@ -1,7 +1,7 @@
 # -*- mode: snippet -*-
-# name: <%- ruby code %>
-# key: -
-# binding: -
+# name: <% ruby code %>
+# key: %
+# binding: %
 # condition: (yas-use-region-p)
 # expand-env: ((yas-indent-line 'fixed))
 # --

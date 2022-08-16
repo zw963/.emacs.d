@@ -2,5 +2,5 @@
 # name: ruby shebang!
 # key: ruby
 # --
-`(enh-ruby-mode)`#!/usr/bin/env ruby
-# -*- coding: utf-8; mode: enh-ruby; -*-
+`(ruby-mode)`#!/usr/bin/env ruby
+# -*- coding: utf-8; mode: ruby; -*-
