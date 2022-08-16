@@ -57,7 +57,7 @@
 
 ;; ============================== 编程相关 ==============================
 
-(require 'awesome-tab_init)
+;; (require 'awesome-tab_init)
 (require 'prog-mode_init)
 ;; (require 'apheleia_init)
 (require 'git_init)
