@@ -460,7 +460,7 @@
 ;; (setq enable-recursive-minibuffers t)
 (setq toggle-truncate-lines nil)
 (setq comment-auto-fill-only-comments t)
-(setq x-gtk-use-system-tooltips nil)
+;; (setq x-gtk-use-system-tooltips nil)
 
 (require 'abbrev)
 (setq abbrev-file-name (expand-file-name "abbrev_defs" default-directory))

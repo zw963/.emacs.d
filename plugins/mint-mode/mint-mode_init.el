@@ -49,8 +49,11 @@
 
 
 (add-hook 'mint-mode-hook (lambda ()
+                            (remove-hook 'after-save-hook #'mint-format-file t)
                             (setq-local js-indent-level 2)
                             ))
+
+(require 'lsp-mint_init)
 
 (provide 'mint-mode_init)
 

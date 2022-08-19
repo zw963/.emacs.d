@@ -94,6 +94,7 @@
                 conf-mode-hook
                 sh-mode-hook
                 crystal-mode
+                ;; mint-mode
                 ))
   (add-hook hook
             (lambda ()

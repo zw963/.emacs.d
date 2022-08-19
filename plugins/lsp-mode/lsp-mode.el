@@ -177,7 +177,7 @@ As defined by the Language Server Protocol 3.16."
          lsp-cmake lsp-crystal lsp-csharp lsp-css lsp-d lsp-dart lsp-dhall lsp-docker lsp-dockerfile
          lsp-elm lsp-elixir lsp-emmet lsp-erlang lsp-eslint lsp-fortran lsp-fsharp lsp-gdscript lsp-go
          lsp-gleam lsp-graphql lsp-hack lsp-grammarly lsp-groovy lsp-haskell lsp-haxe lsp-idris lsp-java lsp-javascript
-         lsp-json lsp-kotlin lsp-latex lsp-ltex lsp-lua lsp-markdown lsp-marksman lsp-nginx lsp-nim lsp-nix lsp-magik
+         lsp-json lsp-kotlin lsp-latex lsp-ltex lsp-lua lsp-markdown lsp-marksman lsp-mint lsp-nginx lsp-nim lsp-nix lsp-magik
          lsp-metals lsp-mssql lsp-ocaml lsp-openscad lsp-pascal lsp-perl lsp-perlnavigator lsp-php lsp-pwsh lsp-pyls lsp-pylsp
          lsp-pyright lsp-python-ms lsp-purescript lsp-r lsp-racket lsp-remark lsp-rf lsp-rust lsp-solargraph
          lsp-sorbet lsp-sourcekit lsp-sonarlint lsp-tailwindcss lsp-tex lsp-terraform lsp-toml
@@ -779,6 +779,7 @@ Changes take effect only when a new session is started."
                                         (html-mode . "html")
                                         (sgml-mode . "html")
                                         (mhtml-mode . "html")
+                                        (mint-mode . "mint")
                                         (go-dot-mod-mode . "go.mod")
                                         (go-mode . "go")
                                         (graphql-mode . "graphql")
@@ -854,7 +855,7 @@ Changes take effect only when a new session is started."
 We want to try the last workspace first when jumping into a library
 directory")
 
-(defvar lsp-method-requirements
+(defconst lsp-method-requirements
   '(("textDocument/callHierarchy" :capability :callHierarchyProvider)
     ("textDocument/codeAction" :capability :codeActionProvider)
     ("codeAction/resolve"
@@ -862,16 +863,17 @@ directory")
                       (with-lsp-workspace workspace
                         (lsp:code-action-options-resolve-provider?
                          (or (lsp--capability :codeActionProvider)
-                             (when-let ((maybe-capability (lsp--registered-capability "textDocument/codeAction"))
-                                        (capability-options (lsp--registered-capability-options maybe-capability)))
-                               capability-options))))))
+                             (-some-> (lsp--registered-capability "textDocument/codeAction")
+                               (lsp--registered-capability-options)))))))
     ("textDocument/codeLens" :capability :codeLensProvider)
     ("textDocument/completion" :capability :completionProvider)
     ("completionItem/resolve"
      :check-command (lambda (wk)
                       (with-lsp-workspace wk
                         (lsp:completion-options-resolve-provider?
-                         (lsp--capability :completionProvider)))))
+                         (or (lsp--capability :completionProvider)
+                             (-some-> (lsp--registered-capability "textDocument/completion")
+                               (lsp--registered-capability-options)))))))
     ("textDocument/declaration" :capability :declarationProvider)
     ("textDocument/definition" :capability :definitionProvider)
     ("textDocument/documentColor" :capability :colorProvider)
@@ -889,8 +891,8 @@ directory")
                       (with-lsp-workspace workspace
                         (lsp:rename-options-prepare-provider?
                          (or (lsp--capability :renameProvider)
-                             (when-let ((maybe-capability (lsp--registered-capability "textDocument/rename")))
-                               (lsp--registered-capability-options maybe-capability)))))))
+                             (-some-> (lsp--registered-capability "textDocument/rename")
+                               (lsp--registered-capability-options)))))))
     ("textDocument/rangeFormatting" :capability :documentRangeFormattingProvider)
     ("textDocument/references" :capability :referencesProvider)
     ("textDocument/rename" :capability :renameProvider)
@@ -3493,10 +3495,14 @@ disappearing, unset all the variables related to it."
                                       (willRename . t)
                                       (didDelete . :json-false)
                                       (willDelete . :json-false)))))
-     (textDocument . ((declaration . ((linkSupport . t)))
-                      (definition . ((linkSupport . t)))
-                      (implementation . ((linkSupport . t)))
-                      (typeDefinition . ((linkSupport . t)))
+     (textDocument . ((declaration . ((dynamicRegistration . t)
+                                      (linkSupport . t)))
+                      (definition . ((dynamicRegistration . t)
+                                     (linkSupport . t)))
+                      (implementation . ((dynamicRegistration . t)
+                                         (linkSupport . t)))
+                      (typeDefinition . ((dynamicRegistration . t)
+                                         (linkSupport . t)))
                       (synchronization . ((willSave . t) (didSave . t) (willSaveWaitUntil . t)))
                       (documentSymbol . ((symbolKind . ((valueSet . ,(apply 'vector (number-sequence 1 26)))))
                                          (hierarchicalDocumentSymbolSupport . t)))
@@ -3537,7 +3543,8 @@ disappearing, unset all the variables related to it."
                                                                            "additionalTextEdits"
                                                                            "command"])))
                                                         (insertTextModeSupport . ((valueSet . [1 2])))))
-                                     (contextSupport . t)))
+                                     (contextSupport . t)
+                                     (dynamicRegistration . t)))
                       (signatureHelp . ((signatureInformation . ((parameterInformation . ((labelOffsetSupport . t)))))))
                       (documentLink . ((dynamicRegistration . t)
                                        (tooltipSupport . t)))
@@ -5759,11 +5766,14 @@ execute a CODE-ACTION-KIND action."
   `(defun ,(intern (concat "lsp-" (symbol-name func-name))) ()
      ,(format "Perform the %s code action, if available." code-action-kind)
      (interactive)
-     (condition-case nil
-         (lsp-execute-code-action-by-kind ,code-action-kind)
-       (lsp-no-code-actions
-        (when (called-interactively-p 'any)
-          (lsp--info ,(format "%s action not available" code-action-kind)))))))
+     ;; Even when `lsp-auto-execute-action' is nil, it still makes sense to
+     ;; auto-execute here: the user has specified exactly what they want.
+     (let ((lsp-auto-execute-action t))
+       (condition-case nil
+           (lsp-execute-code-action-by-kind ,code-action-kind)
+         (lsp-no-code-actions
+          (when (called-interactively-p 'any)
+            (lsp--info ,(format "%s action not available" code-action-kind))))))))
 
 (lsp-make-interactive-code-action organize-imports "source.organizeImports")
 
@@ -8199,12 +8209,12 @@ When ALL is t, erase all log buffers of the running session."
       (format "%s:%s/%s" server-id pid status))))
 
 (defun lsp--map-tree-widget (m)
-  "Build `tree-widget' from a hash-table M."
-  (when (hash-table-p m)
+  "Build `tree-widget' from a hash-table or plist M."
+  (when (lsp-structure-p m)
     (let (nodes)
-      (maphash (lambda (k v)
+      (lsp-map (lambda (k v)
                  (push `(tree-widget
-                         :tag ,(if (hash-table-p v)
+                         :tag ,(if (lsp-structure-p v)
                                    (format "%s:" k)
                                  (format "%s: %s" k
                                          (propertize (format "%s" v)
