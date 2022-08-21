@@ -462,6 +462,11 @@
 (setq comment-auto-fill-only-comments t)
 ;; (setq x-gtk-use-system-tooltips nil)
 
+(require 'ansi-color)
+(defun colorize-compilation-buffer ()
+  (ansi-color-apply-on-region compilation-filter-start (point-max)))
+(add-hook 'compilation-filter-hook 'colorize-compilation-buffer)
+
 (require 'abbrev)
 (setq abbrev-file-name (expand-file-name "abbrev_defs" default-directory))
 
