@@ -1,10 +1,12 @@
 ;;; async.el --- Asynchronous processing in Emacs -*- lexical-binding: t -*-
 
-;; Copyright (C) 2012-2019 Free Software Foundation, Inc.
+;; Copyright (C) 2012-2022 Free Software Foundation, Inc.
 
 ;; Author: John Wiegley <jwiegley@gmail.com>
+;; Maintainer: Thierry Volpiatto <thievol@posteo.net>
+
 ;; Created: 18 Jun 2012
-;; Version: 1.9.5
+;; Version: 1.9.6
 ;; Package-Requires: ((emacs "24.4"))
 
 ;; Keywords: async
@@ -34,7 +36,7 @@
 
 (defgroup async nil
   "Simple asynchronous processing in Emacs"
-  :group 'emacs)
+  :group 'lisp)
 
 (defcustom async-variables-noprops-function #'async--purecopy
   "Default function to remove text properties in variables."
@@ -49,6 +51,9 @@
 (defvar async-callback-value-set nil)
 (defvar async-current-process nil)
 (defvar async--procvar nil)
+
+;; For emacs<29 (only exists in emacs-29+).
+(defvar print-symbols-bare)
 
 (defun async--purecopy (object)
   "Remove text properties in OBJECT.
@@ -204,7 +209,9 @@ It is intended to be used as follows:
   (let (print-level
         print-length
         (print-escape-nonascii t)
-        (print-circle t))
+        (print-circle t)
+        ;; Fix bug#153 in emacs-29 with symbol's positions.
+        (print-symbols-bare t))
     (prin1 sexp (current-buffer))
     ;; Just in case the string we're sending might contain EOF
     (encode-coding-region (point-min) (point-max) 'utf-8-auto)
@@ -223,19 +230,17 @@ It is intended to be used as follows:
   "Called from the child Emacs process' command line."
   ;; Make sure 'message' and 'prin1' encode stuff in UTF-8, as parent
   ;; process expects.
-  (let ((coding-system-for-write 'utf-8-auto))
+  (let ((coding-system-for-write 'utf-8-auto)
+        (args-left command-line-args-left))
     (setq async-in-child-emacs t
-          debug-on-error async-debug)
-    (if debug-on-error
+          debug-on-error async-debug
+          command-line-args-left nil)
+    (condition-case-unless-debug err
         (prin1 (funcall
                 (async--receive-sexp (unless async-send-over-pipe
-                                       command-line-args-left))))
-      (condition-case err
-          (prin1 (funcall
-                  (async--receive-sexp (unless async-send-over-pipe
-                                         command-line-args-left))))
-        (error
-         (prin1 (list 'async-signal err)))))))
+                                       args-left))))
+      (error
+       (prin1 (list 'async-signal err))))))
 
 (defun async-ready (future)
   "Query a FUTURE to see if it is ready.
