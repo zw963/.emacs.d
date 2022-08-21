@@ -34,13 +34,11 @@
 When nil history is not saved nor restored after Emacs restart
 unless you save/restore `helm-adaptive-history' with something
 else like psession or desktop."
-  :type 'string
-  :group 'helm-adapt)
+  :type 'string)
 
 (defcustom helm-adaptive-history-length 50
   "Maximum number of candidates stored for a source."
-  :type 'number
-  :group 'helm-adapt)
+  :type 'number)
 
 (defcustom helm-adaptive-sort-by-frequent-recent-usage t
   "Try to sort on an average of frequent and recent usage when non-nil.
@@ -55,7 +53,6 @@ Frequency+recent:
 Even with a low frequency, candidate go up on top. If a candidate
 have a high frequency but it is not used since some time, it goes
 down slowly, but as soon you reuse it it go up on top quickly."
-  :group 'helm-adapt
   :type 'boolean)
 
 ;; Internal
@@ -77,26 +74,24 @@ Format: ((SOURCE-NAME
 ;;;###autoload
 (define-minor-mode helm-adaptive-mode
   "Toggle adaptive sorting in all sources."
-  :group 'helm-adapt
-  :require 'helm-adaptive
   :global t
   (if helm-adaptive-mode
       (progn
         (unless helm-adaptive-history
           (helm-adaptive-maybe-load-history))
-        (add-hook 'kill-emacs-hook 'helm-adaptive-save-history)
+        (add-hook 'kill-emacs-hook #'helm-adaptive-save-history)
         ;; Should run at beginning of `helm-initial-setup'.
-        (add-hook 'helm-before-initialize-hook 'helm-adaptive-done-reset)
+        (add-hook 'helm-before-initialize-hook #'helm-adaptive-done-reset)
         ;; Should run at beginning of `helm-exit-minibuffer'.
-        (add-hook 'helm-before-action-hook 'helm-adaptive-store-selection)
+        (add-hook 'helm-before-action-hook #'helm-adaptive-store-selection)
         ;; Should run at beginning of `helm-select-action'.
-        (add-hook 'helm-select-action-hook 'helm-adaptive-store-selection))
+        (add-hook 'helm-select-action-hook #'helm-adaptive-store-selection))
     (helm-adaptive-save-history)
     (setq helm-adaptive-history nil)
-    (remove-hook 'kill-emacs-hook 'helm-adaptive-save-history)
-    (remove-hook 'helm-before-initialize-hook 'helm-adaptive-done-reset)
-    (remove-hook 'helm-before-action-hook 'helm-adaptive-store-selection)
-    (remove-hook 'helm-select-action-hook 'helm-adaptive-store-selection)))
+    (remove-hook 'kill-emacs-hook #'helm-adaptive-save-history)
+    (remove-hook 'helm-before-initialize-hook #'helm-adaptive-done-reset)
+    (remove-hook 'helm-before-action-hook #'helm-adaptive-store-selection)
+    (remove-hook 'helm-select-action-hook #'helm-adaptive-store-selection)))
 
 (defun helm-adapt-use-adaptive-p (&optional source-name)
   "Return current source only if it use adaptive history, nil otherwise."

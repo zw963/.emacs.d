@@ -24,38 +24,35 @@
 (require 'helm-elisp)
 
 
+(defvar helm-M-x-map
+  (let ((map (make-sparse-keymap)))
+    (set-keymap-parent map helm-comp-read-map)
+    (define-key map (kbd "C-u") nil)
+    (define-key map (kbd "C-u") #'helm-M-x-universal-argument)
+    (define-key map (kbd "C-]") #'helm-M-x-toggle-short-doc)
+    map))
+
+
 (defgroup helm-command nil
   "Emacs command related Applications and libraries for Helm."
   :group 'helm)
 
 (defcustom helm-M-x-always-save-history nil
   "`helm-M-x' save command in `extended-command-history' even when it fails."
-  :group 'helm-command
   :type  'boolean)
 
 (defcustom helm-M-x-reverse-history nil
   "The history source of `helm-M-x' appear in second position when non-nil."
-  :group 'helm-command
   :type 'boolean)
 
 (defcustom helm-M-x-fuzzy-match t
   "Helm-M-x fuzzy matching when non nil."
-  :group 'helm-command
   :type 'boolean)
-
-(defvar helm-M-x-map
-  (let ((map (make-sparse-keymap)))
-    (set-keymap-parent map helm-comp-read-map)
-    (define-key map (kbd "C-u") nil)
-    (define-key map (kbd "C-u") 'helm-M-x-universal-argument)
-    (define-key map (kbd "C-]") 'helm-M-x-toggle-short-doc)
-    map))
 
 (defcustom helm-M-x-show-short-doc nil
   "Show short docstring of command when non nil.
 This value can be toggled with
 \\<helm-M-x-map>\\[helm-M-x-toggle-short-doc] while in helm-M-x session."
-  :group 'helm-command
   :type 'boolean)
 
 
@@ -240,7 +237,7 @@ algorithm."
 
 (defun helm-M-x--before-action-hook ()
   (remove-hook 'helm-move-selection-after-hook
-               'helm-M-x--move-selection-after-hook))
+               #'helm-M-x--move-selection-after-hook))
 
 (defclass helm-M-x-class (helm-source-in-buffer helm-type-command)
   ((requires-pattern :initform 0)
@@ -257,7 +254,7 @@ algorithm."
   (when (and helm-M-x--timer (timerp helm-M-x--timer))
     (cancel-timer helm-M-x--timer)
     (setq helm-M-x--timer nil))
-  (setq helm-M-x--timer (run-at-time 1 0.1 'helm-M-x--notify-prefix-arg))
+  (setq helm-M-x--timer (run-at-time 1 0.1 #'helm-M-x--notify-prefix-arg))
   (setq helm--mode-line-display-prefarg t)
   ;; Prevent displaying a wrong prefix arg when helm-resume is called
   ;; from prefix arg.
@@ -304,20 +301,21 @@ default to `extended-command-history'."
          (prompt (concat (cond
                           ((eq helm-M-x-prefix-argument '-) "- ")
                           ((and (consp helm-M-x-prefix-argument)
-                                (eq (car helm-M-x-prefix-argument) 4)) "C-u ")
+                                (eq (car helm-M-x-prefix-argument) 4))
+                           "C-u ")
                           ((and (consp helm-M-x-prefix-argument)
                                 (integerp (car helm-M-x-prefix-argument)))
                            (format "%d " (car helm-M-x-prefix-argument)))
                           ((integerp helm-M-x-prefix-argument)
                            (format "%d " helm-M-x-prefix-argument)))
                          "M-x ")))
-    (setq helm-M-x--timer (run-at-time 1 0.1 'helm-M-x--notify-prefix-arg))
+    (setq helm-M-x--timer (run-at-time 1 0.1 #'helm-M-x--notify-prefix-arg))
     ;; Fix Bug#2250, add `helm-move-selection-after-hook' which
     ;; reset prefix arg to nil only for this helm session.
     (add-hook 'helm-move-selection-after-hook
-              'helm-M-x--move-selection-after-hook)
+              #'helm-M-x--move-selection-after-hook)
     (add-hook 'helm-before-action-hook
-              'helm-M-x--before-action-hook)
+              #'helm-M-x--before-action-hook)
     (when (and sources helm-M-x-reverse-history)
       (setq sources (nreverse sources)))
     (unwind-protect
@@ -326,7 +324,8 @@ default to `extended-command-history'."
           (helm :sources sources
                 :prompt prompt
                 :buffer "*helm M-x*"
-                :history 'helm-M-x-input-history))
+                :history 'helm-M-x-input-history
+                :truncate-lines t))
       (helm-M-x--unwind-forms))))
 
 ;; When running a command involving again helm from helm-M-x, the
@@ -346,9 +345,9 @@ default to `extended-command-history'."
           helm-fuzzy-sort-fn (default-toplevel-value 'helm-fuzzy-sort-fn))
     ;; Be sure to remove it here as well in case of quit.
     (remove-hook 'helm-move-selection-after-hook
-                 'helm-M-x--move-selection-after-hook)
+                 #'helm-M-x--move-selection-after-hook)
     (remove-hook 'helm-before-action-hook
-                 'helm-M-x--before-action-hook))
+                 #'helm-M-x--before-action-hook))
   ;; Reset helm-M-x--unwind-forms-done to nil when DONE is
   ;; unspecified.
   (setq helm-M-x--unwind-forms-done done))

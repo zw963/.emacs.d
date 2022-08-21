@@ -27,7 +27,6 @@
 
 (defcustom helm-el-package-initial-filter 'all
   "Show only installed, upgraded or all packages at startup."
-  :group 'helm-el-package
   :type '(radio :tag "Initial filter for elisp packages"
           (const :tag "Show all packages" all)
           (const :tag "Show installed packages" installed)
@@ -36,19 +35,16 @@
 
 (defcustom helm-el-truncate-lines t
   "Truncate lines in `helm-buffer' when non-nil."
-  :group 'helm-el-package
   :type 'boolean)
 
 
 (defcustom helm-el-package-upgrade-on-start nil
   "Show package upgrades on startup when non nil."
-  :group 'helm-el-package
   :type 'boolean)
 
 (defcustom helm-el-package-autoremove-on-start nil
   "Try to autoremove no more needed packages on startup.
 See `package-autoremove'."
-  :group 'helm-el-package
   :type 'boolean)
 
 ;; internals vars
@@ -365,17 +361,17 @@ See `package-autoremove'."
 (defvar helm-el-package-map
   (let ((map (make-sparse-keymap)))
     (set-keymap-parent map helm-map)
-    (define-key map (kbd "M-I")   'helm-el-package-show-installed)
-    (define-key map (kbd "M-O")   'helm-el-package-show-uninstalled)
-    (define-key map (kbd "M-U")   'helm-el-package-show-upgrade)
-    (define-key map (kbd "M-B")   'helm-el-package-show-built-in)
-    (define-key map (kbd "M-A")   'helm-el-package-show-all)
-    (define-key map (kbd "C-c i") 'helm-el-run-package-install)
-    (define-key map (kbd "C-c r") 'helm-el-run-package-reinstall)
-    (define-key map (kbd "C-c d") 'helm-el-run-package-uninstall)
-    (define-key map (kbd "C-c u") 'helm-el-run-package-upgrade)
-    (define-key map (kbd "C-c U") 'helm-el-run-package-upgrade-all)
-    (define-key map (kbd "C-c @") 'helm-el-run-visit-homepage)
+    (define-key map (kbd "M-I")   #'helm-el-package-show-installed)
+    (define-key map (kbd "M-O")   #'helm-el-package-show-uninstalled)
+    (define-key map (kbd "M-U")   #'helm-el-package-show-upgrade)
+    (define-key map (kbd "M-B")   #'helm-el-package-show-built-in)
+    (define-key map (kbd "M-A")   #'helm-el-package-show-all)
+    (define-key map (kbd "C-c i") #'helm-el-run-package-install)
+    (define-key map (kbd "C-c r") #'helm-el-run-package-reinstall)
+    (define-key map (kbd "C-c d") #'helm-el-run-package-uninstall)
+    (define-key map (kbd "C-c u") #'helm-el-run-package-upgrade)
+    (define-key map (kbd "C-c U") #'helm-el-run-package-upgrade-all)
+    (define-key map (kbd "C-c @") #'helm-el-run-visit-homepage)
     map))
 
 (defvar helm-source-list-el-package nil)

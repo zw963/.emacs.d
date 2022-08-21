@@ -50,21 +50,20 @@
 
 (defcustom helm-eshell-fuzzy-match nil
   "Enable fuzzy matching in `helm-esh-pcomplete' when non-nil."
-  :group 'helm-eshell
   :type 'boolean)
 
 
 (defvar helm-eshell-history-map
   (let ((map (make-sparse-keymap)))
     (set-keymap-parent map helm-map)
-    (define-key map (kbd "M-p") 'helm-next-line)
+    (define-key map (kbd "M-p") #'helm-next-line)
     map)
   "Keymap for `helm-eshell-history'.")
 
 (defvar helm-esh-completion-map
   (let ((map (make-sparse-keymap)))
     (set-keymap-parent map helm-map)
-    (define-key map (kbd "TAB") 'helm-next-line)
+    (define-key map (kbd "TAB") #'helm-next-line)
     map)
   "Keymap for `helm-esh-pcomplete'.")
 
@@ -116,7 +115,7 @@ at point."
          (t
           (file-relative-name i)))
    into lst
-   finally return (sort lst 'helm-generic-sort-fn)))
+   finally return (sort lst #'helm-generic-sort-fn)))
 
 (defclass helm-esh-source (helm-source-sync)
   ((init :initform (lambda ()
@@ -305,7 +304,7 @@ at point."
              ;; Set helm-eshell--quit-flag to non-nil only on
              ;; quit, this tells to not add final suffix when quitting
              ;; helm.
-             (add-hook 'helm-quit-hook 'helm-eshell--quit-hook-fn)
+             (add-hook 'helm-quit-hook #'helm-eshell--quit-hook-fn)
              (with-helm-show-completion beg end
                (unwind-protect
                    (or (helm-esh-pcomplete--make-helm
@@ -332,7 +331,7 @@ at point."
                          (when (and helm-eshell--quit-flag
                                     (string-match-p "[.]\\{2\\}\\'" last))
                            (insert "/"))))
-                 (remove-hook 'helm-quit-hook 'helm-eshell--quit-hook-fn)
+                 (remove-hook 'helm-quit-hook #'helm-eshell--quit-hook-fn)
                  (setq helm-eshell--quit-flag nil)))))))
 
 (defun helm-eshell--quit-hook-fn ()
@@ -368,25 +367,22 @@ at point."
 (defface helm-eshell-prompts-promptidx
   `((t ,@(and (>= emacs-major-version 27) '(:extend t))
        :foreground "cyan"))
-  "Face used to highlight Eshell prompt index."
-  :group 'helm-eshell-faces)
+  "Face used to highlight Eshell prompt index.")
 
 (defface helm-eshell-prompts-buffer-name
   `((t ,@(and (>= emacs-major-version 27) '(:extend t))
        :foreground "green"))
-  "Face used to highlight Eshell buffer name."
-  :group 'helm-eshell-faces)
+  "Face used to highlight Eshell buffer name.")
 
 (defcustom helm-eshell-prompts-promptidx-p t
   "Show prompt number."
-  :group 'helm-eshell
   :type 'boolean)
 
 (defvar helm-eshell-prompts-keymap
   (let ((map (make-sparse-keymap)))
     (set-keymap-parent map helm-map)
-    (define-key map (kbd "C-c o")   'helm-eshell-prompts-other-window)
-    (define-key map (kbd "C-c C-o") 'helm-eshell-prompts-other-frame)
+    (define-key map (kbd "C-c o")   #'helm-eshell-prompts-other-window)
+    (define-key map (kbd "C-c C-o") #'helm-eshell-prompts-other-frame)
     map)
   "Keymap for `helm-eshell-prompt-all'.")
 

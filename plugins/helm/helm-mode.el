@@ -738,6 +738,10 @@ that use `helm-comp-read'.  See `helm-M-x' for example."
              nil "Error: History should be specified as a symbol")
   (when (get-buffer helm-action-buffer)
     (kill-buffer helm-action-buffer))
+  (unless (memq must-match '(confirm confirm-after-completion t nil))
+    ;; Fix completing-read's using something else than `t' e.g. 1 or
+    ;; whatever (bug #2527).
+    (setq must-match t))
   (let ((action-fn `(("Sole action (Identity)"
                       . (lambda (candidate)
                           (if ,marked-candidates
@@ -1180,6 +1184,18 @@ Affects `switch-to-buffer' `kill-buffer' and related."
           (t it))
       val)))
 
+(defun helm-mode--apply-helm-handler (handler arg-list)
+  "Ensure `minibuffer-complete' is disabled when running HANDLER.
+ARG-LIST is a list of arguments to pass to HANDLER."
+  ;; Some functions are calling `minibuffer-complete'
+  ;; within `minibuffer-setup-hook' when calling their
+  ;; `completing-read', like `woman-file-name' (bug #2527).
+  ;; This defeat Helm which is already
+  ;; completing minibuffer, so deactivate
+  ;; minibuffer-complete one time for all [1].
+  (cl-letf (((symbol-function 'minibuffer-complete) #'ignore))
+    (apply handler arg-list)))
+  
 (cl-defun helm--completing-read-default
     (prompt collection &optional
                          predicate require-match
@@ -1230,10 +1246,10 @@ See documentation of `completing-read' and `all-completions' for details."
          ;; i.e (push ?\t unread-command-events).
          unread-command-events
          (default-handler
-           ;; If nothing is found in
-           ;; helm-completing-read-handlers-alist use default
-           ;; handler.
-           #'helm-completing-read-default-handler))
+          ;; If nothing is found in
+          ;; helm-completing-read-handlers-alist use default
+          ;; handler.
+          #'helm-completing-read-default-handler))
     (when (eq def-com 'ido) (setq def-com 'ido-completing-read))
     (unless (or (not entry) def-com)
       ;; An entry in *read-handlers-alist exists but have
@@ -1256,25 +1272,28 @@ See documentation of `completing-read' and `all-completions' for details."
     (unwind-protect
          (cond (;; An helm specialized function exists, run it.
                 (and def-com helm-mode)
-                (apply def-com others-args))
+                ;; Disable `minibuffer-complete' for handlers using
+                ;; helm (bug #2533).
+                (helm-mode--apply-helm-handler
+                 def-com others-args))
                (;; Try to handle `ido-completing-read' everywhere.
                 (and def-com (eq def-com 'ido-completing-read))
                 (setcar (memq collection def-args)
                         (all-completions "" collection predicate))
                 (apply def-com def-args))
-               (;; User set explicitely `completing-read' or something similar
-                ;; in *read-handlers-alist, use this with exactly the same
-                ;; args as in `completing-read'.
-                ;; If we are here `helm-mode' is now disabled.
+               (;; A non helm function specified in
+                ;; `helm-completing-read-handlers-alist' use it with
+                ;; exactly the same args as in `completing-read'.  If
+                ;; we are here `helm-mode' is now disabled.
                 def-com
                 (apply def-com def-args))
                (;; Use by default a in-buffer handler unless
                 ;; COLLECTION is a function.
                 t
-                (funcall default-handler
-                         prompt collection predicate require-match
-                         initial-input hist def inherit-input-method
-                         str-command buf-name)))
+                ;; Disable `minibuffer-complete' for handlers using
+                ;; helm (bug #2533).
+                (helm-mode--apply-helm-handler
+                 default-handler others-args)))
       (helm-mode 1)
       ;; When exiting minibuffer, `this-command' is set to
       ;; `helm-exit-minibuffer', which is unwanted when starting
@@ -1958,11 +1977,7 @@ Can be used for `completion-in-region-function' by advicing it with an
                                                 (string= input ""))
                                       " "))
                  (file-comp-p (or (eq (completion-metadata-get metadata 'category) 'file)
-                                  (and (helm-mode--in-file-completion-p)
-                                       ;; Probably unneeded at this
-                                       ;; point but never know.
-                                       (setq metadata (append metadata '((category . file))))
-                                       t)
+                                  (helm-mode--in-file-completion-p)
                                   ;; Assume that when `afun' and `predicate' are null
                                   ;; we are in filename completion.
                                   (and (null afun) (null predicate))))
@@ -1983,23 +1998,7 @@ Can be used for `completion-in-region-function' by advicing it with an
                                     metadata))
                                   (last-data (last comps))
                                   (bs (helm-aif (cdr last-data)
-                                          ;; Try to fix eshell completion
-                                          ;; which fails to complete a
-                                          ;; filename not preceded by
-                                          ;; a meaningful
-                                          ;; command like cd or ls
-                                          ;; (bug #2504) so
-                                          ;; try to find the last
-                                          ;; leading / and set
-                                          ;; base-size from it.
-                                          (prog1 (if (and (zerop it) file-comp-p)
-                                                     (or (helm-aand
-                                                          (save-excursion
-                                                            (re-search-backward
-                                                             "/" start t))
-                                                          (- (1+ it) start))
-                                                         it)
-                                                   it)
+                                          (prog1 it
                                             ;; Remove the last element of
                                             ;; comps by side-effect.
                                             (setcdr last-data nil))

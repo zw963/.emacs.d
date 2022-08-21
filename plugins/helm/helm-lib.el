@@ -178,6 +178,8 @@ the customize functions e.g. `customize-set-variable' and NOT
   "Buffer showing actions.")
 (defvar helm-current-prefix-arg nil
   "Record `current-prefix-arg' when exiting minibuffer.")
+(defvar helm-current-error nil
+  "Same as `compilation-current-error' but for helm-occur and helm-grep.")
 
 ;;; Compatibility
 ;;
@@ -450,21 +452,21 @@ found in SEQ."
               else return index
               finally return ls)))
 
-(defun helm-iter-list (seq)
-  "Return an iterator object from SEQ."
+(defun helm-iter-list (seq &optional cycle)
+  "Return an iterator object from SEQ.
+The iterator die and return nil when it reach end of SEQ.
+When CYCLE is specified the iterator never ends."
   (let ((lis seq))
     (lambda ()
       (let ((elm (car lis)))
-        (setq lis (cdr lis))
+        (setq lis (if cycle
+                      (or (cdr lis) seq)
+                    (cdr lis)))
         elm))))
 
 (defun helm-iter-circular (seq)
   "Infinite iteration on SEQ."
-  (let ((lis seq))
-     (lambda ()
-       (let ((elm (car lis)))
-         (setq lis (pcase lis (`(,_ . ,ll) (or ll seq))))
-         elm))))
+  (helm-iter-list seq 'cycle))
 
 (cl-defun helm-iter-sub-next-circular (seq elm &key (test 'eq))
   "Infinite iteration of SEQ starting at ELM."
@@ -1183,14 +1185,13 @@ accepted.
 
 Example:
 
-    (let ((answer (helm-read-answer
-                    \"answer [y,n,!,q]: \"
-                    \\='(\"y\" \"n\" \"!\" \"q\"))))
-      (pcase answer
-          (\"y\" \"yes\")
-          (\"n\" \"no\")
-          (\"!\" \"all\")
-          (\"q\" \"quit\")))
+    (pcase (helm-read-answer
+             \"answer [y,n,!,q]: \"
+             \\='(\"y\" \"n\" \"!\" \"q\"))
+       (\"y\" \"yes\")
+       (\"n\" \"no\")
+       (\"!\" \"all\")
+       (\"q\" \"quit\"))
 
 "
   (helm-awhile (read-key (propertize prompt 'face 'minibuffer-prompt))
@@ -1199,6 +1200,35 @@ Example:
           (cl-return str)
         (message "Please answer by %s" (mapconcat 'identity answer-list ", "))
         (sit-for 1)))))
+
+(defun helm-read-answer-dolist-with-action (prompt list action)
+  "Read answer with PROMPT and execute ACTION on each element of LIST.
+
+Argument PROMPT is a format spec string e.g. \"Do this on %s?\"
+which take each elements of LIST as argument, no need to provide
+the help part i.e. [y,n,!,q] it will be already added.
+
+While looping through LIST, ACTION is executed on each elements
+differently depending of answer:
+
+- y  Execute ACTION on element.
+- n  Skip element.
+- !  Don't ask anymore and execute ACTION on remaining elements.
+- q  Skip all remaining elements."
+  (let (dont-ask)
+    (catch 'break
+      (dolist (elm list)
+        (if dont-ask
+            (funcall action elm)
+          (pcase (helm-read-answer
+                  (format (concat prompt "[y,n,!,q]") elm)
+                  '("y" "n" "!" "q"))
+            ("y" (funcall action elm))
+            ("n" (ignore))
+            ("!" (prog1
+                     (funcall action elm)
+                   (setq dont-ask t)))
+            ("q" (throw 'break nil))))))))
 
 ;;; Symbols routines
 ;;
@@ -1432,11 +1462,16 @@ unconditionally."
         (file-name-sans-extension (file-name-nondirectory fname))
       (file-name-nondirectory (directory-file-name fname)))))
 
-(defun helm-basedir (fname)
-  "Return the base directory of filename ending by a slash."
+(defun helm-basedir (fname &optional parent)
+  "Return the base directory of filename ending by a slash.
+If PARENT is specified and FNAME is a directory return the parent
+directory of FNAME."
   (helm-aif (and fname
                  (or (and (string= fname "~") "~")
-                     (file-name-directory fname)))
+                     (file-name-directory
+                      (if parent
+                          (directory-file-name fname)
+                        fname))))
       (file-name-as-directory it)))
 
 (defun helm-current-directory ()
@@ -1897,6 +1932,7 @@ broken."
      ("(\\<\\(helm-acond\\)\\>" 1 font-lock-keyword-face)
      ("(\\<\\(helm-aand\\)\\>" 1 font-lock-keyword-face)
      ("(\\<\\(helm-with-gensyms\\)\\>" 1 font-lock-keyword-face)
+     ("(\\<\\(helm-read-answer-dolist-with-action\\)\\>" 1 font-lock-keyword-face)
      ("(\\<\\(helm-read-answer\\)\\>" 1 font-lock-keyword-face))))
 
 (provide 'helm-lib)

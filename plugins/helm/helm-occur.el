@@ -29,6 +29,8 @@
 (declare-function helm-grep-highlight-match "helm-grep")
 (declare-function helm-comp-read "helm-mode")
 
+(defvar helm-current-error)
+
 ;;; Internals
 ;;
 (defvar helm-source-occur nil
@@ -65,7 +67,6 @@ Don't set it to any value, it will have no effect.")
     ("Save buffer" . helm-occur-save-results)
     )
   "Actions for helm-occur."
-  :group 'helm-occur
   :type '(alist :key-type string :value-type function))
 
 (defcustom helm-occur-use-ioccur-style-keys nil
@@ -73,7 +74,6 @@ Don't set it to any value, it will have no effect.")
 
 Note that if you define this variable with `setq' your change will
 have no effect, use customize instead."
-  :group 'helm-occur
   :type 'boolean
   :set (lambda (var val)
          (set var val)
@@ -86,12 +86,10 @@ have no effect, use customize instead."
 
 (defcustom helm-occur-always-search-in-current nil
   "Helm multi occur always search in current buffer when non--nil."
-  :group 'helm-occur
   :type 'boolean)
 
 (defcustom helm-occur-truncate-lines t
   "Truncate lines in occur buffer when non nil."
-  :group 'helm-occur
   :type 'boolean)
 
 (defcustom helm-occur-auto-update-on-resume nil
@@ -100,7 +98,6 @@ noask => Always update without asking
 nil   => Don't update but signal buffer needs update
 never => Never update and do not signal buffer needs update
 Any other non--nil value update after confirmation."
-  :group 'helm-regexp
   :type '(radio :tag "Allow auto updating helm-occur buffer when outdated."
           (const :tag "Always update without asking" noask)
           (const :tag "Never update and do not signal buffer needs update" never)
@@ -109,7 +106,6 @@ Any other non--nil value update after confirmation."
 
 (defcustom helm-occur-candidate-number-limit 99999
   "Value of `helm-candidate-number-limit' for helm-occur."
-  :group 'helm-occur
   :type 'integer)
 
 (defcustom helm-occur-buffer-substring-fn-for-modes
@@ -119,7 +115,6 @@ Any other non--nil value update after confirmation."
 Can be one of `buffer-substring' or `buffer-substring-no-properties'.
 
 Note that when using `buffer-substring' initialization will be slower."
-  :group 'helm-regexp
   :type '(alist :key-type (symbol :tag "Mode")
                 :value-type (radio (const :tag "With text properties" buffer-substring)
                                    (const :tag "Without text properties" buffer-substring-no-properties))))
@@ -128,25 +123,21 @@ Note that when using `buffer-substring' initialization will be slower."
   "When non nil select closest candidate from point after update.
 This happen only in `helm-source-occur' which is always related to
 `current-buffer'."
-  :group 'helm-regexp
   :type 'boolean)
 
 (defcustom helm-occur-ignore-diacritics nil
   "When non nil helm-occur will ignore diacritics in patterns."
-  :group 'helm-regexp
   :type 'boolean)
 
 (defface helm-moccur-buffer
   `((t ,@(and (>= emacs-major-version 27) '(:extend t))
        :foreground "DarkTurquoise" :underline t))
-  "Face used to highlight occur buffer names."
-  :group 'helm-occur)
+  "Face used to highlight occur buffer names.")
 
 (defface helm-resume-need-update
   `((t ,@(and (>= emacs-major-version 27) '(:extend t))
        :background "red"))
-  "Face used to flash occur buffer when it needs update."
-  :group 'helm-occur)
+  "Face used to flash occur buffer when it needs update.")
 
 
 (defun helm-occur--select-closest-candidate ()
@@ -220,11 +211,15 @@ engine beeing completely different and also much faster."
         ;; When user mark defun with `mark-defun' with intention of
         ;; using helm-occur on this region, it is relevant to use the
         ;; thing-at-point located at previous position which have been
-        ;; pushed to `mark-ring'.
-        (setq def (save-excursion
-                    (goto-char (setq pos (car mark-ring)))
-                    (helm-aif (thing-at-point 'symbol) (regexp-quote it))))
-        (narrow-to-region (region-beginning) (region-end)))
+        ;; pushed to `mark-ring', if it's within the active region.
+        (let ((beg (region-beginning))
+              (end (region-end))
+              (prev-pos (car mark-ring)))
+          (when (and prev-pos (>= prev-pos beg) (< prev-pos end))
+            (setq def (save-excursion
+                        (goto-char (setq pos prev-pos))
+                        (helm-aif (thing-at-point 'symbol) (regexp-quote it)))))
+          (narrow-to-region beg end)))
       (unwind-protect
            (helm :sources 'helm-source-occur
                  :buffer "*helm occur*"
@@ -486,11 +481,15 @@ persistent action."
 
 (defun helm-occur-mode-goto-line ()
   (interactive)
+  (setq next-error-last-buffer (current-buffer))
+  (setq-local helm-current-error (point-marker))
   (helm-aif (get-text-property (point) 'helm-realvalue)
     (progn (helm-occur-goto-line it) (helm-match-line-cleanup-pulse))))
 
 (defun helm-occur-mode-goto-line-ow ()
   (interactive)
+  (setq next-error-last-buffer (current-buffer))
+  (setq-local helm-current-error (point-marker))
   (helm-aif (get-text-property (point) 'helm-realvalue)
     (progn (helm-occur-goto-line-ow it) (helm-match-line-cleanup-pulse))))
 
@@ -576,6 +575,7 @@ persistent action."
       (buffer-enable-undo)
       (helm-occur-mode))
     (pop-to-buffer buf)
+    (setq next-error-last-buffer (get-buffer buf))
     (message "Helm occur Results saved in `%s' buffer" buf)))
 
 (defun helm-occur-mode-mouse-goto-line (event)
@@ -650,7 +650,7 @@ numbered.  The property \\='buffer-name is added to the whole string."
                           (setq linum (string-to-number (match-string 1))
                                 mpart (match-string 2)))
                      ;; Match part after line number.
-                     when (and mpart (string-match pattern mpart))
+                     when (and mpart (helm-mm-match mpart pattern))
                      for line = (format "%s:%d:%s"
                                         (get-text-property (point) 'buffer-name)
                                         linum
@@ -664,7 +664,8 @@ numbered.  The property \\='buffer-name is added to the whole string."
                            "\n"))))
           (when (fboundp 'wgrep-cleanup-overlays)
             (wgrep-cleanup-overlays (point-min) (point-max)))
-          (message "Reverting buffer done"))))))
+          (message "Reverting buffer done")
+          (when executing-kbd-macro (sit-for 1)))))))
 
 (defun helm-occur-filter-one-by-one (candidate)
   "`filter-one-by-one' function for `helm-source-moccur'."
@@ -698,7 +699,8 @@ Special commands:
     (set (make-local-variable 'helm-occur-mode--last-pattern)
          helm-input)
     (set (make-local-variable 'next-error-function)
-         #'helm-occur-next-error))
+         #'helm-occur-next-error)
+    (set (make-local-variable 'helm-current-error) nil))
 (put 'helm-moccur-mode 'helm-only t)
 
 (defun helm-occur-next-error (&optional argp reset)
@@ -707,8 +709,10 @@ RESET non-nil means rewind to the first match.
 This is the `next-error-function' for `helm-occur-mode'."
   (interactive "p")
   (goto-char (cond (reset (point-min))
-		   ((< argp 0) (line-beginning-position))
-		   ((> argp 0) (line-end-position))
+		   ((and (< argp 0) helm-current-error)
+                    (line-beginning-position))
+		   ((and (> argp 0) helm-current-error)
+                    (line-end-position))
 		   ((point))))
   (let ((fun (if (> argp 0)
                  #'next-single-property-change
@@ -717,6 +721,8 @@ This is the `next-error-function' for `helm-occur-mode'."
         (progn
           (goto-char it)
           (forward-line 0)
+          ;; `helm-current-error' is set in
+          ;; `helm-occur-mode-goto-line'.
           (helm-occur-mode-goto-line))
       (user-error "No more matches"))))
 
@@ -767,7 +773,8 @@ This is the `next-error-function' for `helm-occur-mode'."
                                            (point))
                                          (point-max))))
                    (overlay-put ov 'face 'helm-resume-need-update)
-                   (sit-for 0.3) (delete-overlay ov)
+                   (sit-for 0)
+                   (delete-overlay ov)
                    (message "[Helm occur Buffer outdated (C-c C-u to update)]")))))
             (unless buffer-is-modified
               (with-helm-after-update-hook

@@ -655,9 +655,11 @@
     "  A local hook that run at beginning of initilization of this source.
   i.e Before the creation of `helm-buffer'.
 
-  Should be a variable (defined with defvar).
-  Can be also an anonymous function or a list of functions
-  directly added to slot, this is not recommended though.")
+  Should be a variable (a symbol) bound to a list of
+  functions or a single function (see `run-hooks' documentation).
+  Even better is to use `add-hook' to feed this variable.
+  Usage of an anonymous function, or a list of functions is still
+  supported but not recommended.")
 
    (after-init-hook
     :initarg :after-init-hook
@@ -666,10 +668,12 @@
     :documentation
     "  A local hook that run at end of initilization of this source.
   i.e After the creation of `helm-buffer'.
-
-  Should be a variable.
-  Can be also an anonymous function or a list of functions
-  directly added to slot, this is not recommended though.")
+  
+  Should be a variable (a symbol) bound to a list of
+  functions or a single function (see `run-hooks' documentation).
+  Even better is to use `add-hook' to feed this variable.
+  Usage of an anonymous function, or a list of functions is still
+  supported but not recommended.")
 
    (delayed
     :initarg :delayed
@@ -1042,11 +1046,12 @@ an eieio class."
   (let* ((actions     (slot-value source 'action))
          (action-transformers (slot-value source 'action-transformer))
          (new-action  (list (cons name fn)))
-         (transformer (lambda (actions candidate)
-                        (cond ((funcall predicate candidate)
-                               (helm-append-at-nth
-                                actions new-action index))
-                              (t actions)))))
+         (transformer (lambda (actions _candidate)
+                        (let ((candidate (car (helm-marked-candidates))))
+                          (cond ((funcall predicate candidate)
+                                 (helm-append-at-nth
+                                  actions new-action index))
+                                (t actions))))))
     (cond ((functionp actions)
            (setf (slot-value source 'action) (list (cons "Default action" actions))))
           ((listp actions)
@@ -1155,7 +1160,16 @@ The header line is based on one of `persistent-action-if',
       (let ((val (if (symbolp it)
                      (symbol-value it)
                    it)))
-        (setf (slot-value source 'requires-pattern) val))))
+        (setf (slot-value source 'requires-pattern) val)))
+  (let ((sname (slot-value source 'name)))
+    (pcase (slot-value source 'before-init-hook)
+      ((or (and val (pred (functionp)) (guard (not (symbolp val))))
+           (pred (consp)))
+       (warn "Helm source `%s': before-init-hook Should be defined as a symbol" sname)))
+    (pcase (slot-value source 'after-init-hook)
+      ((or (and (pred (functionp)) (pred (not symbolp)))
+           (pred (consp)))
+       (warn "Helm source `%s': after-init-hook Should be defined as a symbol" sname)))))
 
 (cl-defmethod helm-setup-user-source ((_source helm-source)))
 

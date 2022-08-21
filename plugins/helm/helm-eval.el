@@ -22,6 +22,8 @@
 (require 'eldoc)
 (require 'edebug)
 
+(declare-function helm-lisp-completion-at-point "helm-elisp.el")
+
 
 (defgroup helm-eval nil
   "Eval related Applications and libraries for Helm."
@@ -70,31 +72,32 @@ Should take one arg: the string to display."
 (defvar helm-eval-expression-map
   (let ((map (make-sparse-keymap)))
     (set-keymap-parent map helm-map)
-    (define-key map (kbd "<C-return>") 'helm-eval-new-line-and-indent)
-    (define-key map (kbd "<M-tab>")      'lisp-indent-line)
-    (define-key map (kbd "<C-tab>")    'helm-lisp-completion-at-point)
-    (define-key map (kbd "C-p")        'previous-line)
-    (define-key map (kbd "C-n")        'next-line)
-    (define-key map (kbd "<up>")       'previous-line)
-    (define-key map (kbd "<down>")     'next-line)
-    (define-key map (kbd "<right>")    'forward-char)
-    (define-key map (kbd "<left>")     'backward-char)
+    (define-key map (kbd "<C-return>") #'helm-eval-new-line-and-indent)
+    (define-key map (kbd "<M-tab>")    #'lisp-indent-line)
+    (define-key map (kbd "<C-tab>")    #'helm-lisp-completion-at-point)
+    (define-key map (kbd "C-p")        #'previous-line)
+    (define-key map (kbd "C-n")        #'next-line)
+    (define-key map (kbd "<up>")       #'previous-line)
+    (define-key map (kbd "<down>")     #'next-line)
+    (define-key map (kbd "<right>")    #'forward-char)
+    (define-key map (kbd "<left>")     #'backward-char)
     map))
 
 (defun helm-build-evaluation-result-source ()
   (helm-build-dummy-source "Evaluation Result"
     :multiline t
     :mode-line "C-RET: nl-and-indent, M-tab: reindent, C-tab:complete, C-p/n: next/prec-line."
-    :filtered-candidate-transformer (lambda (_candidates _source)
-                                      (list
-                                       (condition-case nil
-                                           (with-helm-current-buffer
-                                             (pp-to-string
-                                              (if edebug-active
-                                                  (edebug-eval-expression
-                                                   (read helm-pattern))
-                                                  (eval (read helm-pattern)))))
-                                         (error "Error"))))
+    :filtered-candidate-transformer
+    (lambda (_candidates _source)
+      (list
+       (condition-case nil
+           (with-helm-current-buffer
+            (pp-to-string
+             (if edebug-active
+                 (edebug-eval-expression
+                  (read helm-pattern))
+               (eval (read helm-pattern) t))))
+         (error "Error"))))
     :nohighlight t
     :keymap helm-eval-expression-map
     :action '(("Copy result to kill-ring" . (lambda (candidate)
@@ -115,27 +118,36 @@ Should take one arg: the string to display."
   (with-selected-window (minibuffer-window)
     (push (current-buffer) helm-eldoc-active-minibuffers-list)))
 
+;; From emacs-28.1: As the eldoc API is nowaday a pain to use, try to
+;; provide some eldoc in mode-line the best as possible (may break at
+;; some point).
 (defun helm-eldoc-show-in-eval ()
   "Return eldoc in mode-line for current minibuffer input."
   (let ((buf (window-buffer (active-minibuffer-window))))
     (condition-case err
         (when (member buf helm-eldoc-active-minibuffers-list)
           (with-current-buffer buf
-            (let* ((sym     (save-excursion
-                              (unless (looking-back ")\\|\"" (1- (point)))
-                                (forward-char -1))
-                              (eldoc-current-symbol)))
-                   (info-fn (eldoc-fnsym-in-current-sexp))
-                   (doc     (or (eldoc-get-var-docstring sym)
+            (let* ((info-fn (eldoc-fnsym-in-current-sexp))
+                   (vsym    (eldoc-current-symbol))
+                   (sym     (car info-fn))
+                   (vardoc  (eldoc-get-var-docstring vsym))
+                   (doc     (or vardoc
                                 (eldoc-get-fnsym-args-string
-                                 (car info-fn) (cadr info-fn)))))
-              (when doc (funcall helm-eldoc-in-minibuffer-show-fn doc)))))
+                                 sym (cadr info-fn))))
+                   (all     (format "%s: %s"
+                                    (propertize
+                                     (symbol-name (if vardoc vsym sym))
+                                     'face (if vardoc
+                                               'font-lock-variable-name-face
+                                             'font-lock-function-name-face))
+                                    doc)))
+              (when doc (funcall helm-eldoc-in-minibuffer-show-fn all)))))
       (error (message "Eldoc in minibuffer error: %S" err) nil))))
 
 (defun helm-show-info-in-mode-line (str)
   "Display string STR in mode-line."
   (save-selected-window
-    (with-current-buffer helm-buffer
+    (with-helm-window
       (let ((mode-line-format (concat " " str)))
         (force-mode-line-update)
         (sit-for helm-show-info-in-mode-line-delay))
@@ -168,11 +180,12 @@ Should take one arg: the string to display."
 (defun helm-eval-expression (arg)
   "Preconfigured `helm' for `helm-source-evaluation-result'."
   (interactive "P")
-  (helm :sources (helm-build-evaluation-result-source)
-        :input (when arg (thing-at-point 'sexp))
-        :buffer "*helm eval*"
-        :echo-input-in-header-line nil
-        :history 'read-expression-history))
+  (let ((helm-elisp-help-function #'helm-elisp-show-doc-modeline))
+    (helm :sources (helm-build-evaluation-result-source)
+          :input (when arg (thing-at-point 'sexp))
+          :buffer "*helm eval*"
+          :echo-input-in-header-line nil
+          :history 'read-expression-history)))
 
 (defvar eldoc-idle-delay)
 ;;;###autoload
@@ -181,10 +194,10 @@ Should take one arg: the string to display."
   (interactive)
   (let ((timer (run-with-idle-timer
                 eldoc-idle-delay 'repeat
-                'helm-eldoc-show-in-eval)))
+                #'helm-eldoc-show-in-eval)))
     (unwind-protect
          (minibuffer-with-setup-hook
-             'helm-eldoc-store-minibuffer
+             #'helm-eldoc-store-minibuffer
            (call-interactively 'helm-eval-expression))
       (and timer (cancel-timer timer))
       (setq helm-eldoc-active-minibuffers-list

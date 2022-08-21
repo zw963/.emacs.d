@@ -331,12 +331,12 @@ Return a cons (beg . end)."
                       :fuzzy-match helm-lisp-fuzzy-completion
                       :persistent-help (helm-lisp-completion-persistent-help)
                       :filtered-candidate-transformer
-                      'helm-lisp-completion-transformer
+                      #'helm-lisp-completion-transformer
                       :action (lambda (candidate)
                                 (with-helm-current-buffer
                                   (run-with-timer
                                    0.01 nil
-                                   'helm-insert-completion-at-point
+                                   #'helm-insert-completion-at-point
                                    beg end candidate))))
            :input (if helm-lisp-fuzzy-completion
                       target (concat target " "))
@@ -413,18 +413,20 @@ the same time to variable and a function."
 If SYM is not documented, return \"Not documented\".
 Argument NAME allows specifiying what function to use to display
 documentation when SYM name is the same for function and variable."
-  (let ((doc (pcase sym
-               ((and (pred fboundp) (pred boundp))
-                (pcase name
-                  ("describe-function"
-                   (documentation sym t))
-                  ("describe-variable"
-                   (documentation-property sym 'variable-documentation t))
-                  (_ (documentation sym t))))
-               ((pred fboundp)  (documentation sym t))
-               ((pred boundp)   (documentation-property
-                                 sym 'variable-documentation t))
-               ((pred facep)   (face-documentation sym)))))
+  (let ((doc (condition-case _err
+                 (pcase sym
+                   ((and (pred fboundp) (pred boundp))
+                    (pcase name
+                      ("describe-function"
+                       (documentation sym t))
+                      ("describe-variable"
+                       (documentation-property sym 'variable-documentation t))
+                      (_ (documentation sym t))))
+                   ((pred fboundp)  (documentation sym t))
+                   ((pred boundp)   (documentation-property
+                                     sym 'variable-documentation t))
+                   ((pred facep)   (face-documentation sym)))
+               (void-function "Void function -- Not documented"))))
     (if (and doc (not (string= doc ""))
              ;; `documentation' return "\n\n(args...)"
              ;; for CL-style functions.
@@ -510,7 +512,7 @@ from `helm-commands-using-frame'."
 (defvar helm-apropos-map
   (let ((map (make-sparse-keymap)))
     (set-keymap-parent map helm-map)
-    (define-key map (kbd "C-]") 'helm-apropos-toggle-details)
+    (define-key map (kbd "C-]") #'helm-apropos-toggle-details)
     map))
 
 (defun helm-apropos-init (test default &optional fn)
@@ -590,7 +592,7 @@ is only used to test DEFAULT."
     (cond ((custom-variable-p sym)
            (append
             actions
-            (let ((standard-value (eval (car (get sym 'standard-value)))))
+            (let ((standard-value (eval (car (get sym 'standard-value)) t)))
               (unless (equal standard-value (symbol-value sym))
                 `(("Reset Variable to default value"
                    . ,(lambda (candidate)
@@ -811,7 +813,7 @@ a string, i.e. the `symbol-name' of any existing symbol."
           :history 'helm-apropos-history
           :buffer "*helm apropos*"
           :preselect (and default (concat "^\\_<" (regexp-quote default) "\\_>"))
-          :truncate-lines helm-apropos-show-short-doc)))
+          :truncate-lines t)))
 
 
 ;;; Advices
@@ -970,10 +972,11 @@ a string, i.e. the `symbol-name' of any existing symbol."
                                         (time-convert time t)))
               (format-time-string "%m/%d %T" time)))
           (or (timer--repeat-delay timer) "nil")
-          (mapconcat 'identity (split-string
+          (mapconcat #'identity (split-string
                                 (prin1-to-string (timer--function timer))
-                                "\n") " ")
-          (mapconcat 'prin1-to-string (timer--args timer) " ")))
+                                "\n")
+                     " ")
+          (mapconcat #'prin1-to-string (timer--args timer) " ")))
 
 ;;;###autoload
 (defun helm-timers ()
@@ -998,7 +1001,7 @@ a string, i.e. the `symbol-name' of any existing symbol."
         ;; an interactive call, See `repeat-complex-command'.
         (add-hook 'called-interactively-p-functions
                   #'helm-complex-command-history--called-interactively-skip)
-        (eval (read helm-sexp--last-sexp)))
+        (eval (read helm-sexp--last-sexp) t))
     (remove-hook 'called-interactively-p-functions
                  #'helm-complex-command-history--called-interactively-skip)))
 
