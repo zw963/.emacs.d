@@ -236,6 +236,7 @@ nil) if you don't find it useful."
     "\\`self-insert-and-exit\\'"
     "\\`ad-Orig-"
     "\\`menu-bar"
+    "\\`kill-emacs\\'"
     amx-command-marked-ignored-p
     amx-command-obsolete-p
     amx-command-mouse-interactive-p)
@@ -628,7 +629,7 @@ May not work for things like ido and ivy."
                   :default def
                   :name "Helm M-x Completions"
                   :buffer "Helm M-x Completions"
-                  :history extended-command-history
+                  :history 'extended-command-history
                   :reverse-history t
                   :must-match t
                   :fuzzy (or (bound-and-true-p helm-mode-fuzzy-match)
@@ -673,17 +674,18 @@ May not work for things like ido and ivy."
  :auto-activate '(bound-and-true-p selectrum-mode))
 
 (defsubst amx-auto-select-backend ()
-  (cl-loop for (bname b) on amx-known-backends by 'cddr
-         ;; Don't auto-select the auto backend, or the
-         ;; default backend.
-         unless (memq bname '(auto standard))
-         ;; Auto-select a backend if its auto-activate
-         ;; condition evaluates to non-nil.
-         if (ignore-errors (eval (amx-backend-auto-activate b)))
-         return b
-         ;; If no backend's auto-activate condition is
-         ;; fulfilled, auto-select the standard backend.
-         finally return 'standard))
+  (cl-loop
+   for (bname b) on amx-known-backends by 'cddr
+   ;; Don't auto-select the auto backend, or the
+   ;; default backend.
+   unless (memq bname '(auto standard))
+   ;; Auto-select a backend if its auto-activate
+   ;; condition evaluates to non-nil.
+   if (ignore-errors (eval (amx-backend-auto-activate b)))
+   return b
+   ;; If no backend's auto-activate condition is
+   ;; fulfilled, auto-select the standard backend.
+   finally return 'standard))
 
 (cl-defun amx-completing-read-auto (choices &key initial-input predicate def)
   "Automatically select the appropriate completion system for M-x.
@@ -769,10 +771,10 @@ This should be the name of backend defined using
   ;; This speeds up sorting.
   (let (new-commands)
     (mapatoms (lambda (symbol)
-                (when (commandp symbol)
-                  (let ((known-command (assq symbol amx-data)))
-                    (if known-command
-                        (setq amx-cache (cons known-command amx-cache))
+                (let ((known-command (assq symbol amx-data)))
+                  (if known-command
+                      (setq amx-cache (cons known-command amx-cache))
+                    (when (commandp symbol)
                       (setq new-commands (cons (list symbol) new-commands)))))))
     (if (eq (length amx-cache) 0)
         (setq amx-cache new-commands)
@@ -834,8 +836,8 @@ Otherwise, if optional arg COUNT-COMMANDS is non-nil, count the
 total number of defined commands in `obarray' and update if it
 has changed."
   (if (or (null amx-last-update-time)
-            (and count-commands
-                 (amx-detect-new-commands)))
+          (and count-commands
+               (amx-detect-new-commands)))
       (amx-update)
     (amx--debug-message "No update needed at this time.")))
 
@@ -846,8 +848,8 @@ has changed."
 This function is normally idempotent, only having an effect the
 first time it is called, so it is safe to call it at the
 beginning of any function that expects amx to be initialized.
-However, optional arg REINIT forces the initialization needs to
-be re-run. Interactively, reinitialize when a prefix arg is
+However, optional arg REINIT forces the initialization to be
+re-run. Interactively, reinitialize when a prefix arg is
 provided."
   (interactive "P")
   (when (or reinit (not amx-initialized))
@@ -1348,7 +1350,7 @@ current."
   (when amx-short-idle-update-timer
     (cancel-timer amx-short-idle-update-timer))
   (setq amx-short-idle-update-timer
-      (run-with-idle-timer 1 t 'amx-idle-update)))
+        (run-with-idle-timer 1 t 'amx-idle-update)))
 
 (provide 'amx)
 ;;; amx.el ends here
