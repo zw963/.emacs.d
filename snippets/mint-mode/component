@@ -1,0 +1,9 @@
+# -*- mode: snippet -*-
+# name: mint mode component
+# key: component
+# --
+component ${1:MyComponent} {
+  fun render : Html {
+    $0
+  }
+}

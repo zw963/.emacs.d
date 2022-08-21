@@ -1,0 +1,7 @@
+# -*- mode: snippet -*-
+# name: where
+# key: where
+# --
+where {
+  $0
+}

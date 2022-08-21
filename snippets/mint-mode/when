@@ -1,0 +1,7 @@
+# -*- mode: snippet -*-
+# name: mint mode when
+# key: when
+# --
+when {
+  ${1:cond}
+}

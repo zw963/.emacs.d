@@ -1,0 +1,7 @@
+# -*- mode: snippet -*-
+# name: fun
+# key: fun
+# --
+`(field "1" "funName" "fun " " ")`(${2:event : Html.Event}) {
+  $0
+}

@@ -1,0 +1,7 @@
+# -*- mode: snippet -*-
+# name: mint mode get computed properties
+# key: get
+# --
+get ${1:property} {
+  $0
+}

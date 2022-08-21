@@ -1,0 +1,7 @@
+# -*- mode: snippet -*-
+# name: mint mode store
+# key: store
+# --
+store ${1:StoreName} {
+  $0
+}

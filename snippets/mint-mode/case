@@ -1,0 +1,7 @@
+# -*- mode: snippet -*-
+# name: mint mode case
+# key: style
+# --
+case (${1:cond}) {
+  $0
+}

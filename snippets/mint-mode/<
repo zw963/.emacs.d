@@ -1,0 +1,5 @@
+# -*- mode: snippet -*-
+# name: mint mode tag
+# key: <
+# --
+<${1:div}>$0</$1

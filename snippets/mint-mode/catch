@@ -1,0 +1,7 @@
+# -*- mode: snippet -*-
+# name: mint mode catch
+# key: catch
+# --
+catch`(field "1" "error" "Object.Error => ")` {
+  $0
+}

@@ -1,0 +1,13 @@
+# -*- mode: snippet -*-
+# name: mint mode routes
+# key: routes
+# --
+routes ${1:property} {
+  "/" {
+    Application.navigateTo(page::Home)
+  }
+
+  "*" {
+    Application.navigateTo(Page::NotFound)
+  }
+}

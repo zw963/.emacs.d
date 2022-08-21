@@ -1,0 +1,5 @@
+# -*- mode: snippet -*-
+# name: mint mode next
+# key: next
+# --
+next { $0 }

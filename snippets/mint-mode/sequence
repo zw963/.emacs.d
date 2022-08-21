@@ -1,0 +1,9 @@
+# -*- mode: snippet -*-
+# name: mint mode sequence
+# key: sequence
+# --
+sequence {
+  $0
+} finally {
+
+}

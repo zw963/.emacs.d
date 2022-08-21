@@ -1,0 +1,9 @@
+# -*- mode: snippet -*-
+# name: mintsrc
+# key: mintsrc
+# contributor: Billy.Zheng vil963@gmail.com
+# --
+#+begin_src mint
+  $0
+#+end_src
+[[elisp:org-copy-src-block-link][click to copy]]

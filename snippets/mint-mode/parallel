@@ -1,0 +1,9 @@
+# -*- mode: snippet -*-
+# name: mint mode parallel
+# key: parallel
+# --
+parallel {
+  $0
+} then {
+
+}

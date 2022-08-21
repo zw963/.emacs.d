@@ -1,0 +1,7 @@
+# -*- mode: snippet -*-
+# name: mint mode use
+# key: use
+# --
+use ${1:$$(yas-choose-value '("Provider.Tick" "Provider.AnimationFrame" "Provider.AnimationFrame" "Provider.Scroll"))} {
+  $0
+}

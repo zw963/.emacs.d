@@ -1,0 +1,7 @@
+# -*- mode: snippet -*-
+# name: mint mode style tag
+# key: style
+# --
+style ${1:base}`(field "2" "args" " (" ")")` {
+  $0
+}

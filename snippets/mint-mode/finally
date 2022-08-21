@@ -1,0 +1,7 @@
+# -*- mode: snippet -*-
+# name: mint mode finally
+# key: finally
+# --
+finally {
+  $0
+}

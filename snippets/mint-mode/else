@@ -1,0 +1,7 @@
+# -*- mode: snippet -*-
+# name: mint mode else
+# key: else
+# --
+else {
+  `(yas-stripped-selected-text "" "" "")`$0
+}

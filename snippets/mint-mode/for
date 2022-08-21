@@ -1,0 +1,7 @@
+# -*- mode: snippet -*-
+# name: mint mode for
+# key: for
+# --
+for (${1:item} of ${2:items}) {
+  $0
+}

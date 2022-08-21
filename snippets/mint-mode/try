@@ -1,0 +1,9 @@
+# -*- mode: snippet -*-
+# name: mint mode try catch
+# key: try
+# --
+try {
+  $0
+} catch Object.Error => error {
+  Result.error(error)
+}

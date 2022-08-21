@@ -1,0 +1,9 @@
+# -*- mode: snippet -*-
+# name: main component
+# key: Main
+# --
+component Main {
+  fun render : Html {
+    $0
+  }
+}
