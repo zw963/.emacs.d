@@ -86,6 +86,7 @@ Meant to be used as `hs-set-up-overlay'."
 
 (add-to-list 'hs-special-modes-alist '(dart-mode "{" "}" "/[*/]" nil nil))
 (add-to-list 'hs-special-modes-alist '(go-mode "{" "}" "/[*/]" nil nil))
+(add-to-list 'hs-special-modes-alist '(mint-mode "{" "}" "/[*/]" nil nil))
 
 (add-to-list 'hs-special-modes-alist
 	     '(ruby-mode
