@@ -33,7 +33,7 @@
 (add-hook 'mu4e-headers-mode-hook
           (lambda ()
             (define-key mu4e-headers-mode-map [(M)] 'mu4e-headers-mark-all)
-          ))
+            ))
 
 (add-hook 'message-mode-hook
           (lambda ()
@@ -121,7 +121,20 @@
  mu4e-compose-reply-to-address "vil963@gmail.com"
  )
 
-(add-hook 'mu4e-compose-mode-hook 'auto-fill-mode)
+(add-hook 'mu4e-compose-mode-hook
+          (lambda ()
+            ;;  来开启英文自动补全。
+            ;; 包含了一个 py 脚本，用来转化 stardict 的词库，模式是 KDict, 包含 11 万单词.
+            (auto-fill-mode 1)
+            (require 'company-english-helper)
+            (unless company-english-helper-active-p
+              (toggle-company-english-helper)
+              )))
+
+(add-hook 'message-send-hook
+          (lambda ()
+            (if company-english-helper-active-p
+                (toggle-company-english-helper))))
 
 ;; 检测 xwidget 是否工作的办法： (xwidget-webkit-browse-url "https://www.gnu.org/")
 ;; mu4e-view 将造成 space 快捷键不工作。
