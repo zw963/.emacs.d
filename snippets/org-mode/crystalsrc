@@ -1,6 +1,6 @@
 # -*- mode: snippet -*-
-# name: crysrc
-# key: crysrc
+# name: crystal source
+# key: crystalsrc
 # contributor: Billy.Zheng vil963@gmail.com
 # --
 #+begin_src crystal
