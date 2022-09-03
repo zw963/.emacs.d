@@ -84,6 +84,7 @@
 ;; (require 'solaire-mode_init) ;; 这个似乎没见有用过
 
 (require 'whitespace-cleanup-mode_init)
+(require 'dumb-jump_init)
 
 ;; 关闭一些有用，但最近不常用的 mode
 (require 'go-mode_init)
