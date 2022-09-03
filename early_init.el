@@ -10,6 +10,12 @@
 (require 'gcmh_init)
 (require 'auto-compile_init)
 
+;; ;; 添加几个需要的前缀。
+;; 注意：不要在 global-set-key 定义 meta c 前缀的全局快捷键，
+;; 可能造成某些 package 在 --daemon 启动时，卡住启动失败？
+;; (define-prefix-command 'meta-c-map)
+;; (global-set-key [(meta c)] 'meta-c-map)
+
 (setq zw/cursor-color-default "#00FF00")
 (setq create-lockfiles nil)
 
@@ -29,15 +35,15 @@
 ;; 当加载 .dir-locals 时，永远不提示
 (defun hack-local-variables-confirm (all-vars unsafe-vars risky-vars dir-name) t)
 
-(relative-load "autoloads.el")
-(relative-load "functions.el")
-(relative-load "base_init.el")
-(relative-load "init.el")
-
 (require 'themes_init)
 (require 'crux_init)
 (require 'whole-line-or-region_init)
 (require 'multiple-cursors_init)
+
+(relative-load "autoloads.el")
+(relative-load "functions.el")
+(relative-load "base_init.el")
+(relative-load "init.el")
 
 ;; 打开这两个变量, 查看那些包有错误.
 (unless (string= (getenv "LOAD_INIT") "true")

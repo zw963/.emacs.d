@@ -42,8 +42,8 @@
                    (local-set-key [(control c) (control c)] 'format-buffer)
                    (local-set-key [(?\,)] 'input-comma-with-space)
                    (local-set-key [(?\;)] 'input-semicolon-with-space)
-                   (global-set-key [(control ?.)] 'input-rocket-with-space)
-                   (global-set-key [(meta c) (=)] 'input-add-equal)
+                   (local-set-key [(control ?.)] 'input-rocket-with-space)
+                   (local-set-key [(meta c) (=)] 'input-add-equal)
                    )))
 
 (add-hook 'prog-mode-hook (lambda ()

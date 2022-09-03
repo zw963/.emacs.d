@@ -2,10 +2,6 @@
 ;; builtin functions ;;
 ;;;;;;;;;;;;;;;;;;;;;;;
 
-;; 添加几个需要的前缀。
-(define-prefix-command 'meta-c-map)
-(global-set-key [(meta c)] 'meta-c-map)
-
 (global-set-key [(f2)] 'kill-buffer-enhanced) ;关闭当前缓冲区 F2
 
 (global-set-key [(control c) (j)] 'imenu)
