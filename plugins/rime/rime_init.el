@@ -6,6 +6,7 @@
 
 (setq rime-show-candidate 'posframe)
 
+;; 默认是 C-\, 这里将 C-SPC 也绑定为同样的命令
 (global-set-key (kbd "C-SPC") 'toggle-input-method)
 
 ;;(defvar sis--for-buffer nil
@@ -18,7 +19,6 @@
 ;;(add-hook input-method-deactivate-hook (lambda ()
 ;;                                       (setq-local sis--for-buffer nil)
 ;;                                       ))
-
 
 (setq rime-posframe-properties
       (list :background-color "#333333"
