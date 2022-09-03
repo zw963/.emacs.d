@@ -81,13 +81,14 @@
 ;;
 ;; Set via ~rime-show-candidate~.
 ;;
-;; | Value      | description                                                                 |
-;; |------------+-----------------------------------------------------------------------------|
-;; | ~nil~        | don't show candidate at all.                                                |
-;; | ~minibuffer~ | Display in minibuffer.                                                      |
-;; | ~message~    | Display with ~message~ function, useful when you use minibuffer as mode-line.  |
-;; | ~popup~      | Use popup.                                                                  |
-;; | ~posframe~   | Use posfarme, will fallback to popup in TUI                                 |
+;; | Value        | description                                                                   |
+;; |--------------+-------------------------------------------------------------------------------|
+;; | ~nil~        | don't show candidate at all.                                                  |
+;; | ~minibuffer~ | Display in minibuffer.                                                        |
+;; | ~message~    | Display with ~message~ function, useful when you use minibuffer as mode-line. |
+;; | ~popup~      | Use popup.                                                                    |
+;; | ~posframe~   | Use posfarme, will fallback to popup in TUI                                   |
+;; | ~sidewindow~ | Use sidewindow.                                                               |
 ;;
 ;; * The lighter
 ;;
@@ -137,6 +138,7 @@
 (require 'cl-lib)
 (require 'popup nil t)
 (require 'posframe nil t)
+(require 'xdg)
 
 (defconst rime-version "1.0.5")
 
@@ -290,7 +292,7 @@ Otherwise you should set this to where you put librime."
 (defun rime--guess-emacs-module-header-root ()
   "Guess `emacs-module-module-header-root' from some known places."
   (or
-   (let ((module-header (expand-file-name "emacs-module.h" (concat source-directory "src/"))))
+   (let ((module-header (expand-file-name "emacs-module.h" (concat source-directory "/src/"))))
      (when (file-exists-p module-header)
        (file-name-directory module-header)))
    (let* ((emacs-dir (getenv "emacs_dir")) ;; https://www.gnu.org/software/emacs/manual/html_node/emacs/Misc-Variables.html
@@ -348,7 +350,8 @@ nil means don't display candidate at all.
 `popup', display with popup.el.
 `message', display with function `message', this is a
 replacement for `minibuffer' if you use minibuffer as the mode-line.
-`posframe', display candidate in posframe, will fallback to popup in TUI."
+`posframe', display candidate in posframe, will fallback to popup in TUI.
+`sidewindow', display in sidewindow."
   :type 'symbol
   :options '(minibuffer message popup posframe sidewindow)
   :group 'rime)
