@@ -15,9 +15,9 @@
 (require 'fancy-narrow_init)
 (require 'zoom-frm_init)
 (require 'back-button_init)
+(require 'bm_init)
 ;; (require 'helpful_init)
 ;; (require 'winum_init)
-;; (require 'bm_init)
 ;; (require 'which-key_init)
 (require 'anzu_init)
 (require 'beacon_init)
@@ -39,7 +39,7 @@
 ;; (require 'prescient_init) ;; 这个必须放在 ivy_init 后面.
 (require 'yasnippet_init)
 (require 'wgrep_init)
-(require 'quickrun_init)
+;; (require 'quickrun_init)
 (require 'amx_init)
 ;; (require 'spaceline_init)
 
@@ -88,10 +88,10 @@
 (require 'dumb-jump_init)
 
 ;; 关闭一些有用，但最近不常用的 mode
-(require 'go-mode_init)
-(require 'rust_init)
-;; (require 'lsp-bridge_init)
-(require 'haskell-mode_init)
+;; (require 'go-mode_init)
+;; (require 'rust_init)
+(require 'lsp-bridge_init)
+;; (require 'haskell-mode_init)
 ;; (require 'js2-mode_init)
 ;; (require 'lua-mode_init)
 ;; (require 'tide_init)

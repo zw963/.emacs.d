@@ -11,6 +11,9 @@
                                (bm-buffer-save-all)
                                (bm-repository-save)))
 
+(global-set-key (kbd "<left-fringe> <mouse-5>") 'bm-next-mouse)
+(global-set-key (kbd "<left-fringe> <mouse-4>") 'bm-previous-mouse)
+(global-set-key (kbd "<left-fringe> <mouse-1>") 'bm-toggle-mouse)
 
 (add-hook 'after-init-hook #'bm-repository-load)
 (add-hook 'find-file-hook #'bm-buffer-restore)
