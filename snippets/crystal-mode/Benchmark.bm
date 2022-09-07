@@ -1,0 +1,8 @@
+# -*- mode: snippet -*-
+# name: Benchmark.bm
+# key: Benchmark
+# contributor: Billy.Zheng vil963@gmail.com
+# --
+Benchmark.bm do |x|
+  x.report("${1:benchmark1}") { $0 }
+end

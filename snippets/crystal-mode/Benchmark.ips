@@ -1,10 +1,8 @@
 # -*- mode: snippet -*-
 # name: Benchmark.ips
-# key: Benchmark.ips
+# key: Benchmark
 # contributor: Billy.Zheng vil963@gmail.com
 # --
 Benchmark.ips do |x|
-  x.report("$1") do
-    $0
-  end
+  x.report("${1:benchmark1}") { $0 }
 end

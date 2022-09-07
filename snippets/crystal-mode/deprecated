@@ -1,0 +1,6 @@
+# -*- mode: snippet -*-
+# name: deprecated
+# key: deprecated
+# condition: (yas-use-region-p)
+# --
+@[Deprecated("$0")]

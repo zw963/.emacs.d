@@ -1,0 +1,5 @@
+# -*- mode: snippet -*-
+# name: Time.measure
+# key: time
+# --
+Time.measure { $0 }
