@@ -34,12 +34,20 @@
 (setq ediff-auto-refine-limit 30000)
 
 (dolist (hook '(prog-mode-hook
+                elixir-mode-hook
+                web-mode-hook
+                ))
+  (add-hook hook (lambda ()
+                   (local-set-key [(control c) (control c)] 'format-buffer)
+                   )))
+
+(dolist (hook '(prog-mode-hook
                 yaml-mode-hook
                 elixir-mode-hook
                 web-mode-hook
+                org-mode-hook
                 conf-mode-hook))
   (add-hook hook (lambda ()
-                   (local-set-key [(control c) (control c)] 'format-buffer)
                    (local-set-key [(?\,)] 'input-comma-with-space)
                    (local-set-key [(?\;)] 'input-semicolon-with-space)
                    (local-set-key [(control ?.)] 'input-rocket-with-space)

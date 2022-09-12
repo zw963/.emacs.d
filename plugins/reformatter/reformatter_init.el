@@ -8,11 +8,11 @@
 ;;    )
 ;;   )
 
-;; (defun mint--format-exit-code (code)
-;;   (when (or (eq code 0) (eq code 1))
-;;     t
-;;     )
-;;   )
+(defun mint--format-exit-code (code)
+  (when (or (eq code 0) (eq code 1))
+    t
+    )
+  )
 
 ;; (reformatter-define mint-format
 ;;   :program "mint"
@@ -25,9 +25,9 @@
 (reformatter-define mint-format
   :program "mint"
   :args '("format" "--stdin")
-  ;; :stdout nil
+  :stdout nil
   ;; :input (reformatter-temp-file-in-current-directory "mint")
-  ;; :exit-code-success-p mint--format-exit-code
+  :exit-code-success-p mint--format-exit-code
   )
 
 ;; 自动定义了以下方法:

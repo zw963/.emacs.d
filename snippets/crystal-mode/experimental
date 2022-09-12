@@ -1,5 +1,5 @@
 # -*- mode: snippet -*-
-# name: deprecated
+# name: Experimental
 # key: @
 # --
-@[Deprecated("$0")]
+@[Experimental]
