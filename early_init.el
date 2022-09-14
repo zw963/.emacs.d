@@ -40,6 +40,7 @@
 (require 'whole-line-or-region_init)
 (require 'multiple-cursors_init)
 
+(relative-load "windows.el")
 (relative-load "autoloads.el")
 (relative-load "functions.el")
 (relative-load "base_init.el")
