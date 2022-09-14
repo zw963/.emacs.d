@@ -169,9 +169,6 @@
 ;; TODO: 奇怪，取消某个设置, 会导致 next-line 到最后, 有奇怪的提示音.
 
 (setq
- ;; 默认值 t, 表示如果用鼠标操作时，使用当前操作系统的 GUI 对话框来创建文件。
- use-file-dialog nil
- use-dialog-box nil
  inhibit-startup-echo-area-message t
  scroll-preserve-screen-position t              ;移动屏幕时，保持光标相对屏幕的位置不变。
  revert-without-query '(".*")                   ;设定那些 buffer 执行 revert 时, 不提示确认.
@@ -324,7 +321,7 @@
  ;; mouse-wheel-progressive-speed nil
  )
 
- ;; Disable margin for overline and underline
+;; Disable margin for overline and underline
 (setq
  overline-margin 0
  underline-minimum-offset 0
@@ -378,7 +375,6 @@
 ;; (setq enable-recursive-minibuffers t)
 (setq toggle-truncate-lines nil)
 (setq comment-auto-fill-only-comments t)
-;; (setq x-gtk-use-system-tooltips nil)
 
 (require 'ansi-color)
 (defun colorize-compilation-buffer ()
@@ -387,6 +383,13 @@
 
 (require 'abbrev)
 (setq abbrev-file-name (expand-file-name "abbrev_defs" default-directory))
+
+;; 有关几个是否使用 Xwindow 组件的设置
+
+;; 默认值 t, 表示如果用鼠标操作时，使用当前操作系统的 GUI 对话框来创建文件。
+(setq use-file-dialog nil)
+;; (setq use-dialog-box nil)
+;; (setq x-gtk-use-system-tooltips nil)
 
 (provide 'base_init)
 
