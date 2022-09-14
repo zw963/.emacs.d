@@ -25,6 +25,15 @@ Returns nil otherwise."
                      (buffer-name)
                      (s-starts-with? buffer-name-string)))))
 
+(defun count-visible-buffers (&optional frame)
+  "Count how many buffers are currently being shown.  Defaults to
+selected frame."
+  (let (
+        (visible-buffer-count (length (mapcar #'window-buffer (window-list frame))))
+        )
+    (if (and (featurep 'treemacs) (eq (treemacs-current-visibility) 'visible))
+        (- visible-buffer-count 1) visible-buffer-count)))
+
 ;; stolen from rinari
 (defun self-defined-highlight-keywords (keywords &optional face)
   "Highlight the passed KEYWORDS in current buffer.

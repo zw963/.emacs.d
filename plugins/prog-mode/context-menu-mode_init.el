@@ -4,9 +4,31 @@
 (setq-default context-menu-functions
               '(context-menu-hideshow
                 context-menu-show-git-message
+                context-menu-split/close-window
                 occur-context-menu
                 context-menu-region
                 ))
+
+(defun context-menu-split/close-window (menu click)
+  "Close current window"
+  (if (eq (count-visible-buffers) 1)
+      (define-key-after menu [split-window]
+        '(menu-item "Split Window"
+                    (lambda (click) (interactive "e")
+                      (save-excursion
+                        (mouse-set-point click)
+                        (split-window-right-then-switch-to)
+                        ))))
+    (define-key-after menu [close-window]
+      '(menu-item "Close Window"
+                  (lambda (click) (interactive "e")
+                    (save-excursion
+                      (mouse-set-point click)
+                      (delete-window)
+                      )))))
+
+  (define-key-after menu [hs-separator] menu-bar-separator)
+  menu)
 
 (defun context-menu-hideshow (menu click)
   "Populate MENU with `hideshow' commands."
