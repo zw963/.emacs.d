@@ -5,6 +5,7 @@
 (add-to-list 'rainbow-html-colors-major-mode-list 'less-css-mode)
 (add-to-list 'rainbow-html-colors-major-mode-list 'css-mode)
 (add-to-list 'rainbow-html-colors-major-mode-list 'web-mode)
+(add-to-list 'rainbow-html-colors-major-mode-list 'mint-mode)
 
 (provide 'rainbow-mode_init)
 
