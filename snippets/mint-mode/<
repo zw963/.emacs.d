@@ -1,5 +1,6 @@
 # -*- mode: snippet -*-
 # name: mint mode tag
 # key: <
+# condition: (yas-use-region-p)
 # --
-<${1:div}>$0</$1
+<${1:div}>$0</$1>

@@ -1,0 +1,6 @@
+# -*- mode: snippet -*-
+# name: mint mode comment
+# binding: M-c ;
+# condition: (yas-use-region-p)
+# --
+/* `(yas-selected-text)` */
