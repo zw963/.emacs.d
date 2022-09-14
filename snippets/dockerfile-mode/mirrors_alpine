@@ -1,0 +1,6 @@
+# -*- mode: snippet -*-
+# name: mirrors alpine
+# key: mirrors
+# contributor: Billy.Zheng vil963@gmail.com
+# --
+RUN sed -i "s/dl-cdn.alpinelinux.org/mirrors.ustc.edu.cn/g" /etc/apk/repositories
