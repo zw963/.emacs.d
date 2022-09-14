@@ -11,7 +11,7 @@
 
 ;; (load-theme 'material t) ;; 这个是原来的
 ;; (load-theme 'material-light t) ;; 这个是原来的
-(load-theme 'vscode-dark-plus t)
+;; (load-theme 'vscode-dark-plus t)
 ;; (load-theme 'soothe t)
 ;; (require 'spacemacs-common)
 ;; (load-theme 'spacemacs-dark t)
@@ -35,13 +35,12 @@
 ;; (load-theme 'atom-one-dark t)
 ;; (load-theme 'one-light t)
 
-;; (load-theme 'leuven t)
+;; (load-theme 'leuven-dark t)
 
-;; (require 'color-theme-sanityinc-tomorrow)
-;; (load-theme 'sanityinc-tomorrow-blue t)
+;; (load-theme 'sanityinc-tomorrow-night t)
 
 ;; (load-theme 'danneskjold t)
-;; (load-theme 'monokai t)
+(load-theme 'monokai t)
 
 ;; (load-theme 'zerodark t)
 
