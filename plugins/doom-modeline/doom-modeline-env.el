@@ -33,14 +33,14 @@
 (defvar python-shell-interpreter)
 
 
-;; Customizations
+;; Customization
 
 (defgroup doom-modeline-env nil
-  "The environment parser for doom-modeline."
+  "The environment parser for `doom-modeline'."
   :group 'doom-modeline
   :link '(url-link :tag "Homepage" "https://github.com/seagle0128/doom-modeline"))
 
-(defcustom doom-modeline-env-load-string "..."
+(defcustom doom-modeline-env-load-string doom-modeline-ellipsis
   "What to display as the version while a new one is being loaded."
   :type 'string
   :group 'doom-modeline-env)
@@ -69,7 +69,7 @@ Example: \"ruby\"")
 
 (defvar-local doom-modeline-env--command-args nil
   "A list of arguments for the command to extract the version from.
-Example: \\='(\"--version\") ")
+Example: \\='(\"--version\")")
 
 (defvar-local doom-modeline-env--parser nil
   "A function that returns version number from a command --version (or similar).
@@ -131,7 +131,7 @@ Example:
                             (funcall parser line))))))
 
 (cl-defmacro doom-modeline-def-env (name &key hooks command parser)
-  "Defines a handler for updating & displaying a version string for a language.
+  "Define a handler for updating & displaying a version string for a language.
 
 NAME is an unquoted symbol representing the handler's unique ID.
 HOOKS is a list of hook symbols where this handler should be triggered.
@@ -213,7 +213,7 @@ PARSER should be a function for parsing COMMAND's output line-by-line, to
                                   "python")
                               "--version"))))
   :parser  (lambda (line) (let ((version (split-string line)))
-                       (if (>= (length version) 2)
+                       (if (length> version 1)
                            (cadr version)
                          (car version)))))
 

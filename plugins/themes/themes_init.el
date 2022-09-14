@@ -12,6 +12,7 @@
 ;; (load-theme 'material t) ;; 这个是原来的
 ;; (load-theme 'material-light t) ;; 这个是原来的
 (load-theme 'vscode-dark-plus t)
+;; (load-theme 'soothe t)
 ;; (require 'spacemacs-common)
 ;; (load-theme 'spacemacs-dark t)
 ;; (load-theme 'dracula t)                 ;

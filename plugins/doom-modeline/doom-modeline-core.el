@@ -28,7 +28,8 @@
 
 (require 'cl-lib)
 (require 'subr-x)
-(require 'dash)
+
+(require 'compat)
 (require 'shrink-path)
 
 (require 'all-the-icons nil t)
@@ -42,105 +43,40 @@
 
 
 ;;
-;; Compatibility
+;; Optimization
 ;;
-
-(eval-and-compile
-  (when (< emacs-major-version 26)
-    ;; Define `if-let*' and `when-let*' variants for 25 users.
-    (unless (fboundp 'if-let*) (defalias 'if-let* #'if-let))
-    (unless (fboundp 'when-let*) (defalias 'when-let* #'when-let))))
 
 ;; Don’t compact font caches during GC.
 (when (eq system-type 'windows-nt)
   (setq inhibit-compacting-font-caches t))
 
-;;`file-local-name' is introduced in 25.2.2.
-(unless (fboundp 'file-local-name)
-  (defun file-local-name (file)
-    "Return the local name component of FILE.
-It returns a file name which can be used directly as argument of
-`process-file', `start-file-process', or `shell-command'."
-    (or (file-remote-p file 'localname) file)))
+;; WORKAROUND: `string-pixel-width' is introduced in 29,
+;; and is able to calculate the accurate string width.
+;; Below is the workaround for backward compatibility
+;; since `window-font-width' consumes a lot.
+(defvar doom-modeline--font-width-cache nil)
+(defun doom-modeline--font-width ()
+  "Cache the font width for better performance."
+  (if (display-graphic-p)
+      (let ((attributes (face-all-attributes 'mode-line)))
+        (or (cdr (assoc attributes doom-modeline--font-width-cache))
+            (let ((width (window-font-width nil 'mode-line)))
+              (push (cons attributes width) doom-modeline--font-width-cache)
+              width)))
+    1))
 
-;; Set correct font width for `all-the-icons' for appropriate mode-line width.
-;; @see https://emacs.stackexchange.com/questions/14420/how-can-i-fix-incorrect-character-width
-(defun doom-modeline--set-char-widths (alist)
-  "Set correct widths of icons characters in ALIST."
-  (while (char-table-parent char-width-table)
-    (setq char-width-table (char-table-parent char-width-table)))
-  (dolist (pair alist)
-    (let ((width (car pair))
-          (chars (cdr pair))
-          (table (make-char-table nil)))
-      (dolist (char chars)
-        (set-char-table-range table char width))
-      (optimize-char-table table)
-      (set-char-table-parent table char-width-table)
-      (setq char-width-table table))))
+;; Refresh the font width after setting frame parameters
+;; to ensure the font width is correct.
+(defun doom-modeline-refresh-font-width-cache (&rest _)
+  "Refresh the font width cache."
+  (setq doom-modeline--font-width-cache nil)
+  (doom-modeline--font-width))
 
-(defconst doom-modeline-rhs-icons-alist
-  '((2 . (;; VCS
-          ?\xf0ac                      ; git-compare
-          ?\xf023                      ; git-merge
-          ?\xf03f                      ; arrow-down
-          ?\xf02d                      ; alert
-          ?\xf020                      ; git-branch
-
-          ;; Checker
-          ?\xe611                      ; do_not_disturb_alt
-          ?\xe5ca                      ; check
-          ?\xe192                      ; access_time
-          ?\xe624                      ; sim_card_alert
-          ?\xe034                      ; pause
-          ?\xe645                      ; priority_high
-
-          ;; Minor modes
-          ?\xf02f                      ; gear
-
-          ;; Persp
-          ?\xe2c7                      ; folder
-
-          ;; Preview
-          ?\xe8a0                      ; pageview
-
-          ;; REPL
-          ?\xf155                      ; dollar-sign
-
-          ;; LSP
-          ?\xf135                      ; rocket
-
-          ;; GitHub
-          ?\xf09b                      ; github
-
-          ;; Debug
-          ?\xf188                      ; bug
-
-          ;; Mail
-          ?\xe0be                      ; email
-
-          ;; IRC
-          ?\xe0c9                      ; message
-
-          ;; Battery
-          ?\xe939                      ; battery-charging
-          ?\xf244                      ; battery-empty
-          ?\xf240                      ; battery-full
-          ?\xf242                      ; battery-half
-          ?\xf243                      ; battery-quarter
-          ?\xf241                      ; battery-three-quarters
-          ))))
-
-(defun doom-modeline-set-char-widths (&rest _)
-  "Set char widths for the unicode icons."
-  (when (and (display-graphic-p)
-             (featurep 'all-the-icons))
-    (doom-modeline--set-char-widths doom-modeline-rhs-icons-alist)))
-
-(if (and (daemonp)
-         (not (frame-parameter nil 'client)))
-    (add-hook 'after-make-frame-functions #'doom-modeline-set-char-widths)
-  (doom-modeline-set-char-widths))
+(unless (fboundp 'string-pixel-width)
+  (add-hook 'window-setup-hook #'doom-modeline-refresh-font-width-cache)
+  (add-hook 'after-make-frame-functions #'doom-modeline-refresh-font-width-cache)
+  (add-hook 'after-setting-font-hook #'doom-modeline-refresh-font-width-cache)
+  (add-hook 'server-after-make-frame-hook #'doom-modeline-refresh-font-width-cache))
 
 
 ;;
@@ -157,7 +93,7 @@ It returns a file name which can be used directly as argument of
 This is done by adjusting `lisp-imenu-generic-expression' to
 include support for finding `doom-modeline-def-*' forms.
 
-Must be set before loading doom-modeline."
+Must be set before loading `doom-modeline'."
   :type 'boolean
   :set (lambda (_sym val)
          (if val
@@ -191,11 +127,11 @@ Only respected in GUI."
          (set sym (if (> val 1) val 1)))
   :group 'doom-modeline)
 
-(defcustom doom-modeline-window-width-limit 0.25
+(defcustom doom-modeline-window-width-limit 85
   "The limit of the window width.
 
 If `window-width' is smaller than the limit, some information won't be
-displayed. It can be an integer or a float number. `nil' means no limit."
+displayed. It can be an integer or a float number. nil means no limit."
   :type '(choice integer
                  float
                  (const :tag "Disable" nil))
@@ -221,7 +157,7 @@ Specify another one if you encounter the issue."
   "Determines the style used by `doom-modeline-buffer-file-name'.
 
 Given ~/Projects/FOSS/emacs/lisp/comint.el
-  auto => emacs/lisp/comint.el (in a project) or comint.el
+  auto => emacs/l/comint.el (in a project) or comint.el
   truncate-upto-project => ~/P/F/emacs/lisp/comint.el
   truncate-from-project => ~/Projects/FOSS/emacs/l/comint.el
   truncate-with-project => emacs/l/comint.el
@@ -258,7 +194,7 @@ While using the server mode in GUI, should set the value explicitly."
 (defcustom doom-modeline-major-mode-icon t
   "Whether display the icon for `major-mode'.
 
-It respects `doom-modeline-icon'."
+It respects variable `doom-modeline-icon'."
   :type 'boolean
   :group'doom-modeline)
 
@@ -272,14 +208,21 @@ It respects `all-the-icons-color-icons'."
 (defcustom doom-modeline-buffer-state-icon t
   "Whether display the icon for the buffer state.
 
-It respects `doom-modeline-icon'."
+It respects variable `doom-modeline-icon'."
   :type 'boolean
   :group 'doom-modeline)
 
 (defcustom doom-modeline-buffer-modification-icon t
   "Whether display the modification icon for the buffer.
 
-It respects `doom-modeline-icon' and `doom-modeline-buffer-state-icon'."
+It respects variable `doom-modeline-icon' and `doom-modeline-buffer-state-icon'."
+  :type 'boolean
+  :group 'doom-modeline)
+
+(defcustom doom-modeline-time-icon t
+  "Whether display the time icon.
+
+It respects variable `doom-modeline-icon'."
   :type 'boolean
   :group 'doom-modeline)
 
@@ -438,10 +381,11 @@ It respects `doom-modeline-enable-word-count'."
               web-mode-script-padding
               web-mode-style-padding)
     (yaml-mode yaml-indent-offset))
-  "Indentation retrieving variables matched to major modes used
-  when `doom-modeline-indent-info' is non-nil. When multiple
-  variables are specified for a mode, they will be tried resolved
-  in the given order."
+  "Indentation retrieving variables matched to major modes.
+
+Which is used when `doom-modeline-indent-info' is non-nil.
+When multiple variables are specified for a mode, they will be tried resolved
+in the given order."
   :type '(alist :key-type symbol :value-type sexp)
   :group 'doom-modeline)
 
@@ -578,6 +522,20 @@ It requires `circe' or `erc' package."
   :type 'function
   :group 'doom-modeline)
 
+(defcustom doom-modeline-time t
+  "Whether display the time.
+
+It respects `display-time-mode'."
+  :type 'boolean
+  :group 'doom-modeline)
+
+(defcustom doom-modeline-display-misc-in-all-mode-lines t
+  "Whether display the misc segment on all mode lines.
+
+If nil, display only if the mode line is active."
+  :type 'boolean
+  :group 'doom-modeline)
+
 
 ;;
 ;; Faces
@@ -589,16 +547,6 @@ It requires `circe' or `erc' package."
   :group 'faces
   :link '(url-link :tag "Homepage" "https://github.com/seagle0128/doom-modeline"))
 
-(defface doom-modeline
-  '((t (:inherit mode-line)))
-  "Face used for default."
-  :group 'doom-modeline-faces)
-
-(defface doom-modeline-inactive
-  '((t (:inherit mode-line-inactive)))
-  "Face used for inactive."
-  :group 'doom-modeline-faces)
-
 (defface doom-modeline-emphasis
   '((t (:inherit mode-line-emphasis)))
   "Face used for emphasis."
@@ -607,31 +555,6 @@ It requires `circe' or `erc' package."
 (defface doom-modeline-highlight
   '((t (:inherit mode-line-highlight)))
   "Face used for highlighting."
-  :group 'doom-modeline-faces)
-
-(defface doom-modeline-misc-info
-  '((t (:inherit font-lock-doc-face)))
-  "Face used for highlighting."
-  :group 'doom-modeline-faces)
-
-(defface doom-modeline-spc-face
-  '((t (:inherit doom-modeline)))
-  "Face used for the white space."
-  :group 'doom-modeline-faces)
-
-(defface doom-modeline-spc-inactive-face
-  '((t (:inherit doom-modeline-inactive)))
-  "Face used for the inactive white space."
-  :group 'doom-modeline-faces)
-
-(defface doom-modeline-vspc-face
-  '((t (:inherit variable-pitch)))
-  "Face used for the variable white space."
-  :group 'doom-modeline-faces)
-
-(defface doom-modeline-vspc-inactive-face
-  '((t (:inherit (doom-modeline-inactive doom-modeline-vspc-face))))
-  "Face used for the variable white space."
   :group 'doom-modeline-faces)
 
 (defface doom-modeline-buffer-path
@@ -646,7 +569,7 @@ It requires `circe' or `erc' package."
 
 (defface doom-modeline-buffer-modified
   '((t (:inherit (error bold) :background nil)))
-  "Face used for the 'unsaved' symbol in the mode-line."
+  "Face used for the \\='unsaved\\=' symbol in the mode-line."
   :group 'doom-modeline-faces)
 
 (defface doom-modeline-buffer-major-mode
@@ -676,7 +599,8 @@ It requires `circe' or `erc' package."
 
 (defface doom-modeline-panel
   '((t (:inherit doom-modeline-highlight)))
-  "Face for 'X out of Y' segments, such as `anzu', `evil-substitute' and`iedit', etc."
+  "Face for \\='X out of Y\\=' segments.
+This applies to `anzu', `evil-substitute', `iedit' etc."
   :group 'doom-modeline-faces)
 
 (defface doom-modeline-host
@@ -716,8 +640,8 @@ It requires `circe' or `erc' package."
 
 (defface doom-modeline-notification
   '((t (:inherit doom-modeline-warning)))
-  "Face for notifications in the mode-line. Used by GitHub, mu4e,
-etc. (also see the face `doom-modeline-unread-number')."
+  "Face for notifications in the mode-line. Used by GitHub, mu4e, etc.
+Also see the face `doom-modeline-unread-number'."
   :group 'doom-modeline-faces)
 
 (defface doom-modeline-unread-number
@@ -731,7 +655,7 @@ etc. (also see the face `doom-modeline-unread-number')."
   :group 'doom-modeline-faces)
 
 (defface doom-modeline-bar-inactive
-  `((t (:background ,(face-foreground 'doom-modeline-inactive))))
+  `((t (:background ,(face-foreground 'mode-line-inactive))))
   "The face used for the left-most bar in the mode-line of an inactive window."
   :group 'doom-modeline-faces)
 
@@ -739,7 +663,7 @@ etc. (also see the face `doom-modeline-unread-number')."
   '((((background light)) :foreground "#D4843E")
     (((background dark)) :foreground "#915B2D"))
   "Face to use for the mode-line while debugging."
-  :group 'doom-modeline)
+  :group 'doom-modeline-faces)
 
 (defface doom-modeline-evil-emacs-state
   '((t (:inherit (font-lock-builtin-face bold))))
@@ -851,14 +775,18 @@ etc. (also see the face `doom-modeline-unread-number')."
   "Face for timemachine status."
   :group 'doom-modeline-faces)
 
+(defface doom-modeline-time
+  '((t (:inherit (mode-line-buffer-id bold))))
+  "Face for display time."
+  :group 'doom-modeline-faces)
 
 ;;
 ;; Externals
 ;;
 
 (declare-function face-remap-remove-relative "face-remap")
-(declare-function ffip-get-project-root-directory "ext:find-file-in-project")
-(declare-function project-root "ext:project")
+(declare-function ffip-project-root "ext:find-file-in-project")
+(declare-function project-root "project")
 (declare-function projectile-project-root "ext:projectile")
 
 
@@ -934,12 +862,15 @@ used as an advice to window creation functions."
 
 ;; Keep `doom-modeline-current-window' up-to-date
 (defun doom-modeline--get-current-window (&optional frame)
-  "Get the current window but should exclude the child windows."
+  "Get the current window but should exclude the child windows.
+
+If FRAME is nil, it means the current frame."
   (if (and (fboundp 'frame-parent) (frame-parent frame))
       (frame-selected-window (frame-parent frame))
     (frame-selected-window frame)))
 
-(defvar doom-modeline-current-window (doom-modeline--get-current-window))
+(defvar doom-modeline-current-window (doom-modeline--get-current-window)
+  "Current window.")
 
 (defun doom-modeline--active ()
   "Whether is an active window."
@@ -963,17 +894,24 @@ used as an advice to window creation functions."
 
 (add-hook 'pre-redisplay-functions #'doom-modeline-set-selected-window)
 
-;; Ensure modeline is inactive when Emacs is unfocused (and active otherwise)
-(defvar doom-modeline--remap-face-cookie-alist nil)
-(defvar doom-modeline--remap-faces nil)
-
-;; Get `doom-modeline-faces'
+;; Ensure modeline is inactive when Emacs is unfocused
+(defvar doom-modeline--remap-faces '(mode-line
+                                     mode-line-active
+                                     solaire-mode-line-face
+                                     solaire-mode-line-active-face
+                                     paradox-mode-line-face
+                                     flycheck-color-mode-line-error-face
+                                     flycheck-color-mode-line-warning-face
+                                     flycheck-color-mode-line-info-face
+                                     flycheck-color-mode-line-success-face))
 (dolist (face (face-list))
   (let ((f (symbol-name face)))
-    (when (and (string-match-p "^\\(mode-line\\|doom-modeline\\|all-the-icons\\)" f)
-               (not (string-match-p "\\(-inactive\\|-dired\\|ivy\\|ibuffer\\)" f)))
-      (add-to-list 'doom-modeline--remap-faces face))))
+    (and
+     (string-match-p "^\\(doom-modeline\\|all-the-icons\\)" f)
+     (not (string-match-p "\\(-inactive\\|-dired\\|-ivy\\|-ibuffer\\)" f))
+     (add-to-list 'doom-modeline--remap-faces face))))
 
+(defvar doom-modeline--remap-face-cookie-alist nil)
 (defun doom-modeline-focus ()
   "Focus mode-line."
   (mapc #'face-remap-remove-relative doom-modeline--remap-face-cookie-alist))
@@ -982,7 +920,7 @@ used as an advice to window creation functions."
   "Unfocus mode-line."
   (dolist (face doom-modeline--remap-faces)
     (add-to-list 'doom-modeline--remap-face-cookie-alist
-                 (face-remap-add-relative face 'doom-modeline-inactive))))
+                 (face-remap-add-relative face 'mode-line-inactive))))
 
 (with-no-warnings
   (if (boundp 'after-focus-change-function)
@@ -1006,7 +944,7 @@ used as an advice to window creation functions."
 (defvar doom-modeline-var-alist ())
 
 (defmacro doom-modeline-def-segment (name &rest body)
-  "Defines a modeline segment NAME with BODY and byte compiles it."
+  "Define a modeline segment NAME with BODY and byte compiles it."
   (declare (indent defun) (doc-string 2))
   (let ((sym (intern (format "doom-modeline-segment--%s" name)))
         (docstring (if (stringp (car body))
@@ -1042,30 +980,8 @@ used as an advice to window creation functions."
             ((error "%s is not a valid segment" seg))))
     (nreverse forms)))
 
-(defvar doom-modeline--font-width-cache nil)
-(defun doom-modeline--font-width ()
-  "Cache the font width."
-  (if (display-graphic-p)
-      (let ((attributes (face-all-attributes 'doom-modeline)))
-        (or (cdr (assoc attributes doom-modeline--font-width-cache))
-            (let ((width (window-font-width nil 'doom-modeline)))
-              (push (cons attributes width) doom-modeline--font-width-cache)
-              width)))
-    1))
-
-;; Refresh the font width after setting frame parameters
-;; to ensure the font width is correct.
-(defun doom-modeline-refresh-font-width-cache (&rest _)
-  "Refresh the font width cache."
-  (setq doom-modeline--font-width-cache nil)
-  (doom-modeline--font-width))
-(add-hook 'window-setup-hook #'doom-modeline-refresh-font-width-cache)
-(add-hook 'after-make-frame-functions #'doom-modeline-refresh-font-width-cache)
-(add-hook 'after-setting-font-hook #'doom-modeline-refresh-font-width-cache)
-(add-hook 'server-after-make-frame-hook #'doom-modeline-refresh-font-width-cache)
-
 (defun doom-modeline-def-modeline (name lhs &optional rhs)
-  "Defines a modeline format and byte-compiles it.
+  "Define a modeline format and byte-compiles it.
 NAME is a symbol to identify it (used by `doom-modeline' for retrieval).
 LHS and RHS are lists of symbols of modeline segments defined with
 `doom-modeline-def-segment'.
@@ -1083,17 +999,22 @@ Example:
         (list lhs-forms
               (propertize
                " "
-               'face (if (doom-modeline--active)
-                         'doom-modeline
-                       'doom-modeline-inactive)
                'display `((space
                            :align-to
-                           (- (+ right right-fringe right-margin scroll-bar)
-                              ,(* (let ((width (doom-modeline--font-width)))
-                                    (or (and (= width 1) 1)
-                                        (/ width (frame-char-width) 1.0)))
-                                  (string-width
-                                   (format-mode-line (cons "" rhs-forms))))))))
+                           (- (+ right right-margin scroll-bar)
+                              ,(let ((rhs-str (format-mode-line (cons "" rhs-forms)))
+                                     (char-width (frame-char-width)))
+                                 (if (fboundp 'string-pixel-width)
+                                     ;; Accurate calculations in 29+
+                                     (/ (string-pixel-width
+                                         (propertize rhs-str 'face 'mode-line))
+                                        char-width
+                                        1.0)
+                                   ;; Backward compatibility
+                                   (* (/ (doom-modeline--font-width)
+                                         char-width
+                                         1.0)
+                                      (string-width rhs-str))))))))
               rhs-forms))
       (concat "Modeline:\n"
               (format "  %s\n  %s"
@@ -1114,7 +1035,7 @@ If DEFAULT is non-nil, set the default mode-line for all buffers."
   (when-let ((modeline (doom-modeline key)))
     (setf (if default
               (default-value 'mode-line-format)
-            (buffer-local-value 'mode-line-format (current-buffer)))
+            mode-line-format)
           (list "%e" modeline))))
 
 
@@ -1122,34 +1043,37 @@ If DEFAULT is non-nil, set the default mode-line for all buffers."
 ;; Helpers
 ;;
 
-(defsubst doom-modeline-spc ()
-  "Text style with whitespace."
-  (propertize " " 'face (if (doom-modeline--active)
-                            'doom-modeline-spc-face
-                          'doom-modeline-spc-inactive-face)))
+(defconst doom-modeline-spc " " "Whitespace.")
+(defconst doom-modeline-wspc "  " "Wide whitespace.")
+(defconst doom-modeline-vspc
+  (propertize " " 'display '((space :relative-width 0.5)))
+  "Thin whitespace.")
 
-(defsubst doom-modeline-wspc ()
-  "Text style with wide whitespace."
-  (propertize "  " 'face (if (doom-modeline--active)
-                             'doom-modeline-spc-face
-                           'doom-modeline-spc-inactive-face)))
+(defconst doom-modeline-ellipsis
+  (if (char-displayable-p ?…) "…" "...")
+  "Ellipsis.")
 
-(defsubst doom-modeline-vspc ()
-  "Text style with icons in mode-line."
-  (propertize " " 'face (if (doom-modeline--active)
-                            'doom-modeline-vspc-face
-                          'doom-modeline-vspc-inactive-face)))
+(defun doom-modeline-face (&optional face inactive-face)
+  "Display FACE in active window, and INACTIVE-FACE in inactive window.
+IF FACE is nil, `mode-line' face will be used.
+If INACTIVE-FACE is nil, `mode-line-inactive' face will be used."
+  (if (doom-modeline--active)
+      (or (and (facep face) face)
+          (and (facep 'mode-line-active) 'mode-line-active)
+          'mode-line)
+    (or (and (facep inactive-face) inactive-face)
+        'mode-line-inactive)))
 
 ;; Since 27, the calculation of char height was changed
 ;; @see https://github.com/seagle0128/doom-modeline/issues/271
 (defun doom-modeline--font-height ()
   "Calculate the actual char height of the mode-line."
-  (let ((height (face-attribute 'doom-modeline :height))
-        (char-height (frame-char-height)))
+  (let ((height (face-attribute 'mode-line :height))
+        (char-height (window-font-height nil 'mode-line)))
     (round
      (* (pcase system-type
-          ('darwin (if doom-modeline-icon 1.5 1.2))
-          ('windows-nt (if doom-modeline-icon 1.1 0.83))
+          ('darwin (if doom-modeline-icon 1.7 1.0))
+          ('windows-nt (if doom-modeline-icon 0.88 0.625))
           (_ (if (and doom-modeline-icon (< emacs-major-version 27)) 1.4 1.0)))
         (cond ((integerp height) (/ height 10))
               ((floatp height) (* height char-height))
@@ -1184,7 +1108,7 @@ See https://github.com/seagle0128/doom-modeline/issues/301."
       (when-let ((props (get-text-property 0 'face icon)))
         (when (listp props)
           (cl-destructuring-bind (&key family height inherit &allow-other-keys) props
-            (propertize icon 'face `(:inherit ,(or face inherit props 'doom-modeline)
+            (propertize icon 'face `(:inherit ,(or face inherit props 'mode-line)
                                      :family  ,(or family "")
                                      :height  ,(or height 1.0))))))
     (propertize icon 'face face)))
@@ -1196,7 +1120,7 @@ ICON-SET includes `octicon', `faicon', `material', `alltheicons' and `fileicon',
 etc.
 UNICODE is the unicode char fallback. TEXT is the ASCII char fallback.
 ARGS is same as `all-the-icons-octicon' and others."
-  (let ((face (or (plist-get args :face) 'doom-modeline)))
+  (let ((face (or (plist-get args :face) 'mode-line)))
     (cond
      ;; Icon
      ((and (doom-modeline-icon-displayable-p)
@@ -1218,10 +1142,22 @@ ARGS is same as `all-the-icons-octicon' and others."
      ;; Fallback
      (t ""))))
 
+(defun doom-modeline-display-icon (icon)
+  "Display ICON in mode-line."
+  (if (doom-modeline--active)
+      icon
+    (doom-modeline-propertize-icon icon 'mode-line-inactive)))
+
+(defun doom-modeline-display-text (text)
+  "Display TEXT in mode-line."
+  (if (doom-modeline--active)
+      text
+    (propertize text 'face 'mode-line-inactive)))
+
 (defun doom-modeline--create-bar-image (face width height)
   "Create the bar image.
-Use FACE1 for the bar, FACE2 for the background.
-WIDTH and HEIGHT are the image size in pixels."
+
+Use FACE for the bar, WIDTH and HEIGHT are the image size in pixels."
   (when (and (display-graphic-p)
              (image-type-available-p 'pbm)
              (numberp width) (> width 0)
@@ -1239,6 +1175,7 @@ WIDTH and HEIGHT are the image size in pixels."
 (defun doom-modeline--create-hud-image
     (face1 face2 width height top-margin bottom-margin)
   "Create the hud image.
+
 Use FACE1 for the bar, FACE2 for the background.
 WIDTH and HEIGHT are the image size in pixels.
 TOP-MARGIN and BOTTOM-MARGIN are the size of the margin above and below the bar,
@@ -1277,32 +1214,30 @@ respectively."
           (<= (/ (window-total-width) (frame-width) 1.0)
               doom-modeline-window-width-limit)))))
 
-(add-hook 'window-size-change-functions #'doom-modeline-window-size-change-function)
+(add-hook 'after-revert-hook #'doom-modeline-window-size-change-function)
 (add-hook 'buffer-list-update-hook #'doom-modeline-window-size-change-function)
+(add-hook 'window-size-change-functions #'doom-modeline-window-size-change-function)
 
 (defvar-local doom-modeline--project-root nil)
 (defun doom-modeline--project-root ()
-  "Get the path to the root of your project.
+  "Get the path to the project root.
 Return nil if no project was found."
   (or doom-modeline--project-root
       (setq doom-modeline--project-root
-            (pcase (if (eq doom-modeline-project-detection 'auto)
-                       (cond
-                        ((fboundp 'ffip-get-project-root-directory) 'ffip)
-                        ((fboundp 'projectile-project-root) 'projectile)
-                        ((fboundp 'project-current) 'project)
-                        (t 'default))
-                     doom-modeline-project-detection)
-              ('ffip
-               (let ((inhibit-message t))
-                 (ffip-get-project-root-directory)))
-              ('projectile
-               (projectile-project-root))
-              ('project
-               (when-let ((project (project-current)))
-                 (expand-file-name (if (fboundp 'project-root)
-                                       (project-root project)
-                                     (cdr project)))))))))
+            (cond
+             ((and (memq doom-modeline-project-detection '(auto ffip))
+                   (fboundp 'ffip-project-root))
+              (let ((inhibit-message t))
+                (ffip-project-root)))
+             ((and (memq doom-modeline-project-detection '(auto projectile))
+                   (bound-and-true-p projectile-mode))
+              (projectile-project-root))
+             ((and (memq doom-modeline-project-detection '(auto project))
+                   (fboundp 'project-current))
+              (when-let ((project (project-current)))
+                (expand-file-name (if (fboundp 'project-root)
+                                      (project-root project)
+                                    (cdr project)))))))))
 
 (defun doom-modeline-project-p ()
   "Check if the file is in a project."
@@ -1314,8 +1249,7 @@ Return `default-directory' if no project was found."
   (or (doom-modeline--project-root) default-directory))
 
 (defun doom-modeline-buffer-file-name ()
-  "Propertized variable `buffer-file-name' based on
-`doom-modeline-buffer-file-name-style'."
+  "Propertize file name based on `doom-modeline-buffer-file-name-style'."
   (let* ((buffer-file-name (file-local-name (or (buffer-file-name (buffer-base-buffer)) "")))
          (buffer-file-truename (file-local-name
                                 (or buffer-file-truename (file-truename buffer-file-name) "")))
@@ -1323,7 +1257,7 @@ Return `default-directory' if no project was found."
           (pcase doom-modeline-buffer-file-name-style
             ('auto
              (if (doom-modeline-project-p)
-                 (doom-modeline--buffer-file-name buffer-file-name buffer-file-truename nil nil 'hide)
+                 (doom-modeline--buffer-file-name buffer-file-name buffer-file-truename 'shrink 'shrink 'hide)
                (propertize "%b" 'face 'doom-modeline-buffer-file)))
             ('truncate-upto-project
              (doom-modeline--buffer-file-name buffer-file-name buffer-file-truename 'shrink))
@@ -1360,7 +1294,8 @@ Return `default-directory' if no project was found."
                 'local-map mode-line-buffer-identification-keymap)))
 
 (defun doom-modeline--buffer-file-name-truncate (file-path true-file-path &optional truncate-tail)
-  "Propertized variable `buffer-file-name' that truncates every dir along path.
+  "Propertize file name that truncates every dir along path.
+
 If TRUNCATE-TAIL is t also truncate the parent directory of the file."
   (let ((dirs (shrink-path-prompt (file-name-directory true-file-path))))
     (if (null dirs)
@@ -1375,8 +1310,9 @@ If TRUNCATE-TAIL is t also truncate the parent directory of the file."
                             'face 'doom-modeline-buffer-file))))))
 
 (defun doom-modeline--buffer-file-name-relative (_file-path true-file-path &optional include-project)
-  "Propertized variable `buffer-file-name' showing directories relative to
-project's root only."
+  "Propertize file name showing directories relative to project's root only.
+
+If INCLUDE-PROJECT is non-nil, the project path will be included."
   (let ((root (file-local-name (doom-modeline-project-root))))
     (if (null root)
         (propertize "%b" 'face 'doom-modeline-buffer-file)
@@ -1393,7 +1329,8 @@ project's root only."
                                         truncate-project-root-parent
                                         truncate-project-relative-path
                                         hide-project-root-parent)
-  "Propertized variable `buffer-file-name' given by FILE-PATH.
+  "Propertize buffer name given by FILE-PATH.
+
 If TRUNCATE-PROJECT-ROOT-PARENT is non-nil will be saved by truncating project
 root parent down fish-shell style.
 

@@ -24,7 +24,7 @@
      (&light :background (doom-blend bg highlight 0.7) :foreground base0 :distant-foreground base8))
     (match                :foreground green      :background base0 :weight 'bold)
     (trailing-whitespace  :background red)
-    (nobreak-space        :inherit 'default :underline nil)
+    (nobreak-space        :inherit 'escape-glyph :underline t)
     (vertical-border      :background vertical-bar :foreground vertical-bar)
     (link                 :foreground highlight :underline t :weight 'bold)
     (error   :foreground error)
@@ -301,7 +301,7 @@
     ;;;; company-box
     (company-box-candidate :foreground fg)
     ;;;; corfu
-    (corfu-background :inherit 'tooltip)
+    (corfu-default :inherit 'tooltip)
     (corfu-current :background bg :foreground fg)
     ;;;; circe
     (circe-fool :foreground doc-comments)
@@ -1283,6 +1283,7 @@
     ;;;; solaire-mode
     (solaire-default-face  :inherit 'default :background bg-alt)
     (solaire-hl-line-face  :inherit 'hl-line :background bg :extend t)
+    (solaire-org-hide      :inherit 'org-hide :foreground bg-alt)
     ;;;; spaceline
     (spaceline-highlight-face   :background highlight)
     (spaceline-modified         :background vc-modified)
@@ -1396,8 +1397,6 @@
     ;;;; volatile-highlights
     (vhl/default-face :background grey)
     ;;;; vterm
-    (vterm               :foreground fg)
-    (vterm-color-default :foreground fg)
     (vterm-color-black   :background (doom-lighten base0 0.25)   :foreground base0)
     (vterm-color-red     :background (doom-lighten red 0.25)     :foreground red)
     (vterm-color-green   :background (doom-lighten green 0.25)   :foreground green)

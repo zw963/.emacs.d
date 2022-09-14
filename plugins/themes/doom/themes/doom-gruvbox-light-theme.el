@@ -1,7 +1,19 @@
-;;; doom-gruvbox-light-theme.el --- gruvbox light soft -*- lexical-binding: t; no-byte-compile: t; -*-
+;;; doom-gruvbox-light-theme.el --- inspired by morhetz's Gruvbox (light) -*- lexical-binding: t; no-byte-compile: t; -*-
+;;
+;; Added: May 6, 2020 (#446)
+;; Author: jsoa <https://github.com/jsoa>
+;; Maintainer:
+;; Source: https://github.com/morhetz/gruvbox
+;;
+;;; Commentary:
+;;; Code:
+
 (require 'doom-themes)
 
+
 ;;
+;;; Variables
+
 (defgroup doom-gruvbox-light-theme nil
   "Options for the `doom-gruvbox-light' theme."
   :group 'doom-themes)
@@ -34,7 +46,10 @@ background contrast. All other values default to \"medium\"."
   :group 'doom-gruvbox-light-theme
   :type  'string)
 
+
 ;;
+;;; Theme definition
+
 (def-doom-theme doom-gruvbox-light
   "gruvbox light theme"
 
@@ -473,6 +488,15 @@ background contrast. All other values default to \"medium\"."
     :inherit 'mode-line-inactive
     :background modeline-bg-inactive-l
     :box (if -modeline-pad `(:line-width ,-modeline-pad :color ,modeline-bg-inactive-l)))
+   ;;;; vterm
+   (vterm-color-black   :background grey    :foreground base1)
+   (vterm-color-red     :background red     :foreground faded-red)
+   (vterm-color-green   :background green   :foreground faded-green)
+   (vterm-color-yellow  :background yellow  :foreground faded-yellow)
+   (vterm-color-blue    :background blue    :foreground faded-blue)
+   (vterm-color-magenta :background violet  :foreground magenta)
+   (vterm-color-cyan    :background cyan    :foreground faded-aqua)
+   (vterm-color-white   :background base7   :foreground light4)
    ;;;; web-mode
    (web-mode-current-element-highlight-face :background dark-blue :foreground bg)
    ;;;; wgrep <built-in>

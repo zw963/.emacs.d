@@ -1,17 +1,12 @@
-;;; doom-solarized-dark-high-contrast-theme.el --- inspired by VS Code Solarized Dark -*- lexical-binding: t; no-byte-compile: t; -*-
+;;; doom-solarized-dark-high-contrast-theme.el --- a high-contrast variant of Solarized Dark -*- lexical-binding: t; no-byte-compile: t; -*-
 ;;
-;; Author: Ethan Schoonover <https://ethanschoonover.com/solarized/>
-;; Ported by: Joseph Morag <jmorag@users.noreply.github.com>
-;; Created: February 18, 2021
-;; Version: 2.0.0
-;; Keywords: custom themes, faces
-;; Homepage: https://github.com/hlissner/emacs-doom-themes
-;; Package-Requires: ((emacs "25.1") (cl-lib "0.5") (doom-themes "2.2.1"))
+;; Added: May 29, 2021 (#558)
+;; Author: jmorag <https://github.com/jmorag>
+;; Maintainer:
+;; Source: https://github.com/bbatsov/solarized-emacs
+;; Source: https://ethanschoonover.com/solarized
 ;;
 ;;; Commentary:
-;;
-;; See https://ethanschoonover.com/solarized/
-;;
 ;;; Code:
 
 (require 'doom-themes)
@@ -217,8 +212,6 @@ Can be an integer to determine the exact padding."
     :background modeline-bg-inactive-alt
     :box (if -modeline-pad `(:line-width ,-modeline-pad :color ,modeline-bg-inactive-alt)))
    ;;;; vterm
-   (vterm               :foreground fg)
-   (vterm-color-default :foreground fg)
    (vterm-color-black   :background (doom-lighten base0 0.75)   :foreground base0)
    (vterm-color-red     :background (doom-lighten red 0.75)     :foreground red)
    (vterm-color-green   :background (doom-lighten green 0.75)   :foreground green)

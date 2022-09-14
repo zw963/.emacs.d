@@ -1,15 +1,11 @@
 ;;; doom-one-light-theme.el --- inspired by Atom One Light -*- lexical-binding: t; no-byte-compile: t; -*-
 ;;
-;; Copyright (C) 2016-2022 Henrik Lissner
-;;
-;; Author: Henrik Lissner <contact@henrik.io>
-;; Maintainer: Henrik Lissner <contact@henrik.io>
-;; Created: May 23, 2016
+;; Added: July 31, 2017 (#96)
+;; Author: ztlevi <https://github.com/ztlevi>
+;; Maintainer: Henrik Lissner <https://github.com/hlissner>
+;; Source: https://github.com/atom/one-light-ui
 ;;
 ;;; Commentary:
-;;
-;; Inspired by Atom's One Light color scheme.
-;;
 ;;; Code:
 
 (require 'doom-themes)
@@ -181,9 +177,9 @@ Can be an integer to determine the exact padding."
    ;;;; posframe
    (ivy-posframe               :background base0)
    ;;;; selectrum
-   (selectrum-current-candidate :background base1)
+   (selectrum-current-candidate :background base2)
    ;;;; vertico
-   (vertico-current :background base1)
+   (vertico-current :background base2)
    ;;;; solaire-mode
    (solaire-mode-line-face
     :inherit 'mode-line

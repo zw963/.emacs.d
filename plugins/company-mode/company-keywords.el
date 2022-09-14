@@ -203,6 +203,14 @@
      ;; https://www.lua.org/manual/5.3/manual.html
      "and" "break" "do" "else" "elseif" "end" "false" "for" "function" "goto" "if"
      "in" "local" "nil" "not" "or" "repeat" "return" "then" "true" "until" "while")
+    (mint-mode
+     ;; https://www.lua.org/manual/5.3/manual.html
+     "sequence" "parallel" "if" "else" "case" "try" "catch" "do"
+     "Result" "Maybe" "Promise" "Array"
+     "style" "enum" "component" "module" "record" "routes" "provider" "const" "store" "while"
+     "Number" "Bool" "String" "Object" "Time" "Html" "Void" "Never" "Tuple"
+     "fun" "where" "next" "state" "property"
+     "decode" "encode" "connect" "use")
     (nim-mode
      ;; https://nim-lang.org/docs/manual.html#lexical-analysis-identifiers-amp-keywords
      "addr" "and" "as" "asm" "bind" "block" "break" "case" "cast" "concept" "const" "continue"
