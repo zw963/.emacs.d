@@ -1954,6 +1954,9 @@ The hook should takes one arg SOURCES.")
 ;; See bug#2503.
 (defvar helm-process-output-split-string-separator "\n"
   "Separator to use when splitting helm async output.")
+
+(defvar helm-last-query ""
+  "The value of `helm-pattern' is stored here exit or quit.")
 
 ;; Utility: logging
 (defun helm-log (format-string &rest args)
@@ -2117,6 +2120,28 @@ End:")
      (helm-set-local-variable
       'helm-display-function 'helm-display-buffer-in-own-frame)
      ,@body))
+
+(defmacro helm-make-command-from-action (symbol doc action)
+  "Make a command SYMBOL from ACTION with docstring DOC.
+The command SYMBOL will quit helm before execute.
+Argument ACTION should be an existing helm action."
+  (declare (indent defun) (debug t))
+  `(defun ,symbol ()
+     ,doc
+     (interactive)
+     (with-helm-alive-p
+       (helm-exit-and-execute-action ,action))))
+
+(defmacro helm-make-persistent-command-from-action (symbol doc psymbol action)
+  "Make a persistent command SYMBOL bound to PSYMBOL from ACTION."
+  (declare (indent defun) (debug t))
+  `(defun ,symbol ()
+     ,doc
+     (interactive)
+     (with-helm-alive-p
+       (helm-set-attr ,psymbol (cons ,action 'never-split))
+       (helm-execute-persistent-action ,psymbol))))
+
 
 ;;; helm-attributes
 ;;
@@ -3635,15 +3660,11 @@ For RESUME INPUT DEFAULT and SOURCES see `helm'."
     (helm-current-position 'save)
     (if (helm-resume-p resume)
         (helm-initialize-overlays (helm-buffer-get))
-      (helm-initial-setup default sources-list))
+      (helm-initial-setup input default sources-list))
     (setq helm-alive-p t)
     (unless (eq resume 'noresume)
       (helm--push-and-remove-dups helm-buffer 'helm-buffers)
       (setq helm-last-buffer helm-buffer))
-    (when input
-      (setq helm-input input
-            helm-pattern input)
-      (helm--fuzzy-match-maybe-set-pattern))
     ;; If a `resume' attribute is present `helm-compute-attr-in-sources'
     ;; will run its function.
     (when (helm-resume-p resume)
@@ -3664,7 +3685,7 @@ For RESUME INPUT DEFAULT and SOURCES see `helm'."
     (overlay-put helm-selection-overlay 'face 'helm-selection)
     (overlay-put helm-selection-overlay 'priority 1)))
 
-(defun helm-initial-setup (default sources)
+(defun helm-initial-setup (input default sources)
   "Initialize Helm settings and set up the Helm buffer."
   ;; Run global hook.
   (helm-log-run-hook 'helm-before-initialize-hook)
@@ -3700,15 +3721,32 @@ For RESUME INPUT DEFAULT and SOURCES see `helm'."
               'vertical 'horizontal))
     (setq helm--window-side-state
           (or helm-split-window-default-side 'below)))
+  ;; Some sources like helm-mu are using input to init their
+  ;; candidates in init function, so setup initial helm-pattern here.
+  ;; See bug#2530 and https://github.com/emacs-helm/helm-mu/issues/54.
+  ;; Input should have precedence on default.
+  (cond (input
+         (setq helm-input   input
+               helm-pattern input))
+        ((and default helm-maybe-use-default-as-input)
+         (setq helm-pattern (if (listp default)
+                                (car default)
+                              default)
+               ;; Even if helm-pattern is set we want the
+               ;; prompt to be empty when using default as input, why
+               ;; helm-input is initialized to "".
+               helm-input ""))
+        (helm-maybe-use-default-as-input
+         (setq helm-pattern (or (with-helm-current-buffer
+                                  (thing-at-point 'symbol))
+                                "")
+               helm-input ""))
+        (t
+         (setq helm-pattern ""
+               helm-input   "")))
+  (helm--fuzzy-match-maybe-set-pattern)
   ;; Call the init function for sources where appropriate
   (helm-compute-attr-in-sources 'init sources)
-  (setq helm-pattern (or (and helm-maybe-use-default-as-input
-                              (or (if (listp default)
-                                      (car default) default)
-                                  (with-helm-current-buffer
-                                    (thing-at-point 'symbol))))
-                         ""))
-  (setq helm-input "")
   (clrhash helm-candidate-cache)
   (helm-create-helm-buffer)
   (helm-clear-visible-mark)
@@ -3856,7 +3894,8 @@ For PRESELECT RESUME KEYMAP DEFAULT HISTORY, see `helm'."
                 helm-execute-action-at-once-if-one)
       (helm-log "helm-quit-if-no-candidate = %S" helm-quit-if-no-candidate)
       (when (and src (helm-resume-p resume))
-        (helm-display-mode-line src))
+        (helm-display-mode-line src)
+        (setq helm-pattern input))
       ;; Reset `helm-pattern' and update
       ;; display if no result found with precedent value of `helm-pattern'
       ;; unless `helm-quit-if-no-candidate' is non-`nil', in this case
@@ -4104,10 +4143,9 @@ WARNING: Do not use this mode yourself, it is internal to Helm."
   ;; `helm-set-local-variable'.
   (setq helm--force-updating-p nil)
   (setq helm--buffer-in-new-frame-p nil)
-  ;; Reset helm-pattern so that value of previous session doesn't
-  ;; interfere with next session (bug#2530).
-  (setq helm-pattern ""
-        helm-input "")
+  ;; No need to reinitialize helm-pattern here now it is done only
+  ;; once in init function bug#2530.
+  (setq helm-last-query helm-pattern)
   ;; This is needed in some cases where last input
   ;; is yielded infinitely in minibuffer after helm session.
   (helm-clean-up-minibuffer))

@@ -261,15 +261,14 @@ available APPEND is ignored."
                 ((and (consp dired-directory)
                       (cdr dired-directory)
                       files-renamed)
-                 (setcdr dired-directory
-                         ;; Replace in `dired-directory' files that have
-                         ;; been modified with their new name keeping
-                         ;; the ones that are unmodified at the same place.
-                         (cl-loop with old-to-rename = (mapcar 'car files-renamed)
-                                  for f in (cdr dired-directory)
-                                  if (member f old-to-rename)
-                                  collect (assoc-default f files-renamed)
-                                  else collect f))))
+                 (setq dired-directory
+                       ;; Replace in `dired-directory' files that have
+                       ;; been modified with their new name keeping
+                       ;; the ones that are unmodified at the same place.
+                       (cons (car dired-directory)
+                             (cl-loop for f in (cdr dired-directory)
+                                      collect (or (assoc-default f files-renamed)
+                                                  f))))))
 	  ;; Re-sort the buffer if all went well.
 	  (unless (> errors 0) (revert-buffer))
 	  (let ((inhibit-read-only t))
@@ -297,6 +296,19 @@ available APPEND is ignored."
 ;; that no change to file is done.
 ;; This also lead to ask confirmation for every files even when not
 ;; modified and when `wdired-use-interactive-rename' is nil.
+;; Obviously, we could make an :around advice like this:
+;; (defun helm--advice-wdired-get-filename (old--fn &rest args)
+;;   (let* ((file  (apply old--fn args))
+;;          (split (and file (split-string file "//"))))
+;;     (if (and (cdr split)
+;;              (string-match (format "\\(%s/\\)\\1" (car split)) file))
+;;         (replace-match "" nil nil file 1)
+;;       file)))
+;; But for some reasons the original function in emacs-28 is returning
+;; nil in some conditions and operation fails with no errors but with
+;; something like "(no change performed)", so use an old version of
+;; `wdired-get-filename' with its output modified and advice it with
+;; :override.
 (defun helm--advice-wdired-get-filename (&optional no-dir old)
   ;; FIXME: Use dired-get-filename's new properties.
   (let (beg end file)
