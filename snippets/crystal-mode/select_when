@@ -1,0 +1,8 @@
+# -*- mode: snippet -*-
+# name: select ... when
+# key: selectw
+# --
+select
+when $0
+
+end

@@ -1,0 +1,6 @@
+# -*- mode: snippet -*-
+# name: block
+# key: {
+# condition: (yas-use-region-p)
+# --
+{`(field "1" "e" "|" "|")` `(yas-stripped-selected-text "" "" "")`$0 `(if-binding "}")`

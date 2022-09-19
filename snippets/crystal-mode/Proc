@@ -1,0 +1,7 @@
+# -*- mode: snippet -*-
+# name: Crystal Proc ->(x) { ... }
+# key: ->
+# binding: -
+# condition: (yas-use-region-p)
+# --
+->`(field "1" "x" "(" ")")` `(ruby-block)`
