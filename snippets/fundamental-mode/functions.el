@@ -49,7 +49,7 @@ yas-field 的依赖函数"
         (_yas-field-func field-index (_block-left-border) " ")
         (_yas-field-string-content field-index field-content)
         (_yas-field-func field-index "| "))
-     (concat (_block-do) (or no-space (and field-index " "))))
+     (concat (_block-do) (or no-space (or field-index " "))))
    ))
 
 (defun _ruby-block-end (&optional end-newline)
