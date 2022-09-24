@@ -4,7 +4,7 @@
 
 (require 'all-the-icons-ibuffer)
 
-(all-the-icons-ibuffer-mode 1)
+(add-hook 'ibuffer-mode-hook #'all-the-icons-ibuffer-mode)
 
 (with-eval-after-load 'ivy
   (require 'all-the-icons-ivy-rich)

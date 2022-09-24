@@ -4,7 +4,7 @@
 
 ;; Author: Vincent Zhang <seagle0128@gmail.com>
 ;; Homepage: https://github.com/seagle0128/all-the-icons-ibuffer
-;; Version: 1.3.1
+;; Version: 1.5.0
 ;; Package-Requires: ((emacs "24.4") (all-the-icons "2.2.0"))
 ;; Keywords: convenience, icons, ibuffer
 
@@ -33,12 +33,11 @@
 ;;
 ;; Install:
 ;; From melpa, `M-x package-install RET all-the-icons-ibuffer RET`.
-;; (all-the-icons-ibuffer-mode 1)
+;; (add-hook 'ibuffer-mode-hook #'all-the-icons-ibuffer-mode)
 ;; or
 ;; (use-package all-the-icons-ibuffer
 ;;   :ensure t
-;;   :init (all-the-icons-ibuffer-mode 1))
-
+;;   :hook (ibuffer-mode . all-the-icons-ibuffer-mode))
 
 ;;; Code:
 
@@ -76,6 +75,11 @@
   "Face used for the filename/process."
   :group 'all-the-icons-ibuffer)
 
+(defcustom all-the-icons-ibuffer-display-predicate #'display-graphic-p
+  "Predicate whether the icons are able to be displayed."
+  :group 'all-the-icons-ibuffer
+  :type 'boolean)
+
 (defcustom all-the-icons-ibuffer-icon t
   "Whether display the icons."
   :group 'all-the-icons-ibuffer
@@ -107,14 +111,27 @@ It respects `all-the-icons-color-icons'."
   `((mark modified read-only ,(if (>= emacs-major-version 26) 'locked "")
           ;; Here you may adjust by replacing :right with :center or :left
           ;; According to taste, if you want the icon further from the name
-          " " ,(if (and (display-graphic-p)
-                        all-the-icons-ibuffer-icon)
+          " " ,(if all-the-icons-ibuffer-icon
                    '(icon 2 2 :left :elide)
                  "")
-          ,(if (and (display-graphic-p)
-                    all-the-icons-ibuffer-icon)
+          ,(if all-the-icons-ibuffer-icon
                (propertize " " 'display `(space :align-to 8))
              "")
+          (name 18 18 :left :elide)
+          " " (size-h 9 -1 :right)
+          " " (mode+ 16 16 :left :elide)
+          " " filename-and-process+)
+    (mark " " (name 16 -1) " " filename))
+  "A list of ways to display buffer lines with `all-the-icons'.
+
+See `ibuffer-formats' for details."
+  :group 'all-the-icons-ibuffer
+  :type '(repeat sexp))
+
+(defcustom all-the-icons-ibuffer-formats-simple
+  `((mark modified read-only ,(if (>= emacs-major-version 26) 'locked "")
+          ;; Here you may adjust by replacing :right with :center or :left
+          ;; According to taste, if you want the icon further from the name
           (name 18 18 :left :elide)
           " " (size-h 9 -1 :right)
           " " (mode+ 16 16 :left :elide)
@@ -244,10 +261,12 @@ See `ibuffer-formats' for details."
 (define-minor-mode all-the-icons-ibuffer-mode
   "Display icons for all buffers in ibuffer."
   :lighter nil
-  :global t
-  (if all-the-icons-ibuffer-mode
-      (setq ibuffer-formats all-the-icons-ibuffer-formats)
-    (setq ibuffer-formats all-the-icons-ibuffer-old-formats)))
+  (when (derived-mode-p 'ibuffer-mode)
+    (if all-the-icons-ibuffer-mode
+        (if (funcall all-the-icons-ibuffer-display-predicate)
+            (setq-local ibuffer-formats all-the-icons-ibuffer-formats)
+          (setq-local ibuffer-formats all-the-icons-ibuffer-formats-simple))
+      (setq-local ibuffer-formats all-the-icons-ibuffer-old-formats))))
 
 (provide 'all-the-icons-ibuffer)
 
