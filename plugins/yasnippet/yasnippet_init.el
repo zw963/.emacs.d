@@ -179,10 +179,9 @@
 ;;      )))
 ;; (setq yas-prompt-functions '(yas/popup-isearch-prompt yas/no-prompt))
 
-(require 'dropdown-list)
-;; (setq yas-prompt-functions '(yas-dropdown-prompt))
-;; (setq yas-prompt-functions '(yas-x-prompt))
-(setq yas-prompt-functions '(yas-x-prompt yas-dropdown-prompt))
+;; (require 'dropdown-list)
+;; (setq yas-prompt-functions '(yas-x-prompt yas-dropdown-prompt))
+
 
 ;; (require 'yasnippet-multiple-key)
 ;; (yasnippet-multiple-key-compile-directory (expand-file-name "snippets"))
