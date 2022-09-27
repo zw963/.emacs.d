@@ -84,9 +84,14 @@
 
 ;;; Code:
 
+(defgroup acm-backend-search-words nil
+  "Backend fo completion words in other buffer."
+  :group 'acm)
+
 (defcustom acm-enable-search-words t
   "Popup search words completions when this option is turn on."
-  :type 'boolean)
+  :type 'boolean
+  :group 'acm-backend-search-words)
 
 (defvar-local acm-backend-search-words-items nil)
 
@@ -131,6 +136,9 @@
   (or (derived-mode-p 'emacs-lisp-mode)
       (derived-mode-p 'inferior-emacs-lisp-mode)
       (derived-mode-p 'lisp-interaction-mode)))
+
+(defun acm-backend-search-words-clean ()
+  (setq-local acm-backend-search-words-items nil))
 
 (provide 'acm-backend-search-words)
 
