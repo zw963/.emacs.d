@@ -206,8 +206,6 @@ ac-auto-show-menu 为 nil 的情形, 这种模式比较适合在 yasnippet 正�
 ;;         desktop-minor-mode-table)
 ;;   )
 
-;; (require 'company-tabnine_init)
-
 (with-eval-after-load 'web-mode
   (require 'company-web-html)
   (add-hook 'web-mode-hook
