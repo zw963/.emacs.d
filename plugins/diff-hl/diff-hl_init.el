@@ -1,5 +1,7 @@
 (require 'diff-hl)
 
+diff-hl-show-staged-changes
+
 (setq vc-git-diff-switches '("--histogram"))
 
 ;; (add-hook 'prog-mode-hook 'turn-on-diff-hl-mode)
@@ -15,8 +17,8 @@
 ;; Ctrl v * active diff-hl-show-hunk, or use mouse
 (global-diff-hl-show-hunk-mouse-mode 1)
 
-;; (setq diff-hl-show-staged-changes t)
-;; (setq diff-hl-ask-before-revert-hunk t)
+(setq diff-hl-show-staged-changes t)
+(setq diff-hl-ask-before-revert-hunk t)
 
 ;; (defun diff-hl-revert-narrow-to-hunk (end)
 ;;   (if (fboundp 'fancy-narrow-to-region)
