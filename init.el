@@ -92,7 +92,7 @@
 ;; 关闭一些有用，但最近不常用的 mode
 ;; (require 'go-mode_init)
 ;; (require 'rust_init)
-;; (require 'lsp-bridge_init)
+(require 'lsp-bridge_init)
 ;; (require 'haskell-mode_init)
 ;; (require 'js2-mode_init)
 ;; (require 'lua-mode_init)
