@@ -59,7 +59,7 @@ Use `font-lock-add-keywords' in case of `ruby-mode' or
   "run process and print output to minibuffer."
   (let ((proc (apply 'start-process "" nil proc-name arg)))
     (set-process-filter proc 'minibuffer-echo-filter))
-  (print arg)
+  ;; (print arg)
   )
 
 (defun use-proxy (port)
