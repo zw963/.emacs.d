@@ -3,9 +3,9 @@
 (require 'flycheck-crystal)
 (require 'crystal-mode_keyword_highlight_init)
 
-;; (require 'ameba)
-;; (require 'flycheck-ameba)
-;; (flycheck-ameba-setup)
+(require 'ameba)
+(require 'flycheck-ameba)
+(flycheck-ameba-setup)
 
 (add-hook 'crystal-mode-hook
           (lambda ()
