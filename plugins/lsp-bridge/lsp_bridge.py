@@ -47,7 +47,8 @@ class LspBridge:
         self.tabnine = TabNine()
 
         # Build EPC interfaces.
-        for name in ["change_file", "update_file", "change_cursor", "save_file", "ignore_diagnostic", "list_diagnostics"]:
+        for name in ["change_file", "update_file", "change_cursor", "save_file", 
+                     "ignore_diagnostic", "list_diagnostics", "workspace_symbol"]:
             self.build_file_action_function(name)
             
         for name in ["change_file", "close_file", "rebuild_cache", "search"]:
@@ -139,10 +140,6 @@ class LspBridge:
         if is_in_path_dict(FILE_ACTION_DICT, filepath):
             get_from_path_dict(FILE_ACTION_DICT, filepath).last_completion_candidates = {}
             
-    def pull_diagnostics(self, filepath):
-        if is_in_path_dict(FILE_ACTION_DICT, filepath):
-            eval_in_emacs("lsp-bridge-diagnostics-render", filepath, get_from_path_dict(FILE_ACTION_DICT, filepath).diagnostics)
-            
     def fetch_completion_item_info(self, filepath, item_key, server_name):
         if is_in_path_dict(FILE_ACTION_DICT, filepath):
             get_from_path_dict(FILE_ACTION_DICT, filepath).completion_item_resolve(item_key, server_name)
@@ -202,7 +199,7 @@ class LspBridge:
     
     def turn_off(self, filepath, message):
         message_emacs(message)
-        eval_in_emacs("lsp-bridge-turn-off", filepath)
+        eval_in_emacs("lsp-bridge--turn-off", filepath)
     
     def create_lsp_server(self, filepath, project_path, lang_server_info):
         if len(lang_server_info["command"]) > 0:

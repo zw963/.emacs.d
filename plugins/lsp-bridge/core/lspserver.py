@@ -181,11 +181,14 @@ class LspServer:
 
         # LSP server information.
         self.completion_trigger_characters = list()
+        
         self.completion_resolve_provider = False
         self.rename_prepare_provider = False
         self.code_action_provider = False
         self.code_format_provider = False
         self.signature_help_provider = False
+        self.workspace_symbol_provider = False
+        
         self.code_action_kinds = [
             "quickfix",
             "refactor",
@@ -195,6 +198,7 @@ class LspServer:
             "source",
             "source.organizeImports"]
         self.text_document_sync = 2 # refer TextDocumentSyncKind. Can be None = 0, Full = 1 or Incremental = 2
+        self.save_include_text = False
 
         # Start LSP server.
         self.lsp_subprocess = subprocess.Popen(self.server_info["command"],
@@ -274,7 +278,10 @@ class LspServer:
 
         merge_capabilites = merge(server_capabilities, {
             "workspace": {
-                "configuration": True
+                "configuration": True,
+                "symbol": {
+                    "resolveSupport": True
+                }
             },
             "textDocument": {
                 "completion": {
@@ -371,12 +378,22 @@ class LspServer:
             }]
         })
 
-    def send_did_save_notification(self, filepath):
-        self.sender.send_notification("textDocument/didSave", {
+    def send_did_save_notification(self, filepath, buffer_name):
+        args = {
             "textDocument": {
                 "uri": path_to_uri(filepath)
             }
-        })
+        }
+        
+        # Fetch buffer whole content to LSP server if server capability 'includeText' is True.
+        if self.save_include_text:
+            args = merge(args, {
+                "textDocument": {
+                    "text": get_emacs_func_result('get-buffer-content', buffer_name)
+                }
+            })
+        
+        self.sender.send_notification("textDocument/didSave", args)
 
     def send_did_change_notification(self, filepath, version, start, end, range_length, text):
         # STEP 5: Tell LSP server file content is changed.
@@ -460,6 +477,8 @@ class LspServer:
                 self.code_format_provider = False
             elif error_message == "Unhandled method textDocument/signatureHelp":
                 self.signature_help_provider = False
+            elif error_message == "Unhandled method workspace/symbol":
+                self.workspace_symbol_provider = False
             else:
                 message_emacs(error_message)
 
@@ -487,8 +506,7 @@ class LspServer:
         if "method" in message and message["method"] == "textDocument/publishDiagnostics":
             filepath = uri_to_path(message["params"]["uri"])
             if is_in_path_dict(self.files, filepath):
-                file_action = get_from_path_dict(self.files, filepath)
-                file_action.diagnostics = message["params"]["diagnostics"]
+                get_from_path_dict(self.files, filepath).record_diagnostics(message["params"]["diagnostics"])
 
         logger.debug(json.dumps(message, indent=3))
 
@@ -528,6 +546,11 @@ class LspServer:
                     self.signature_help_provider = message["result"]["capabilities"]["signatureHelpProvider"]
                 except Exception:
                     pass
+                
+                try:
+                    self.workspace_symbol_provider = message["result"]["capabilities"]["workspaceSymbolProvider"]
+                except Exception:
+                    pass
 
                 try:
                     text_document_sync = message["result"]["capabilities"]["textDocumentSync"]
@@ -535,6 +558,11 @@ class LspServer:
                         self.text_document_sync = text_document_sync
                     elif type(text_document_sync) is dict:
                         self.text_document_sync = text_document_sync["change"]
+                except Exception:
+                    pass
+                
+                try:
+                    self.save_include_text = message["result"]["capabilities"]["textDocumentSync"]["save"]["includeText"]
                 except Exception:
                     pass
 

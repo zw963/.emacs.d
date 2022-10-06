@@ -58,6 +58,7 @@ class FileAction:
         self.completion_item_resolve_key = None
         self.completion_items = {}
         self.diagnostics = []
+        self.diagnostics_ticker = 0
         self.external_file_link = external_file_link
         self.filepath = filepath
         self.last_change_cursor_time = -1.0
@@ -73,10 +74,17 @@ class FileAction:
         for handler_cls in Handler.__subclasses__():
             self.handlers[handler_cls.name] = handler_cls(self)
             
-        (self.enable_auto_import, self.completion_items_limit, self.insert_spaces) = get_emacs_vars([
+        (self.enable_auto_import, 
+         self.completion_items_limit, 
+         self.insert_spaces,
+         self.enable_push_diagnostics,
+         self.push_diagnostic_idle) = get_emacs_vars([
             "acm-backend-lsp-enable-auto-import",
             "acm-backend-lsp-candidates-max-number",
-            "indent-tabs-mode"])
+            "indent-tabs-mode",
+            "lsp-bridge-enable-diagnostics",
+            "lsp-bridge-diagnostic-fetch-idle"
+        ])
         self.insert_spaces = not self.insert_spaces
 
         self.method_handlers = {}
@@ -173,7 +181,7 @@ class FileAction:
     def ignore_diagnostic(self):
         lsp_server = self.get_match_lsp_servers("completion")[0]
         if "ignore-diagnostic" in lsp_server.server_info:
-            eval_in_emacs("lsp-bridge-insert-ignore-diagnostic-comment", lsp_server.server_info["ignore-diagnostic"])
+            eval_in_emacs("lsp-bridge-diagnostic--ignore", lsp_server.server_info["ignore-diagnostic"])
         else:
             message_emacs("Not found 'ignore_diagnostic' field in LSP server configure file.")
             
@@ -181,11 +189,28 @@ class FileAction:
         if len(self.diagnostics) == 0:
             message_emacs("No diagnostics found.")
         else:
-            eval_in_emacs("lsp-bridge-list-diagnostics-popup", self.diagnostics)
+            eval_in_emacs("lsp-bridge-diagnostic--list", self.diagnostics)
             
-    def save_file(self):
+    def record_diagnostics(self, diagnostics):
+        # Record diagnostics data that push from LSP server.
+        self.diagnostics = diagnostics
+        self.diagnostics_ticker += 1 
+        
+        # Try to push diagnostics to Emacs.
+        if self.enable_push_diagnostics:
+            push_diagnostic_ticker = self.diagnostics_ticker
+            push_diagnostic_timer = threading.Timer(self.push_diagnostic_idle, lambda : self.try_push_diagnostics(push_diagnostic_ticker))
+            push_diagnostic_timer.start()
+        
+    def try_push_diagnostics(self, ticker):
+        # Only push diagnostics to Emacs when ticker is newest.
+        # Drop all temporarily diagnostics when typing.
+        if ticker == self.diagnostics_ticker:
+            eval_in_emacs("lsp-bridge-diagnostic--render", self.filepath, self.diagnostics)
+            
+    def save_file(self, buffer_name):
         for lsp_server in self.get_lsp_servers():
-            lsp_server.send_did_save_notification(self.filepath)
+            lsp_server.send_did_save_notification(self.filepath, buffer_name)
             
     def completion_item_resolve(self, item_key, server_name):
         if server_name in self.completion_items:
@@ -214,7 +239,7 @@ class FileAction:
                if "kind" in documentation:
                    documentation = documentation["value"]
                        
-           eval_in_emacs("lsp-bridge-update-completion-item-info",
+           eval_in_emacs("lsp-bridge-completion-item--update",
                          {
                              "filepath": self.filepath,
                              "key": item_key,
