@@ -1,1 +1,3 @@
 core/tsc-dyn.so
+core/target
+.cask

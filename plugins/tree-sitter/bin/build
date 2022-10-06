@@ -9,7 +9,7 @@
 
 set -euo pipefail
 
-here=$(cd "$(dirname "$BASH_SOURCE")"; pwd)
+here=$(cd "$(dirname "$BASH_SOURCE")" >/dev/null; pwd)
 source "$here/env.bash"
 
 core_root="$PROJECT_ROOT/core"
