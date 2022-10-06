@@ -896,17 +896,28 @@ name (e.g. `data' variable passed as `data' parameter)."
                   :priority -2
                   :completion-in-comments? t
                   :initialization-options (lambda ()
-                                            (list :disableAutomaticTypingAcquisition lsp-clients-typescript-disable-automatic-typing-acquisition
-                                                  :logVerbosity lsp-clients-typescript-log-verbosity
-                                                  :maxTsServerMemory lsp-clients-typescript-max-ts-server-memory
-                                                  :npmLocation lsp-clients-typescript-npm-location
-                                                  :plugins lsp-clients-typescript-plugins
-                                                  :preferences lsp-clients-typescript-preferences))
+                                            (append
+                                             (when lsp-clients-typescript-disable-automatic-typing-acquisition
+                                              (list :disableAutomaticTypingAcquisition lsp-clients-typescript-disable-automatic-typing-acquisition))
+                                             (when lsp-clients-typescript-log-verbosity
+                                              (list :logVerbosity lsp-clients-typescript-log-verbosity))
+                                             (when lsp-clients-typescript-max-ts-server-memory
+                                              (list :maxTsServerMemory lsp-clients-typescript-max-ts-server-memory))
+                                             (when lsp-clients-typescript-npm-location
+                                              (list :npmLocation lsp-clients-typescript-npm-location))
+                                             (when lsp-clients-typescript-plugins
+                                              (list :plugins lsp-clients-typescript-plugins))
+                                             (when lsp-clients-typescript-preferences
+                                              (list :preferences lsp-clients-typescript-preferences))))
                   :initialized-fn (lambda (workspace)
                                     (with-lsp-workspace workspace
                                       (lsp--set-configuration
                                        (ht-merge (lsp-configuration-section "javascript")
-                                                 (lsp-configuration-section "typescript")))))
+                                                 (lsp-configuration-section "typescript"))))
+                                    (let ((caps (lsp--workspace-server-capabilities workspace))
+                                          (format-enable (or lsp-javascript-format-enable lsp-typescript-format-enable)))
+                                      (lsp:set-server-capabilities-document-formatting-provider? caps format-enable)
+                                      (lsp:set-server-capabilities-document-range-formatting-provider? caps format-enable)))
                   :after-open-fn (lambda ()
                                    (when lsp-javascript-display-inlay-hints
                                      (lsp-javascript-inlay-hints-mode)))

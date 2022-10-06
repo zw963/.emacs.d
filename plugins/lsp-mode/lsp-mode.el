@@ -178,7 +178,7 @@ As defined by the Language Server Protocol 3.16."
          lsp-elm lsp-elixir lsp-emmet lsp-erlang lsp-eslint lsp-fortran lsp-fsharp lsp-gdscript lsp-go
          lsp-gleam lsp-graphql lsp-hack lsp-grammarly lsp-groovy lsp-haskell lsp-haxe lsp-idris lsp-java lsp-javascript
          lsp-json lsp-kotlin lsp-latex lsp-ltex lsp-lua lsp-markdown lsp-marksman lsp-mint lsp-nginx lsp-nim lsp-nix lsp-magik
-         lsp-metals lsp-mssql lsp-ocaml lsp-openscad lsp-pascal lsp-perl lsp-perlnavigator lsp-php lsp-pwsh lsp-pyls lsp-pylsp
+         lsp-metals lsp-mssql lsp-ocaml lsp-openscad lsp-pascal lsp-perl lsp-perlnavigator lsp-pls lsp-php lsp-pwsh lsp-pyls lsp-pylsp
          lsp-pyright lsp-python-ms lsp-purescript lsp-r lsp-racket lsp-remark lsp-rf lsp-rust lsp-solargraph
          lsp-sorbet lsp-sourcekit lsp-sonarlint lsp-tailwindcss lsp-tex lsp-terraform lsp-toml
          lsp-ttcn3 lsp-typeprof lsp-v lsp-vala lsp-verilog lsp-vetur lsp-volar lsp-vhdl lsp-vimscript
@@ -743,6 +743,7 @@ Changes take effect only when a new session is started."
                                         (".*\\.ebuild$" . "shellscript")
                                         (".*/PKGBUILD$" . "shellscript")
                                         (".*\\.ttcn3$" . "ttcn3")
+                                        (".*\\ya?ml$" . "yaml")
                                         (ada-mode . "ada")
                                         (nxml-mode . "xml")
                                         (sql-mode . "sql")
@@ -775,6 +776,7 @@ Changes take effect only when a new session is started."
                                         (xml-mode . "xml")
                                         (c-mode . "c")
                                         (c++-mode . "cpp")
+                                        (cuda-mode . "cuda")
                                         (objc-mode . "objective-c")
                                         (html-mode . "html")
                                         (sgml-mode . "html")
@@ -801,7 +803,7 @@ Changes take effect only when a new session is started."
                                         (swift-mode . "swift")
                                         (elixir-mode . "elixir")
                                         (conf-javaprop-mode . "spring-boot-properties")
-                                        (yaml-mode . "spring-boot-properties-yaml")
+                                        (yaml-mode . "yaml")
                                         (ruby-mode . "ruby")
                                         (enh-ruby-mode . "ruby")
                                         (fortran-mode . "fortran")
@@ -847,7 +849,8 @@ Changes take effect only when a new session is started."
                                         (magik-mode . "magik")
                                         (idris-mode . "idris")
                                         (idris2-mode . "idris2")
-                                        (gleam-mode . "gleam"))
+                                        (gleam-mode . "gleam")
+                                        (graphviz-dot-mode . "dot"))
   "Language id configuration.")
 
 (defvar lsp--last-active-workspaces nil
@@ -862,18 +865,14 @@ directory")
      :check-command (lambda (workspace)
                       (with-lsp-workspace workspace
                         (lsp:code-action-options-resolve-provider?
-                         (or (lsp--capability :codeActionProvider)
-                             (-some-> (lsp--registered-capability "textDocument/codeAction")
-                               (lsp--registered-capability-options)))))))
+                         (lsp--capability-for-method "textDocument/codeAction")))))
     ("textDocument/codeLens" :capability :codeLensProvider)
     ("textDocument/completion" :capability :completionProvider)
     ("completionItem/resolve"
      :check-command (lambda (wk)
                       (with-lsp-workspace wk
                         (lsp:completion-options-resolve-provider?
-                         (or (lsp--capability :completionProvider)
-                             (-some-> (lsp--registered-capability "textDocument/completion")
-                               (lsp--registered-capability-options)))))))
+                         (lsp--capability-for-method "textDocument/completion")))))
     ("textDocument/declaration" :capability :declarationProvider)
     ("textDocument/definition" :capability :definitionProvider)
     ("textDocument/documentColor" :capability :colorProvider)
@@ -890,9 +889,7 @@ directory")
      :check-command (lambda (workspace)
                       (with-lsp-workspace workspace
                         (lsp:rename-options-prepare-provider?
-                         (or (lsp--capability :renameProvider)
-                             (-some-> (lsp--registered-capability "textDocument/rename")
-                               (lsp--registered-capability-options)))))))
+                         (lsp--capability-for-method "textDocument/rename")))))
     ("textDocument/rangeFormatting" :capability :documentRangeFormattingProvider)
     ("textDocument/references" :capability :referencesProvider)
     ("textDocument/rename" :capability :renameProvider)
@@ -913,6 +910,7 @@ directory")
                         (lsp-get (lsp--capability :semanticTokensProvider) :range))))
     ("textDocument/signatureHelp" :capability :signatureHelpProvider)
     ("textDocument/typeDefinition" :capability :typeDefinitionProvider)
+    ("textDocument/typeHierarchy" :capability :typeHierarchyProvider)
     ("workspace/executeCommand" :capability :executeCommandProvider)
     ("workspace/symbol" :capability :workspaceSymbolProvider))
 
@@ -1375,6 +1373,31 @@ INHERIT-INPUT-METHOD will be proxied to `completing-read' without changes."
                                       def inherit-input-method)))
     (cdr (assoc completion col))))
 
+(defconst lsp--system-arch (lambda ()
+                             (setq lsp--system-arch
+                                   (pcase system-type
+                                     ('windows-nt
+                                      (pcase system-configuration
+                                        ((rx bol "x86_64-") 'x64)
+                                        (_ 'x86)))
+                                     ('darwin
+                                      (pcase system-configuration
+                                        ((rx "aarch64-") 'arm64)
+                                        (_ 'x64)))
+                                     ('gnu/linux
+                                       (pcase system-configuration
+                                         ((rx bol "x86_64") 'x64)
+                                         ((rx bol (| "i386" "i886")) 'x32)))
+                                     (_
+                                      (pcase system-configuration
+                                        ((rx bol "x86_64") 'x64)
+                                        ((rx bol (| "i386" "i886")) 'x32))))))
+  "Return the system architecture of `Emacs'.
+Special values:
+  `x64'       64bit
+  `x32'       32bit
+  `arm64'     ARM 64bit")
+
 (defmacro lsp-with-current-buffer (buffer-id &rest body)
   (declare (indent 1) (debug t))
   `(if-let ((wcb (plist-get ,buffer-id :with-current-buffer)))
@@ -1505,7 +1528,34 @@ return value of `body' or nil if interrupted."
   multi-root
   ;; Initialization options or a function that returns initialization options.
   initialization-options
-  ;; Overrides semantic tokens faces for specific clients
+  ;; `semantic-tokens-faces-overrides’ is a plist that can be used to extend, or
+  ;; completely replace, the faces used for semantic highlighting on a
+  ;; client-by-client basis.
+  ;;
+  ;; It recognizes four members, all of which are optional: `:types’ and
+  ;; `:modifiers’, respectively, should be face definition lists akin to
+  ;; `:lsp-semantic-token-faces’. If specified, each of these face lists will be
+  ;; merged with the default face definition list.
+  ;;
+  ;; Alternatively, if the plist members `:discard-default-types’ or
+  ;; `:discard-default-modifiers' are non-nil, the default `:type' or `:modifiers'
+  ;; face definitions will be replaced entirely by their respective overrides.
+  ;;
+  ;; For example, setting `:semantic-tokens-faces-overrides' to
+  ;; `(:types (("macro" . font-lock-keyword-face)))' will remap "macro" tokens from
+  ;; their default face `lsp-face-semhl-macro' to `font-lock-keyword-face'.
+  ;;
+  ;; `(:types (("macro" . font-lock-keyword-face) ("not-quite-a-macro" . some-face)))'
+  ;; will also remap "macro", but on top of that associate the fictional token type
+  ;; "not-quite-a-macro" with the face named `some-face'.
+  ;;
+  ;; `(:types (("macro" . font-lock-keyword-face))
+  ;;   :modifiers (("declaration" . lsp-face-semhl-interface))
+  ;;   :discard-default-types t
+  ;;   :discard-default-modifiers t)'
+  ;; will discard all default face definitions, hence leaving the client with
+  ;; only one token type "macro", mapped to `font-lock-keyword-face', and one
+  ;; modifier type "declaration", mapped to `lsp-face-semhl-interface'.
   semantic-tokens-faces-overrides
   ;; Provides support for registering LSP Server specific capabilities.
   custom-capabilities
@@ -1641,7 +1691,7 @@ etc."
 (defun lsp-extend-selection ()
   "Extend selection."
   (interactive)
-  (unless (lsp--capability :selectionRangeProvider)
+  (unless (lsp-feature? "textDocument/selectionRange")
     (signal 'lsp-capability-not-supported (list "selectionRangeProvider")))
   (-when-let ((start . end) (lsp--find-wrapping-range (lsp--get-selection-range)))
     (goto-char start)
@@ -1869,7 +1919,7 @@ regex in IGNORED-FILES."
   "Helper macro for invoking BODY in WORKSPACE context."
   (declare (debug (form body))
            (indent 1))
-  `(let ((lsp--cur-workspace ,workspace)) ,@body))
+  `(when ,workspace (let ((lsp--cur-workspace ,workspace)) ,@body)))
 
 (defmacro with-lsp-workspaces (workspaces &rest body)
   "Helper macro for invoking BODY against multiple WORKSPACES."
@@ -1891,7 +1941,7 @@ regex in IGNORED-FILES."
     lsp-clojure lsp-cmake lsp-crystal lsp-csharp lsp-css lsp-d lsp-dhall
     lsp-dockerfile lsp-elixir lsp-elm lsp-erlang lsp-eslint lsp-fortran lsp-fsharp lsp-gdscript
     lsp-go lsp-gleam lsp-graphql lsp-groovy lsp-hack lsp-haxe lsp-html lsp-idris lsp-javascript lsp-json lsp-kotlin lsp-lua
-    lsp-markdown lsp-marksman lsp-nginx lsp-nim lsp-nix lsp-ocaml lsp-perl lsp-perlnavigator lsp-php lsp-prolog lsp-purescript lsp-pwsh
+    lsp-markdown lsp-marksman lsp-nginx lsp-nim lsp-nix lsp-ocaml lsp-perl lsp-perlnavigator lsp-pls lsp-php lsp-prolog lsp-purescript lsp-pwsh
     lsp-pyls lsp-pylsp lsp-racket lsp-r lsp-rf lsp-rust lsp-solargraph lsp-sorbet lsp-sqls
     lsp-steep lsp-svelte lsp-terraform lsp-tex lsp-toml lsp-ttcn3 lsp-typeprof lsp-v lsp-vala lsp-verilog
     lsp-vetur lsp-volar lsp-vhdl lsp-vimscript lsp-xml lsp-yaml lsp-zig)
@@ -2327,13 +2377,11 @@ WORKSPACE is the workspace that contains the diagnostics."
                    nil)))
 
 (defun lsp--folding-range-at-point-bounds ()
-  (if (and (or (lsp--capability :foldingRangeProvider)
-               (lsp--registered-capability "textDocument/foldingRange"))
-           lsp-enable-folding)
-      (if-let ((range (lsp--get-current-innermost-folding-range)))
-          (cons (lsp--folding-range-beg range)
-                (lsp--folding-range-end range)))
-    nil))
+  (when (and lsp-enable-folding
+             (lsp-feature? "textDocument/foldingRange"))
+    (if-let ((range (lsp--get-current-innermost-folding-range)))
+        (cons (lsp--folding-range-beg range)
+              (lsp--folding-range-end range)))))
 (put 'lsp--folding-range 'bounds-of-thing-at-point
      #'lsp--folding-range-at-point-bounds)
 
@@ -2350,10 +2398,9 @@ WORKSPACE is the workspace that contains the diagnostics."
     found))
 
 (defun lsp--folding-range-at-point-forward-op (n)
-  (when (and (or (lsp--capability :foldingRangeProvider)
-                 (lsp--registered-capability "textDocument/foldingRange"))
-             lsp-enable-folding
-             (not (zerop n)))
+  (when (and lsp-enable-folding
+             (not (zerop n))
+             (lsp-feature? "textDocument/foldingRange"))
     (cl-block break
       (dotimes (_ (abs n))
         (if-let ((range (lsp--get-nearest-folding-range (< n 0))))
@@ -2377,7 +2424,7 @@ WORKSPACE is the workspace that contains the diagnostics."
 (defun lsp--range-at-point-bounds ()
   (or (lsp--folding-range-at-point-bounds)
       (when-let ((range (and
-                         (lsp--capability :hoverProvider)
+                         (lsp-feature? "textDocument/hover")
                          (->> (lsp--text-document-position-params)
                               (lsp-request "textDocument/hover")
                               (lsp:hover-range?)))))
@@ -3508,6 +3555,7 @@ disappearing, unset all the variables related to it."
                                          (hierarchicalDocumentSymbolSupport . t)))
                       (formatting . ((dynamicRegistration . t)))
                       (rangeFormatting . ((dynamicRegistration . t)))
+                      (onTypeFormatting . ((dynamicRegistration . t)))
                       ,@(when (and lsp-semantic-tokens-enable
                                    (functionp 'lsp--semantic-tokens-capabilities))
                           (lsp--semantic-tokens-capabilities))
@@ -3545,17 +3593,21 @@ disappearing, unset all the variables related to it."
                                                         (insertTextModeSupport . ((valueSet . [1 2])))))
                                      (contextSupport . t)
                                      (dynamicRegistration . t)))
-                      (signatureHelp . ((signatureInformation . ((parameterInformation . ((labelOffsetSupport . t)))))))
+                      (signatureHelp . ((signatureInformation . ((parameterInformation . ((labelOffsetSupport . t)))))
+                                        (dynamicRegistration . t)))
                       (documentLink . ((dynamicRegistration . t)
                                        (tooltipSupport . t)))
-                      (hover . ((contentFormat . ["markdown" "plaintext"])))
+                      (hover . ((contentFormat . ["markdown" "plaintext"])
+                                (dynamicRegistration . t)))
                       ,@(when lsp-enable-folding
                           `((foldingRange . ((dynamicRegistration . t)
                                              ,@(when lsp-folding-range-limit
                                                  `((rangeLimit . ,lsp-folding-range-limit)))
                                              ,@(when lsp-folding-line-folding-only
                                                  `((lineFoldingOnly . t)))))))
+                      (selectionRange . ((dynamicRegistration . t)))
                       (callHierarchy . ((dynamicRegistration . :json-false)))
+                      (typeHierarchy . ((dynamicRegistration . t)))
                       (publishDiagnostics . ((relatedInformation . t)
                                              (tagSupport . ((valueSet . [1 2])))
                                              (versionSupport . t)))
@@ -3872,7 +3924,7 @@ yet."
       (lsp-signature-activate))))
 
 (defun lsp--on-type-formatting-handler-create ()
-  (when-let ((provider (lsp--capability :documentOnTypeFormattingProvider)))
+  (when-let ((provider (lsp--capability-for-method "textDocument/onTypeFormatting" )))
     (-let [(&DocumentOnTypeFormattingOptions :more-trigger-character?
                                              :first-trigger-character) provider]
       (lambda ()
@@ -3890,7 +3942,7 @@ yet."
 
 (defun lsp--signature-help-handler-create ()
   (-when-let ((&SignatureHelpOptions? :trigger-characters?)
-              (lsp--capability :signatureHelpProvider))
+              (lsp--capability-for-method "textDocument/signatureHelp"))
     (lambda ()
       (lsp--maybe-enable-signature-help trigger-characters?))))
 
@@ -4000,7 +4052,7 @@ yet."
 
       (when (and lsp-enable-indentation
                  (lsp-feature? "textDocument/rangeFormatting"))
-        (setq-local indent-region-function #'lsp-format-region))
+        (add-function :override (local 'indent-region-function) #'lsp-format-region))
 
       (when (and lsp-enable-symbol-highlighting
                  (lsp-feature? "textDocument/documentHighlight"))
@@ -4017,18 +4069,25 @@ yet."
 
 (defun lsp-unconfig-buffer ()
   "Unconfigure LSP features for buffer."
-  (run-hooks 'lsp-unconfigure-hook)
-
   (lsp--remove-overlays 'lsp-color)
-  (when (eq indent-region-function #'lsp-format-region)
-    (kill-local-variable 'indent-region-function))
-  (when (eq imenu-create-index-function #'lsp--imenu-create-index)
-    (kill-local-variable 'imenu-create-index-function)
-    (kill-local-variable 'imenu-menubar-modified-tick)
-    (kill-local-variable 'imenu--index-alist))
+
+  (when (advice-function-member-p 'lsp--imenu-create-index imenu-create-index-function)
+    (remove-function (local 'imenu-create-index-function) #'lsp--imenu-create-index)
+    (setq-local imenu-menubar-modified-tick 0)
+    (setq-local imenu--index-alist nil)
+    (imenu--cleanup))
+
+  (remove-function (local 'indent-region-function) #'lsp-format-region)
+
   (remove-hook 'lsp-on-change-hook #'lsp--document-color t)
   (remove-hook 'lsp-on-idle-hook #'lsp--document-highlight t)
-  (remove-hook 'lsp-on-idle-hook #'lsp--document-links t))
+  (remove-hook 'lsp-on-idle-hook #'lsp--document-links t)
+
+  (when (and lsp-enable-dap-auto-configure
+             (functionp 'dap-mode))
+    (dap-auto-configure-mode -1))
+
+  (run-hooks 'lsp-unconfigure-hook))
 
 (defun lsp--buffer-content ()
   (lsp-save-restriction-and-excursion
@@ -4416,6 +4475,14 @@ Only works when mode is 'tick or 'alive."
                          (lsp--workspace-registered-server-capabilities it)))
        cl-first))
 
+(defun lsp--capability-for-method (method)
+  "Get the value of capability for METHOD."
+  (-let* ((reqs (cdr (assoc method lsp-method-requirements)))
+          ((&plist :capability) reqs))
+    (or (and capability (lsp--capability capability))
+        (-some-> (lsp--registered-capability method)
+          (lsp--registered-capability-options)))))
+
 (defvar-local lsp--before-change-vals nil
   "Store the positions from the `lsp-before-change' function call, for
 validation and use in the `lsp-on-change' function.")
@@ -4749,7 +4816,7 @@ Applies on type formatting."
     (lambda (_)
       (interactive)
       (when (lsp:document-link-registration-options-resolve-provider?
-             (lsp--capability :documentLinkProvider))
+             (lsp--capability-for-method "textDocument/documentLink"))
         (lsp-request-async
          "documentLink/resolve"
          link
@@ -5568,7 +5635,7 @@ It will show up only if current point has signature help."
           lsp--eldoc-saved-message nil)
     (if (looking-at "[[:space:]\n]")
         (lsp--eldoc-message nil)
-      (when (and lsp-eldoc-enable-hover (lsp--capability :hoverProvider))
+      (when (and lsp-eldoc-enable-hover (lsp-feature? "textDocument/hover"))
         (lsp-request-async
          "textDocument/hover"
          (lsp--text-document-position-params)
@@ -6562,6 +6629,14 @@ server. WORKSPACE is the active workspace."
            (lsp--on-notification workspace json-data))
           ('request (lsp--on-request workspace json-data)))))))
 
+(defvar lsp--parsed-messages nil
+  "Stores the message queue that needed to be parsed.")
+(defun lsp--dispatch-messages ()
+  "Dispatch the messages in `lsp--parsed-messages'."
+  (run-at-time 0 nil (lambda ()
+                       (when (cl-rest lsp--parsed-messages) (lsp--dispatch-messages))
+                       (apply #'lsp--parser-on-message (pop lsp--parsed-messages)))))
+
 (defun lsp--create-filter-function (workspace)
   "Make filter for the workspace."
   (let ((body-received 0)
@@ -6571,7 +6646,8 @@ server. WORKSPACE is the active workspace."
                       input
                     (concat leftovers input)))
 
-      (let (messages)
+      (let (messages
+            (empty-queue? (not lsp--parsed-messages)))
         (while (not (s-blank? chunk))
           (if (not body-length)
               ;; Read headers
@@ -6624,8 +6700,9 @@ server. WORKSPACE is the active workspace."
                              (concat leftovers input)
                              err)))))))
         (mapc (lambda (msg)
-                (lsp--parser-on-message msg workspace))
-              (nreverse messages))))))
+                (setq lsp--parsed-messages (nconc lsp--parsed-messages `((,msg ,workspace)))))
+              (nreverse messages))
+        (when (and empty-queue? lsp--parsed-messages) (lsp--dispatch-messages))))))
 
 (defvar-local lsp--line-col-to-point-hash-table nil
   "Hash table with keys (line . col) and values that are either point positions
@@ -6635,6 +6712,11 @@ or markers.")
   "Whether `lsp-imenu' should include signatures.
 This will be ignored if the server doesn't provide the necessary
 information, for example if it doesn't support DocumentSymbols."
+  :group 'lsp-imenu
+  :type 'boolean)
+
+(defcustom lsp-imenu-hide-parent-details t
+  "Whether `lsp-imenu' should hide signatures of parent nodes."
   :group 'lsp-imenu
   :type 'boolean)
 
@@ -6846,7 +6928,8 @@ The result looks like this: ((\"Variables\" . (...)))."
     (-lambda ((sym &as &DocumentSymbol :kind :children?))
       (if (seq-empty-p children?)
           (list (list kind (lsp--symbol->imenu sym)))
-        (let ((parent (lsp-render-symbol sym lsp-imenu-detailed-outline)))
+        (let ((parent (lsp-render-symbol sym (and lsp-imenu-detailed-outline
+                                                  (not lsp-imenu-hide-parent-details)))))
           (cons
            (list kind (lsp--symbol->imenu sym))
            (mapcar (-lambda ((type .  imenu-items))
@@ -6984,7 +7067,7 @@ Return a nested alist keyed by symbol names. e.g.
 (defun lsp-enable-imenu ()
   "Use lsp-imenu for the current buffer."
   (imenu--cleanup)
-  (setq-local imenu-create-index-function #'lsp--imenu-create-index)
+  (add-function :override (local 'imenu-create-index-function) #'lsp--imenu-create-index)
   (setq-local imenu-menubar-modified-tick -1)
   (setq-local imenu--index-alist nil)
   (when menu-bar-mode
@@ -7704,11 +7787,11 @@ When prefix UPDATE? is t force installation even if the server is present."
 (defun lsp-resolve-value (value)
   "Resolve VALUE's value.
 If it is function - call it.
-If it is symbol - return it's value
+If it is a variable - return it's value
 Otherwise returns value itself."
   (cond
    ((functionp value) (funcall value))
-   ((symbolp value) (symbol-value value))
+   ((and (symbolp value) (boundp value)) (symbol-value value))
    (value)))
 
 (defvar lsp-deps-providers
@@ -7785,12 +7868,12 @@ nil."
                                         (string-trim (shell-command-to-string
                                                       (mapconcat #'shell-quote-argument `(,npm-binary "view" ,package "peerDependencies") " "))))
                                        (funcall callback)
-                                     (let ((default-directory (f-dirname (car (last (directory-files-recursively (f-join lsp-server-install-dir "npm" package) "package.json"))))))
+                                     (let ((default-directory (f-dirname (car (last (directory-files-recursively (f-join lsp-server-install-dir "npm" package) "package.json")))))
+                                           (process-environment (append '("npm_config_yes=true") process-environment))) ;; Disable prompting for older versions of npx
                                        (when (f-dir-p default-directory)
                                          (lsp-async-start-process callback
                                                                   error-callback
                                                                   (executable-find "npx")
-                                                                  "--yes"
                                                                   "npm-install-peers")))))
                                  error-callback
                                  npm-binary
@@ -7812,8 +7895,9 @@ nil."
           (pcase decompress
             (:gzip (concat store-path ".gz"))
             (:zip (concat store-path ".zip"))
+            (:targz (concat store-path ".tar.gz"))
             (`nil store-path)
-            (_ (error ":decompress must be `:gzip', `:zip' or `nil'")))))
+            (_ (error ":decompress must be `:gzip', `:zip', `:targz' or `nil'")))))
     (make-thread
      (lambda ()
        (condition-case err
@@ -7855,7 +7939,8 @@ nil."
                (pcase decompress
                  (:gzip
                   (lsp-gunzip download-path))
-                 (:zip (lsp-unzip download-path (f-parent store-path))))
+                 (:zip (lsp-unzip download-path (f-parent store-path)))
+                 (:targz (lsp-tar-gz-decompress download-path (f-parent store-path))))
                (lsp--info "Decompressed %s..." store-path))
              (funcall callback))
          (error (funcall error-callback err)))))))
@@ -7875,6 +7960,20 @@ archieve(e. g. when the archieve has multiple files)"
       (set-file-modes store-path #o0700)
       store-path)
      ((f-exists? store-path) store-path))))
+
+(defun lsp--find-latest-gh-release-url (url regex)
+  "Fetch the latest version in the releases given by URL by using REGEX."
+  (let ((url-request-method "GET"))
+    (with-current-buffer (url-retrieve-synchronously url)
+      (goto-char (point-min))
+      (re-search-forward "\n\n" nil 'noerror)
+      (delete-region (point-min) (point))
+      (let* ((json-result (lsp-json-read-buffer)))
+        (message "Latest version found: %s" (lsp-get json-result :tag_name))
+        (--> json-result
+             (lsp-get it :assets)
+             (seq-find (lambda (entry) (string-match-p regex (lsp-get entry :name))) it)
+             (lsp-get it :browser_download_url))))))
 
 ;; unzip
 
@@ -7885,9 +7984,10 @@ archieve(e. g. when the archieve has multiple files)"
 (defconst lsp-ext-unzip-script "bash -c 'mkdir -p %2$s && unzip -qq -o %1$s -d %2$s'"
   "Unzip script to unzip file.")
 
-(defcustom lsp-unzip-script (cond ((executable-find "powershell") lsp-ext-pwsh-script)
-                                  ((executable-find "unzip") lsp-ext-unzip-script)
-                                  (t nil))
+(defcustom lsp-unzip-script (lambda ()
+                              (cond ((executable-find "powershell") lsp-ext-pwsh-script)
+                                    ((executable-find "unzip") lsp-ext-unzip-script)
+                                    (t nil)))
   "The script to unzip."
   :group 'lsp-mode
   :type 'string
@@ -7897,15 +7997,16 @@ archieve(e. g. when the archieve has multiple files)"
   "Unzip ZIP-FILE to DEST."
   (unless lsp-unzip-script
     (error "Unable to find `unzip' or `powershell' on the path, please customize `lsp-unzip-script'"))
-  (shell-command (format lsp-unzip-script zip-file dest)))
+  (shell-command (format (lsp-resolve-value lsp-unzip-script) zip-file dest)))
 
 ;; gunzip
 
 (defconst lsp-ext-gunzip-script "gzip -d %1$s"
   "Script to decompress a gzippped file with gzip.")
 
-(defcustom lsp-gunzip-script (cond ((executable-find "gzip") lsp-ext-gunzip-script)
-                                   (t nil))
+(defcustom lsp-gunzip-script (lambda ()
+                               (cond ((executable-find "gzip") lsp-ext-gunzip-script)
+                                     (t nil)))
   "The script to decompress a gzipped file.
 Should be a format string with one argument for the file to be decompressed
 in place."
@@ -7917,23 +8018,45 @@ in place."
   "Decompress GZ-FILE in place."
   (unless lsp-gunzip-script
     (error "Unable to find `gzip' on the path, please either customize `lsp-gunzip-script' or manually decompress %s" gz-file))
-  (shell-command (format lsp-gunzip-script gz-file)))
+  (shell-command (format (lsp-resolve-value lsp-gunzip-script) gz-file)))
+
+;; tar.gz decompression
+
+(defconst lsp-ext-tar-script "bash -c 'mkdir -p %2$s; tar xf %1$s --directory=%2$s'"
+  "Script to decompress a .tar.gz file.")
+
+(defcustom lsp-tar-script (lambda ()
+                            (cond ((executable-find "tar") lsp-ext-tar-script)
+                                  (t nil)))
+  "The script to decompress a .tar.gz file.
+Should be a format string with one argument for the file to be decompressed
+in place."
+  :group 'lsp-mode
+  :type 'string)
+
+(defun lsp-tar-gz-decompress (targz-file dest)
+  "Decompress TARGZ-FILE in DEST."
+  (unless lsp-tar-script
+    (error "Unable to find `tar' on the path, please either customize `lsp-tar-script' or manually decompress %s" targz-file))
+  (shell-command (format (lsp-resolve-value lsp-tar-script) targz-file dest)))
+
 
 ;; VSCode marketplace
 
 (defcustom lsp-vscode-ext-url
-  "https://marketplace.visualstudio.com/_apis/public/gallery/publishers/%s/vsextensions/%s/%s/vspackage"
+  "https://marketplace.visualstudio.com/_apis/public/gallery/publishers/%s/vsextensions/%s/%s/vspackage%s"
   "Vscode extension template url."
   :group 'lsp-mode
   :type 'string
   :package-version '(lsp-mode . "8.0.0"))
 
-(defun lsp-vscode-extension-url (publisher name &optional version)
+(defun lsp-vscode-extension-url (publisher name version &optional targetPlatform)
   "Return the URL to vscode extension.
 PUBLISHER is the extension publisher.
 NAME is the name of the extension.
-VERSION is the version of the extension, defaults to `latest'"
-  (format lsp-vscode-ext-url publisher name (or version "latest")))
+VERSION is the version of the extension.
+TARGETPLATFORM is the targetPlatform of the extension."
+  (format lsp-vscode-ext-url publisher name version (or targetPlatform "")))
 
 
 
