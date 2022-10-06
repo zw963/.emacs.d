@@ -89,7 +89,7 @@
 ;; - TypeScript/TSX (prettier, ts-standard, prettierd)
 ;; - V (v fmt)
 ;; - Vue (prettier, prettierd)
-;; - Verilog (iStyle)
+;; - Verilog (iStyle, Verible)
 ;; - YAML (prettier, prettierd)
 ;; - Zig (zig)
 
@@ -203,7 +203,12 @@
     ("_Nginx" nginxfmt)
     ("_Snakemake" snakefmt))
   "Default formatter to use for each language."
-  :type '(repeat (list string symbol))
+  :type '(repeat (list (string :tag "Language")
+                       (choice (symbol :tag "Formatter Only")
+                               (cons :tag "Formatter with Custom Arguments"
+                                     (symbol :tag "Formatter")
+                                     (repeat :tag "Custom Arguments"
+                                             (string :tag "Argument"))))))
   :group 'format-all)
 
 (defcustom format-all-show-errors 'errors
@@ -212,6 +217,12 @@
                  (const :tag "Errors" errors)
                  (const :tag "Warnings" warnings)
                  (const :tag "Never" never))
+  :group 'format-all)
+
+(defcustom format-all-mode-lighter " FmtAll"
+  "Lighter for command `format-all-mode'."
+  :type '(string :tag "Lighter")
+  :risky t
   :group 'format-all)
 
 (defvar format-all-after-format-functions nil
@@ -268,7 +279,7 @@ association list. Using \".dir-locals.el\" is convenient since
 the rules for an entire source tree can be given in one file.")
 
 (define-error 'format-all-executable-not-found
-  "Formatter command not found")
+  "Formatter not found")
 
 (defun format-all--proper-list-p (object)
   "Return t if OBJECT is a proper list, nil otherwise."
@@ -751,12 +762,7 @@ Consult the existing formatters for examples of BODY."
   (:install (macos "brew install mint-lang"))
   (:languages "Mint")
   (:features)
-  (:format
-   (cl-destructuring-bind (output error-output)
-       (format-all--buffer-hard '(0 1) nil '("mint.json")
-                                executable "format" "--stdin")
-     (let ((error-output (format-all--remove-ansi-color error-output)))
-       (list output error-output)))))
+  (:format (format-all--buffer-easy executable "format" "--stdin")))
 
 (define-format-all-formatter dart-format
   (:executable "dart")
@@ -870,7 +876,7 @@ Consult the existing formatters for examples of BODY."
   (:install "stack install fourmolu")
   (:languages "Haskell" "Literate Haskell")
   (:features)
-  (:format (format-all--buffer-easy executable)))
+  (:format (format-all--buffer-easy executable "--stdin-input-file" (buffer-file-name))))
 
 (define-format-all-formatter fprettify
   (:executable "fprettify")
@@ -1058,7 +1064,19 @@ Consult the existing formatters for examples of BODY."
   (:format
    (format-all--buffer-easy
     executable
-    (unless (buffer-file-name)
+    (when (let* ((file (buffer-file-name))
+                 (info (and file
+                            (with-temp-buffer
+                              (call-process executable nil t nil
+                                            "--file-info" file)
+                              (buffer-string)))))
+            (when (and format-all-debug info)
+              (message "Format-All: --file-info: %s" info))
+            (or (not info)
+                (save-match-data
+                  (string-match
+                   (regexp-quote "\"inferredParser\": null")
+                   info))))
       (list "--parser"
             (let ((pair (assoc language
                                '(("_Angular"   . "angular")
@@ -1311,6 +1329,13 @@ Consult the existing formatters for examples of BODY."
     executable "--fix" "--stdin"
     (when (buffer-file-name)
       (list "--stdin-filename" (buffer-file-name))))))
+
+(define-format-all-formatter verible 
+  (:executable "verible-verilog-format")
+  (:install)
+  (:languages "Verilog" "SystemVerilog")
+  (:features)
+  (:format (format-all--buffer-easy executable "-")))
 
 (define-format-all-formatter v-fmt
   (:executable "v")
@@ -1584,6 +1609,7 @@ The PROMPT argument works as for `format-all-buffer'."
        (error "The region is not active now"))))
   (format-all--buffer-or-region prompt (cons start end)))
 
+;;;###autoload
 (defun format-all-ensure-formatter ()
   "Ensure current buffer has a formatter, using default if not."
   (interactive)
@@ -1626,7 +1652,7 @@ this too:
 When `format-all-mode' is called as a Lisp function, the mode is
 toggled if ARG is ‘toggle’, disabled if ARG is a negative integer
 or zero, and enabled otherwise."
-  :lighter " FmtAll"
+  :lighter format-all-mode-lighter
   :global nil
   (if format-all-mode
       (add-hook 'before-save-hook
