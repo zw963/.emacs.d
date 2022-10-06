@@ -1021,7 +1021,8 @@ It is used when `crystal-encoding-magic-comment-style' is set to `custom'."
   (setq-local parse-sexp-lookup-properties t)
   (setq-local paragraph-start (concat "$\\|" page-delimiter))
   (setq-local paragraph-separate paragraph-start)
-  (setq-local paragraph-ignore-fill-prefix t))
+  (setq-local paragraph-ignore-fill-prefix t)
+  (setq-local outline-regexp crystal-indent-beg-re))
 
 (defun crystal--insert-coding-comment (encoding)
   "Insert a magic coding comment for ENCODING.
@@ -2300,6 +2301,7 @@ See `font-lock-syntax-table'.")
           "break"
           "case"
           "class"
+          "context"
           "def"
           "describe"
           "defined?"
@@ -2319,6 +2321,7 @@ See `font-lock-syntax-table'.")
           "annotation"
           "next"
           "of"
+          "pending"
           "redo"
           "rescue"
           "retry"
