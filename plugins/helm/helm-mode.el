@@ -1435,6 +1435,7 @@ Keys description:
              :mode-line mode-line
              :help-message 'helm-read-file-name-help-message
              :nohighlight t
+             :candidate-number-limit 'helm-ff-candidate-number-limit
              :candidates
              (lambda ()
                (if test
@@ -1456,6 +1457,7 @@ Keys description:
                                 helm-ff--list-directory-cache))
              :match-on-real t
              :filtered-candidate-transformer (delq nil `(helm-ff-fct
+                                                         helm-ff-maybe-show-thumbnails
                                                          helm-ff-sort-candidates
                                                          ,(and helm-ff-icon-mode
                                                                'helm-ff-icons-transformer)))

@@ -188,14 +188,9 @@ will be honored."
                      (regexp-quote trunc)
                    (regexp-quote real)))))
 
-(defun helm-bookmark-toggle-filename ()
+(helm-make-persistent-command-from-action helm-bookmark-toggle-filename
   "Toggle bookmark location visibility."
-  (interactive)
-  (with-helm-alive-p
-    (helm-set-attr 'toggle-filename
-                  '(helm-bookmark-toggle-filename-1 . never-split))
-    (helm-execute-persistent-action 'toggle-filename)))
-(put 'helm-bookmark-toggle-filename 'helm-only t)
+  'toggle-filename 'helm-bookmark-toggle-filename-1)
 
 (defun helm-bookmark-jump (candidate)
   "Jump to bookmark action."
@@ -512,12 +507,9 @@ If `browse-url-browser-function' is set to something else than
       (bookmark-get-filename candidate)
       (helm-browse-project nil)))
 
-(defun helm-bookmark-run-browse-project ()
+(helm-make-command-from-action helm-bookmark-run-browse-project
   "Run `helm-bookmark-browse-project' from keyboard."
-  (interactive)
-  (with-helm-alive-p
-    (helm-exit-and-execute-action 'helm-bookmark-browse-project)))
-(put 'helm-bookmark-run-browse-project 'helm-only t)
+  'helm-bookmark-browse-project)
 
 (defvar helm-bookmark-find-files-map
   (let ((map (make-sparse-keymap)))
@@ -759,35 +751,22 @@ consecutive words from the buffer into the new bookmark name."
     (unless batch (bookmark-bmenu-surreptitiously-rebuild-list))
     (helm-bookmark-maybe-save-bookmark) newname))
 
-(defun helm-bookmark-run-edit ()
+(helm-make-command-from-action helm-bookmark-run-edit
   "Run `helm-bookmark-edit-bookmark' from keyboard."
-  (interactive)
-  (with-helm-alive-p
-    (helm-exit-and-execute-action 'helm-bookmark-edit-bookmark)))
-(put 'helm-bookmark-run-edit 'helm-only t)
+  'helm-bookmark-edit-bookmark)
 
 
-(defun helm-bookmark-run-jump-other-frame ()
+(helm-make-command-from-action helm-bookmark-run-jump-other-frame
   "Jump to bookmark other frame from keyboard."
-  (interactive)
-  (with-helm-alive-p
-    (helm-exit-and-execute-action 'helm-bookmark-jump-other-frame)))
-(put 'helm-bookmark-run-jump-other-frame 'helm-only t)
+  'helm-bookmark-jump-other-frame)
 
-(defun helm-bookmark-run-jump-other-window ()
+(helm-make-command-from-action helm-bookmark-run-jump-other-window
   "Jump to bookmark from keyboard."
-  (interactive)
-  (with-helm-alive-p
-    (helm-exit-and-execute-action 'helm-bookmark-jump-other-window)))
-(put 'helm-bookmark-run-jump-other-window 'helm-only t)
+  'helm-bookmark-jump-other-window)
 
-(defun helm-bookmark-run-delete ()
+(helm-make-command-from-action helm-bookmark-run-delete
   "Delete bookmark from keyboard."
-  (interactive)
-  (with-helm-alive-p
-    (when (y-or-n-p "Delete bookmark(s)?")
-      (helm-exit-and-execute-action 'helm-delete-marked-bookmarks))))
-(put 'helm-bookmark-run-delete 'helm-only t)
+  'helm-delete-marked-bookmarks)
 
 (defun helm-bookmark-get-bookmark-from-name (bmk)
   "Return bookmark name even if it is a bookmark with annotation.

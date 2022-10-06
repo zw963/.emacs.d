@@ -3,193 +3,6 @@
 ;;; Code:
 
 
-;;;### (autoloads nil "async" "async.el" (0 0 0 0))
-;;; Generated autoloads from async.el
-
-(autoload 'async-start-process "async" "\
-Start the executable PROGRAM asynchronously named NAME.  See `async-start'.
-PROGRAM is passed PROGRAM-ARGS, calling FINISH-FUNC with the
-process object when done.  If FINISH-FUNC is nil, the future
-object will return the process object when the program is
-finished.  Set DEFAULT-DIRECTORY to change PROGRAM's current
-working directory.
-
-\(fn NAME PROGRAM FINISH-FUNC &rest PROGRAM-ARGS)" nil nil)
-
-(autoload 'async-start "async" "\
-Execute START-FUNC (often a lambda) in a subordinate Emacs process.
-When done, the return value is passed to FINISH-FUNC.  Example:
-
-    (async-start
-       ;; What to do in the child process
-       (lambda ()
-         (message \"This is a test\")
-         (sleep-for 3)
-         222)
-
-       ;; What to do when it finishes
-       (lambda (result)
-         (message \"Async process done, result should be 222: %s\"
-                  result)))
-
-If FINISH-FUNC is nil or missing, a future is returned that can
-be inspected using `async-get', blocking until the value is
-ready.  Example:
-
-    (let ((proc (async-start
-                   ;; What to do in the child process
-                   (lambda ()
-                     (message \"This is a test\")
-                     (sleep-for 3)
-                     222))))
-
-        (message \"I'm going to do some work here\") ;; ....
-
-        (message \"Waiting on async process, result should be 222: %s\"
-                 (async-get proc)))
-
-If you don't want to use a callback, and you don't care about any
-return value from the child process, pass the `ignore' symbol as
-the second argument (if you don't, and never call `async-get', it
-will leave *emacs* process buffers hanging around):
-
-    (async-start
-     (lambda ()
-       (delete-file \"a remote file on a slow link\" nil))
-     \\='ignore)
-
-Special case:
-If the output of START-FUNC is a string with properties
-e.g. (buffer-string) RESULT will be transformed in a list where the
-car is the string itself (without props) and the cdr the rest of
-properties, this allows using in FINISH-FUNC the string without
-properties and then apply the properties in cdr to this string (if
-needed).
-Properties handling special objects like markers are returned as
-list to allow restoring them later.
-See <https://github.com/jwiegley/emacs-async/issues/145> for more infos.
-
-Note: Even when FINISH-FUNC is present, a future is still
-returned except that it yields no value (since the value is
-passed to FINISH-FUNC).  Call `async-get' on such a future always
-returns nil.  It can still be useful, however, as an argument to
-`async-ready' or `async-wait'.
-
-\(fn START-FUNC &optional FINISH-FUNC)" nil nil)
-
-(register-definition-prefixes "async" '("async-"))
-
-;;;***
-
-;;;### (autoloads nil "async-bytecomp" "async-bytecomp.el" (0 0 0
-;;;;;;  0))
-;;; Generated autoloads from async-bytecomp.el
-
-(autoload 'async-byte-recompile-directory "async-bytecomp" "\
-Compile all *.el files in DIRECTORY asynchronously.
-All *.elc files are systematically deleted before proceeding.
-
-\(fn DIRECTORY &optional QUIET)" nil nil)
-
-(defvar async-bytecomp-package-mode nil "\
-Non-nil if Async-Bytecomp-Package mode is enabled.
-See the `async-bytecomp-package-mode' command
-for a description of this minor mode.
-Setting this variable directly does not take effect;
-either customize it (see the info node `Easy Customization')
-or call the function `async-bytecomp-package-mode'.")
-
-(custom-autoload 'async-bytecomp-package-mode "async-bytecomp" nil)
-
-(autoload 'async-bytecomp-package-mode "async-bytecomp" "\
-Byte compile asynchronously packages installed with package.el.
-Async compilation of packages can be controlled by
-`async-bytecomp-allowed-packages'.
-
-This is a minor mode.  If called interactively, toggle the
-`Async-Bytecomp-Package mode' mode.  If the prefix argument is
-positive, enable the mode, and if it is zero or negative, disable
-the mode.
-
-If called from Lisp, toggle the mode if ARG is `toggle'.  Enable
-the mode if ARG is nil, omitted, or is a positive number.
-Disable the mode if ARG is a negative number.
-
-To check whether the minor mode is enabled in the current buffer,
-evaluate `(default-value \\='async-bytecomp-package-mode)'.
-
-The mode's hook is called both when the mode is enabled and when
-it is disabled.
-
-\(fn &optional ARG)" t nil)
-
-(autoload 'async-byte-compile-file "async-bytecomp" "\
-Byte compile Lisp code FILE asynchronously.
-
-Same as `byte-compile-file' but asynchronous.
-
-\(fn FILE)" t nil)
-
-(register-definition-prefixes "async-bytecomp" '("async-"))
-
-;;;***
-
-;;;### (autoloads nil "dired-async" "dired-async.el" (0 0 0 0))
-;;; Generated autoloads from dired-async.el
-
-(defvar dired-async-mode nil "\
-Non-nil if Dired-Async mode is enabled.
-See the `dired-async-mode' command
-for a description of this minor mode.
-Setting this variable directly does not take effect;
-either customize it (see the info node `Easy Customization')
-or call the function `dired-async-mode'.")
-
-(custom-autoload 'dired-async-mode "dired-async" nil)
-
-(autoload 'dired-async-mode "dired-async" "\
-Do dired actions asynchronously.
-
-This is a minor mode.  If called interactively, toggle the
-`Dired-Async mode' mode.  If the prefix argument is positive,
-enable the mode, and if it is zero or negative, disable the mode.
-
-If called from Lisp, toggle the mode if ARG is `toggle'.  Enable
-the mode if ARG is nil, omitted, or is a positive number.
-Disable the mode if ARG is a negative number.
-
-To check whether the minor mode is enabled in the current buffer,
-evaluate `(default-value \\='dired-async-mode)'.
-
-The mode's hook is called both when the mode is enabled and when
-it is disabled.
-
-\(fn &optional ARG)" t nil)
-
-(autoload 'dired-async-do-copy "dired-async" "\
-Run ‘dired-do-copy’ asynchronously.
-
-\(fn &optional ARG)" t nil)
-
-(autoload 'dired-async-do-symlink "dired-async" "\
-Run ‘dired-do-symlink’ asynchronously.
-
-\(fn &optional ARG)" t nil)
-
-(autoload 'dired-async-do-hardlink "dired-async" "\
-Run ‘dired-do-hardlink’ asynchronously.
-
-\(fn &optional ARG)" t nil)
-
-(autoload 'dired-async-do-rename "dired-async" "\
-Run ‘dired-do-rename’ asynchronously.
-
-\(fn &optional ARG)" t nil)
-
-(register-definition-prefixes "dired-async" '("dired-async-"))
-
-;;;***
-
 ;;;### (autoloads nil "helm-adaptive" "helm-adaptive.el" (0 0 0 0))
 ;;; Generated autoloads from helm-adaptive.el
 
@@ -310,9 +123,6 @@ You can get help on each command by persistent action.
 ;;;### (autoloads nil "helm-core" "helm-core.el" (0 0 0 0))
 ;;; Generated autoloads from helm-core.el
 
-(autoload 'helm-configuration "helm-core" "\
-Customize Helm." t nil)
-
 (autoload 'helm-define-multi-key "helm-core" "\
 In KEYMAP, define key sequence KEY for function list FUNCTIONS.
 Each function runs sequentially for each KEY press.
@@ -330,7 +140,7 @@ E.g.
       (interactive)
       (message \"Run baz\"))
 
-\(helm-define-multi-key global-map (kbd \"<f5> q\") '(foo bar baz) 2)
+\(helm-define-multi-key global-map (kbd \"<f5> q\") \\='(foo bar baz) 2)
 
 Each time \"<f5> q\" is pressed, the next function is executed.
 Waiting more than 2 seconds between key presses switches back to
@@ -360,8 +170,8 @@ Arg OTHER-SUBKEYS is an alist specifying other short key bindings
 to use once started, e.g.:
 
     (helm-define-key-with-subkeys global-map
-       (kbd \"C-x v n\") ?n 'git-gutter:next-hunk
-       '((?p . git-gutter:previous-hunk)))
+       (kbd \"C-x v n\") ?n \\='git-gutter:next-hunk
+       \\='((?p . git-gutter:previous-hunk)))
 
 In this example, `C-x v n' will run `git-gutter:next-hunk'
 subsequent \"n\" will run this command again and subsequent \"p\"
@@ -377,11 +187,16 @@ in MAP and then exit the loop running EXIT-FN, if specified.
 If DELAY an integer is specified exit after DELAY seconds.
 
 NOTE: SUBKEY and OTHER-SUBKEYS bindings support only char syntax
-and vectors, so don't use strings to define them.
+and vectors, so don't use strings to define them.  While defining
+or executing a kbd macro no SUBKEY or OTHER-SUBKEYS are provided,
+i.e. the loop is not entered after running COMMAND.
 
-\(fn MAP KEY SUBKEY COMMAND &optional OTHER-SUBKEYS PROMPT EXIT-FN DELAY)" nil nil)
+\(fn MAP KEY SUBKEY COMMAND &optional OTHER-SUBKEYS PROMPT EXIT-FN DELAY DOCSTRING)" nil nil)
 
 (function-put 'helm-define-key-with-subkeys 'lisp-indent-function '1)
+
+(autoload 'helm-configuration "helm-core" "\
+Customize Helm." t nil)
 
 (autoload 'helm-debug-open-last-log "helm-core" "\
 Open Helm log file or buffer of last Helm session." t nil)
@@ -441,7 +256,7 @@ Minibuffer prompt. Default value is `helm--prompt'.
 If t, allow resumption of the previous session of this Helm
 command, skipping initialization.
 
-If 'noresume, this instance of `helm' cannot be resumed.
+If \\='noresume, this instance of `helm' cannot be resumed.
 
 *** :preselect
 
@@ -496,7 +311,7 @@ Allow running this Helm command in a running Helm session.
 Other keywords are interpreted as local variables of this Helm
 session. The `helm-' prefix can be omitted. For example,
 
-\(helm :sources 'helm-source-buffers-list
+\(helm :sources \\='helm-source-buffers-list
        :buffer \"*helm buffers*\"
        :candidate-number-limit 10)
 
@@ -736,10 +551,16 @@ it from your init file, ensure to call it _after_ your defmethod's
 
 \(fn &optional ARG)" t nil)
 
+(autoload 'helm-ff-clear-image-dired-thumbnails-cache "helm-files" "\
+Clear `helm-ff-image-dired-thumbnails-cache'.
+You may want to do this after customizing
+`image-dired-thumbnail-storage' which may change the place where
+thumbnail files are stored." t nil)
+
 (autoload 'helm-ff-cleanup-image-dired-dir-and-cache "helm-files" "\
 Cleanup `image-dired-dir' directory.
-Delete all thumb files that are no more associated with an existing image file in
-`helm-ff-image-dired-thumbnails-cache'." t nil)
+Delete all thumb files that are no more associated with an existing
+image file in `helm-ff-image-dired-thumbnails-cache'." t nil)
 
 (autoload 'helm-projects-history "helm-files" "\
 
@@ -774,15 +595,6 @@ This is the starting point for nearly all actions you can do on
 files.
 
 \(fn ARG)" t nil)
-
-(autoload 'helm-delete-tramp-connection "helm-files" "\
-Allow deleting tramp connection or marked tramp connections at once.
-
-This replace `tramp-cleanup-connection' which is partially broken
-in Emacs < to 25.1.50.1 (See Emacs bug http://debbugs.gnu.org/cgi/bugreport.cgi?bug=24432).
-
-It allows additionally to delete more than one connection at
-once." t nil)
 
 (register-definition-prefixes "helm-files" '("eshell-command-aliases-list" "helm-"))
 
@@ -937,7 +749,7 @@ See <https://www.gnu.org/software/idutils/>." t nil)
 Preconfigured `helm' for `imenu'." t nil)
 
 (autoload 'helm-imenu-in-all-buffers "helm-imenu" "\
-Preconfigured `helm' for fetching imenu entries in all buffers with similar mode as current.
+Fetch Imenu entries in all buffers with similar mode as current.
 A mode is similar as current if it is the same, it is derived
 i.e. `derived-mode-p' or it have an association in
 `helm-imenu-all-buffer-assoc'." t nil)
@@ -992,7 +804,7 @@ With a prefix arg refresh the database in each project.
 (autoload 'helm-locate "helm-locate" "\
 Preconfigured `helm' for Locate.
 Note: you can add locate options after entering pattern.
-See 'man locate' for valid options and also `helm-locate-command'.
+See \\='man locate' for valid options and also `helm-locate-command'.
 
 You can specify a local database with prefix argument ARG.
 With two prefix arg, refresh the current local db or create it if
@@ -1170,7 +982,7 @@ Keys description:
 - HIST-FC-TRANSFORMER: A `filtered-candidate-transformer'
   function for the history source.
 
-- MARKED-CANDIDATES: If non--nil return candidate or marked candidates as a list.
+- MARKED-CANDIDATES: If non-nil return candidate or marked candidates as a list.
 
 - NOMARK: When non--nil don't allow marking candidates.
 
@@ -1206,10 +1018,11 @@ in `helm-current-prefix-arg', otherwise if prefix args were given before
 That means you can pass prefix args before or after calling a command
 that use `helm-comp-read'.  See `helm-M-x' for example.
 
-\(fn PROMPT COLLECTION &key TEST INITIAL-INPUT DEFAULT PRESELECT (BUFFER \"*Helm Completions*\") MUST-MATCH FUZZY REVERSE-HISTORY (REQUIRES-PATTERN 0) (HISTORY nil shistory) RAW-HISTORY INPUT-HISTORY (CASE-FOLD helm-comp-read-case-fold-search) (PERSISTENT-ACTION nil) (PERSISTENT-HELP \"DoNothing\") (MODE-LINE helm-comp-read-mode-line) HELP-MESSAGE (KEYMAP helm-comp-read-map) (NAME \"Helm Completions\") HEADER-NAME CANDIDATES-IN-BUFFER MATCH-PART MATCH-DYNAMIC EXEC-WHEN-ONLY-ONE QUIT-WHEN-NO-CAND (VOLATILE t) SORT FC-TRANSFORMER HIST-FC-TRANSFORMER (MARKED-CANDIDATES helm-comp-read-use-marked) NOMARK (ALISTP t) (CANDIDATE-NUMBER-LIMIT helm-candidate-number-limit) MULTILINE ALLOW-NEST COERCE (GROUP \\='helm))" nil nil)
+\(fn PROMPT COLLECTION &key TEST INITIAL-INPUT DEFAULT PRESELECT (BUFFER \"*Helm Completions*\") MUST-MATCH FUZZY REVERSE-HISTORY (REQUIRES-PATTERN 0) (HISTORY nil shistory) RAW-HISTORY INPUT-HISTORY (CASE-FOLD helm-comp-read-case-fold-search) (PERSISTENT-ACTION nil) (PERSISTENT-HELP \"DoNothing\") (MODE-LINE helm-comp-read-mode-line) HELP-MESSAGE (KEYMAP helm-comp-read-map) (NAME \"Helm Completions\") HEADER-NAME CANDIDATES-IN-BUFFER DIACRITICS MATCH-PART MATCH-DYNAMIC EXEC-WHEN-ONLY-ONE QUIT-WHEN-NO-CAND (VOLATILE t) SORT FC-TRANSFORMER HIST-FC-TRANSFORMER (MARKED-CANDIDATES helm-comp-read-use-marked) NOMARK (ALISTP t) (CANDIDATE-NUMBER-LIMIT helm-candidate-number-limit) MULTILINE ALLOW-NEST COERCE (GROUP \\='helm))" nil nil)
 
 (autoload 'helm-read-file-name "helm-mode" "\
 Read a file name with helm completion.
+
 It is helm `read-file-name' emulation.
 
 Argument PROMPT is the default prompt to use.
@@ -1218,11 +1031,12 @@ Keys description:
 
 - NAME: Source name, default to \"Read File Name\".
 
-- INITIAL-INPUT: Where to start reading file name, default to `default-directory' or $HOME.
+- INITIAL-INPUT: Where to start reading file name,
+                 default to `default-directory' or $HOME.
 
 - BUFFER: `helm-buffer' name, defaults to \"*Helm Completions*\".
 
-- TEST: A predicate called with one arg 'candidate'.
+- TEST: A predicate called with one arg \\='candidate'.
 
 - NORET: Allow disabling helm-ff-RET (have no effect if helm-ff-RET
                                       isn't bound to RET).
@@ -1233,7 +1047,7 @@ Keys description:
 
 - HISTORY: Display HISTORY in a special source.
 
-- MUST-MATCH: Can be 'confirm, nil, or t.
+- MUST-MATCH: Can be \\='confirm, nil, or t.
 
 - FUZZY: Enable fuzzy matching when non-nil (Enabled by default).
 
@@ -1241,13 +1055,15 @@ Keys description:
 
 - NOMARK: When non--nil don't allow marking candidates.
 
-- ALISTP: Don't use `all-completions' in history (take effect only on history).
+- ALISTP: Don't use `all-completions' in history
+          (take effect only on history).
 
 - PERSISTENT-ACTION-IF: a persistent if action function.
 
 - PERSISTENT-HELP: persistent help message.
 
-- MODE-LINE: A mode line message, default is `helm-read-file-name-mode-line-string'.
+- MODE-LINE: A mode line message, default is
+             `helm-read-file-name-mode-line-string'.
 
 \(fn PROMPT &key (NAME \"Read File Name\") INITIAL-INPUT (BUFFER \"*Helm file completions*\") TEST NORET (CASE-FOLD helm-file-name-case-fold-search) PRESELECT HISTORY MUST-MATCH (FUZZY t) DEFAULT MARKED-CANDIDATES (CANDIDATE-NUMBER-LIMIT helm-ff-candidate-number-limit) NOMARK (ALISTP t) (PERSISTENT-ACTION-IF \\='helm-find-files-persistent-action-if) (PERSISTENT-HELP \"Hit1 Expand Candidate, Hit2 or (C-u) Find file\") (MODE-LINE helm-read-file-name-mode-line-string))" nil nil)
 
@@ -1414,7 +1230,9 @@ Preconfigured `helm' for `helm-source-mark-ring'." t nil)
 Preconfigured `helm' for `helm-source-global-mark-ring'." t nil)
 
 (autoload 'helm-all-mark-rings "helm-ring" "\
-Preconfigured `helm' for `helm-source-global-mark-ring' and `helm-source-mark-ring'." t nil)
+Preconfigured `helm' for mark rings.
+Source used are `helm-source-global-mark-ring' and
+`helm-source-mark-ring'." t nil)
 
 (autoload 'helm-register "helm-ring" "\
 Preconfigured `helm' for Emacs registers." t nil)
@@ -1591,16 +1409,8 @@ it is disabled.
 
 ;;;***
 
-;;;### (autoloads nil "smtpmail-async" "smtpmail-async.el" (0 0 0
-;;;;;;  0))
-;;; Generated autoloads from smtpmail-async.el
-
-(register-definition-prefixes "smtpmail-async" '("async-smtpmail-"))
-
-;;;***
-
-;;;### (autoloads nil nil ("async_init.el" "helm-config.el" "helm-easymenu.el"
-;;;;;;  "helm.el") (0 0 0 0))
+;;;### (autoloads nil nil ("helm-config.el" "helm-easymenu.el" "helm.el")
+;;;;;;  (0 0 0 0))
 
 ;;;***
 
