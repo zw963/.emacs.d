@@ -52,6 +52,11 @@ rendered or shift text."
   :type '(boolean)
   :group 'multiple-cursors)
 
+(defcustom mc--reset-read-variables '()
+  "A list of cache variable names to reset by multiple-cursors."
+  :type '(list symbol)
+  :group 'multiple-cursors)
+
 (defface mc/region-face
   '((t :inherit region))
   "The face used for fake regions"
@@ -138,7 +143,7 @@ rendered or shift text."
   "Create overlay to look like cursor at end of line."
   (let ((overlay (make-overlay pos pos nil nil nil)))
     (if (and mc/match-cursor-style (mc/cursor-is-bar))
-	(overlay-put overlay 'before-string (propertize "|" 'face 'mc/cursor-bar-face))
+  (overlay-put overlay 'before-string (propertize "|" 'face 'mc/cursor-bar-face))
       (overlay-put overlay 'after-string (propertize " " 'face 'mc/cursor-face)))
     overlay))
 
@@ -146,7 +151,7 @@ rendered or shift text."
   "Create overlay to look like cursor inside text."
   (let ((overlay (make-overlay pos (1+ pos) nil nil nil)))
     (if (and mc/match-cursor-style (mc/cursor-is-bar))
-	(overlay-put overlay 'before-string (propertize "|" 'face 'mc/cursor-bar-face))
+  (overlay-put overlay 'before-string (propertize "|" 'face 'mc/cursor-bar-face))
       (overlay-put overlay 'face 'mc/cursor-face))
     overlay))
 
@@ -192,8 +197,8 @@ highlights the entire width of the window."
   "Store relevant info about point and mark in the given overlay."
   (overlay-put o 'point (set-marker (make-marker) (point)))
   (overlay-put o 'mark (set-marker (make-marker)
-				   (let ((mark-even-if-inactive t))
-				     (mark))))
+           (let ((mark-even-if-inactive t))
+             (mark))))
   (dolist (var mc/cursor-specific-vars)
     (when (boundp var) (overlay-put o var (symbol-value var))))
   o)
@@ -250,8 +255,11 @@ If this value is nil, there is no ceiling."
   :group 'multiple-cursors)
 
 (defun mc/create-fake-cursor-at-point (&optional id)
-  "Add a fake cursor and possibly a fake active region overlay based on point and mark.
-Saves the current state in the overlay to be restored later."
+  "Add a fake cursor and possibly a fake active region overlay
+based on point and mark.
+
+Saves the current state in the overlay
+to be restored later."
   (unless mc--max-cursors-original
     (setq mc--max-cursors-original mc/max-cursors))
   (when mc/max-cursors
@@ -271,7 +279,8 @@ Saves the current state in the overlay to be restored later."
     overlay))
 
 (defun mc/execute-command (cmd)
-  "Run command, simulating the parts of the command loop that makes sense for fake cursors."
+  "Run command, simulating the parts of the command loop that
+makes sense for fake cursors."
   (setq this-command cmd)
   (run-hooks 'pre-command-hook)
   (unless (eq this-command 'ignore)
@@ -313,26 +322,32 @@ cursor with updated info."
 ;; Intercept some reading commands so you won't have to
 ;; answer them for every single cursor
 
-(defvar mc--read-char nil)
 (defvar multiple-cursors-mode nil)
-(defadvice read-char (around mc-support activate)
-  (if (not multiple-cursors-mode)
-      ad-do-it
-    (unless mc--read-char
-      (setq mc--read-char ad-do-it))
-    (setq ad-return-value mc--read-char)))
-
-(defvar mc--read-quoted-char nil)
-(defadvice read-quoted-char (around mc-support activate)
-  (if (not multiple-cursors-mode)
-      ad-do-it
-    (unless mc--read-quoted-char
-      (setq mc--read-quoted-char ad-do-it))
-    (setq ad-return-value mc--read-quoted-char)))
 
 (defun mc--reset-read-prompts ()
-  (setq mc--read-char nil)
-  (setq mc--read-quoted-char nil))
+  (mapc (lambda (var) (set var nil))
+        mc--reset-read-variables))
+
+(defmacro mc--cache-input-function (fn-name)
+  "Advise FN-NAME to cache its value in a private variable. Cache
+is to be used by mc/execute-command-for-all-fake-cursors and
+caches will be reset by mc--reset-read-prompts."
+  (let ((mc-name (intern (concat "mc--" (symbol-name fn-name)))))
+    `(progn
+       (defvar ,mc-name nil)
+       (defun ,mc-name (orig-fun &rest args)
+         (if (not multiple-cursors-mode)
+             (apply orig-fun args)
+           (unless ,mc-name
+             (setq ,mc-name (apply orig-fun args)))
+           ,mc-name))
+       (advice-add ',fn-name :around #',mc-name)
+       (add-to-list 'mc--reset-read-variables ',mc-name))))
+
+(mc--cache-input-function read-char)
+(mc--cache-input-function read-quoted-char)
+(mc--cache-input-function register-read-with-preview) ; used by insert-register
+(mc--cache-input-function read-char-from-minibuffer)  ; used by zap-to-char
 
 (mc--reset-read-prompts)
 
@@ -350,7 +365,8 @@ cursor with updated info."
   "Variable to keep the state of the real cursor while undoing a fake one")
 
 (defun activate-cursor-for-undo (id)
-  "Called when undoing to temporarily activate the fake cursor which action is being undone."
+  "Called when undoing to temporarily activate the fake cursor
+which action is being undone."
   (let ((cursor (mc/cursor-with-id id)))
     (when cursor
       (setq mc--stored-state-for-undo (mc/store-current-state-in-overlay
@@ -567,13 +583,16 @@ They are temporarily disabled when multiple-cursors are active.")
   `(" mc:" (:eval (format ,(propertize "%d" 'face 'font-lock-warning-face)
                           (mc/num-cursors))))
   "What to display in the mode line while multiple-cursors-mode is active."
+  :type '(sexp)
   :group 'multiple-cursors)
 (put 'mc/mode-line 'risky-local-variable t)
 
 ;;;###autoload
 (define-minor-mode multiple-cursors-mode
   "Mode while multiple cursors are active."
-  nil mc/mode-line mc/keymap
+  :init-value nil
+  :lighter mc/mode-line
+  :keymap mc/keymap
   (if multiple-cursors-mode
       (progn
         (mc/temporarily-disable-unsupported-minor-modes)
@@ -617,7 +636,7 @@ from being executed if in multiple-cursors-mode."
 
 ;; Make sure pastes from other programs are added to all kill-rings when yanking
 (defadvice current-kill (before interprogram-paste-for-all-cursors
-				(n &optional do-not-move) activate)
+        (n &optional do-not-move) activate)
   (let ((interprogram-paste (and (= n 0)
                                  interprogram-paste-function
                                  (funcall interprogram-paste-function))))
@@ -693,8 +712,8 @@ for running commands with multiple cursors."
                                      mc/edit-ends-of-lines
                                      mc/edit-beginnings-of-lines
                                      mc/mark-next-like-this
-				     mc/mark-next-like-this-word
-				     mc/mark-next-like-this-symbol
+                                     mc/mark-next-like-this-word
+                                     mc/mark-next-like-this-symbol
                                      mc/mark-next-word-like-this
                                      mc/mark-next-symbol-like-this
                                      mc/mark-previous-like-this
@@ -713,7 +732,7 @@ for running commands with multiple cursors."
                                      mc/mark-all-dwim
                                      mc/mark-sgml-tag-pair
                                      mc/insert-numbers
-				     mc/insert-letters
+                                     mc/insert-letters
                                      mc/sort-regions
                                      mc/reverse-regions
                                      mc/cycle-forward
@@ -745,6 +764,8 @@ for running commands with multiple cursors."
                                      redo
                                      undo-tree-undo
                                      undo-tree-redo
+                                     undo-fu-only-undo
+                                     undo-fu-only-redo
                                      universal-argument
                                      universal-argument-more
                                      universal-argument-other-key
