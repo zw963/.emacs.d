@@ -44,7 +44,6 @@
 ;; (require 'spaceline_init)
 
 ;; (require 'valign_init)
-;; (require 'find-file-in-project_init)
 (require 'vterm_init)
 (require 'async_init)
 (require 'mu4e_init)
