@@ -19,10 +19,16 @@
 ;; (define-key map (kbd "h") 'symbol-overlay-map-help)
 
 ;; (define-key symbol-overlay-map (kbd "s-n") 'symbol-overlay-jump-next)
-;; (define-key symbol-overlay-map (kbd "s-p") 'symbol-overlay-jump-prev)
+(define-key symbol-overlay-map (kbd "C-g") 'symbol-overlay-remove-all)
 
-(global-set-key (kbd "<f7>") 'symbol-overlay-mode)
-(global-set-key (kbd "<f8>") 'symbol-overlay-remove-all)
+(dolist (hook '(prog-mode-hook
+                web-mode-hook
+                ))
+  (add-hook hook (lambda ()
+                   (symbol-overlay-mode 1)
+                   )))
+
+(global-set-key (kbd "<f7>") 'symbol-overlay-put)
 
 (provide 'symbol-overlay_init)
 
