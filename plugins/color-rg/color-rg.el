@@ -1213,9 +1213,13 @@ This assumes that `color-rg-in-string-p' has already returned true, i.e.
 (defun color-rg-project-root-dir ()
   (let ((project (project-current)))
     (if project
-        (if (version< "27.0" emacs-version)
-            (expand-file-name (cdr project))
-          (expand-file-name (car (last project))))
+        (progn
+          (setq project (cdr project))
+
+          (when (listp project)
+            (setq project (nth (- (length project) 1) project)))
+
+          (expand-file-name project))
       default-directory)))
 
 (defalias 'color-rg-search-input-in-project 'color-rg-search-project)
@@ -1241,6 +1245,7 @@ This assumes that `color-rg-in-string-p' has already returned true, i.e.
   (color-rg-search-input (color-rg-read-input) (concat (color-rg-project-root-dir) "app") (color-rg-read-file-type "Filter file by type (default: [ %s ]): ")))
 
 (defun color-rg-replace-all-matches ()
+  "Replace all matched results."
   (interactive)
   (save-excursion
     (let (changed-line-number)
@@ -1255,8 +1260,8 @@ This assumes that `color-rg-in-string-p' has already returned true, i.e.
             (setq changed-line-number (length color-rg-changed-lines))
             (color-rg-apply-changed)
             (color-rg-switch-to-view-mode)
-            (setf (color-rg-search-keyword color-rg-cur-search) replace-text)
-            )))
+            (when (> changed-line-number 0)
+              (setf (color-rg-search-keyword color-rg-cur-search) replace-text)))))
       (message "Replace %s lines" changed-line-number))))
 
 (defun color-rg-filter-match-results ()
@@ -1728,7 +1733,8 @@ Function `move-to-column' can't handle mixed string of Chinese and English corre
     ;; Save window configuration before do apply.
     (setq color-rg-window-configuration-before-apply (current-window-configuration))
     ;; Apply changed.
-    (let ((inhibit-message t)) ; don't flush to echo area when apply changed, optimise for color-rg
+    (let ((inhibit-message t) ;don't flush to echo area when apply changed, optimise for color-rg
+          (apply-files '()))
       (save-excursion
         (dolist (line color-rg-changed-lines)
           (let (match-file match-line changed-line-content)
@@ -1740,6 +1746,7 @@ Function `move-to-column' can't handle mixed string of Chinese and English corre
               (setq match-line (color-rg-get-match-line)))
             ;; Open file in other window.
             (find-file match-file)
+            (add-to-list 'apply-files match-file)
             ;; Remove from temp list if file's buffer is exist.
             (setq color-rg-temp-visit-buffers (remove (current-buffer) color-rg-temp-visit-buffers))
             ;; Kill target line.
@@ -1750,8 +1757,11 @@ Function `move-to-column' can't handle mixed string of Chinese and English corre
                 ;; Kill empty line if line mark as deleted.
                 (kill-line)
               ;; Otherwise insert new line into file.
-              (insert changed-line-content))
-            ))))
+              (insert changed-line-content))))
+        ;; Save files after change.
+        (dolist (apply-file apply-files)
+          (find-file apply-file)
+          (basic-save-buffer))))
     ;; Restore window configuration before apply changed.
     (when color-rg-window-configuration-before-apply
       (set-window-configuration color-rg-window-configuration-before-apply)
