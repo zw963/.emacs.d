@@ -277,8 +277,8 @@ Example:
       (cl-subseq recentf-list 0 20))
 
     (ivy-set-sources
-     'counsel-locate
-     '((small-recentf)
+     \\='counsel-locate
+     \\='((small-recentf)
        (original-source)))"
   (setq ivy--sources-list
         (plist-put ivy--sources-list cmd sources)))
@@ -433,7 +433,9 @@ the restoring themselves.")
              (end (region-end))
              (eol (save-excursion (goto-char beg) (line-end-position))))
         (buffer-substring-no-properties beg (min end eol))))
-     ((thing-at-point 'url))
+     ((let ((url (thing-at-point 'url)))
+        ;; Work around `https://bugs.gnu.org/58091'.
+        (and (stringp url) url)))
      ((and (eq (ivy-state-collection ivy-last) #'read-file-name-internal)
            (let ((inhibit-message t)
                  (ffap-machine-p-known 'reject))
@@ -1822,7 +1824,7 @@ Possible choices: `ivy--regex', `regexp-quote',
 `ivy--regex-plus', `ivy--regex-fuzzy', `ivy--regex-ignore-order'.
 
 If a function returns a list, it should format like this:
-'((\"matching-regexp\" . t) (\"non-matching-regexp\") ...).
+\\='((\"matching-regexp\" . t) (\"non-matching-regexp\") ...).
 
 The matches will be filtered in a sequence, you can mix the
 regexps that should match and that should not match as you
@@ -3205,10 +3207,11 @@ parts beyond their respective faces `ivy-confirm-face' and
         (sort (copy-sequence collection) sort)
       collection)))
 
-(defcustom ivy-magic-slash-non-match-action 'ivy-magic-slash-non-match-cd-selected
-  "Action to take when a slash is added to the end of a non existing directory.
-Possible choices are 'ivy-magic-slash-non-match-cd-selected,
-'ivy-magic-slash-non-match-create, or nil"
+(defcustom ivy-magic-slash-non-match-action
+  'ivy-magic-slash-non-match-cd-selected
+  "Action to take when a slash is appended to a nonexistent directory.
+Possible choices are `ivy-magic-slash-non-match-cd-selected',
+`ivy-magic-slash-non-match-create', or nil"
   :type '(choice
           (const :tag "Use currently selected directory"
            ivy-magic-slash-non-match-cd-selected)
@@ -4962,6 +4965,7 @@ buffer would modify `ivy-last'.")
     (define-key map (kbd "q") 'quit-window)
     (define-key map (kbd "R") 'read-only-mode)
     (ivy-define-key map (kbd "C-d") 'ivy-occur-delete-candidate)
+    (ivy-define-key map (kbd "F") 'ivy-occur-flush-lines)
     map)
   "Keymap for Ivy Occur mode.")
 
@@ -5062,6 +5066,12 @@ When `ivy-calling' isn't nil, call `ivy-occur-press'."
   (let ((inhibit-read-only t))
     (delete-region (line-beginning-position)
                    (1+ (line-end-position)))))
+
+(defun ivy-occur-flush-lines ()
+  "Delete lines matching regex."
+  (interactive)
+  (let ((inhibit-read-only t))
+    (call-interactively 'flush-lines)))
 
 (define-derived-mode ivy-occur-grep-mode grep-mode "Ivy-Occur"
   "Major mode for output from \\[ivy-occur].
