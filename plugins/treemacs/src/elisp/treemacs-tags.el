@@ -1,6 +1,6 @@
 ;;; treemacs.el --- A tree style file viewer package -*- lexical-binding: t -*-
 
-;; Copyright (C) 2021 Alexander Miller
+;; Copyright (C) 2022 Alexander Miller
 
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -185,7 +185,8 @@ DEPTH: Int"
   "Open tag items for file BTN.
 Recursively open all tags below BTN when RECURSIVE is non-nil."
   (let* ((path (treemacs-button-get btn :path))
-         (parent-dom-node (treemacs-find-in-dom path)))
+         (parent-dom-node (treemacs-find-in-dom path))
+         (recursive (treemacs--prefix-arg-to-recurse-depth recursive)))
     (-if-let (index (treemacs--get-imenu-index path))
         (treemacs--button-open
          :button btn
@@ -215,7 +216,8 @@ Recursively open all tags below BTN when RECURSIVE is non-nil."
            (treemacs-on-expand path btn)
            (treemacs--reentry path)
            (end-of-line)
-           (when recursive
+           (when (> recursive 0)
+             (cl-decf recursive)
              (--each (treemacs-collect-child-nodes btn)
                (when (eq 'tag-node-closed (treemacs-button-get it :state))
                  (goto-char (treemacs-button-start it))
@@ -302,7 +304,8 @@ the display window."
 Open all tag section under BTN when call is RECURSIVE."
   (let* ((index (treemacs-button-get btn :index))
          (tag-path (treemacs-button-get btn :path))
-         (parent-dom-node (treemacs-find-in-dom tag-path)))
+         (parent-dom-node (treemacs-find-in-dom tag-path))
+         (recursive (treemacs--prefix-arg-to-recurse-depth recursive)))
     (treemacs--button-open
      :button btn
      :immediate-insert t
@@ -330,11 +333,13 @@ Open all tag section under BTN when call is RECURSIVE."
          (setf (treemacs-dom-node->children parent-dom-node)
                (nconc dom-nodes (treemacs-dom-node->children parent-dom-node))))
        (treemacs-on-expand tag-path btn)
-       (if recursive
-           (--each (treemacs-collect-child-nodes btn)
-             (when (eq 'tag-node-closed (treemacs-button-get it :state))
-               (goto-char (treemacs-button-start it))
-               (treemacs--expand-tag-node it t)))
+       (if (> recursive 0)
+           (progn
+             (cl-decf recursive)
+             (--each (treemacs-collect-child-nodes btn)
+               (when (eq 'tag-node-closed (treemacs-button-get it :state))
+                 (goto-char (treemacs-button-start it))
+                 (treemacs--expand-tag-node it t))))
          (treemacs--reentry tag-path))))))
 
 (defun treemacs--collapse-tag-node-recursive (btn)
@@ -498,11 +503,15 @@ headline with sub-elements is saved in an `org-imenu-marker' text property."
   (let (result)
     (treemacs-walk-dom project-dom-node
       (lambda (node)
-        (push (list (file-relative-name (treemacs-dom-node->key node) (treemacs-dom-node->key project-dom-node))
-                    (or (treemacs-dom-node->position node) -1)
-                    #'treemacs--imenu-goto-node-wrapper
-                    (treemacs-dom-node->key node))
-              result)))
+        (-let [node-btn (or (treemacs-dom-node->position node)
+                            (treemacs-find-node (treemacs-dom-node->key node)))]
+          (push (list (if (treemacs-button-get node-btn :custom)
+                          (treemacs--get-label-of node-btn)
+                        (file-relative-name (treemacs-dom-node->key node) (treemacs-dom-node->key project-dom-node)))
+                      (or node-btn -1)
+                      #'treemacs--imenu-goto-node-wrapper
+                      (treemacs-dom-node->key node))
+                result))))
     (nreverse result)))
 
 (define-inline treemacs--imenu-goto-node-wrapper (_name _pos key)

@@ -1,11 +1,11 @@
 ;;; treemacs.el --- A tree style file explorer package -*- lexical-binding: t -*-
 
-;; Copyright (C) 2021 Alexander Miller
+;; Copyright (C) 2022 Alexander Miller
 
 ;; Author: Alexander Miller <alexanderm@web.de>
 ;; Package-Requires: ((emacs "26.1") (cl-lib "0.5") (dash "2.11.0") (s "1.12.0") (ace-window "0.9.0") (pfuture "1.7") (hydra "0.13.2") (ht "2.2") (cfrs "1.3.2"))
 ;; Homepage: https://github.com/Alexander-Miller/treemacs
-;; Version: 2.10
+;; Version: 3.0
 
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -47,12 +47,11 @@
 (require 'treemacs-workspaces)
 (require 'treemacs-fringe-indicator)
 (require 'treemacs-header-line)
-(require 'treemacs-extensions)
 (require 'treemacs-annotations)
 
 (defconst treemacs-version
   (eval-when-compile
-    (format "v2.10 (installed %s) @ Emacs %s"
+    (format "v3.0 (installed %s) @ Emacs %s"
             (format-time-string "%Y.%m.%d" (current-time))
             emacs-version)))
 
@@ -198,9 +197,16 @@ A non-nil prefix ARG will also force a workspace switch."
             (ignore))
            ('close
             (treemacs-quit))
+           ('goto-next
+            (treemacs--jump-to-next-treemacs-window))
+           ('next-or-back
+            (or
+             (treemacs--jump-to-next-treemacs-window)
+             (select-window (get-mru-window (selected-frame) nil :not-selected))))
            ('move-back
             (select-window (get-mru-window (selected-frame) nil :not-selected))))))))
 
+(setf treemacs-select-when-already-in-treemacs 'next-or-back)
 ;;;###autoload
 (defun treemacs-show-changelog ()
   "Show the changelog of treemacs."
@@ -232,7 +238,7 @@ A non-nil prefix ARG will also force a workspace switch."
   (goto-char 0))
 
 ;;;###autoload
-(defun treemacs-display-current-project-exclusively ()
+(defun treemacs-add-and-display-current-project-exclusively ()
   "Display the current project, and *only* the current project.
 Like `treemacs-add-and-display-current-project' this will add the current
 project to treemacs based on either projectile, the built-in project.el, or the
@@ -256,6 +262,10 @@ workspace."
        (treemacs--show-single-project path name)
        (treemacs-pulse-on-success "Now showing %s"
          (propertize path 'face 'font-lock-string-face))))))
+(define-obsolete-function-alias
+  'treemacs-display-current-project-exclusively
+  #'treemacs-add-and-display-current-project-exclusively
+  "v2.9")
 
 ;;;###autoload
 (defun treemacs-add-and-display-current-project ()

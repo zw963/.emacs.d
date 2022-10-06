@@ -1,6 +1,6 @@
 ;;; treemacs.el --- A tree style file viewer package -*- lexical-binding: t -*-
 
-;; Copyright (C) 2021 Alexander Miller
+;; Copyright (C) 2022 Alexander Miller
 
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -387,7 +387,7 @@ be rendered."
   :type 'list
   :group 'treemacs)
 
-(defcustom treemacs-file-event-delay 5000
+(defcustom treemacs-file-event-delay 2000
   "How long (in milliseconds) to collect file events before refreshing.
 When treemacs receives a file change notification it doesn't immediately refresh
 and instead waits `treemacs-file-event-delay' milliseconds to collect further
@@ -841,8 +841,12 @@ scrolled all the way to the top, and the cdr is used when it isn't."
 Possible values are:
  - `stay' - remain in the treemacs windows, effectively doing nothing
  - `close' - close the treemacs window
+ - `goto-next' - jump to the next treemacs-based window (e.g. treemacs-mu4e)
  - `move-back' - move point back to the most recently used window (as selected
-    by `get-mru-window')"
+   by `get-mru-window')
+ - `next-or-back' - a combination of the two previous options.  First try to
+   move to the next treemacs-based window, if none exists move back to the most
+   recently used window"
   :type '(choice (const stay)
                  (const close)
                  (const move-back))

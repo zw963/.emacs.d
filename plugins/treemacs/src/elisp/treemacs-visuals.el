@@ -1,6 +1,6 @@
 ;;; treemacs.el --- A tree style file viewer package -*- lexical-binding: t -*-
 
-;; Copyright (C) 2021 Alexander Miller
+;; Copyright (C) 2022 Alexander Miller
 
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -67,7 +67,9 @@ Used to save the values of `treemacs-indentation' and
 (defun treemacs--tear-down-icon-highlight ()
   "Tear down highlighting advice when no treemacs buffer exists anymore."
   (treemacs--forget-last-highlight)
-  (unless treemacs--scope-storage
+  (unless (or treemacs--scope-storage
+              (--any (buffer-local-value 'treemacs--in-this-buffer it)
+                     (buffer-list)))
     (advice-remove #'hl-line-highlight #'treemacs--update-icon-selection)
     (advice-remove #'enable-theme      #'treemacs--setup-icon-background-colors)
     (advice-remove #'disable-theme     #'treemacs--setup-icon-background-colors)))
@@ -80,7 +82,7 @@ Used to save the values of `treemacs-indentation' and
           (when treemacs-fringe-indicator-mode
             (treemacs--move-fringe-indicator-to-point))
           (-when-let (btn (treemacs-current-button))
-            (let* ((pos (max (point-at-bol) (- (treemacs-button-start btn) 2)))
+            (let* ((pos (max (line-beginning-position) (- (treemacs-button-start btn) 2)))
                    (img-selected (get-text-property pos 'img-selected)))
               (treemacs-with-writable-buffer
                (when (and treemacs--last-highlight
@@ -99,7 +101,7 @@ Used to save the values of `treemacs-indentation' and
   (when (eq 'treemacs-mode major-mode)
     (treemacs-with-writable-buffer
      (-when-let (btn (treemacs-current-button))
-       (let* ((start (max (point-at-bol) (- (treemacs-button-start btn) 2)))
+       (let* ((start (max (line-beginning-position) (- (treemacs-button-start btn) 2)))
               (end (1+ start))
               (img (get-text-property start 'display))
               (cp (copy-sequence img)))

@@ -1,6 +1,6 @@
 ;;; treemacs.el --- A tree style file viewer package -*- lexical-binding: t -*-
 
-;; Copyright (C) 2021 Alexander Miller
+;; Copyright (C) 2022 Alexander Miller
 
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -169,7 +169,8 @@ ITER: Treemacs-Iter Struct"
               (no-kill nil)
               ;; no surprisese when using `abbreviate-file-name'
               (directory-abbrev-alist nil)
-              (abbreviated-home-dir nil))
+              (abbreviated-home-dir nil)
+              (file-precious-flag t))
           (--if-let (get-file-buffer treemacs-persist-file)
               (setq buffer it
                     no-kill t)

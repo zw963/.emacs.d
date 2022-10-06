@@ -1,6 +1,6 @@
 ;;; treemacs-icons-dired.el --- Treemacs icons for dired -*- lexical-binding: t -*-
 
-;; Copyright (C) 2021 Alexander Miller
+;; Copyright (C) 2022 Alexander Miller
 
 ;; Author: Alexander Miller <alexanderm@web.de>
 ;; Package-Requires: ((treemacs "0.0") (emacs "26.1"))
@@ -59,7 +59,7 @@
     (treemacs-with-writable-buffer
      (save-excursion
        (goto-char pos)
-       (forward-line (if treemacs-icons-dired--ranger-adjust 1 2))
+       (dired-goto-next-file)
        (treemacs-block
         (while (not (eobp))
           (if (dired-move-to-filename nil)
@@ -74,7 +74,7 @@
 (defun treemacs-icons-dired--insert-subdir-advice (&rest args)
   "Advice to Dired & Dired+ insert-subdir commands.
 Will add icons for the subdir in the `car' of ARGS."
-  (let* ((path (car args))
+  (let* ((path (file-name-as-directory (car args)))
          (pos (cdr (assoc path dired-subdir-alist))))
     (when pos
       (treemacs-icons-dired--display-icons-for-subdir path pos))))
@@ -106,7 +106,7 @@ This will make sure the icons' background colours will align with hl-line mode."
           (treemacs--evade-image)
           (unless (region-active-p)
             (let* ((last-pos treemacs--last-highlight)
-                   (curr-pos (next-single-char-property-change (point-at-bol) 'img-selected nil (point-at-eol)))
+                   (curr-pos (next-single-char-property-change (line-beginning-position) 'img-selected nil (line-end-position)))
                    (img-selected (get-text-property curr-pos 'img-selected)))
               (treemacs-with-writable-buffer
                (when (and last-pos (< last-pos (point-max)))

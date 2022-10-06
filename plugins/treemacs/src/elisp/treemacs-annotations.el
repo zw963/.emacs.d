@@ -1,6 +1,6 @@
 ;;; treemacs.el --- A tree style file viewer package -*- lexical-binding: t -*-
 
-;; Copyright (C) 2021 Alexander Miller
+;; Copyright (C) 2022 Alexander Miller
 
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -317,13 +317,13 @@ GIT-FACE is taken from the latest git cache, or nil if it's not known."
                            ,btn
                            'treemacs-suffix-annotation
                            (current-buffer)
-                           (point-at-eol))
+                           (line-end-position))
                           btn-end))
-           (delete-region (point) (point-at-eol))
+           (delete-region (point) (line-end-position))
            (when suffix-value (insert suffix-value))))))))
 
 (defun treemacs-apply-single-annotation (path)
-  "Apply annotations for a single node at given PATH."
+  "Apply annotations for a single node at given PATH in all treemacs buffers."
   (treemacs-run-in-all-derived-buffers
    (-when-let (btn (treemacs-find-node path))
      (treemacs-with-writable-buffer
@@ -335,6 +335,24 @@ GIT-FACE is taken from the latest git cache, or nil if it's not known."
                           (treemacs--parent-dir)
                           (ht-get treemacs--git-cache)))
            (ht-get git-cache path))))))))
+
+(defun treemacs-apply-annotations-in-buffer (buffer)
+  "Apply annotations for all nodes in the given BUFFER."
+  (when (buffer-live-p buffer)
+    (with-current-buffer buffer
+      (treemacs-with-writable-buffer
+       (save-excursion
+         (goto-char (point-min))
+         (let* ((btn (point)))
+           (while (setf btn (next-button btn))
+             (-let [path (treemacs-button-get btn :key)]
+               (treemacs--do-apply-annotation
+                btn
+                (-when-let (git-cache
+                            (->> path
+                                 (treemacs--parent-dir)
+                                 (ht-get treemacs--git-cache)))
+                  (ht-get git-cache path)))))))))))
 
 (defun treemacs-apply-annotations (path)
   "Apply annotations for all nodes under the given PATH.

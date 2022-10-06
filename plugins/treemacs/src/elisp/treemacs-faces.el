@@ -1,6 +1,6 @@
 ;;; treemacs.el --- A tree style file viewer package -*- lexical-binding: t -*-
 
-;; Copyright (C) 2021 Alexander Miller
+;; Copyright (C) 2022 Alexander Miller
 
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -160,6 +160,11 @@ Applies to buttons like
 (defface treemacs-git-commit-diff-face
   '((t :inherit 'font-lock-comment-face))
   "Face for `treemacs-git-commit-diff-mode' annotations."
+  :group 'treemacs-faces)
+
+(defface treemacs-async-loading-face
+  '((t :inherit 'font-lock-comment-face :height 0.8))
+  "Face used for the \"Loading…\" string used by asynchronous extensions."
   :group 'treemacs-faces)
 
 (provide 'treemacs-faces)

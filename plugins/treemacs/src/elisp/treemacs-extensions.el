@@ -1,6 +1,6 @@
 ;;; treemacs.el --- A tree style file viewer package -*- lexical-binding: t -*-
 
-;; Copyright (C) 2021 Alexander Miller
+;; Copyright (C) 2022 Alexander Miller
 
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -477,7 +477,6 @@ additional keys."
                                    (dom-node (treemacs-dom-node->create!
                                               :key ,root-key-form
                                               :position button-start)))
-                              (treemacs--set-project-position ,root-key-form (point-marker))
                               (treemacs-dom-node->insert-into-dom! dom-node)
                               (insert (propertize "Hidden Node\n"
                                                   'button '(t)
@@ -502,7 +501,6 @@ additional keys."
                                    :path ,root-key-form
                                    :path-status 'extension)]
                           (insert ,(if icon-closed closed-icon-name icon-closed-form))
-                          (treemacs--set-project-position ,root-key-form (point-marker))
                           (insert (propertize ,root-label
                                               'button '(t)
                                               'category 'default-button

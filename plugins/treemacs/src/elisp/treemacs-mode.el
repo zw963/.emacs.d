@@ -1,6 +1,6 @@
 ;;; treemacs-mode.el --- A tree style file viewer package -*- lexical-binding: t -*-
 
-;; Copyright (C) 2021 Alexander Miller
+;; Copyright (C) 2022 Alexander Miller
 
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -248,7 +248,8 @@ Used as a post command hook."
          (insert newline-char)
          ;; make sure that the projects-end marker keeps pointing at
          ;; the end of the last project button
-         (when (equal (point) (marker-position (treemacs--projects-end)))
+         (when (and (eq t treemacs--in-this-buffer)
+                    (equal (point) (marker-position (treemacs--projects-end))))
            (move-marker (treemacs--projects-end) (1- (point))))))))
   (-when-let (btn (treemacs-current-button))
     (when (treemacs-button-get btn 'invisible)
@@ -261,8 +262,9 @@ Used as a post command hook."
           (setf treemacs--eldoc-msg (treemacs--get-eldoc-message path)
                 default-directory (treemacs--add-trailing-slash
                                    (if (file-directory-p path) path (file-name-directory path)))))
-      (setq treemacs--eldoc-msg nil
-            default-directory "~/"))))
+      (setf treemacs--eldoc-msg nil)
+      (when (eq t treemacs--in-this-buffer)
+        (setf default-directory "~/")))))
 
 (defun treemacs--get-eldoc-message (path)
   "Set the eldoc message for given PATH.
@@ -378,8 +380,7 @@ Will simply return `treemacs--eldoc-msg'."
   (treemacs--setup-icon-highlight)
   (treemacs--setup-icon-background-colors)
   (treemacs--setup-mode-line)
-  (treemacs--reset-dom)
-  (treemacs--reset-project-positions))
+  (treemacs--reset-dom))
 
 (defun treemacs--mode-check-advice (mode-activation &rest args)
   "Verify that `treemacs-mode' is called in the right place.

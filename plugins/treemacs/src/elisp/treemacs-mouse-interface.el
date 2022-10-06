@@ -1,6 +1,6 @@
 ;;; treemacs.el --- A tree style file viewer package -*- lexical-binding: t -*-
 
-;; Copyright (C) 2021 Alexander Miller
+;; Copyright (C) 2022 Alexander Miller
 
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -42,6 +42,17 @@
 
 (defvar treemacs--mouse-project-list-functions
   '(("Add Project.el project" . treemacs--builtin-project-mouse-selection-menu)))
+
+(defun treemacs--mouse-drag-advice (fn &rest args)
+  "Advice to wrap `adjust-window-trailing-edge' as FN and its ARGS.
+Ensure that treemacs' window width can be changed with the mouse, even if it is
+locked."
+  (with-selected-window (or (treemacs-get-local-window) (selected-window))
+    (let ((treemacs--width-is-locked)
+          (window-size-fixed))
+      (apply fn args))))
+
+(advice-add #'adjust-window-trailing-edge :around #'treemacs--mouse-drag-advice)
 
 (defun treemacs--builtin-project-mouse-selection-menu ()
   "Build a mouse selection menu for project.el projects."

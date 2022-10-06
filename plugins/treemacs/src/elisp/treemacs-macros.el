@@ -1,6 +1,6 @@
 ;;; treemacs.el --- A tree style file viewer package -*- lexical-binding: t -*-
 
-;; Copyright (C) 2021 Alexander Miller
+;; Copyright (C) 2022 Alexander Miller
 
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -105,6 +105,7 @@ Log ERROR-MSG if no button is selected, otherwise run BODY."
 
 (cl-defmacro treemacs-do-for-button-state
     (&key no-error
+          fallback
           on-root-node-open
           on-root-node-closed
           on-file-node-open
@@ -113,16 +114,23 @@ Log ERROR-MSG if no button is selected, otherwise run BODY."
           on-dir-node-closed
           on-tag-node-open
           on-tag-node-closed
-          on-tag-node-leaf on-nil)
+          on-tag-node-leaf
+          on-nil)
 "Building block macro to execute a form based on the current node state.
 Will bind to current button to \\='btn' for the execution of the action forms.
 When NO-ERROR is non-nil no error will be thrown if no match for the button
-state is achieved.
+state is achieved.  A general FALLBACK can also be used instead of NO-ERROR.  In
+that case the unknown state will be bound as `state' in the FALLBACK form.
+
 Otherwise either one of ON-ROOT-NODE-OPEN, ON-ROOT-NODE-CLOSED,
 ON-FILE-NODE-OPEN, ON-FILE-NODE-CLOSED, ON-DIR-NODE-OPEN, ON-DIR-NODE-CLOSED,
 ON-TAG-NODE-OPEN, ON-TAG-NODE-CLOSED, ON-TAG-NODE-LEAF or ON-NIL will be
 executed."
   (declare (debug (&rest [sexp form])))
+
+  (treemacs-static-assert (or (null no-error) (null fallback))
+    "no-error and fallback arguments are mutually exclusive.")
+
   `(-if-let (btn (treemacs-current-button))
        (pcase (treemacs-button-get btn :state)
          ,@(when on-root-node-open
@@ -152,7 +160,11 @@ executed."
          ,@(when on-tag-node-leaf
              `((`tag-node
                 ,on-tag-node-leaf)))
-         ,@(unless no-error
+         ,@(when fallback
+             `((state
+                (ignore state)
+                ,fallback)))
+         ,@(unless (or fallback no-error)
              `((state (error "[Treemacs] Unexpected button state %s" state)))))
      ,on-nil))
 
@@ -266,7 +278,7 @@ not work keep it on the same line."
            (curr-state     (-some-> curr-btn (treemacs-button-get :state)))
            (collapse       (-some-> curr-btn (treemacs-button-get :collapsed)))
            (curr-file      (if collapse (treemacs-button-get curr-btn :key) (-some-> curr-btn (treemacs--nearest-path))))
-           (curr-window    (treemacs-get-local-window))
+           (curr-window    (get-buffer-window (current-buffer)))
            (curr-win-line  (when curr-window
                              (with-selected-window curr-window
                                (treemacs--current-screen-line)))))
@@ -477,12 +489,11 @@ they will be evaluated only once."
          `(--first (treemacs-is-path ,left :in-project it)
                    (treemacs-workspace->projects ,ws)))))))
 
-(cl-defmacro treemacs-with-path (path &key file-action top-level-extension-action directory-extension-action project-extension-action no-match-action)
+(cl-defmacro treemacs-with-path (path &key file-action extension-action no-match-action)
   "Execute an action depending on the type of PATH.
 
 FILE-ACTION is the action to perform when PATH is a regular file node.
-TOP-LEVEL-EXTENSION-ACTION, DIRECTORY-EXTENSION-ACTION, and
-PROJECT-EXTENSION-ACTION operate on paths for the different extension types.
+EXTENSION-ACTION is performed on extension-created nodes.
 
 If none of the path types matches, NO-MATCH-ACTION is executed."
   (declare (indent 1))
@@ -491,12 +502,11 @@ If none of the path types matches, NO-MATCH-ACTION is executed."
        (cond
         ,@(when file-action
             `(((stringp ,path-symbol) ,file-action)))
-        ,@(when top-level-extension-action
-            `(((eq :custom (car ,path-symbol)) ,top-level-extension-action)))
-        ,@(when directory-extension-action
-            `(((stringp (car ,path-symbol)) ,directory-extension-action)))
-        ,@(when project-extension-action
-            `(((treemacs-project-p (car ,path-symbol)) ,project-extension-action)))
+        ,@(when extension-action
+            `(((or (symbolp ,path)
+                   (symbolp (car ,path))
+                   (stringp (car ,path)))
+               ,extension-action)))
         (t
          ,(if no-match-action
               no-match-action
