@@ -1,12 +1,12 @@
-use std::cell::RefCell;
+use std::{cell::RefCell, iter};
 
 use emacs::{defun, Env, Error, GlobalRef, IntoLisp, Result, Value, Vector};
-use tree_sitter::{Node, QueryCursor, QueryErrorKind};
+use tree_sitter::{Node, QueryCursor, QueryErrorKind, TextProvider};
 
 use crate::{
     types::{BytePos, Point},
     lang::Language,
-    node::RNode,
+    node::{RNode, LispUtils},
     error,
 };
 
@@ -47,6 +47,7 @@ fn _make_query(language: Language, source: String, tag_assigner: Value) -> Resul
             QueryErrorKind::Capture => error::tsc_query_invalid_capture,
             QueryErrorKind::Predicate => error::tsc_query_invalid_predicate,
             QueryErrorKind::Structure => error::tsc_query_invalid_structure,
+            QueryErrorKind::Language => error::tsc_lang_abi_error,
         };
         let byte_pos: BytePos = err.offset.into();
         let point: Point = tree_sitter::Point { row: err.row, column: err.column }.into();
@@ -136,14 +137,15 @@ fn make_query_cursor() -> Result<QueryCursor> {
 fn text_callback<'e>(
     text_function: Value<'e>,
     error: &'e RefCell<Option<Error>>,
-) -> impl FnMut(Node<'e>) -> String + 'e {
-    move |child| {
-        let beg: BytePos = child.start_byte().into();
-        let end: BytePos = child.end_byte().into();
-        text_function.call((beg, end)).and_then(|v| v.into_rust()).unwrap_or_else(|e| {
+) -> impl TextProvider<'e> {
+    move |child: Node| {
+        let beg = child.lisp_start_byte();
+        let end = child.lisp_end_byte();
+        let text = text_function.call((beg, end)).and_then(|v| v.into_rust()).unwrap_or_else(|e| {
             error.borrow_mut().replace(e);
             "".to_owned()
-        })
+        });
+        iter::once(text.into_bytes())
     }
 }
 
@@ -205,11 +207,9 @@ fn _query_cursor_captures_1<'e>(
             return Err(error);
         }
         let c = m.captures[capture_index];
-        let beg: BytePos = c.node.start_byte().into();
-        let end: BytePos = c.node.end_byte().into();
         let capture = env.cons(
             &query.capture_tags[c.index as usize],
-            env.cons(beg, end)?,
+            c.node.lisp_byte_range(env)?,
         )?;
         vec.push((m.pattern_index, capture));
     }
@@ -263,7 +263,7 @@ fn _query_cursor_captures<'e>(
 /// Limit CURSOR's query executions to the range of byte positions, from BEG to END.
 #[defun]
 fn _query_cursor_set_byte_range(cursor: &mut QueryCursor, beg: BytePos, end: BytePos) -> Result<()> {
-    cursor.set_byte_range(beg.into(), end.into());
+    cursor.set_byte_range(beg.into()..end.into());
     Ok(())
 }
 
@@ -273,6 +273,6 @@ fn _query_cursor_set_byte_range(cursor: &mut QueryCursor, beg: BytePos, end: Byt
 /// `tsc-parse-chunks' for a more detailed explanation.
 #[defun]
 fn _query_cursor_set_point_range(cursor: &mut QueryCursor, beg: Point, end: Point) -> Result<()> {
-    cursor.set_point_range(beg.into(), end.into());
+    cursor.set_point_range(beg.into()..end.into());
     Ok(())
 }

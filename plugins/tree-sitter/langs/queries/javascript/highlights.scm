@@ -58,12 +58,15 @@
 (for_in_statement
  left: (identifier) @variable)
 
-;; FIX: This is disabled because typescript grammar redefines _formal_parameter, but its highlighting
-;; patterns reuse this file.
-;; (formal_parameters
-;;  (identifier) @variable.parameter)
 (arrow_function
  parameter: (identifier) @variable.parameter)
+;; TypeScript's highlighting patterns reuse this file, so the atter below must work for both
+;; JavaScript and TypeScript. Since TypeScript grammar redefines `_formal_parameter`, we use
+;; wildcard pattern instead of `formal_parameters`.
+(arrow_function
+ parameters: [(_ (identifier) @variable.parameter)
+              (_ (_ (identifier) @variable.parameter))
+              (_ (_ (_ (identifier) @variable.parameter)))])
 
 ;; Properties
 
@@ -72,21 +75,13 @@
  property: (property_identifier) @property)
 ((shorthand_property_identifier) @property.definition)
 
-;; Literals
 
-[(this) (super) (true) (false)] @variable.builtin
-
-(regex) @string.special
-(number) @number
-
-[(string) (template_string)] @string
-(comment) @comment
 
 ;; Punctuation
 
 (template_substitution
  "${" @punctuation.special
- (_) @embedded
+ (_)
  "}" @punctuation.special)
 
 [";"
@@ -169,3 +164,23 @@
 
 ;; Misc.
 (statement_identifier) @label
+
+
+;; Literals
+
+[(this) (super) (true) (false)] @variable.builtin
+
+(regex) @string.special
+(number) @number
+
+(string) @string
+(comment) @comment
+
+(template_substitution
+ "${"
+ (_) @embedded
+ "}")
+
+;; template strings need to be last in the file for embedded expressions
+;; to work properly
+(template_string) @string

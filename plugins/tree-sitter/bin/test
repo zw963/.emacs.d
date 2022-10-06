@@ -1,0 +1,33 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+here=$(cd "$(dirname "$BASH_SOURCE")"; pwd)
+source "$here/env.bash"
+
+echo "[!!] Using Emacs binary from $(which $EMACS) version: $($EMACS --version)"
+if [[ $* == "watch" ]]; then
+    (
+        cd "$PROJECT_ROOT/core"
+        cargo watch -s ../bin/build -s ../bin/test
+    )
+else
+    if [[ $* == "integ" ]]; then
+        test_mod="tsc-dyn-get-tests.el"
+    elif [[ $* == "bench" ]]; then
+        test_mod="tree-sitter-bench.el"
+    else
+        test_mod="tree-sitter-tests.el"
+    fi
+    (
+        cd "$PROJECT_ROOT"
+        cask emacs --batch \
+             --directory "$PROJECT_ROOT/core" \
+             --directory "$PROJECT_ROOT/lisp" \
+             --directory "$PROJECT_ROOT/langs" \
+             --directory "$PROJECT_ROOT/tests" \
+             -l ert \
+             -l "$test_mod" \
+             -f ert-run-tests-batch-and-exit
+    )
+fi

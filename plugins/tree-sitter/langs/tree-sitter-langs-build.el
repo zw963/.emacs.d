@@ -32,7 +32,7 @@
   (file-name-directory (locate-library "tree-sitter-langs.el"))
   "The directory where the library `tree-sitter-langs' is located.")
 
-;; TODO: Rename this.
+;; TODO: Separate build-time settings from run-time settings.
 (defcustom tree-sitter-langs-grammar-dir tree-sitter-langs--dir
   "The root data directory of `tree-sitter-langs'.
 The 'bin' directory under this directory is used to stored grammar
@@ -80,7 +80,11 @@ If BUFFER is nil, `princ' is used to forward its stdout+stderr."
                       (while (not (memq (process-status proc)
                                         '(exit failed signal)))
                         (sleep-for 0.1))
-                      (process-exit-status proc))))
+                      (process-exit-status proc)))
+         ;; Flush buffered output. Not doing this caused
+         ;; `tree-sitter-langs-git-dir' to be set incorrectly, and
+         ;; `tree-sitter-langs-create-bundle's output to be unordered.
+         (_ (accept-process-output proc)))
     (unless (= exit-code 0)
       (error "Error calling %s, exit code is %s" command exit-code))))
 
@@ -153,8 +157,9 @@ git checkout."
                      "git" "submodule" "status" "--cached" sub-path))
                   (buffer-substring-no-properties 2 9))
        :paths (pcase lang-symbol
-                ('typescript '("typescript" "tsx"))
-                ('ocaml '("ocaml" "interface"))
+                ;; XXX
+                ('typescript '("typescript" ("tsx" . tsx)))
+                ('ocaml '("ocaml" ("interface" . ocaml-interface)))
                 (_ '("")))))))
 
 (defun tree-sitter-langs--repo-status (lang-symbol)
@@ -202,10 +207,26 @@ latest commit."
                 (:tags (or (magit-get-current-tag "origin/master")
                            (magit-rev-parse "--short=7" "origin/master"))))))))
 
+(defun tree-sitter-langs--changed-langs (&optional base)
+  "Return languages that have changed since git revision BASE (as symbols)."
+  (let* ((base (or base "origin/master"))
+         (default-directory tree-sitter-langs-git-dir)
+         (changed-files (thread-first
+                            (format "git --no-pager diff --name-only %s" base)
+                          shell-command-to-string
+                          string-trim split-string))
+         grammar-changed queries-changed)
+    (dolist (file changed-files)
+      (let ((segs (split-string file "/")))
+        (pcase (car segs)
+          ("repos" (cl-pushnew (intern (cadr segs)) grammar-changed))
+          ("queries" (cl-pushnew (intern (cadr segs)) queries-changed)))))
+    (cl-union grammar-changed queries-changed)))
+
 ;; ---------------------------------------------------------------------------
 ;;; Building language grammars.
 
-(defconst tree-sitter-langs--bundle-version "0.10.0"
+(defconst tree-sitter-langs--bundle-version "0.11.3"
   "Version of the grammar bundle.
 This should be bumped whenever a language submodule is updated, which should be
 infrequent (grammar-only changes). It is different from the version of
@@ -231,12 +252,31 @@ infrequent (grammar-only changes). It is different from the version of
   "Return the grammar bundle file's name, with optional EXT.
 If VERSION and OS are not spcified, use the defaults of
 `tree-sitter-langs--bundle-version' and `tree-sitter-langs--os'."
-  (format "tree-sitter-grammars-%s-%s.tar%s"
-          (or os tree-sitter-langs--os)
-          (or version tree-sitter-langs--bundle-version)
-          (or ext "")))
+  (setq os (or os tree-sitter-langs--os)
+        version (or version tree-sitter-langs--bundle-version)
+        ext (or ext ""))
+  (if (version<= "0.10.13" version)
+      (format "tree-sitter-grammars.%s.v%s.tar%s"
+              ;; FIX: Implement this correctly, refactoring 'OS' -> 'platform'.
+              (pcase os
+                ("windows" "x86_64-pc-windows-msvc")
+                ("linux" "x86_64-unknown-linux-gnu")
+                ("macos" (if (string-prefix-p "aarch64" system-configuration)
+                             "aarch64-apple-darwin"
+                           "x86_64-apple-darwin")))
+              version ext)
+    (tree-sitter-langs--old-bundle-file
+     ext version os)))
 
-(defun tree-sitter-langs-compile (lang-symbol &optional clean)
+;; This is for compatibility with old downloading code. TODO: Remove it.
+(defun tree-sitter-langs--old-bundle-file (&optional ext version os)
+  (setq os (or os tree-sitter-langs--os)
+        version (or version tree-sitter-langs--bundle-version)
+        ext (or ext ""))
+  (format "tree-sitter-grammars-%s-%s.tar%s"
+          os version ext))
+
+(defun tree-sitter-langs-compile (lang-symbol &optional clean target)
   "Download and compile the grammar for LANG-SYMBOL.
 This function requires git and tree-sitter CLI.
 
@@ -248,6 +288,12 @@ from the current state of the grammar repo, without cleanup."
     (error "Could not find git (needed to download grammars)"))
   (unless (executable-find "tree-sitter")
     (error "Could not find tree-sitter executable (needed to compile grammars)"))
+  (setq target
+        (pcase (format "%s" target)
+          ;; Rust's triple -> system toolchain's triple
+          ("aarch64-apple-darwin" "arm64-apple-macos11")
+          ("nil" nil)
+          (_ (error "Unsupported cross-compilation target %s" target))))
   (let* ((source (tree-sitter-langs--source lang-symbol))
          (dir (if source
                   (file-name-as-directory
@@ -280,10 +326,46 @@ from the current state of the grammar repo, without cleanup."
         (with-demoted-errors "Failed to run 'npm install': %s"
           (tree-sitter-langs--call "npm" "install")))
       ;; A repo can have multiple grammars (e.g. typescript + tsx).
-      (dolist (path paths)
-        (let ((default-directory (file-name-as-directory (concat dir path))))
+      (dolist (path-spec paths)
+        (let* ((path (or (car-safe path-spec) path-spec))
+               (lang-symbol (or (cdr-safe path-spec) lang-symbol))
+               (default-directory (file-name-as-directory (concat dir path))))
           (tree-sitter-langs--call "tree-sitter" "generate")
-          (tree-sitter-langs--call "tree-sitter" "test")))
+          (cond
+           ((and (memq system-type '(gnu/linux))
+                 (file-exists-p "src/scanner.cc"))
+            ;; XXX: Modified from
+            ;; https://github.com/tree-sitter/tree-sitter/blob/v0.20.0/cli/loader/src/lib.rs#L351
+            (tree-sitter-langs--call
+             "g++" "-shared" "-fPIC" "-fno-exceptions" "-g" "-O2"
+             "-static-libgcc" "-static-libstdc++"
+             "-I" "src"
+             "src/scanner.cc" "-xc" "src/parser.c"
+             "-o" (format "%sbin/%s.so" tree-sitter-langs-grammar-dir lang-symbol)))
+           ;; XXX: This is a hack for cross compilation (mainly for Apple Silicon).
+           (target (cond
+                    ((file-exists-p "src/scanner.cc")
+                     (tree-sitter-langs--call
+                      "c++" "-shared" "-fPIC" "-fno-exceptions" "-g" "-O2"
+                      "-I" "src"
+                      "src/scanner.cc" "-xc" "src/parser.c"
+                      "-o" (format "%sbin/%s.so" tree-sitter-langs-grammar-dir lang-symbol)
+                      "-target" target))
+                    ((file-exists-p "src/scanner.c")
+                     (tree-sitter-langs--call
+                      "cc" "-shared" "-fPIC" "-g" "-O2"
+                      "-I" "src"
+                      "src/scanner.c" "src/parser.c"
+                      "-o" (format "%sbin/%s.so" tree-sitter-langs-grammar-dir lang-symbol)
+                      "-target" target))
+                    (:default
+                     (tree-sitter-langs--call
+                      "cc" "-shared" "-fPIC" "-g" "-O2"
+                      "-I" "src"
+                      "src/parser.c"
+                      "-o" (format "%sbin/%s.so" tree-sitter-langs-grammar-dir lang-symbol)
+                      "-target" target))))
+           (:default (tree-sitter-langs--call "tree-sitter" "test")))))
       ;; Replace underscores with hyphens. Example: c_sharp.
       (let ((default-directory bin-dir))
         (dolist (file (directory-files default-directory))
@@ -309,7 +391,7 @@ from the current state of the grammar repo, without cleanup."
         (tree-sitter-langs--call "git" "reset" "--hard" "HEAD")
         (tree-sitter-langs--call "git" "clean" "-f")))))
 
-(defun tree-sitter-langs-create-bundle (&optional clean)
+(cl-defun tree-sitter-langs-create-bundle (&optional clean target)
   "Create a bundle of language grammars.
 The bundle includes all languages tracked in git submodules.
 
@@ -324,34 +406,53 @@ compile from the current state of the grammar repos, without cleanup."
                        (message "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
                        (let ((lang-symbol (intern name)))
                          (condition-case err
-                             (tree-sitter-langs-compile lang-symbol clean)
+                             (tree-sitter-langs-compile lang-symbol clean target)
                            (error `[,lang-symbol ,err])))))
                   (seq-filter #'identity))))
     (message "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
     (unwind-protect
         (let* ((tar-file (concat (file-name-as-directory
                                   (expand-file-name default-directory))
-                                 (tree-sitter-langs--bundle-file) ".gz"))
+                                 (tree-sitter-langs--old-bundle-file) ".gz"))
                (default-directory (tree-sitter-langs--bin-dir))
                (tree-sitter-langs--out (tree-sitter-langs--buffer "*tree-sitter-langs-create-bundle*"))
-               (files (seq-filter (lambda (file)
-                                    (when (seq-some (lambda (ext) (string-suffix-p ext file))
-                                                    tree-sitter-langs--suffixes)
-                                      file))
-                                  (directory-files default-directory)))
+               (files (cons tree-sitter-langs--bundle-version-file
+                            (seq-filter (lambda (file)
+                                          (when (seq-some (lambda (ext) (string-suffix-p ext file))
+                                                          tree-sitter-langs--suffixes)
+                                            file))
+                                        (directory-files default-directory))))
                ;; Disk names in Windows can confuse tar, so we need this option. BSD
                ;; tar (macOS) doesn't have it, so we don't set it everywhere.
                ;; https://unix.stackexchange.com/questions/13377/tar/13381#13381.
                (tar-opts (pcase system-type
                            ('windows-nt '("--force-local")))))
-          (apply #'tree-sitter-langs--call "tar" "-zcvf" tar-file (append tar-opts files))
           (with-temp-file tree-sitter-langs--bundle-version-file
             (let ((coding-system-for-write 'utf-8))
-              (insert tree-sitter-langs--bundle-version))))
+              (insert tree-sitter-langs--bundle-version)))
+          (apply #'tree-sitter-langs--call "tar" "-zcvf" tar-file (append tar-opts files)))
       (when errors
         (message "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
-        (display-warning 'tree-sitter-langs
-                         (format "Could not compile grammars:\n%s" (pp-to-string errors)))))))
+        (error "Could not compile grammars:\n%s" (pp-to-string errors))))))
+
+(defun tree-sitter-langs-compile-changed-or-all (&optional base target)
+  "Compile languages that have changed since git revision BASE.
+If no language-specific change is detected, compile all languages."
+  (let ((lang-symbols (tree-sitter-langs--changed-langs base))
+        errors)
+    (if (null lang-symbols)
+        (progn
+          (message "[tree-sitter-langs] Compiling all langs, since there's no change since %s" base)
+          (tree-sitter-langs-create-bundle nil target))
+      (message "[tree-sitter-langs] Compiling langs changed since %s: %s" base lang-symbols)
+      (dolist (lang-symbol lang-symbols)
+        (message "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
+        (condition-case err
+            (tree-sitter-langs-compile lang-symbol nil target)
+          (error (setq errors (append errors `([,lang-symbol ,err]))))))
+      (when errors
+        (message "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
+        (error "Could not compile grammars:\n%s" (pp-to-string errors))))))
 
 ;; ---------------------------------------------------------------------------
 ;;; Download and installation.
@@ -364,7 +465,7 @@ compile from the current state of the grammar repos, without cleanup."
   "Return the URL to download the grammar bundle.
 If VERSION and OS are not specified, use the defaults of
 `tree-sitter-langs--bundle-version' and `tree-sitter-langs--os'."
-  (format "https://github.com/ubolonton/tree-sitter-langs/releases/download/%s/%s"
+  (format "https://github.com/emacs-tree-sitter/tree-sitter-langs/releases/download/%s/%s"
           version
           (tree-sitter-langs--bundle-file ".gz" version os)))
 
@@ -396,7 +497,7 @@ non-nil."
                               (let ((coding-system-for-read 'utf-8))
                                 (insert-file-contents
                                  tree-sitter-langs--bundle-version-file)
-                                (buffer-string))))))
+                                (string-trim (buffer-string)))))))
     (cl-block nil
       (if (string= version current-version)
           (if skip-if-installed
@@ -436,11 +537,11 @@ If the optional arg FORCE is non-nil, any existing file will be overwritten."
                                (symbol-name lang-symbol)))))
         (unless (file-directory-p dst-dir)
           (make-directory dst-dir t))
-        (message "Copying highlights.scm for %s" lang-symbol)
         (let ((default-directory dst-dir))
           (if (file-exists-p "highlights.scm")
               (when force
                 (copy-file src dst-dir :force))
+            (message "Copying highlights.scm for %s" lang-symbol)
             (copy-file src dst-dir)))))))
 
 (defun tree-sitter-langs--copy-queries ()

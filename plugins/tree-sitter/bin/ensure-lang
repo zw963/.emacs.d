@@ -1,0 +1,31 @@
+#!/usr/bin/env bash
+
+# TODO: Move away from hacky bash scripts.
+
+# Usage:
+# ensure-lang <name>
+#
+# Examples:
+# ensure-lang rust
+# ensure-lang python
+
+set -euo pipefail
+
+here=$(cd "$(dirname "$BASH_SOURCE")"; pwd)
+source "$here/env.bash"
+
+LANG=$1
+
+(
+    cd "$PROJECT_ROOT"
+
+    $EMACS --batch \
+           --directory "$PROJECT_ROOT/core" \
+           --directory "$PROJECT_ROOT/lisp" \
+           --directory "$PROJECT_ROOT/langs" \
+           --eval "
+(progn
+  (setq tree-sitter-langs--testing t)
+  (require 'tree-sitter-langs)
+  (tree-sitter-langs-ensure '$LANG))"
+)

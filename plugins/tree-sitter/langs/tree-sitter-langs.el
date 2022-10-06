@@ -4,8 +4,8 @@
 ;;
 ;; Author: Tuấn-Anh Nguyễn <ubolonton@gmail.com>
 ;; Keywords: languages tools parsers tree-sitter
-;; Homepage: https://github.com/ubolonton/tree-sitter-langs
-;; Version: 0.10.0
+;; Homepage: https://github.com/emacs-tree-sitter/tree-sitter-langs
+;; Version: 0.11.3
 ;; Package-Requires: ((emacs "25.1") (tree-sitter "0.15.0"))
 ;; SPDX-License-Identifier: MIT
 
@@ -26,6 +26,12 @@
 ;;    that are not aware of `tree-sitter'. A language major mode that wants to
 ;;    use `tree-sitter' for syntax highlighting should instead provide the query
 ;;    patterns on its own, using the mechanisms defined by `tree-sitter-hl'.
+;;
+;; 3. Optional query patterns for other minor modes that provide high-level
+;;    functionalities on top of `tree-sitter', such as code folding, evil text
+;;    objects... As with highlighting patterns, major modes that are directly
+;;    aware of `tree-sitter' should provide the query patterns on their own.
+
 
 ;;; Code:
 
@@ -77,22 +83,35 @@ See `tree-sitter-langs-repos'."
          (tree-sitter-require lang-symbol)))
     (tree-sitter-langs--copy-query lang-symbol)))
 
-;;; Add the bundle directory.
-(cl-pushnew (tree-sitter-langs--bin-dir)
-            tree-sitter-load-path)
+;;;###autoload
+(defun tree-sitter-langs--init-load-path (&rest _args)
+  "Add the directory containing compiled grammars to `tree-sitter-load-path'."
+  (cl-pushnew (tree-sitter-langs--bin-dir) tree-sitter-load-path
+              :test #'string-equal)
+  (advice-remove 'tree-sitter-load #'tree-sitter-langs--init-load-path))
 
-;;; Link known major modes to languages in the bundle.
-(pcase-dolist
-    (`(,major-mode . ,lang-symbol)
-     (reverse '((agda-mode       . agda)
+;;;###autoload
+(advice-add 'tree-sitter-load :before #'tree-sitter-langs--init-load-path)
+
+;;;###autoload
+(defun tree-sitter-langs--init-major-mode-alist (&rest _args)
+  "Link known major modes to languages provided by the bundle."
+  (dolist
+      (entry (reverse
+              '((agda-mode       . agda)
                 (sh-mode         . bash)
                 (c-mode          . c)
                 (csharp-mode     . c-sharp)
                 (c++-mode        . cpp)
+                (d-mode          . d)
                 (css-mode        . css)
                 (elm-mode        . elm)
+                (elixir-mode     . elixir)
                 (go-mode         . go)
+                (hcl-mode        . hcl)
                 (html-mode       . html)
+                (mhtml-mode      . html)
+                (nix-mode        . nix)
                 (java-mode       . java)
                 (javascript-mode . javascript)
                 (js-mode         . javascript)
@@ -103,7 +122,9 @@ See `tree-sitter-langs-repos'."
                 (julia-mode      . julia)
                 (ocaml-mode      . ocaml)
                 (php-mode        . php)
+                (prisma-mode     . prisma)
                 (python-mode     . python)
+                (pygn-mode       . pgn)
                 (rjsx-mode       . javascript)
                 (ruby-mode       . ruby)
                 (rust-mode       . rust)
@@ -111,9 +132,16 @@ See `tree-sitter-langs-repos'."
                 (scala-mode      . scala)
                 (swift-mode      . swift)
                 (tuareg-mode     . ocaml)
-                (typescript-mode . typescript))))
-  (setf (map-elt tree-sitter-major-mode-language-alist major-mode)
-        lang-symbol))
+                (typescript-mode . typescript)
+                (zig-mode        . zig))))
+    (cl-pushnew entry tree-sitter-major-mode-language-alist
+                :key #'car))
+  (advice-remove 'tree-sitter--setup #'tree-sitter-langs--init-major-mode-alist))
+
+;;;###autoload
+(advice-add 'tree-sitter--setup :before #'tree-sitter-langs--init-major-mode-alist)
+;;; Normal load.
+(tree-sitter-langs--init-major-mode-alist)
 
 (defun tree-sitter-langs--hl-query-path (lang-symbol)
   (concat (file-name-as-directory
@@ -139,6 +167,7 @@ Return nil if there are no bundled patterns."
         (buffer-string))
     (file-missing nil)))
 
+;;;###autoload
 (defun tree-sitter-langs--set-hl-default-patterns (&rest _args)
   "Use syntax highlighting patterns provided by `tree-sitter-langs'."
   (unless tree-sitter-hl-default-patterns
@@ -146,6 +175,7 @@ Return nil if there are no bundled patterns."
       (setq tree-sitter-hl-default-patterns
             (tree-sitter-langs--hl-default-patterns lang-symbol)))))
 
+;;;###autoload
 (advice-add 'tree-sitter-hl--setup :before
             #'tree-sitter-langs--set-hl-default-patterns)
 

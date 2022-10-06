@@ -7,6 +7,7 @@
 (add-to-list 'tree-sitter-major-mode-language-alist '(enh-ruby-mode . ruby))
 
 (global-tree-sitter-mode)
+
 (add-hook 'tree-sitter-after-on-hook #'tree-sitter-hl-mode)
 
 (require 'tree-sitter-indent)
