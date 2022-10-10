@@ -8,7 +8,7 @@
 ;; Copyright (C) 2022, Andy Stewart, all rights reserved.
 ;; Created: 2022-05-31 16:29:33
 ;; Version: 0.1
-;; Last-Updated: 2022-09-28 21:44:15 +0800
+;; Last-Updated: 2022-10-09 14:56:54 +0800
 ;;           By: Gong Qijian
 ;; URL: https://www.github.org/manateelazycat/acm
 ;; Keywords:
@@ -481,12 +481,20 @@ influence of C1 on the result."
 
     candidates))
 
+(defun acm-menu-index-info (candidate)
+  "Pick label and backend information to record and restore menu select index.
+The key of candidate will change between two LSP results."
+  (format "%s###%s" (plist-get candidate :label) (plist-get candidate :backend)))
+
 (defun acm-update ()
   ;; Adjust `gc-cons-threshold' to maximize temporary,
   ;; make sure Emacs not do GC when filter/sort candidates.
   (let* ((gc-cons-threshold most-positive-fixnum)
          (keyword (acm-get-input-prefix))
+         (previous-select-candidate (acm-menu-index-info (acm-menu-current-candidate)))
          (candidates (acm-update-candidates))
+         (menu-candidates (cl-subseq candidates 0 (min (length candidates) acm-menu-length)))
+         (menu-index (cl-position previous-select-candidate (mapcar 'acm-menu-index-info menu-candidates) :test 'equal))
          (bounds (acm-get-input-prefix-bound)))
     (cond
      ;; Hide completion menu if user type first candidate completely.
@@ -503,14 +511,26 @@ influence of C1 on the result."
         ;; Use `pre-command-hook' to hide completion menu when command match `acm-continue-commands'.
         (add-hook 'pre-command-hook #'acm--pre-command nil 'local)
 
-        ;; Init candidates, menu index and offset.
+        ;; Init candidates and offset.
         (setq-local acm-candidates candidates)
-        (setq-local acm-menu-candidates
-                    (cl-subseq acm-candidates
-                               0 (min (length acm-candidates)
-                                      acm-menu-length)))
-        (setq-local acm-menu-index (if (zerop (length acm-menu-candidates)) -1 0))
+        (setq-local acm-menu-candidates menu-candidates)
         (setq-local acm-menu-offset 0)
+
+        ;; Set menu index.
+        (setq-local acm-menu-index
+                    (cond
+                     ;; If `acm-menu-candidates' size is zero, menu index set to -1
+                     ((zerop (length acm-menu-candidates)) -1)
+                     ;; If `menu-index' is non-nil, restore menu index with new postion that match previous select candidate
+                     ;;
+                     ;; NOTE:
+                     ;; LSP server will return newest candidates to acm when user select non-first candidate,
+                     ;; `acm-complete' will expand wrong candidate content if we just make `acm-menu-index' equal 0.
+                     ;; So we need record previous select candidate before call `acm-update-candidates',
+                     ;; and try to restore new menu index that match previous select candidate.
+                     (menu-index menu-index)
+                     ;; Otherwise, menu index set to 0
+                     (t 0)))
 
         ;; Init colors.
         (acm-init-colors)
@@ -583,7 +603,16 @@ influence of C1 on the result."
   (when (acm-frame-visible-p acm-doc-frame)
     (acm-set-frame-colors acm-doc-frame)))
 
-(advice-add #'load-theme :after #'acm-reset-colors)
+(if (daemonp)
+    ;; The :background of 'default is unavailable until frame is created in
+    ;; daemon mode.
+    (add-hook 'server-after-make-frame-hook
+              (lambda ()
+                (advice-add #'load-theme :after #'acm-reset-colors)
+                ;; Compensation for missing the first `load-thme' in
+                ;; `after-init-hook'.
+                (acm-reset-colors)))
+  (advice-add #'load-theme :after #'acm-reset-colors))
 
 (defun acm-frame-get-popup-position ()
   (let* ((edges (window-pixel-edges))
