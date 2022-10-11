@@ -9,6 +9,9 @@
 (define-key global-map [remap execute-extended-command] 'helm-M-x)
 (define-key minibuffer-local-map [(control /)] 'helm-undo-yank-text-at-point)
 
+(global-set-key (kbd "M-r") 'helm-grep-do-git-grep)
+(define-key helm-find-files-map (kbd "M-r") 'helm-ff-run-git-grep)
+
 ;; 不懂干嘛的.
 (unless (boundp 'completion-in-region-function)
   (define-key lisp-interaction-mode-map [remap completion-at-point] 'helm-lisp-completion-at-point)
