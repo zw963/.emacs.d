@@ -12,6 +12,12 @@
 (global-set-key (kbd "M-r") 'helm-grep-do-git-grep)
 (define-key helm-find-files-map (kbd "M-r") 'helm-ff-run-git-grep)
 
+;; If you want grep base on multi-files, use M-SPC mark files, then C-s
+(define-key helm-find-files-map (kbd "C-s") 'helm-ff-run-grep-ag)
+(define-key helm-map (kbd "M-SPC") 'helm-toggle-visible-mark-forward)
+
+;; (define-key helm-find-files-map (kbd "C-m") 'helm-toggle-visible-mark-forward)
+
 ;; 不懂干嘛的.
 (unless (boundp 'completion-in-region-function)
   (define-key lisp-interaction-mode-map [remap completion-at-point] 'helm-lisp-completion-at-point)

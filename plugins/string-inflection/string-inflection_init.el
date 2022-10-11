@@ -21,7 +21,10 @@
     (string-inflection-all-cycle)
     )))
 
-(global-set-key [(meta u)] 'my-string-inflection-cycle-auto)
+(add-hook 'prog-mode-hook
+          '(lambda ()
+             (local-set-key [(meta u)] 'my-string-inflection-cycle-auto)
+             ))
 
 (require 'sequential-command)
 (require 'subword)
