@@ -31,18 +31,6 @@
     ("b" dumb-jump-back "Back"))
   )
 
-(with-eval-after-load 'back-button
-  (defhydra hydra-back-button
-    (
-     global-map "C-x ,"
-     :pre (setq cursor-type t)
-     :post (setq cursor-type 'bar)
-     )
-    "global mark ring"
-    ("j" back-button-global-backward "global previous mark")
-    ("l" back-button-global-forward "global next hunk"))
-  )
-
 (defhydra hydra-window ()
   "
 Movement^^        ^Split^         ^Switch^              ^Resize^

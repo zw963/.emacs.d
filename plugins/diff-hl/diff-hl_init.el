@@ -38,6 +38,8 @@ diff-hl-show-staged-changes
 
 (define-key diff-hl-command-map [(*)] 'diff-hl-show-hunk-or-show-first-hunk)
 
+;; 一个有用的快捷键是：鼠标点击左侧 fringe, diff-hl-show-hunk--click
+
 ;; (require 'diff-hl-show-hunk-posframe)
 ;; (setq diff-hl-show-hunk-function 'diff-hl-show-hunk-posframe)
 
