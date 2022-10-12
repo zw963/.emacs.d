@@ -733,31 +733,6 @@ case keyword. It returns nil for the case line itself."
   "Return non-nil if point is inside a type switch statement."
   (go--in-paren-with-prefix-p ?{ ".(type)"))
 
-(defun go--fill-prefix ()
-  "Return fill prefix for following comment paragraph."
-  (save-excursion
-    (beginning-of-line)
-
-    ;; Skip over empty lines and empty comment openers/closers.
-    (while (and
-            (or (go--empty-line-p) (go--boring-comment-p))
-            (zerop (forward-line 1))))
-
-    ;; If we are in a block comment, set prefix based on first line
-    ;; with content.
-    (if (go-in-comment-p)
-        (progn
-          (looking-at "[[:space:]]*")
-          (match-string-no-properties 0))
-
-      ;; Else if we are looking at the start of an interesting comment, our
-      ;; prefix is the comment opener and any space following.
-      (if (looking-at (concat go--comment-start-regexp "[[:space:]]*"))
-          ;; Replace "/*" opener with spaces so following lines don't
-          ;; get "/*" prefix.
-          (replace-regexp-in-string "/\\*" "  "
-                                    (match-string-no-properties 0))))))
-
 (defun go--open-paren-position ()
   "Return non-nil if point is between '(' and ')'.
 
@@ -1614,7 +1589,7 @@ func foo(i int) string"
     found-match))
 
 (defconst go--type-alias-re
-  (concat "^[[:space:]]*\\(type\\)?[[:space:]]*" go-identifier-regexp "[[:space:]]*=[[:space:]]*" go-type-name-regexp))
+  (concat "^[[:space:]]*\\(type[[:space:]]+\\)?" go-identifier-regexp "[[:space:]]*=[[:space:]]*" go-type-name-regexp))
 
 (defun go--match-type-alias (end)
   "Search for type aliases.
@@ -2907,6 +2882,33 @@ If BUFFER, return the number of characters in that buffer instead."
 
 ;;;###autoload
 (add-to-list 'auto-mode-alist '("go\\.mod\\'" . go-dot-mod-mode))
+
+(defconst go-dot-work-mode-keywords
+  '("go" "replace" "use")
+  "All keywords for go.work files.  Used for font locking.")
+
+;;;###autoload
+(define-derived-mode go-dot-work-mode fundamental-mode "Go Work"
+  "A major mode for editor go.work files."
+  :syntax-table go-dot-mod-mode-syntax-table
+  (set (make-local-variable 'comment-start) "// ")
+  (set (make-local-variable 'comment-end)   "")
+  (set (make-local-variable 'comment-use-syntax) t)
+  (set (make-local-variable 'comment-start-skip) "\\(//+\\)\\s *")
+
+  (set (make-local-variable 'font-lock-defaults)
+       '(go-dot-work-mode-keywords))
+  (set (make-local-variable 'indent-line-function) 'go-mode-indent-line)
+
+  ;; Go style
+  (setq indent-tabs-mode t)
+
+  ;; we borrow the go-mode-indent function so we need this buffer cache
+  (set (make-local-variable 'go-dangling-cache) (make-hash-table :test 'eql))
+  (add-hook 'before-change-functions #'go--reset-dangling-cache-before-change t t))
+
+;;;###autoload
+(add-to-list 'auto-mode-alist '("go\\.work\\'" . go-dot-work-mode))
 
 ;; The following functions were copied (and modified) from rust-mode.el.
 ;;
