@@ -479,7 +479,8 @@ This function is called from `compilation-filter-hook'."
 ;; Kudos to the people from https://github.com/Wilfred/ag.el for these.
 (defconst rg-file-line-column-pattern-nogroup
   "^\\(.+?\\):\\([1-9][0-9]*\\):\\([1-9][0-9]*\\):"
-  "A regexp pattern that groups output into filename, line number and column number.")
+  "A regexp pattern that groups output.
+Groups into filename,line number and column number.")
 
 (defun rg-file-line-column-pattern-group ()
   "A regexp pattern to match line number and column number with grouped output."
@@ -501,7 +502,7 @@ This function is called from `compilation-filter-hook'."
                                  rg-align-position-content-separator) ":"))))
 
 (defun rg-match-grouped-filename ()
-  "Match filename backwards when a line/column match is found in grouped output mode."
+  "Match filename backwards when a line/column match is found."
   (save-match-data
     (save-excursion
       (when (re-search-backward "^File: \\(.*\\)$" (point-min) t)
@@ -570,7 +571,8 @@ Commands:
   (setq rg-cur-search search)
   (rg-history-push (rg-search-copy rg-cur-search)
                    rg-search-history)
-  (rg-maybe-show-header))
+  (rg-maybe-show-header)
+  (rg-configure-imenu))
 
 (defun rg-recompile ()
   "Rerun the current search."
@@ -578,7 +580,8 @@ Commands:
   (let ((rg-recompile t))
     (recompile))
   (hack-dir-local-variables-non-file-buffer)
-  (rg-maybe-show-header))
+  (rg-maybe-show-header)
+  (rg-configure-imenu))
 
 (defun rg-rerun (&optional no-history)
   "Run `recompile' with `compilation-arguments' taken from `rg-cur-search'.
@@ -667,7 +670,8 @@ backwards and positive means forwards."
 
 (defun rg-rerun-change-search-string (literal)
   "Rerun last search but prompt for new search pattern.
-IF LITERAL is non nil this will trigger a literal search, otherwise a regexp search."
+IF LITERAL is non nil this will trigger a literal search,
+otherwise a regexp search."
   (let ((pattern (rg-search-pattern rg-cur-search))
         (read-from-minibuffer-orig (symbol-function 'read-from-minibuffer)))
     ;; Override read-from-minibuffer in order to insert the original
@@ -761,6 +765,27 @@ previous file with grouped matches."
         (rg-rerun 'no-history))
     (message "No more history elements for forward.")))
 
+(defun rg-configure-imenu ()
+  "Add files with matches to imenu if rg-group-result is enabled."
+  (when rg-group-result
+    (setq imenu-create-index-function
+          (lambda ()
+            (goto-char (point-min))
+            (let ((elements nil)
+                  (filepath nil)
+                  (nextfile (point-min)))
+              (while (setq nextfile (rg-navigate-file-message nextfile nil 1))
+                (save-excursion
+                  (goto-char nextfile)
+                  (skip-chars-forward "File: ")
+                  (setq filepath (buffer-substring-no-properties (point) (line-end-position))))
+                (push (cons filepath nextfile) elements))
+              (nreverse elements))))))
+
 (provide 'rg-result)
+
+;; Local Variables:
+;; byte-compile-warnings: (not docstrings)
+;; End:
 
 ;;; rg-result.el ends here

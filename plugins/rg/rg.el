@@ -242,7 +242,8 @@ NAME-OF-MODE is needed to pass this function to `compilation-start'."
     (format "*%s*" (rg--buffer-name))))
 
 (defun rg-build-type-add-args ()
-  "Build a list of --type-add: 'foo:*.foo' flags for each type in `rg-custom-type-aliases'."
+  "Build a list of --type-add: 'foo:*.foo' flags.
+Do this for each type in `rg-custom-type-aliases'."
   (mapcar
    (lambda (typedef)
      (let ((name (car typedef))
@@ -284,7 +285,7 @@ are command line flags to use for the search."
           (when (not (equal files "everything"))
             (list "--type=<F>"))
           (list "-e <R>")
-          (when (eq system-type 'windows-nt)
+          (when (member system-type '(darwin windows-nt))
             (list ".")))))
 
     (grep-expand-template
@@ -369,7 +370,8 @@ excluded."
 
 (defun rg-read-pattern (literal &optional default)
   "Read search pattern argument from user.
-If LITERAL is non nil prompt for literal string.  DEFAULT is the default pattern to use at the prompt."
+If LITERAL is non nil prompt for literal string.
+DEFAULT is the default pattern to use at the prompt."
   (let ((default (or default (grep-tag-default)))
         (prompt (concat (if literal "Literal" "Regexp")
                         " search for")))
@@ -443,9 +445,9 @@ executing.  FLAGS is additional command line flags to use in the search."
         ;; Setting process-setup-function makes exit-message-function work
         ;; even when async processes aren't supported.
         (with-current-buffer (compilation-start command 'rg-mode #'rg-buffer-name)
-          (rg-mode-init search))))
-    (if (eq next-error-last-buffer (current-buffer))
-        (setq default-directory dir))))
+          (rg-mode-init search)))))
+  (if (eq next-error-last-buffer (current-buffer))
+      (setq default-directory dir)))
 
 (defun rg-apply-case-flag (pattern)
   "Make sure -i is added to the command if needed.
@@ -463,12 +465,9 @@ detailed info."
 
 (defun rg-get-rename-target ()
   "Return the buffer that will be target for renaming."
-  (let* ((buffer-name (rg-buffer-name))
-         (buffer (if (eq major-mode 'rg-mode)
-                     (current-buffer)
-                   (get-buffer buffer-name))))
-    (or buffer
-        (error "Current buffer is not an rg-mode buffer and no buffer with name '%s'" buffer-name))))
+  (if (eq major-mode 'rg-mode)
+      (current-buffer)
+    (get-buffer (rg-buffer-name))))
 
 (defun rg-get-buffer-file-name ()
   "Wrapper for function `buffer-file-name'.
@@ -551,7 +550,7 @@ NEWNAME will be added to the result buffer name.  New searches will use the
 standard buffer unless the search is done from a saved buffer in
 which case the saved buffer will be reused."
   (interactive "sSave search as name: ")
-  (let ((buffer (rg-get-rename-target)))
+  (when-let ((buffer (rg-get-rename-target)))
     (with-current-buffer buffer
       (rename-buffer (format "*%s %s*" (rg--buffer-name) newname)))))
 
@@ -562,7 +561,7 @@ To choose a custom name, use `rg-save-search-as-name' instead.  New
 searches will use the standard buffer unless the search is done from
 a saved buffer in which case the saved buffer will be reused."
   (interactive)
-  (let ((buffer (rg-get-rename-target)))
+  (when-let ((buffer (rg-get-rename-target)))
     (with-current-buffer buffer
       (rename-uniquely)
       ;; If the new buffer name became default result buffer name, just rename
