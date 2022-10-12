@@ -4,10 +4,12 @@
 (require 'rvm_init)
 (require 'ruby-test-mode_init)
 (require 'ruby-mode_keyword_highlight_init)
-(require 'rbs-mode_init)
 (require 'yard-mode_init)
 (require 'lsp-ruby_init)
 (require 'robe-mode_init)
+
+(autoload 'rbs-mode "rbs-mode" nil t)
+(add-to-list 'auto-mode-alist '("\\.rbs\\'" . rbs-mode))
 
 ;; rbtagger 和 ctags-update，lsp 冲突。
 ;; (require 'rbtagger_init)
