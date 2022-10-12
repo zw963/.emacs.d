@@ -1,26 +1,27 @@
-;;; packed.el --- package manager agnostic Emacs Lisp package utilities  -*- lexical-binding: t -*-
+;;; packed.el --- Package manager agnostic Emacs Lisp package utilities  -*- lexical-binding:t -*-
 
-;; Copyright (C) 2012-2020  Jonas Bernoulli
+;; Copyright (C) 2012-2022 Jonas Bernoulli
 
 ;; Author: Jonas Bernoulli <jonas@bernoul.li>
 ;; Homepage: https://github.com/emacscollective/packed
-;; Keywords: compile, convenience, lisp, package, library
-;; Package-Requires: ((emacs "24.3"))
+;; Keywords: lisp
 
-;; This file is not part of GNU Emacs.
+;; Package-Requires: ((emacs "25.1") (compat "28.1.1.0"))
 
-;; This file is free software; you can redistribute it and/or modify
-;; it under the terms of the GNU General Public License as published by
-;; the Free Software Foundation; either version 3, or (at your option)
-;; any later version.
+;; SPDX-License-Identifier: GPL-3.0-or-later
 
+;; This file is free software: you can redistribute it and/or modify
+;; it under the terms of the GNU General Public License as published
+;; by the Free Software Foundation, either version 3 of the License,
+;; or (at your option) any later version.
+;;
 ;; This file is distributed in the hope that it will be useful,
 ;; but WITHOUT ANY WARRANTY; without even the implied warranty of
 ;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 ;; GNU General Public License for more details.
-
-;; For a full copy of the GNU General Public License
-;; see <http://www.gnu.org/licenses/>.
+;;
+;; You should have received a copy of the GNU General Public License
+;; along with this file.  If not, see <https://www.gnu.org/licenses/>.
 
 ;;; Commentary:
 
@@ -39,6 +40,7 @@
 ;;; Code:
 
 (require 'bytecomp)
+(require 'compat)
 (require 'cl-lib)
 
 (defvar autoload-modified-buffers)
@@ -100,7 +102,7 @@ but not source files and always expects the \".elc\" suffix."
         (setq file nil)))
     (or file standard)))
 
-(defalias 'packed-elc-file 'byte-compile-dest-file)
+(defalias 'packed-elc-file #'byte-compile-dest-file)
 
 (defun packed-locate-library (library &optional nosuffix path interactive-call)
   "Show the precise file name of Emacs library LIBRARY.
@@ -123,7 +125,7 @@ string.  When run interactively, the argument INTERACTIVE-CALL is t,
 and the file name is displayed in the echo area."
   (interactive (list (completing-read "Locate library: "
                                       (apply-partially
-                                       'locate-file-completion-table
+                                       #'locate-file-completion-table
                                        load-path (get-load-suffixes)))
                      nil nil t))
   (let ((file (locate-file (substitute-in-file-name library)
@@ -261,7 +263,7 @@ non-nil return nil."
                 (car libraries))
                ((packed-main-library-2 package libraries))
                ((packed-main-library-2
-                 (if (string-match "-mode$" package)
+                 (if (string-suffix-p "-mode" package)
                      (substring package 0 -5)
                    (concat package "-mode"))
                  libraries)))))
@@ -322,9 +324,9 @@ Elements of `load-path' which no longer exist are not removed."
          emacs-lisp-mode-hook)
      ,@body))
 
-(defun packed-byte-compile-file (filename &optional load)
+(defun packed-byte-compile-file (filename)
   "Like `byte-compile-file' but don't run any mode hooks."
-  (packed-without-mode-hooks (byte-compile-file filename load)))
+  (packed-without-mode-hooks (byte-compile-file filename)))
 
 (defun packed-compile-package (directory &optional force)
   (unless noninteractive
@@ -346,8 +348,8 @@ Elements of `load-path' which no longer exist are not removed."
                dir (file-name-nondirectory file))
          (if (cdr elt)
              (cl-incf (pcase (byte-recompile-file file force 0)
-                        (`no-byte-compile skip-count)
-                        (`t lib-count)
+                        ('no-byte-compile skip-count)
+                        ('t lib-count)
                         (_  fail-count)))
            (setq skip-count (1+ skip-count)))
          (unless (eq last-dir dir)
@@ -473,7 +475,12 @@ a library.  Not every Emacs lisp file has to provide a feature / be a
 library.  If a file lacks an expected feature then loading it using
 `require' still succeeds but causes an error."
   (let* ((file (expand-file-name file))
-         (sans (file-name-sans-extension (file-name-sans-extension file)))
+         ;; Cannot use `file-name-sans-extension' because
+         ;; the ".1" in "compat-28.1.el" isn't an extension.
+         (sans (save-match-data
+                 (if (string-match (regexp-opt (get-load-suffixes) t) file)
+                     (substring file 0 (match-beginning 1))
+                   file)))
          (last (file-name-nondirectory sans)))
     (cl-find-if (lambda (feature)
                   (setq feature (symbol-name feature))
