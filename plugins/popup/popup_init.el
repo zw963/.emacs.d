@@ -1,5 +1,5 @@
 (require 'popup)
-(load "popup_doom.el")
+(load "popup_doom_hack.el")
 (load "settings.el")
 
 (set-popup-rule! "\\*LSP Dart tests\\*" :height 0.3)
