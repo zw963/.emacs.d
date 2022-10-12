@@ -65,7 +65,7 @@
 ;; - Mint (mint format --stdin)
 ;; - Nginx (nginxfmt)
 ;; - Nix (nixpkgs-fmt, nixfmt, alejandra)
-;; - OCaml (ocp-indent)
+;; - OCaml (ocp-indent, ocamlformat)
 ;; - Perl (perltidy)
 ;; - PHP (prettier plugin)
 ;; - Protocol Buffers (clang-format)
@@ -1023,6 +1023,16 @@ Consult the existing formatters for examples of BODY."
   (:languages "Nix")
   (:features)
   (:format (format-all--buffer-easy executable)))
+
+(define-format-all-formatter ocamlformat
+  (:executable "ocamlformat")
+  (:install "opam install ocamlformat")
+  (:languages "OCaml")
+  (:features)
+  (:format
+   (format-all--buffer-easy
+    executable "-"
+    (when (buffer-file-name) (concat "--name=" (buffer-file-name))))))
 
 (define-format-all-formatter ocp-indent
   (:executable "ocp-indent")
