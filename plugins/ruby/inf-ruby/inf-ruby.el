@@ -7,10 +7,11 @@
 ;;         Cornelius Mika <cornelius.mika@gmail.com>
 ;;         Dmitry Gutov <dgutov@yandex.ru>
 ;;         Kyle Hargraves <pd@krh.me>
+;; Maintainer: Dmitry Gutov <dgutov@yandex.ru>
 ;; URL: http://github.com/nonsequitur/inf-ruby
 ;; Created: 8 April 1998
 ;; Keywords: languages ruby
-;; Version: 2.6.0
+;; Version: 2.6.2
 ;; Package-Requires: ((emacs "24.3"))
 
 ;; This program is free software: you can redistribute it and/or modify
@@ -578,12 +579,12 @@ the overlay."
                      0 (length display-string)
                      'face prepend-face
                      display-string)
-            ;; If the display spans multiple lines or is very long, display it at
-            ;; the beginning of the next line.
-            (when (or (string-match "\n." display-string)
-                      (> (string-width display-string)
-			 (- (window-width) (current-column))))
-              (setq display-string (concat " \n" display-string)))
+            ;; ;; If the display spans multiple lines or is very long, display it at
+            ;; ;; the beginning of the next line.
+            ;; (when (or (string-match "\n." display-string)
+            ;;           (> (string-width display-string)
+            ;;              (- (window-width) (current-column))))
+            ;;   (setq display-string (concat " \n" display-string)))
             ;; Put the cursor property only once we're done manipulating the
             ;; string, since we want it to be at the first char.
             (put-text-property 0 1 'cursor 0 display-string)
@@ -652,7 +653,17 @@ This function also removes itself from `pre-command-hook'."
             (while (string-match inf-ruby-prompt-pattern s)
               (setq s (replace-match "" t t s)))
             (error "%s" s)))
-      (buffer-substring-no-properties (point) (line-end-position)))))
+      (if (looking-at " *$")
+          (progn
+            (goto-char (1+ (match-end 0)))
+            (replace-regexp-in-string
+             "\n +" " "
+             (buffer-substring-no-properties
+              (point)
+              (progn
+                (forward-sexp)
+                (point)))))
+        (buffer-substring-no-properties (point) (line-end-position))))))
 
 (defun ruby-send-definition ()
   "Send the current definition to the inferior Ruby process."
@@ -822,11 +833,15 @@ Then switch to the process buffer."
 (defun inf-ruby-completions (prefix)
   "Return a list of completions for the Ruby expression starting with EXPR."
   (let* ((proc (inf-ruby-proc))
-         (line (buffer-substring (save-excursion (move-beginning-of-line 1)
-                                                 (point))
-                                 (point)))
-         (expr (inf-ruby-completion-expr-at-point))
-         (prefix-offset (- (length expr) (length prefix)))
+         (line
+          (concat
+           (buffer-substring (save-excursion (move-beginning-of-line 1)
+                                             (point))
+                             (car (inf-ruby-completion-bounds-of-prefix)))
+           ;; prefix can be different, as requested by completion style.
+           prefix))
+         (target (inf-ruby-completion-target-at-point))
+         (prefix-offset (length target))
          (comint-filt (process-filter proc))
          (kept "") completions
          ;; Guard against running completions in parallel:
@@ -860,7 +875,7 @@ Then switch to the process buffer."
                    "    Bond.agent.instance_variable_set('@weapon', old_wp) if old_wp "
                    "  end "
                    "}.call('%s', '%s')\n")
-                  (ruby-escape-single-quoted expr)
+                  (ruby-escape-single-quoted (concat target prefix))
                   (ruby-escape-single-quoted line))))
             (process-send-string proc completion-snippet)
             (while (and (not (string-match inf-ruby-prompt-pattern kept))
@@ -896,6 +911,13 @@ Then switch to the process buffer."
   (let ((bounds (inf-ruby-completion-bounds-of-expr-at-point)))
     (and bounds
          (buffer-substring (car bounds) (cdr bounds)))))
+
+(defun inf-ruby-completion-target-at-point ()
+  (let ((bounds (inf-ruby-completion-bounds-of-expr-at-point)))
+    (and bounds
+         (buffer-substring
+          (car bounds)
+          (car (inf-ruby-completion-bounds-of-prefix))))))
 
 (defun inf-ruby-completion-at-point ()
   "Retrieve the list of completions and prompt the user.
