@@ -25,8 +25,11 @@
 ;;; Commentary:
 
 ;; `(require 'find-dupes-dired)` and Run `find-dupes-dired`.
+;; With prefix argument, find dupes in multiple directories.
 
-;; It needs "fdupes" in gnu/linux or "jdupes" in Windows, or others by setting
+;; If needed, set `find-dupes-dired-verbose' to t for debug message.
+
+;; It needs "jdupes" in Windows and "fdupes" in other system, or others by setting
 ;; `find-dupes-dired-program` and `find-dupes-dired-ls-option`.
 
 ;; Thanks [fd-dired](https://github.com/yqrashawn/fd-dired/blob/master/fd-dired.el)
@@ -46,16 +49,18 @@
 
 (defcustom find-dupes-dired-program
   (cond
-   ((eq system-type 'windows-nt) (purecopy "jdupes"))
-   ((eq system-type 'gnu/linux) (purecopy "fdupes")))
+   ((eq system-type 'windows-nt) (or (executable-find "jdupes")
+                                     (purecopy "jdupes")))
+   (t (or (executable-find "fdupes") (purecopy "fdupes"))))
   "The default `find-dupes-dired' program."
   :type 'string
   :group 'find-dupes-dired)
 
 (defcustom find-dupes-dired-ls-option
   (cond
-   ((eq system-type 'windows-nt) '("-0 | xargs -0 ls -lUd" . "-lUd"))
-   ((eq system-type 'gnu/linux) '("-q | xargs -d \"\\n\" ls -dilsbU" . "-dilsbU")))
+   ((eq system-type 'windows-nt) '("-0 | xargs -0 ls -lUd 2>stderr" . "-lUd"))
+   ((eq system-type 'darwin) '("-q | xargs -d \"\\n\" ls -lsU 2>/dev/null" . "-dilsbU"))
+   (t '("-q | xargs -d \"\\n\" ls -dilsbU 2>/dev/null" . "-dilsbU")))
   "A pair of options to produce and parse an `ls -l'-type list from `find-dupes-dired-program'.
 This is a cons of two strings (FIND-OPTION . LS-SWITCHES).
 FIND-OPTION is the option (or options) passed to `find-dupes-dired-program'
@@ -65,8 +70,8 @@ dired how to parse the output of `find-dupes-dired-program'.
 
 For more information: `find-ls-option'."
   :type '(cons :tag "`find-dupes-dired' arguments pair"
-              (string :tag "`find-dupes-dired-program' Option")
-              (string :tag "Ls Switches"))
+               (string :tag "`find-dupes-dired-program' Option")
+               (string :tag "Ls Switches"))
   :group 'find-dupes-dired)
 
 (defcustom find-dupes-dired-toggle-command-line-flags '("-r")
@@ -81,6 +86,9 @@ For more information: `find-ls-option'."
 
 (defvar find-dupes-dired-args nil
   "Last arguments given to `find-dupes-dired-program' by \\[find-dupes-dired].")
+
+(defvar find-dupes-dired-verbose nil
+  "Print some message for debug.")
 
 ;; History of find-dupes-dired-args values entered in the minibuffer.
 (defvar find-dupes-dired-args-history nil)
@@ -121,18 +129,12 @@ This is analogous to `find-dired-filter'."
               (let ((buffer-read-only nil)
                     (beg (point-max))
                     (l-opt (and (consp find-dupes-dired-ls-option)
-                        (string-match "l" (cdr find-dupes-dired-ls-option))))
+                                (string-match "l" (cdr find-dupes-dired-ls-option))))
                     (ls-regexp (concat "^ +[^ \t\r\n]+\\( +[^ \t\r\n]+\\) +"
-                           "[^ \t\r\n]+ +[^ \t\r\n]+\\( +[^[:space:]]+\\)")))
+                                       "[^ \t\r\n]+ +[^ \t\r\n]+\\( +[^[:space:]]+\\)")))
                 (goto-char beg)
                 (insert string)
                 (goto-char (point-min))
-                ;; FIXME how to remove emptys before pipe to ls?
-                (while (re-search-forward "^[ ]\*ls: cannot access" nil t)
-                  (save-excursion
-                    (delete-region (point) (progn (forward-visible-line 0) (point))))
-                  (delete-region (point) (progn (end-of-visible-line) (+ (point) 1))))
-                (goto-char beg)
                 (or (looking-at "^")
                     (forward-line 1))
                 (while (looking-at "^")
@@ -289,6 +291,8 @@ If FULL-COMMAND specifies if the full command line search was done."
 
 (defun find-dupes-dired--run (dir args &optional search)
   "Run `find-dupes' and go into Dired mode on a buffer of the output.
+With prefix argument, find dupes in multiple directories.
+
 The command run (after changing into `car' DIR) is essentially
 
     find-dupes ARGS DIR -ls
@@ -296,8 +300,8 @@ The command run (after changing into `car' DIR) is essentially
 except that the car of the variable `find-dupes-dired-ls-option' specifies
 what to use in place of \"-ls\" as the final argument.
 Optional argument SEARCH an existing `find-dupes-dired-search-list'."
-   (let ((dired-buffers dired-buffers)
-         dir-string)
+  (let ((dired-buffers dired-buffers)
+        dir-string)
 
     (unless (listp dir) (setq dir (list dir)))
     (setq dir (mapcar (lambda (x)
@@ -308,6 +312,11 @@ Optional argument SEARCH an existing `find-dupes-dired-search-list'."
                       dir))
 
     (setq dir-string (mapconcat (lambda (x) (shell-quote-argument x)) dir " "))
+
+    (if find-dupes-dired-verbose
+        (progn
+          (message "dir: %s" dir-string)
+          (message "args: %s" (if args args " "))))
 
     (switch-to-buffer (get-buffer-create "*Dired: Dupes*"))
 
@@ -330,17 +339,17 @@ Optional argument SEARCH an existing `find-dupes-dired-search-list'."
     (setq buffer-read-only nil)
     (erase-buffer)
 
-    (if search
-        (setq find-dupes-dired-cur-search search))
+    (if search (setq find-dupes-dired-cur-search search))
     (unless find-dupes-dired-cur-search
-      (setq find-dupes-dired-cur-search (find-dupes-dired-search-list-create
-                                      :dir dir
-                                      :args args
-                                      :size find-dupes-dired-size
-                                      :toggle-flags find-dupes-dired-toggle-command-line-flags)))
+      (setq find-dupes-dired-cur-search
+            (find-dupes-dired-search-list-create
+             :dir dir
+             :args args
+             :size find-dupes-dired-size
+             :toggle-flags find-dupes-dired-toggle-command-line-flags)))
     (setq default-directory (car dir)
           find-dupes-dired-args args          ; save for next interactive call
-          args (concat find-dupes-dired-program
+          args (concat (shell-quote-argument find-dupes-dired-program)
                        " "
                        args
                        " "
@@ -355,6 +364,8 @@ Optional argument SEARCH an existing `find-dupes-dired-search-list'."
                                    (shell-quote-argument "{}")
                                    find-exec-terminator)
                          (car find-dupes-dired-ls-option))))
+    (if find-dupes-dired-verbose (message "command line: %s" args))
+
     ;; Start the find-dupes process.
     (shell-command (concat args "&") (current-buffer))
     ;; The next statement will bomb in classic dired (no optional arg allowed)
@@ -410,6 +421,9 @@ The command run (after changing into DIR) is essentially
 except that the car of the variable `find-dupes-dired-ls-option' specifies
 what to use in place of \"-ls\" as the final argument."
   (interactive)
+  (if (not (executable-find find-dupes-dired-program))
+      (error (format "%s is not in the path!" find-dupes-dired-program)))
+
   (let ((prefix current-prefix-arg)
         (ndir 1)
         dir
@@ -418,8 +432,13 @@ what to use in place of \"-ls\" as the final argument."
     (setq dir (cl-loop for i from 1 to ndir by 1
                        collect (read-directory-name "Run find-dupes in directory: " nil "" t)))
 
-    (setq args (read-string "Run find-dupes (with args): " find-dupes-dired-args
+    (setq args (read-string "Run find-dupes (with args, Enter for empty): "
+                            find-dupes-dired-args
                             '(find-dupes-dired-args-history . 1)))
+    (if (and find-dupes-dired-verbose
+             (executable-find find-dupes-dired-program))
+        (message "find-dupes-dired-program: %s" find-dupes-dired-program))
+
     (find-dupes-dired--run dir args)))
 
 (defun find-dupes-dired--rerun ()

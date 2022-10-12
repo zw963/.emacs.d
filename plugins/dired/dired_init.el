@@ -25,10 +25,10 @@
                                              (
                                               t "")))))
 
-(require 'dired-x)
+(require 'dired-x) ;; 这个是内置
 (setq dired-omit-files (concat dired-omit-files "\\|~$"))
 
-(require 'dired-aux)
+(require 'dired-aux)  ;; 这个是内置
 (unless (version-list-<= (version-to-list emacs-version) '(24 3 1))
   (add-hook 'isearch-mode-hook 'dired-isearch-filenames-setup) ; isearch 仅仅搜索文件名。
   )
@@ -64,10 +64,10 @@
 ;;; Only if you want to control rename with the mouse...
 (define-key dired-mode-map [down-mouse-1] 'dired-efap-click)
 
-(require 'ripgrep-dired)
-(setq ripgrep-dired-rg-basic-args "-nH --no-heading --smart-case \
--g '!*~' -g '!#*#' -g '!.#*'")
+;; (require 'ripgrep-dired)
+;; (setq ripgrep-dired-rg-basic-args "-nH --no-heading --smart-case -g '!*~' -g '!#*#' -g '!.#*'")
 
+;; 所有 diredp- 作为前缀的名字，都来自于 dired+
 (require 'dired+)
 (add-hook 'dired-mode-hook
           (lambda ()
