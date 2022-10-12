@@ -693,7 +693,7 @@ See also option `browse-kill-ring-yank-commands'."
 Turn on `browse-kill-ring-mode'.
 Record `browse-kill-ring-original-window' and
  `browse-kill-ring-original-window-config'.
-Fill buffer with items from current selection ring, respecting REGEXP,
+Fill buffer with items from current selection ring, respecting REGEXP, 
  `browse-kill-ring-display-duplicates', and
  `browse-kill-ring-display-style'."
   (with-current-buffer bkr-buf
@@ -878,4 +878,3 @@ If the other ring is also displayed, then its displayed is updated."
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; browse-kill-ring+.el ends here
-
