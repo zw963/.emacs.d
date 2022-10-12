@@ -1,11 +1,15 @@
 (require 'apheleia)
 
-(add-to-list 'apheleia-mode-alist '(enh-ruby-mode . prettier))
+(add-to-list 'apheleia-mode-alist '(enh-ruby-mode . prettier-ruby))
+;; (add-to-list 'apheleia-formatters '(crystal-format . ("crystal" "tool" "format" filepath)))
+;; (add-to-list 'apheleia-mode-alist '(crystal-mode . crystal-format))
 
-(add-to-list 'apheleia-mode-alist '(dart-mode . dart-format))
-(add-to-list 'apheleia-formatters '(dart-format . ("flutter" "format" filepath)))
+(setf (alist-get 'dart-format apheleia-formatters)
+      '("flutter" "format" filepath))
 
-(apheleia-global-mode +1)
+(setq apheleia-log-only-errors nil)
+
+(apheleia-global-mode)
 
 (provide 'apheleia_init)
 
