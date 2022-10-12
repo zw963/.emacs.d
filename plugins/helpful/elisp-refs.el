@@ -3,7 +3,7 @@
 ;; Copyright (C) 2016-2020  Wilfred Hughes <me@wilfred.me.uk>
 
 ;; Author: Wilfred Hughes <me@wilfred.me.uk>
-;; Version: 1.4
+;; Version: 1.5
 ;; Keywords: lisp
 ;; Package-Requires: ((dash "2.12.0") (s "1.11.0"))
 
@@ -96,9 +96,12 @@ SYMBOL-POSITIONS are 0-indexed, relative to READ-START-POS."
   (let* ((read-with-symbol-positions t)
          (read-start-pos (point))
          (form (read (current-buffer)))
+         (symbols (if (boundp 'read-symbol-positions-list)
+                      read-symbol-positions-list
+                    (read-positioning-symbols (current-buffer))))
          (end-pos (point))
          (start-pos (elisp-refs--start-pos end-pos)))
-    (list form start-pos end-pos read-symbol-positions-list read-start-pos)))
+    (list form start-pos end-pos symbols read-start-pos)))
 
 (defvar elisp-refs--path nil
   "A buffer-local variable used by `elisp-refs--contents-buffer'.
@@ -580,7 +583,8 @@ render a friendly results buffer."
         ;; Prepare the buffer for the user.
         (elisp-refs-mode)))
     ;; Cleanup buffers created when highlighting results.
-    (kill-buffer elisp-refs--highlighting-buffer)))
+    (when elisp-refs--highlighting-buffer
+      (kill-buffer elisp-refs--highlighting-buffer))))
 
 (defun elisp-refs--loaded-bufs ()
   "Return a list of open buffers, one for each path in `load-path'."
@@ -619,8 +623,8 @@ MATCH-FN should return a list where each element takes the form:
       forms-and-bufs)))
 
 (defun elisp-refs--search (symbol description match-fn &optional path-prefix)
-  "Search for references to SYMBOL in all loaded files, by calling MATCH-FN on each buffer.
-If PATH-PREFIX is given, limit to loaded files whose path starts with that prefix.
+  "Find references to SYMBOL in all loaded files; call MATCH-FN on each buffer.
+When PATH-PREFIX, limit to loaded files whose path starts with that prefix.
 
 Display the results in a hyperlinked buffer.
 
@@ -781,8 +785,9 @@ search."
 (define-derived-mode elisp-refs-mode special-mode "Refs"
   "Major mode for refs results buffers.")
 
-(defun elisp-refs-visit-match ()
-  "Go to the search result at point."
+(defun elisp--refs-visit-match (open-fn)
+  "Go to the search result at point.
+Open file with function OPEN_FN. `find-file` or `find-file-other-window`"
   (interactive)
   (let* ((path (get-text-property (point) 'elisp-refs-path))
          (pos (get-text-property (point) 'elisp-refs-start-pos))
@@ -799,7 +804,7 @@ search."
         (forward-line -1)
         (cl-incf line-offset)))
 
-    (find-file path)
+    (funcall open-fn path)
     (goto-char pos)
     ;; Move point so we're on the same char in the buffer that we were
     ;; on in the results buffer.
@@ -812,6 +817,17 @@ search."
             (cl-incf i tab-width)
           (cl-incf i))
         (forward-char 1)))))
+
+(defun elisp-refs-visit-match ()
+  "Goto the search result at point."
+  (interactive)
+  (elisp--refs-visit-match #'find-file))
+
+(defun elisp-refs-visit-match-other-window ()
+  "Goto the search result at point, opening in another window."
+  (interactive)
+  (elisp--refs-visit-match #'find-file-other-window))
+
 
 (defun elisp-refs--move-to-match (direction)
   "Move point one match forwards.
