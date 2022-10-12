@@ -10,7 +10,7 @@
 (setq dashboard-set-heading-icons t)
 (setq dashboard-set-file-icons t)
 
-;; (setq initial-buffer-choice (lambda () (get-buffer "*dashboard*")))
+(setq initial-buffer-choice (lambda () (get-buffer "*dashboard*")))
 
 (provide 'dashboard_init)
 

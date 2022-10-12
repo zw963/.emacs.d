@@ -22,10 +22,18 @@
 
 ;;; Code:
 
+(require 'ffap)
 (require 'recentf)
+
 (require 'dashboard-widgets)
 
+(declare-function bookmark-get-filename "ext:bookmark.el")
+(declare-function bookmark-all-names "ext:bookmark.el")
+(declare-function dashboard-ls--dirs "ext:dashboard-ls.el")
+(declare-function dashboard-ls--files "ext:dashboard-ls.el")
 (declare-function page-break-lines-mode "ext:page-break-lines.el")
+(declare-function projectile-remove-known-project "ext:projectile.el")
+(declare-function project-forget-projects-under "ext:project.el")
 
 (defgroup dashboard nil
   "Extensible startup screen."
@@ -47,6 +55,20 @@
     (define-key map [mouse-1] 'dashboard-mouse-1)
     (define-key map (kbd "}") #'dashboard-next-section)
     (define-key map (kbd "{") #'dashboard-previous-section)
+
+    (define-key map (kbd "<backspace>") #'dashboard-remove-item-under)
+    (define-key map (kbd "<delete>") #'dashboard-remove-item-under)
+    (define-key map (kbd "DEL") #'dashboard-remove-item-under)
+
+    (define-key map (kbd "1") #'dashboard-section-1)
+    (define-key map (kbd "2") #'dashboard-section-2)
+    (define-key map (kbd "3") #'dashboard-section-3)
+    (define-key map (kbd "4") #'dashboard-section-4)
+    (define-key map (kbd "5") #'dashboard-section-5)
+    (define-key map (kbd "6") #'dashboard-section-6)
+    (define-key map (kbd "7") #'dashboard-section-7)
+    (define-key map (kbd "8") #'dashboard-section-8)
+    (define-key map (kbd "9") #'dashboard-section-9)
     map)
   "Keymap for dashboard mode.")
 
@@ -78,12 +100,50 @@
 (defconst dashboard-buffer-name "*dashboard*"
   "Dashboard's buffer name.")
 
-(defvar dashboard--section-starts nil
-  "List of section starting positions.")
-
 (defvar dashboard-force-refresh nil
   "If non-nil, force refresh dashboard buffer.")
 
+(defvar dashboard--section-starts nil
+  "List of section starting positions.")
+
+;;
+;; Util
+;;
+(defun dashboard--goto-line (line)
+  "Goto LINE."
+  (goto-char (point-min)) (forward-line (1- line)))
+
+(defmacro dashboard--save-excursion (&rest body)
+  "Execute BODY save window point."
+  (declare (indent 0) (debug t))
+  `(let ((line (line-number-at-pos nil t))
+         (column (current-column)))
+     ,@body
+     (dashboard--goto-line line)
+     (move-to-column column)))
+
+;;
+;; Core
+;;
+(defun dashboard--current-section ()
+  "Return section symbol in dashboard."
+  (save-excursion
+    (if (and (search-backward dashboard-page-separator nil t)
+             (search-forward dashboard-page-separator nil t))
+        (let ((ln (thing-at-point 'line)))
+          (cond ((string-match-p "Recent Files:" ln)     'recents)
+                ((string-match-p "Bookmarks:" ln)        'bookmarks)
+                ((string-match-p "Projects:" ln)         'projects)
+                ((string-match-p "Agenda for " ln)       'agenda)
+                ((string-match-p "Registers:" ln)        'registers)
+                ((string-match-p "List Directories:" ln) 'ls-directories)
+                ((string-match-p "List Files:" ln)       'ls-files)
+                (t (user-error "Unknown section from dashboard"))))
+      (user-error "Failed searching dashboard section"))))
+
+;;
+;; Navigation
+;;
 (defun dashboard-previous-section ()
   "Navigate back to previous section."
   (interactive)
@@ -109,6 +169,45 @@
     (when next-section-start
       (goto-char next-section-start))))
 
+(defun dashboard--section-lines ()
+  "Return a list of integer represent the starting line number of each section."
+  (let (pb-lst)
+    (save-excursion
+      (goto-char (point-min))
+      (while (search-forward dashboard-page-separator nil t)
+        (when (ignore-errors (dashboard--current-section))
+          (push (line-number-at-pos) pb-lst))))
+    (setq pb-lst (reverse pb-lst))
+    pb-lst))
+
+(defun dashboard--goto-section-by-index (index)
+  "Navigate to item section by INDEX."
+  (let* ((pg-lst (dashboard--section-lines))
+         (items-id (1- index))
+         (items-pg (nth items-id pg-lst))
+         (items-len (length pg-lst)))
+    (when (and items-pg (< items-id items-len))
+      (dashboard--goto-line items-pg))))
+
+(defun dashboard-section-1 ()
+  "Navigate to section 1." (interactive) (dashboard--goto-section-by-index 1))
+(defun dashboard-section-2 ()
+  "Navigate to section 2." (interactive) (dashboard--goto-section-by-index 2))
+(defun dashboard-section-3 ()
+  "Navigate to section 3." (interactive) (dashboard--goto-section-by-index 3))
+(defun dashboard-section-4 ()
+  "Navigate to section 4." (interactive) (dashboard--goto-section-by-index 4))
+(defun dashboard-section-5 ()
+  "Navigate to section 5." (interactive) (dashboard--goto-section-by-index 5))
+(defun dashboard-section-6 ()
+  "Navigate to section 6." (interactive) (dashboard--goto-section-by-index 6))
+(defun dashboard-section-7 ()
+  "Navigate to section 7." (interactive) (dashboard--goto-section-by-index 7))
+(defun dashboard-section-8 ()
+  "Navigate to section 8." (interactive) (dashboard--goto-section-by-index 8))
+(defun dashboard-section-9 ()
+  "Navigate to section 9." (interactive) (dashboard--goto-section-by-index 9))
+
 (defun dashboard-previous-line (arg)
   "Move point up and position it at that line’s item.
 Optional prefix ARG says how many lines to move; default is one line."
@@ -129,6 +228,114 @@ Optional prefix ARG says how many lines to move; default is one line."
     (forward-char (if (and arg (< arg 0)) -1 1)))
   (beginning-of-line-text))
 
+;;
+;; ffap
+;;
+(defun dashboard--goto-section (section)
+  "Move to SECTION declares in variable `dashboard-item-shortcuts'."
+  (let ((fnc (intern (format "dashboard-jump-to-%s" section))))
+    (dashboard-funcall-fboundp fnc)))
+
+(defun dashboard--current-index (section &optional pos)
+  "Return the idex by SECTION from POS."
+  (let (target-ln section-line)
+    (save-excursion
+      (when pos (goto-char pos))
+      (setq target-ln (line-number-at-pos))
+      (dashboard--goto-section section)
+      (setq section-line (line-number-at-pos)))
+    (- target-ln section-line)))
+
+(defun dashboard--section-list (section)
+  "Return the list from SECTION."
+  (cl-case section
+    (`recents recentf-list)
+    (`bookmarks (bookmark-all-names))
+    (`projects (dashboard-projects-backend-load-projects))
+    (`ls-directories (dashboard-ls--dirs))
+    (`ls-files (dashboard-ls--files))
+    (t (user-error "Unknown section for search: %s" section))))
+
+(defun dashboard--current-item-in-path ()
+  "Return the path from current dashboard section in path."
+  (let ((section (dashboard--current-section)) path)
+    (cl-case section
+      (`bookmarks (setq path (bookmark-get-filename path)))
+      (t
+       (let ((lst (dashboard--section-list section))
+             (index (dashboard--current-index section)))
+         (setq path (nth index lst)))))
+    path))
+
+(defun dashboard--on-path-item-p ()
+  "Return non-nil if current point is on the item path from dashboard."
+  (save-excursion
+    (when (= (point) (line-end-position)) (ignore-errors (forward-char -1)))
+    (eq (get-char-property (point) 'face) 'dashboard-items-face)))
+
+(defun dashboard--ffap-guesser--adv (fnc &rest args)
+  "Advice execution around function `ffap-guesser'.
+
+Argument FNC is the adviced function.
+Optional argument ARGS adviced function arguments."
+  (cl-case major-mode
+    (`dashboard-mode
+     (or (and (dashboard--on-path-item-p)
+              (dashboard--current-item-in-path))
+         (apply fnc args)))  ; fallback
+    (t (apply fnc args))))
+(advice-add 'ffap-guesser :around #'dashboard--ffap-guesser--adv)
+
+;;
+;; Removal
+;;
+(defun dashboard-remove-item-under ()
+  "Remove a item from the current item section."
+  (interactive)
+  (cl-case (dashboard--current-section)
+    (`recents   (dashboard-remove-item-recentf))
+    (`bookmarks (dashboard-remove-item-bookmarks))
+    (`projects  (dashboard-remove-item-projects))
+    (`agenda    (dashboard-remove-item-agenda))
+    (`registers (dashboard-remove-item-registers)))
+  (dashboard--save-excursion (dashboard-refresh-buffer)))
+
+(defun dashboard-remove-item-recentf ()
+  "Remove a file from `recentf-list'."
+  (interactive)
+  (let ((path (save-excursion (end-of-line) (ffap-guesser))))
+    (setq recentf-list (delete path recentf-list)))
+  (dashboard-mute-apply (recentf-save-list)))
+
+(defun dashboard-remove-item-projects ()
+  "Remove a path from `project--list'."
+  (interactive)
+  (let ((path (save-excursion (end-of-line) (ffap-guesser))))
+    (dashboard-mute-apply
+      (cl-case dashboard-projects-backend
+        (`projectile (projectile-remove-known-project path))
+        (`project-el (project-forget-projects-under path))))))
+
+(defun dashboard-remove-item-bookmarks ()
+  "Remove a bookmarks from `bookmark-alist'."
+  (interactive))  ; TODO: ..
+
+(defun dashboard-remove-item-agenda ()
+  "Remove an agenda from `org-agenda-files'."
+  (interactive "P")
+  (let ((agenda-file (get-text-property (point) 'dashboard-agenda-file))
+        (agenda-loc (get-text-property (point) 'dashboard-agenda-loc)))
+    (with-current-buffer (find-file-noselect agenda-file)
+      (goto-char agenda-loc)
+      (call-interactively 'org-todo))))
+
+(defun dashboard-remove-item-registers ()
+  "Remove a registers from `register-alist'."
+  (interactive))  ; TODO: ..
+
+;;
+;; Confirmation
+;;
 (defun dashboard-return ()
   "Hit return key in dashboard buffer."
   (interactive)
@@ -157,6 +364,9 @@ Optional prefix ARG says how many lines to move; default is one line."
     (when (call-interactively #'widget-button-click)
       (setq track-mouse old-track-mouse))))
 
+;;
+;; Insertion
+;;
 (defun dashboard-maximum-section-length ()
   "For the just-inserted section, calculate the length of the longest line."
   (let ((max-line-length 0))
@@ -172,23 +382,14 @@ Optional prefix ARG says how many lines to move; default is one line."
 (defun dashboard-insert-startupify-lists ()
   "Insert the list of widgets into the buffer."
   (interactive)
-  (let ((buffer-exists (buffer-live-p (get-buffer dashboard-buffer-name)))
-        (recentf-is-on (recentf-enabled-p))
+  (let ((recentf-is-on (recentf-enabled-p))
         (origial-recentf-list recentf-list)
         (dashboard-num-recents (or (cdr (assoc 'recents dashboard-items)) 0))
         (max-line-length 0))
-    ;; disable recentf mode,
-    ;; so we don't flood the recent files list with org mode files
-    ;; do this by making a copy of the part of the list we'll use
-    ;; let dashboard widgets change that
-    ;; then restore the orginal list afterwards
-    ;; (this avoids many saves/loads that would result from
-    ;; disabling/enabling recentf-mode)
     (when recentf-is-on
       (setq recentf-list (dashboard-subseq recentf-list dashboard-num-recents)))
     (when (or dashboard-force-refresh
-              (not (eq dashboard-buffer-last-width (window-width)))
-              (not buffer-exists))
+              (not (eq dashboard-buffer-last-width (window-width))))
       (setq dashboard-banner-length (window-width)
             dashboard-buffer-last-width dashboard-banner-length)
       (with-current-buffer (get-buffer-create dashboard-buffer-name)
@@ -228,7 +429,8 @@ Optional prefix ARG says how many lines to move; default is one line."
 
 (add-hook 'window-setup-hook
           (lambda ()
-            (add-hook 'window-size-change-functions 'dashboard-resize-on-hook)
+            ;; 100 means `dashboard-resize-on-hook' will run last
+            (add-hook 'window-size-change-functions 'dashboard-resize-on-hook 100)
             (dashboard-resize-on-hook)))
 
 (defun dashboard-refresh-buffer (&rest _)
@@ -249,8 +451,8 @@ Optional prefix ARG says how many lines to move; default is one line."
 ;;;###autoload
 (defun dashboard-setup-startup-hook ()
   "Setup post initialization hooks.
-If a command line argument is provided,
-assume a filename and skip displaying Dashboard."
+If a command line argument is provided, assume a filename and skip displaying
+Dashboard."
   (when (< (length command-line-args) 2)
     (add-hook 'after-init-hook (lambda ()
                                  ;; Display useful lists of items
