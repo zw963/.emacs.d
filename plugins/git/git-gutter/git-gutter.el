@@ -1,15 +1,15 @@
 ;;; git-gutter.el --- Port of Sublime Text plugin GitGutter -*- lexical-binding: t; -*-
 
 ;; Copyright (C) 2016-2020 Syohei YOSHIDA <syohex@gmail.com>
-;; Copyright (C) 2020 Neil Okamoto <neil.okamoto+melpa@gmail.com>
-;; Copyright (C) 2020 Shen, Jen-Chieh <jcs090218@gmail.com>
+;; Copyright (C) 2020-2022 Neil Okamoto <neil.okamoto+melpa@gmail.com>
+;; Copyright (C) 2020-2022 Shen, Jen-Chieh <jcs090218@gmail.com>
 
 ;; Author: Syohei YOSHIDA <syohex@gmail.com>
 ;; Maintainer: Neil Okamoto <neil.okamoto+melpa@gmail.com>
 ;;             Shen, Jen-Chieh <jcs090218@gmail.com>
 ;; URL: https://github.com/emacsorphanage/git-gutter
-;; Version: 0.91
-;; Package-Requires: ((emacs "24.3"))
+;; Version: 0.92
+;; Package-Requires: ((emacs "25.1"))
 
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -36,6 +36,8 @@
   "Port GitGutter"
   :prefix "git-gutter:"
   :group 'vc)
+
+(defvar git-gutter-mode nil)
 
 (defcustom git-gutter:window-width nil
   "Character width of gutter window.  Emacs mistakes width of some characters.
@@ -216,7 +218,7 @@ Can be a directory-local variable in your project.")
 (cl-defstruct git-gutter-hunk
   type content start-line end-line)
 
-(defvar git-gutter:enabled nil)
+(defvar-local git-gutter:enabled nil)
 (defvar git-gutter:diffinfos nil)
 (defvar git-gutter:has-indirect-buffers nil)
 (defvar git-gutter:real-this-command nil)
@@ -225,7 +227,7 @@ Can be a directory-local variable in your project.")
 (defvar git-gutter:vcs-type nil)
 (defvar git-gutter:revision-history nil)
 (defvar git-gutter:update-timer nil)
-(defvar git-gutter:last-chars-modified-tick nil)
+(defvar-local git-gutter:last-chars-modified-tick nil)
 
 (defvar git-gutter:popup-buffer "*git-gutter:diff*")
 (defvar git-gutter:ignore-commands
@@ -248,10 +250,11 @@ Argument TEST is the case before BODY execution."
 (defun git-gutter:in-git-repository-p ()
   (when (executable-find "git")
     (with-temp-buffer
-      (when (zerop (git-gutter:execute-command
-                    "git" t "rev-parse" "--is-inside-work-tree"))
-        (goto-char (point-min))
-        (looking-at-p "true")))))
+      (when-let ((exec-result (git-gutter:execute-command
+                               "git" t "rev-parse" "--is-inside-work-tree")))
+        (when (zerop exec-result)
+          (goto-char (point-min))
+          (looking-at-p "true"))))))
 
 (defun git-gutter:in-repository-common-p (cmd check-subcmd repodir)
   (and (executable-find cmd)
@@ -392,7 +395,6 @@ Argument TEST is the case before BODY execution."
     (bzr (git-gutter:start-bzr-diff-process file proc-buf))))
 
 (defun git-gutter:start-diff-process (curfile proc-buf)
-  (git-gutter:set-window-margin (git-gutter:window-margin))
   (let ((file (git-gutter:base-file)) ;; for tramp
         (curbuf (current-buffer))
         (process (git-gutter:start-diff-process1 curfile proc-buf)))
@@ -528,7 +530,7 @@ Argument TEST is the case before BODY execution."
          (git-gutter))
         ((memq git-gutter:real-this-command git-gutter:update-windows-commands)
          (git-gutter)
-         (unless global-linum-mode
+         (unless (bound-and-true-p global-linum-mode)
            (git-gutter:update-other-window-buffers (selected-window)
                                                    (current-buffer))))))
 
@@ -569,19 +571,21 @@ Argument TEST is the case before BODY execution."
   (setq-local git-gutter:linum-enabled t)
   (make-local-variable 'git-gutter:linum-prev-window-margin))
 
+(defun git-gutter:linum-update-window (&rest _args)
+  (when git-gutter:display-p
+    (if (and git-gutter-mode git-gutter:diffinfos)
+        (git-gutter:linum-update git-gutter:diffinfos)
+      (let ((curwin (get-buffer-window))
+            (margin (or git-gutter:linum-prev-window-margin
+                        (car (window-margins)))))
+        (set-window-margins curwin margin (cdr (window-margins curwin)))))))
+
 ;;;###autoload
 (defun git-gutter:linum-setup ()
   "Setup for linum-mode."
   (setq git-gutter:init-function 'git-gutter:linum-init
         git-gutter:view-diff-function nil)
-  (defadvice linum-update-window (after git-gutter:linum-update-window activate)
-    (when git-gutter:display-p
-      (if (and git-gutter-mode git-gutter:diffinfos)
-          (git-gutter:linum-update git-gutter:diffinfos)
-        (let ((curwin (get-buffer-window))
-              (margin (or git-gutter:linum-prev-window-margin
-                          (car (window-margins)))))
-          (set-window-margins curwin margin (cdr (window-margins curwin))))))))
+  (advice-add 'linum-update-window :after #'git-gutter:linum-update-window))
 
 (defun git-gutter:show-backends ()
   (mapconcat (lambda (backend)
@@ -600,12 +604,10 @@ Argument TEST is the case before BODY execution."
           (progn
             (when git-gutter:init-function
               (funcall git-gutter:init-function))
-            (make-local-variable 'git-gutter:enabled)
-            (setq-local git-gutter:has-indirect-buffers nil)
             (make-local-variable 'git-gutter:diffinfos)
             ;;(setq-local git-gutter:start-revision nil)
             (add-hook 'kill-buffer-hook 'git-gutter:kill-buffer-hook nil t)
-            (add-hook 'pre-command-hook 'git-gutter:pre-command-hook)
+            (add-hook 'pre-command-hook 'git-gutter:pre-command-hook t)
             (add-hook 'post-command-hook 'git-gutter:post-command-hook nil t)
             (dolist (hook git-gutter:update-hooks)
               (add-hook hook 'git-gutter nil t))
@@ -619,7 +621,7 @@ Argument TEST is the case before BODY execution."
           (message "Here is not %s work tree" (git-gutter:show-backends)))
         (git-gutter-mode -1))
     (remove-hook 'kill-buffer-hook 'git-gutter:kill-buffer-hook t)
-    (remove-hook 'pre-command-hook 'git-gutter:pre-command-hook)
+    (remove-hook 'pre-command-hook 'git-gutter:pre-command-hook t)
     (remove-hook 'post-command-hook 'git-gutter:post-command-hook t)
     (dolist (hook git-gutter:update-hooks)
       (remove-hook hook 'git-gutter t))
@@ -693,6 +695,7 @@ Argument TEST is the case before BODY execution."
     (when git-gutter:clear-function
       (funcall git-gutter:clear-function)))
   (setq git-gutter:enabled nil
+        git-gutter:last-chars-modified-tick nil
         git-gutter:diffinfos nil))
 
 (defun git-gutter:update-diffinfo (diffinfos)
@@ -949,27 +952,46 @@ Argument TEST is the case before BODY execution."
         (git-gutter:start-diff-process (file-name-nondirectory file)
                                        (get-buffer-create proc-buf))))))
 
-(defadvice make-indirect-buffer (before git-gutter:has-indirect-buffers activate)
-  (when (and git-gutter-mode (not (buffer-base-buffer)))
-    (setq git-gutter:has-indirect-buffers t)))
+(defun git-gutter:kill-indirect-buffer ()
+  (with-current-buffer (buffer-base-buffer)
+    (when git-gutter:has-indirect-buffers
+      (if (< 1 git-gutter:has-indirect-buffers)
+          (setq git-gutter:has-indirect-buffers (1- git-gutter:has-indirect-buffers))
+        (kill-local-variable 'git-gutter:has-indirect-buffers)))))
 
-(defadvice vc-revert (after git-gutter:vc-revert activate)
+(defun git-gutter:make-indirect-buffer (oldfun base-buffer &rest args)
+  (with-current-buffer (or (buffer-base-buffer (window-normalize-buffer base-buffer))
+                           base-buffer)
+    (if git-gutter:has-indirect-buffers
+        (setq git-gutter:has-indirect-buffers (1+ git-gutter:has-indirect-buffers))
+      (setq-local git-gutter:has-indirect-buffers 1))
+    (with-current-buffer (apply oldfun base-buffer args)
+      (add-hook 'kill-buffer-hook #'git-gutter:kill-indirect-buffer nil t)
+      (current-buffer))))
+(advice-add 'make-indirect-buffer :around #'git-gutter:make-indirect-buffer)
+
+(defun git-gutter:vc-revert (&rest _args)
   (when git-gutter-mode
     (run-with-idle-timer 0.1 nil 'git-gutter)))
+(advice-add 'vc-revert :after #'git-gutter:vc-revert)
 
-(defadvice toggle-truncate-lines (after git-gutter:toggle-truncate-lines activate)
+(defun git-gutter:toggle-truncate-lines (&rest _args)
   (when (and git-gutter-mode git-gutter:visual-line)
     (run-with-idle-timer 0.1 nil 'git-gutter)))
+(advice-add 'toggle-truncate-lines :after #'git-gutter:toggle-truncate-lines)
 
 ;; `quit-window' and `switch-to-buffer' are called from other
-;; commands. So we should use `defadvice' instead of `post-command-hook'.
-(defadvice quit-window (after git-gutter:quit-window activate)
+;; commands. So calling git-gutter from `post-command-hook' is not enough, use
+;; advices instead.
+(defun git-gutter:quit-window (&rest _args)
   (when git-gutter-mode
     (git-gutter)))
+(advice-add 'quit-window :after #'git-gutter:quit-window)
 
-(defadvice switch-to-buffer (after git-gutter:switch-to-buffer activate)
+(defun git-gutter:switch-to-buffer (&rest _args)
   (when git-gutter-mode
     (git-gutter)))
+(advice-add 'switch-to-buffer :after #'git-gutter:switch-to-buffer)
 
 (defun git-gutter:clear ()
   "Clear diff information in gutter."
@@ -1083,7 +1105,7 @@ start revision."
 (defun git-gutter:should-update-p ()
   (let ((chars-modified-tick (buffer-chars-modified-tick)))
     (unless (equal chars-modified-tick git-gutter:last-chars-modified-tick)
-      (setq-local git-gutter:last-chars-modified-tick chars-modified-tick))))
+      (setq git-gutter:last-chars-modified-tick chars-modified-tick))))
 
 (defun git-gutter:vcs-root (vcs)
   (with-temp-buffer
@@ -1121,7 +1143,7 @@ start revision."
           (delete-file original))))))
 
 ;; for linum-user
-(when (and global-linum-mode (not (boundp 'git-gutter-fringe)))
+(when (and (bound-and-true-p global-linum-mode) (not (boundp 'git-gutter-fringe)))
   (git-gutter:linum-setup))
 
 (defun git-gutter:all-hunks ()
