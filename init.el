@@ -53,12 +53,13 @@
 (require 'symbol-overlay_init)
 (require 'color-rg_init)
 (require 'markdown-mode_init)
+;; (require 'cursor-chg_init)
 
 ;; ============================== 编程相关 ==============================
 
 ;; (require 'awesome-tab_init)
 (require 'prog-mode_init)
-;; (require 'apheleia_init)
+(require 'apheleia_init)
 (require 'git_init)
 ;; (require 'reformatter_init)
 (require 'flycheck_init)
@@ -108,7 +109,6 @@
 (require 'popper_init)
 ;; (require 'burly_init)
 (require 'all-the-icons_init)
-;; (require 'dashboard_init)
 
 (add-hook 'prog-mode-hook 'display-line-numbers-mode)
 (add-hook 'sgml-mode-hook 'display-line-numbers-mode)

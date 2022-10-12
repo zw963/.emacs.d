@@ -290,7 +290,6 @@
 ;; ============================== 开启的模式 ==============================
 (global-prettify-symbols-mode t)
 (global-so-long-mode t)
-(global-auto-revert-mode t)
 (global-hl-line-mode t)                 ; 光标行高亮
 
 (require 'uniquify)
@@ -304,8 +303,9 @@
 
 (delete-selection-mode t)                       ;选区替换模式.
 
-(setq auto-revert-interval 0.5)
-;; (setq auto-revert-verbose nil)
+(global-auto-revert-mode t)
+;; (setq auto-revert-interval 0.5)
+(setq auto-revert-verbose nil)
 
 ;; 这个同时看两个 buffer 很有用.
 ;; (follow-mode t)
