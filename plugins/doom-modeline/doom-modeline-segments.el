@@ -125,6 +125,7 @@
 (declare-function cider-jack-in "ext:cider")
 (declare-function cider-quit "ext:cider")
 (declare-function citre-mode "ext:citre-basic-tools")
+(declare-function compilation-goto-in-progress-buffer "compile")
 (declare-function dap--cur-session "ext:dap-mode")
 (declare-function dap--debug-session-name "ext:dap-mode")
 (declare-function dap--debug-session-state "ext:dap-mode")
@@ -136,7 +137,7 @@
 (declare-function edebug-next-mode "edebug")
 (declare-function edebug-stop "edebug")
 (declare-function eglot "ext:eglot")
-(declare-function eglot--major-mode "ext:eglot" t t)
+(declare-function eglot--major-modes "ext:eglot" t t)
 (declare-function eglot--project-nickname "ext:eglot" t t)
 (declare-function eglot--spinner "ext:eglot" t t)
 (declare-function eglot-clear-status "ext:eglot")
@@ -326,16 +327,15 @@ Uses `all-the-icons-material' to fetch the icon."
           (save-match-data
             (if buffer-file-name
                 (doom-modeline-buffer-file-name)
-              (propertize "%b"
+              (propertize (format-mode-line mode-line-buffer-identification
+                                            nil nil (current-buffer))
                           'face 'doom-modeline-buffer-file
-                          'mouse-face 'doom-modeline-highlight
-                          'help-echo "Buffer name
-mouse-1: Previous buffer\nmouse-3: Next buffer"
-                          'local-map mode-line-buffer-identification-keymap))))))
+                          'mouse-face 'doom-modeline-highlight))))))
 (add-hook 'find-file-hook #'doom-modeline-update-buffer-file-name)
 (add-hook 'after-save-hook #'doom-modeline-update-buffer-file-name)
 (add-hook 'clone-indirect-buffer-hook #'doom-modeline-update-buffer-file-name)
 (add-hook 'evil-insert-state-exit-hook #'doom-modeline-update-buffer-file-name)
+(add-hook 'Info-selection-hook #'doom-modeline-update-buffer-file-name)
 (advice-add #'not-modified :after #'doom-modeline-update-buffer-file-name)
 (advice-add #'rename-buffer :after #'doom-modeline-update-buffer-file-name)
 (advice-add #'set-visited-file-name :after #'doom-modeline-update-buffer-file-name)
@@ -393,15 +393,11 @@ mouse-1: Previous buffer\nmouse-3: Next buffer"
 
 (defsubst doom-modeline--buffer-simple-name ()
   "The buffer simple name."
-  (propertize "%b"
+  (propertize (format-mode-line mode-line-buffer-identification)
               'face (doom-modeline-face
                      (if (and buffer-file-name (buffer-modified-p))
                          'doom-modeline-buffer-modified
-                       'doom-modeline-buffer-file))
-              'mouse-face 'doom-modeline-highlight
-              'help-echo "Buffer name
-mouse-1: Previous buffer\nmouse-3: Next buffer"
-              'local-map mode-line-buffer-identification-keymap))
+                       'doom-modeline-buffer-file))))
 
 (defsubst doom-modeline--buffer-name ()
   "The current buffer name."
@@ -435,6 +431,17 @@ read-only or non-existent)."
    doom-modeline-spc
    (doom-modeline--buffer-mode-icon)
    (doom-modeline--buffer-state-icon)
+   (doom-modeline--buffer-simple-name)))
+
+(doom-modeline-def-segment calc
+  "Display calculator icons and info."
+  (concat
+   doom-modeline-spc
+   (when-let ((icon (doom-modeline-icon 'faicon "calculator" nil nil
+                                        :height 0.85 :v-adjust -0.05)))
+     (concat
+      (doom-modeline-display-icon icon)
+      doom-modeline-vspc))
    (doom-modeline--buffer-simple-name)))
 
 (doom-modeline-def-segment buffer-default-directory
@@ -654,11 +661,11 @@ Uses `all-the-icons-octicon' to fetch the icon."
           (let* ((backend (vc-backend buffer-file-name))
                  (state   (vc-state (file-local-name buffer-file-name) backend)))
             (cond ((memq state '(edited added))
-                   (doom-modeline-vcs-icon "git-compare" "⇆" "*" 'doom-modeline-info -0.05))
+                   (doom-modeline-vcs-icon "git-compare" "🔃" "*" 'doom-modeline-info -0.05))
                   ((eq state 'needs-merge)
-                   (doom-modeline-vcs-icon "git-merge" "⛙" "?" 'doom-modeline-info))
+                   (doom-modeline-vcs-icon "git-merge" "🔀" "?" 'doom-modeline-info))
                   ((eq state 'needs-update)
-                   (doom-modeline-vcs-icon "arrow-down" "↓" "!" 'doom-modeline-warning))
+                   (doom-modeline-vcs-icon "arrow-down" "⬇" "!" 'doom-modeline-warning))
                   ((memq state '(removed conflict unregistered))
                    (doom-modeline-vcs-icon "alert" "⚠" "!" 'doom-modeline-urgent))
                   (t
@@ -736,7 +743,7 @@ Uses `all-the-icons-octicon' to fetch the icon."
 UNICODE and TEXT are fallbacks.
 Uses `all-the-icons-material' to fetch the icon."
   (doom-modeline-icon 'material icon unicode text
-                      :face face :height 1.1 :v-adjust -0.225))
+                      :face face :height 1.0 :v-adjust -0.225))
 
 (defun doom-modeline-checker-text (text &optional face)
   "Displays TEXT with FACE."
@@ -771,23 +778,23 @@ level."
                 ('finished  (if flycheck-current-errors
                                 (let-alist (doom-modeline--flycheck-count-errors)
                                   (doom-modeline-checker-icon
-                                   "block" "🚫" "!"
+                                   "error_outline" "❗" "!"
                                    (cond ((> .error 0) 'doom-modeline-urgent)
                                          ((> .warning 0) 'doom-modeline-warning)
                                          (t 'doom-modeline-info))))
-                              (doom-modeline-checker-icon "check" "✓" "-" 'doom-modeline-info)))
-                ('running     (doom-modeline-checker-icon "access_time" "⏱" "*" 'doom-modeline-debug))
+                              (doom-modeline-checker-icon "check" "✔" "-" 'doom-modeline-info)))
+                ('running     (doom-modeline-checker-icon "hourglass_empty" "⏳" "*" 'doom-modeline-debug))
                 ('no-checker  (doom-modeline-checker-icon "sim_card_alert" "⚠" "-" 'doom-modeline-debug))
                 ('errored     (doom-modeline-checker-icon "sim_card_alert" "⚠" "-" 'doom-modeline-urgent))
-                ('interrupted (doom-modeline-checker-icon "pause" "⏸" "=" 'doom-modeline-debug))
-                ('suspicious  (doom-modeline-checker-icon "priority_high" "❗" "!" 'doom-modeline-urgent))
+                ('interrupted (doom-modeline-checker-icon "pause_circle_outline" "⏸" "=" 'doom-modeline-debug))
+                ('suspicious  (doom-modeline-checker-icon "info_outline" "❓" "?" 'doom-modeline-debug))
                 (_ nil))))
           (propertize icon
                       'help-echo (concat "Flycheck\n"
                                          (pcase status
                                            ('finished "mouse-1: Display minor mode menu
 mouse-2: Show help for minor mode")
-                                           ('running "Running...")
+                                           ('running "Checking...")
                                            ('no-checker "No Checker")
                                            ('errored "Error")
                                            ('interrupted "Interrupted")
@@ -846,11 +853,11 @@ mouse-2: Show help for minor mode")
                                                                       'doom-modeline-warning)
                                           (doom-modeline-checker-text (number-to-string .info)
                                                                       'doom-modeline-info))))))
-                ('running     nil)
-                ('no-checker  nil)
-                ('errored     (doom-modeline-checker-text "Error" 'doom-modeline-urgent))
-                ('interrupted (doom-modeline-checker-text "Interrupted" 'doom-modeline-debug))
-                ('suspicious  (doom-modeline-checker-text "Suspicious" 'doom-modeline-urgent))
+                ;; ('running     nil)
+                ;; ('no-checker  nil)
+                ;; ('errored     (doom-modeline-checker-text "Error" 'doom-modeline-urgent))
+                ;; ('interrupted (doom-modeline-checker-text "Interrupted" 'doom-modeline-debug))
+                ;; ('suspicious  (doom-modeline-checker-text "Suspicious" 'doom-modeline-urgent))
                 (_ nil))))
           (propertize
            text
@@ -864,7 +871,7 @@ mouse-2: Show help for minor mode")
 mouse-3: Next error"
                           (if (featurep 'mwheel)
                               "\nwheel-up/wheel-down: Previous/next error")))
-                        ('running "Running...")
+                        ('running "Checking...")
                         ('no-checker "No Checker")
                         ('errored "Error")
                         ('interrupted "Interrupted")
@@ -914,9 +921,9 @@ mouse-3: Next error"
           (when-let
               ((icon
                 (cond
-                 (some-waiting (doom-modeline-checker-icon "access_time" "⏰" "*" 'doom-modeline-debug))
-                 ((null known) (doom-modeline-checker-icon "sim_card_alert" "❓" "?" 'doom-modeline-debug))
-                 (all-disabled (doom-modeline-checker-icon "sim_card_alert" "❗" "!" 'doom-modeline-urgent))
+                 (some-waiting (doom-modeline-checker-icon "hourglass_empty" "⏳" "*" 'doom-modeline-urgent))
+                 ((null known) (doom-modeline-checker-icon "sim_card_alert" "⚠" "-" 'doom-modeline-debug))
+                 (all-disabled (doom-modeline-checker-icon "sim_card_alert" "⚠" "-" 'doom-modeline-warning))
                  (t (let ((.error 0)
                           (.warning 0)
                           (.note 0))
@@ -934,7 +941,7 @@ mouse-3: Next error"
                                      ((> severity note-level)    (cl-incf .warning))
                                      (t                          (cl-incf .note))))))
                         (if (> (+ .error .warning .note) 0)
-                            (doom-modeline-checker-icon "do_not_disturb_alt" "🚫" "!"
+                            (doom-modeline-checker-icon "error_outline" "❗" "!"
                                                         (cond ((> .error 0) 'doom-modeline-urgent)
                                                               ((> .warning 0) 'doom-modeline-warning)
                                                               (t 'doom-modeline-info)))
@@ -943,7 +950,7 @@ mouse-3: Next error"
              icon
              'help-echo (concat "Flymake\n"
                                 (cond
-                                 (some-waiting "Running...")
+                                 (some-waiting "Checking...")
                                  ((null known) "No Checker")
                                  (all-disabled "All Checkers Disabled")
                                  (t (format "%d/%d backends running
@@ -1030,7 +1037,7 @@ mouse-2: Show help for minor mode"
             (propertize
              text
              'help-echo (cond
-                         (some-waiting "Running...")
+                         (some-waiting "Checking...")
                          ((null known) "No Checker")
                          (all-disabled "All Checkers Disabled")
                          (t (format "error: %d, warning: %d, note: %d
@@ -2052,7 +2059,7 @@ mouse-3: Clear this status" (plist-get last-error :message)))
 C-mouse-1: Go to server errors
 mouse-1: Go to server events
 mouse-2: Quit server
-mouse-3: Reconnect to server" nick (eglot--major-mode server)))
+mouse-3: Reconnect to server" nick (eglot--major-modes server)))
                                   (t "EGLOT Disconnected
 mouse-1: Start server"))
                       'mouse-face 'doom-modeline-highlight
@@ -2536,11 +2543,12 @@ to be an icon and we don't want to remove that so we just return the original."
       'face '(:inherit (doom-modeline-unread-number doom-modeline-notification))
       'help-echo (format "IRC Notification: %s\nmouse-1: Switch to buffer" b)
       'mouse-face 'doom-modeline-highlight
-      'local-map (make-mode-line-mouse-map 'mouse-1
-                                           (lambda ()
-                                             (interactive)
-                                             (when (buffer-live-p (get-buffer b))
-                                               (switch-to-buffer b))))))
+      'local-map (make-mode-line-mouse-map
+                  'mouse-1
+                  (lambda ()
+                    (interactive)
+                    (when (buffer-live-p (get-buffer b))
+                      (switch-to-buffer b))))))
    buffers
    doom-modeline-vspc))
 
@@ -2958,6 +2966,21 @@ mouse-3: Restart preview"
     (setq global-mode-string (append global-mode-string '(display-time-string)))))
 (add-hook 'display-time-mode-hook #'doom-modeline-override-display-time-modeline)
 (add-hook 'doom-modeline-mode-hook #'doom-modeline-override-display-time-modeline)
+
+;;
+;; Compilation
+;;
+
+(doom-modeline-def-segment compilation
+  (and (bound-and-true-p compilation-in-progress)
+       (propertize "[Compiling] "
+                   'face (doom-modeline-face 'doom-modeline-compilation)
+	               'help-echo "Compiling; mouse-2: Goto Buffer"
+                   'mouse-face 'doom-modeline-highlight
+                   'local-map
+                   (make-mode-line-mouse-map
+                    'mouse-2
+			        #'compilation-goto-in-progress-buffer))))
 
 (provide 'doom-modeline-segments)
 

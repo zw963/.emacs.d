@@ -50,10 +50,7 @@
 (when (eq system-type 'windows-nt)
   (setq inhibit-compacting-font-caches t))
 
-;; WORKAROUND: `string-pixel-width' is introduced in 29,
-;; and is able to calculate the accurate string width.
-;; Below is the workaround for backward compatibility
-;; since `window-font-width' consumes a lot.
+;; For better performance, because `window-font-width' consumes a lot.
 (defvar doom-modeline--font-width-cache nil)
 (defun doom-modeline--font-width ()
   "Cache the font width for better performance."
@@ -72,11 +69,10 @@
   (setq doom-modeline--font-width-cache nil)
   (doom-modeline--font-width))
 
-(unless (fboundp 'string-pixel-width)
-  (add-hook 'window-setup-hook #'doom-modeline-refresh-font-width-cache)
-  (add-hook 'after-make-frame-functions #'doom-modeline-refresh-font-width-cache)
-  (add-hook 'after-setting-font-hook #'doom-modeline-refresh-font-width-cache)
-  (add-hook 'server-after-make-frame-hook #'doom-modeline-refresh-font-width-cache))
+(add-hook 'window-setup-hook #'doom-modeline-refresh-font-width-cache)
+(add-hook 'after-make-frame-functions #'doom-modeline-refresh-font-width-cache)
+(add-hook 'after-setting-font-hook #'doom-modeline-refresh-font-width-cache)
+(add-hook 'server-after-make-frame-hook #'doom-modeline-refresh-font-width-cache)
 
 
 ;;
@@ -779,6 +775,11 @@ Also see the face `doom-modeline-unread-number'."
   '((t (:inherit (mode-line-buffer-id bold))))
   "Face for display time."
   :group 'doom-modeline-faces)
+
+(defface doom-modeline-compilation
+  '((t (:inherit warning :slant italic :height 0.9)))
+  "Face for compilation progress."
+  :group 'doom-modeline-faces)
 
 ;;
 ;; Externals
@@ -999,22 +1000,18 @@ Example:
         (list lhs-forms
               (propertize
                " "
-               'display `((space
-                           :align-to
-                           (- (+ right right-margin scroll-bar)
-                              ,(let ((rhs-str (format-mode-line (cons "" rhs-forms)))
-                                     (char-width (frame-char-width)))
-                                 (if (fboundp 'string-pixel-width)
-                                     ;; Accurate calculations in 29+
-                                     (/ (string-pixel-width
-                                         (propertize rhs-str 'face 'mode-line))
-                                        char-width
-                                        1.0)
-                                   ;; Backward compatibility
-                                   (* (/ (doom-modeline--font-width)
-                                         char-width
-                                         1.0)
-                                      (string-width rhs-str))))))))
+               'display `(space
+                          :align-to
+                          (- (+ right right-fringe right-margin scroll-bar)
+                             ,(let ((rhs-str (format-mode-line (cons "" rhs-forms))))
+                                (if (fboundp 'string-pixel-width)
+                                    (/ (string-pixel-width rhs-str)
+                                       (doom-modeline--font-width)
+                                       1.0)
+                                  (* (string-width rhs-str)
+                                     (if (display-graphic-p)
+                                         (/ (doom-modeline--font-width) (frame-char-width) 0.95)
+                                       1.0)))))))
               rhs-forms))
       (concat "Modeline:\n"
               (format "  %s\n  %s"
@@ -1061,7 +1058,8 @@ If INACTIVE-FACE is nil, `mode-line-inactive' face will be used."
       (or (and (facep face) face)
           (and (facep 'mode-line-active) 'mode-line-active)
           'mode-line)
-    (or (and (facep inactive-face) inactive-face)
+    (or (and (facep face) `(:inherit (mode-line-inactive ,face)))
+        (and (facep inactive-face) inactive-face)
         'mode-line-inactive)))
 
 ;; Since 27, the calculation of char height was changed
@@ -1073,7 +1071,7 @@ If INACTIVE-FACE is nil, `mode-line-inactive' face will be used."
     (round
      (* (pcase system-type
           ('darwin (if doom-modeline-icon 1.7 1.0))
-          ('windows-nt (if doom-modeline-icon 0.88 0.625))
+          ('windows-nt (if doom-modeline-icon 1.3 1.0))
           (_ (if (and doom-modeline-icon (< emacs-major-version 27)) 1.4 1.0)))
         (cond ((integerp height) (/ height 10))
               ((floatp height) (* height char-height))
