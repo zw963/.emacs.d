@@ -2,7 +2,8 @@
       '("abstract" "api" "attr" "attr_reader" "attr_writer"
         "author" "deprecated" "example" "note" "option" "overload"
         "param" "private" "raise" "return" "see" "since" "todo" "version"
-        "yield" "yieldparam" "yieldreturn" "hidden"))
+        "yield" "yieldparam" "yieldreturn" "hidden")
+      )
 
 (require 'yard-mode)
 ;; (add-to-list 'yard-tags "hidden")

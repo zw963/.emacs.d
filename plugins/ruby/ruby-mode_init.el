@@ -2,14 +2,15 @@
 
 ;; 对应于 enh-ruby-mode 的配置.
 (with-eval-after-load 'ruby-mode
-  (setq ruby-toggle-block-space-before-parameters nil)
-  ;; (setq ruby-use-smie nil)
-  ;; (setq ruby-deep-arglist nil)
-  ;; (setq ruby-deep-indent-paren nil)
-  ;; (setq ruby-deep-indent-paren-style t)
-  (setq ruby-insert-encoding-magic-comment nil)
-  ) ; 无需插入 encoding comment.
-
+  (setq
+   ruby-toggle-block-space-before-parameters nil
+   ruby-insert-encoding-magic-comment nil ; 不要插入 encoding comment.
+   ;; ruby-use-smie nil
+   ;; ruby-deep-arglist nil
+   ;; ruby-deep-indent-paren nil
+   ;; ruby-deep-indent-paren-style t
+   )
+  )
 ;; (add-hook 'ruby-mode-hook
 ;;           (lambda ()
 ;;             ;; 这个在 enh-ruby-mode 里面无需设置，但是 ruby-mode 需要设定。
