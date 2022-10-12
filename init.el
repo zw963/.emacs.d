@@ -15,8 +15,6 @@
 (require 'fancy-narrow_init)
 (require 'zoom-frm_init)
 (require 'back-button_init)
-(require 'bm_init)
-;; (require 'helpful_init)
 ;; (require 'winum_init)
 ;; (require 'which-key_init)
 (require 'anzu_init)
@@ -82,7 +80,7 @@
 (require 'rainbow-mode_init)
 (require 'scss-css-mode_init)
 ;; (require 'tree-sitter_init)
-(require 'format-all_init)
+;; (require 'format-all_init)
 
 (require 'dpaste_init)
 (require 'ws-butler_init)
