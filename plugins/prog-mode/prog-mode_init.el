@@ -2,7 +2,7 @@
 (require 'hideshow_init)
 (require 'yafolding_init)
 (require 'meta-return-hack_init)
-;; (require 'ligature_init)
+(require 'ligature_init)
 (require 'context-menu-mode_init)
 
 (add-hook 'prog-mode-hook 'goto-address-mode)
