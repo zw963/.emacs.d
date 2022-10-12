@@ -1,6 +1,7 @@
 (require 'dumb-jump)
 
-(setq dumb-jump-force-searcher 'rg)
+(setq dumb-jump-prefer-searcher 'rg)
+(setq dumb-jump-quiet t)
 
 (defun set-dumb-jump-as-default ()
   (add-hook 'xref-backend-functions #'dumb-jump-xref-activate 90 t)
