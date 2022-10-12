@@ -15,6 +15,8 @@
 (global-set-key (kbd "<left-fringe> <mouse-4>") 'bm-previous-mouse)
 (global-set-key (kbd "<left-fringe> <mouse-1>") 'bm-toggle-mouse)
 
+(setq bm-marker 'bm-marker-right)
+
 (add-hook 'after-init-hook #'bm-repository-load)
 (add-hook 'find-file-hook #'bm-buffer-restore)
 (add-hook 'after-revert-hook #'bm-buffer-restore)
