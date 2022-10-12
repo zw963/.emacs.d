@@ -1,5 +1,4 @@
 (require 'hideshow)
-(require 'eldoc-box_init)
 
 (setq-default context-menu-functions
               '(context-menu-hideshow
@@ -51,20 +50,8 @@
     menu-bar-separator)
   menu)
 
-(defun context-menu-show-eldoc (menu click)
-  "Populate MENU with `eldoc-box-eglot-help-at-point' commands."
-  (define-key-after menu [show-eldoc]
-    '(menu-item "Show eldoc documentation"
-                (lambda (click) (interactive "e")
-                  (save-excursion
-                    (if (bound-and-true-p lsp-mode)
-                        (lsp-describe-thing-at-point)
-                      (eldoc-box-eglot-help-at-point))))))
-  (define-key-after menu [hs-separator] menu-bar-separator)
-  menu)
-
 (defun context-menu-show-git-message (menu click)
-  "Populate MENU with `eldoc-box-eglot-help-at-point' commands."
+  "Populate MENU with `git-messenger' commands."
   (define-key-after menu [show-git-message]
     '(menu-item "Show git message"
                 (lambda (click) (interactive "e")
@@ -104,7 +91,6 @@
   (setq context-menu-functions
         '(context-menu-hideshow
           context-menu-show-git-message
-          context-menu-show-eldoc
           context-menu-show-lsp-code-actions
           occur-context-menu
           prog-context-menu
@@ -115,7 +101,6 @@
   (setq context-menu-functions
         '(context-menu-hideshow
           context-menu-show-git-message
-          context-menu-show-eldoc
           context-menu-show-lsp-code-actions
           context-menu-unwrap-flutter-widget
           occur-context-menu
