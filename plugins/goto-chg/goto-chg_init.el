@@ -1,7 +1,7 @@
 (require 'goto-chg)
 
-(global-set-key [(control ?>)] 'goto-last-change)
-(global-set-key [(control ?<)] 'goto-last-change-reverse)
+(global-set-key [(control ?,)] 'goto-last-change)
+(global-set-key [(control ?.)] 'goto-last-change-reverse)
 
 (provide 'goto-chg_init)
 

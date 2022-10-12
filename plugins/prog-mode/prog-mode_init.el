@@ -50,7 +50,7 @@
   (add-hook hook (lambda ()
                    (local-set-key [(?\,)] 'input-comma-with-space)
                    (local-set-key [(?\;)] 'input-semicolon-with-space)
-                   (local-set-key [(control ?.)] 'input-rocket-with-space)
+                   (local-set-key [(meta c) (?.)] 'input-rocket-with-space)
                    (local-set-key [(meta c) (=)] 'input-add-equal)
                    )))
 
