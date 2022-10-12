@@ -37,7 +37,7 @@
 ;; (require 'prescient_init) ;; 这个必须放在 ivy_init 后面.
 (require 'yasnippet_init)
 (require 'wgrep_init)
-;; (require 'quickrun_init)
+(require 'quickrun_init)
 (require 'amx_init)
 ;; (require 'spaceline_init)
 
