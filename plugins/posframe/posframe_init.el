@@ -1,11 +1,11 @@
 (require 'posframe)
 
-;; (with-eval-after-load 'ivy
-;;   (require 'ivy-posframe)
-;;   ;; display at `ivy-posframe-style'
-;;   (setq ivy-posframe-display-functions-alist '((t . ivy-posframe-display)))
-;;   (ivy-posframe-mode 1)
-;;   )
+(with-eval-after-load 'ivy
+  (require 'ivy-posframe)
+  ;; display at `ivy-posframe-style'
+  (setq ivy-posframe-display-functions-alist '((t . ivy-posframe-display)))
+  (ivy-posframe-mode 1)
+  )
 
 (with-eval-after-load 'company
   (require 'company-posframe)
