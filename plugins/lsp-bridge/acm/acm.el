@@ -95,7 +95,8 @@
 (require 'acm-backend-elisp)
 (require 'acm-backend-lsp)
 (require 'acm-backend-path)
-(require 'acm-backend-search-words)
+(require 'acm-backend-search-file-words)
+(require 'acm-backend-search-sdcv-words)
 (require 'acm-backend-tempel)
 (require 'acm-backend-telega)
 (require 'acm-backend-tabnine)
@@ -116,7 +117,10 @@
 
 (defcustom acm-continue-commands
   ;; nil is undefined command
-  '(nil ignore universal-argument universal-argument-more digit-argument self-insert-command org-self-insert-command
+  '(nil ignore universal-argument universal-argument-more digit-argument
+        self-insert-command org-self-insert-command
+        ;; Avoid flashing completion menu when backward delete char
+        grammatical-edit-backward-delete backward-delete-char-untabify python-indent-dedent-line-backspace delete-backward-char
         "\\`acm-" "\\`scroll-other-window")
   "Continue ACM completion after executing these commands."
   :type '(repeat (choice regexp symbol))
@@ -198,8 +202,6 @@
 (defvar-local acm-menu-candidates nil)
 (defvar-local acm-menu-index -1)
 (defvar-local acm-menu-offset 0)
-
-(defvar-local acm-enable-english-helper nil)
 
 (defvar-local acm-input-bound-style nil)
 
@@ -435,13 +437,9 @@ influence of C1 on the result."
     (when acm-enable-tabnine
       (setq tabnine-candidates (acm-backend-tabnine-candidates keyword)))
 
-    (if acm-enable-english-helper
-        ;; Completion english if option `acm-enable-english-helper' is enable.
-        (progn
-          (require 'acm-backend-english-data)
-          (require 'acm-backend-english)
-
-          (setq candidates (acm-backend-english-candidates keyword)))
+    (if acm-enable-search-sdcv-words
+        ;; Completion SDCV if option `acm-enable-search-sdcv-words' is enable.
+        (setq candidates (acm-backend-search-sdcv-words-candidates keyword))
 
       (setq path-candidates (acm-backend-path-candidates keyword))
       (if (> (length path-candidates) 0)
@@ -456,7 +454,7 @@ influence of C1 on the result."
                                (acm-backend-elisp-candidates keyword)
                                lsp-candidates
                                citre-candidates
-                               (acm-backend-search-words-candidates keyword)
+                               (acm-backend-search-file-words-candidates keyword)
                                (acm-backend-telega-candidates keyword)))
 
         (when (or

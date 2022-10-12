@@ -7,8 +7,8 @@
 ;; Copyright (C) 2018, Andy Stewart, all rights reserved.
 ;; Created: 2018-06-15 14:10:12
 ;; Version: 0.5
-;; Last-Updated: Wed May 11 02:44:16 2022 (-0400)
-;;           By: Mingde (Matthew) Zeng
+;; Last-Updated: 2022-10-10 15:23:53 +0800
+;;           By: Gong Qijian
 ;; URL: https://github.com/manateelazycat/lsp-bridge
 ;; Keywords:
 ;; Compatibility: emacs-version >= 28
@@ -98,14 +98,13 @@
 
 (defvar-local lsp-bridge-completion-item-fetch-tick nil)
 (defun lsp-bridge-fetch-completion-item-info (candidate)
-  (let* ((label (plist-get candidate :label))
-         (kind (plist-get candidate :icon))
-         (server-name (plist-get candidate :server))
-         (key (plist-get candidate :key)))
+  (let ((kind (plist-get candidate :icon))
+        (server-name (plist-get candidate :server))
+        (key (plist-get candidate :key)))
     ;; Try send `completionItem/resolve' request to fetch `documentation' and `additionalTextEdits' information.
-    (unless (equal lsp-bridge-completion-item-fetch-tick (list acm-backend-lsp-filepath label kind))
+    (unless (equal lsp-bridge-completion-item-fetch-tick (list acm-backend-lsp-filepath key kind))
       (lsp-bridge-call-async "fetch_completion_item_info" acm-backend-lsp-filepath key server-name)
-      (setq-local lsp-bridge-completion-item-fetch-tick (list acm-backend-lsp-filepath label kind)))))
+      (setq-local lsp-bridge-completion-item-fetch-tick (list acm-backend-lsp-filepath key kind)))))
 
 (defcustom lsp-bridge-completion-popup-predicates '(lsp-bridge-not-only-blank-before-cursor
                                                     lsp-bridge-not-match-hide-characters
@@ -132,7 +131,8 @@ Setting this to nil or 0 will turn off the indicator."
 (defcustom lsp-bridge-completion-stop-commands
   '("undo-tree-undo" "undo-tree-redo"
     "kill-region" "delete-block-backward"
-    "python-black-buffer" "acm-complete-or-expand-yas-snippet")
+    "python-black-buffer" "acm-complete-or-expand-yas-snippet"
+    "yank" "string-rectangle")
   "If last command is match this option, stop popup completion ui."
   :type 'cons
   :group 'lsp-bridge)
@@ -804,7 +804,7 @@ So we build this macro to restore postion after code format."
 
   (when (and buffer-file-name
              (lsp-bridge-epc-live-p lsp-bridge-epc-process))
-    (lsp-bridge-call-async "search_words_close_file" buffer-file-name)))
+    (lsp-bridge-call-async "search_file_words_close_file" buffer-file-name)))
 
 (defun lsp-bridge-completion--record-items (filepath candidates position server-name completion-trigger-characters server-names)
   (lsp-bridge--with-file-buffer filepath
@@ -812,6 +812,7 @@ So we build this macro to restore postion after code format."
     (setq-local acm-backend-lsp-completion-position position)
     (setq-local acm-backend-lsp-completion-trigger-characters completion-trigger-characters)
     (setq-local acm-backend-lsp-server-names server-names)
+    (setq-local lsp-bridge-completion-item-fetch-tick nil)
     (let* ((lsp-items acm-backend-lsp-items)
            (completion-table (make-hash-table :test 'equal)))
       (dolist (item candidates)
@@ -821,8 +822,12 @@ So we build this macro to restore postion after code format."
       (setq-local acm-backend-lsp-items lsp-items))
     (lsp-bridge-try-completion)))
 
-(defun lsp-bridge-search-words--record-items (candidates)
-  (setq-local acm-backend-search-words-items candidates)
+(defun lsp-bridge-search-file-words--record-items (candidates)
+  (setq-local acm-backend-search-file-words-items candidates)
+  (lsp-bridge-try-completion))
+
+(defun lsp-bridge-search-sdcv-words--record-items (candidates)
+  (setq-local acm-backend-search-sdcv-words-items candidates)
   (lsp-bridge-try-completion))
 
 (defun lsp-bridge-try-completion ()
@@ -841,13 +846,14 @@ So we build this macro to restore postion after code format."
 
 (defun lsp-bridge-not-match-stop-commands ()
   "Hide completion if `lsp-bridge-last-change-command' match commands in `lsp-bridge-completion-stop-commands'."
-  (not (member lsp-bridge-last-change-command lsp-bridge-completion-stop-commands)))
+  (not (or (member lsp-bridge-last-change-command lsp-bridge-completion-stop-commands)
+           (member (format "%s" last-command) lsp-bridge-completion-stop-commands))))
 
 (defun lsp-bridge-not-in-string ()
   "Hide completion if cursor in string area."
   (or
-   ;; Allow english completion in string area
-   acm-enable-english-helper
+   ;; Allow sdcv completion in string area
+   acm-enable-search-sdcv-words
    ;; Allow volar popup completion menu in string.
    (and (boundp 'acm-backend-lsp-filepath)
         acm-backend-lsp-filepath
@@ -862,8 +868,8 @@ So we build this macro to restore postion after code format."
 (defun lsp-bridge-not-in-comment ()
   "Hide completion if cursor in comment area."
   (or
-   ;; Allow english completion in string area
-   acm-enable-english-helper
+   ;; Allow sdcv completion in string area
+   acm-enable-search-sdcv-words
    ;; Other language not allowed popup completion in comment.
    (not (lsp-bridge-in-comment-p))))
 
@@ -974,31 +980,39 @@ So we build this macro to restore postion after code format."
   (when acm-enable-tabnine
     (lsp-bridge-tabnine-complete))
 
+  (when (and acm-enable-search-sdcv-words
+             (lsp-bridge-epc-live-p lsp-bridge-epc-process))
+    (let ((current-word (thing-at-point 'word t)))
+      ;; Search words if current prefix is not empty.
+      (when (not (or (string-equal current-word "")
+                     (null current-word)))
+        (lsp-bridge-call-async "search_sdcv_words_search" current-word))))
+
   ;; Send change file to search-words backend.
   (when (and buffer-file-name
              (lsp-bridge-epc-live-p lsp-bridge-epc-process))
-    (let ((current-word (acm-backend-search-words-get-point-string)))
+    (let ((current-word (acm-backend-search-file-words-get-point-string)))
       ;; Search words if current prefix is not empty.
       (when (not (string-equal current-word ""))
-        (lsp-bridge-call-async "search_words_search" current-word)))
+        (lsp-bridge-call-async "search_file_words_search" current-word)))
 
-    (lsp-bridge-call-async "search_words_change_file" buffer-file-name)))
+    (lsp-bridge-call-async "search_file_words_change_file" buffer-file-name)))
 
 (defun lsp-bridge-search-words-open-file ()
   (when (and buffer-file-name
              (lsp-bridge-epc-live-p lsp-bridge-epc-process))
-    (lsp-bridge-call-async "search_words_change_file" buffer-file-name)))
+    (lsp-bridge-call-async "search_file_words_change_file" buffer-file-name)))
 
 (defun lsp-bridge-search-words-index-files ()
   "Index files when lsp-bridge python process finish."
   (let ((files (cl-remove-if 'null (mapcar #'buffer-file-name (buffer-list)))))
-    (lsp-bridge-call-async "search_words_index_files" files)))
+    (lsp-bridge-call-async "search_file_words_index_files" files)))
 
 (defun lsp-bridge-search-words-rebuild-cache ()
   "Rebuild words cache when idle."
   (when (lsp-bridge-epc-live-p lsp-bridge-epc-process)
     (unless (eq last-command 'mwheel-scroll)
-      (lsp-bridge-call-async "search_words_rebuild_cache"))))
+      (lsp-bridge-call-async "search_file_words_rebuild_cache"))))
 
 (defun lsp-bridge-completion-ui-visible-p ()
   (and (frame-live-p acm-frame)
@@ -1057,8 +1071,11 @@ So we build this macro to restore postion after code format."
   (lsp-bridge-call-file-api "find_references" (lsp-bridge--position)))
 
 (defun lsp-bridge-references--popup (references-content references-counter)
-  (lsp-bridge-ref-popup references-content references-counter)
-  (message "[LSP-Bridge] Found %s references" references-counter))
+  (if (> references-counter 0)
+      (progn
+        (lsp-bridge-ref-popup references-content references-counter)
+        (message "[LSP-Bridge] Found %s references" references-counter))
+    (message "[LSP-Bridge] No references found.")))
 
 (defun lsp-bridge-rename ()
   (interactive)
@@ -1437,6 +1454,15 @@ So we build this macro to restore postion after code format."
       (lsp-bridge-show-diagnostic-tooltip diagnostic-overlay)
     (message "[LSP-Bridge] Reach first diagnostic.")))
 
+(defun lsp-bridge-diagnostic-copy ()
+  (interactive)
+  (if (or (zerop (length lsp-bridge-diagnostic-overlays))
+          (not (frame-visible-p lsp-bridge-diagnostic-frame)))
+      (message "[LSP-Bridge] No diagnostics.")
+    (kill-new (with-current-buffer lsp-bridge-diagnostic-tooltip
+                (buffer-string)))
+    (message "Copy diagnostics content.")))
+
 (defun lsp-bridge-diagnostic-list ()
   (interactive)
   (lsp-bridge-call-file-api "list_diagnostics"))
@@ -1503,7 +1529,7 @@ So we build this macro to restore postion after code format."
      (message "[LSP-BRIDGE] Complete code formatting.")
      )))
 
-(defvar lsp-bridge-english-helper-dict nil)
+(defvar lsp-bridge-sdcv-helper-dict nil)
 
 (defun lsp-bridge-code-action--fix (actions action-kind)
   (let* ((menu-items
@@ -1656,27 +1682,27 @@ So we build this macro to restore postion after code format."
   (read-only-mode 0)
   (font-lock-ensure))
 
-(defun lsp-bridge-toggle-english-helper ()
-  "Toggle english helper."
+(defun lsp-bridge-toggle-sdcv-helper ()
+  "Toggle sdcv helper."
   (interactive)
-  (unless lsp-bridge-english-helper-dict
-    (setq lsp-bridge-english-helper-dict (make-hash-table :test 'equal)))
+  (unless lsp-bridge-sdcv-helper-dict
+    (setq lsp-bridge-sdcv-helper-dict (make-hash-table :test 'equal)))
 
-  (if acm-enable-english-helper
+  (if acm-enable-search-sdcv-words
       (progn
         ;; Disable `lsp-bridge-mode' if it is enable temporality.
-        (when (gethash (buffer-name) lsp-bridge-english-helper-dict)
+        (when (gethash (buffer-name) lsp-bridge-sdcv-helper-dict)
           (lsp-bridge-mode -1)
-          (remhash (buffer-name) lsp-bridge-english-helper-dict))
+          (remhash (buffer-name) lsp-bridge-sdcv-helper-dict))
 
-        (message "Turn off english helper."))
+        (message "Turn off SDCV helper."))
     ;; We enable `lsp-bridge-mode' temporality if current-mode not enable `lsp-bridge-mode' yet.
     (unless lsp-bridge-mode
-      (puthash (buffer-name) t lsp-bridge-english-helper-dict)
+      (puthash (buffer-name) t lsp-bridge-sdcv-helper-dict)
       (lsp-bridge-mode 1))
 
-    (message "Turn on english helper."))
-  (setq-local acm-enable-english-helper (not acm-enable-english-helper)))
+    (message "Turn on SDCV helper."))
+  (setq-local acm-enable-search-sdcv-words (not acm-enable-search-sdcv-words)))
 
 ;;;###autoload
 (defun global-lsp-bridge-mode ()
@@ -1800,6 +1826,7 @@ So we build this macro to restore postion after code format."
 (defalias 'lsp-bridge-ignore-current-diagnostic #'lsp-bridge-diagnostic-ignore "This function is obsolete, use `lsp-bridge-ignore-current-diagnostic' instead.")
 (defalias 'lsp-bridge-popup-complete #'lsp-bridge-popup-complete-menu "This function is obsolete, use `lsp-bridge-popup-complete' instead.")
 (defalias 'lsp-bridge-return-from-def #'lsp-bridge-find-def-return "This function is obsolete, use `lsp-bridge-find-def-return' instead.")
+(defalias 'lsp-bridge-toggle-english-helper #'lsp-bridge-toggle-sdcv-helper "This function is obsolete, use `lsp-bridge-toggle-sdcv-helper' instead.")
 
 (provide 'lsp-bridge)
 
