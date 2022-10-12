@@ -54,11 +54,13 @@
 (require 'color-rg_init)
 (require 'markdown-mode_init)
 ;; (require 'cursor-chg_init)
+(require 'easy-kill_init)
 
 ;; ============================== 编程相关 ==============================
 
 ;; (require 'awesome-tab_init)
 (require 'prog-mode_init)
+(require 'dumb-jump_init)
 (require 'apheleia_init)
 (require 'git_init)
 ;; (require 'reformatter_init)
@@ -87,7 +89,6 @@
 ;; (require 'solaire-mode_init) ;; 这个似乎没见有用过
 
 (require 'whitespace-cleanup-mode_init)
-(require 'dumb-jump_init)
 
 ;; 关闭一些有用，但最近不常用的 mode
 ;; (require 'go-mode_init)
