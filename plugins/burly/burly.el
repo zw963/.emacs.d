@@ -4,8 +4,8 @@
 
 ;; Author: Adam Porter <adam@alphapapa.net>
 ;; URL: https://github.com/alphapapa/burly.el
-;; Version: 0.2-pre
-;; Package-Requires: ((emacs "26.3") (map "2.1"))
+;; Version: 0.3-pre
+;; Package-Requires: ((emacs "27.1") (map "2.1"))
 ;; Keywords: convenience
 
 ;; This program is free software; you can redistribute it and/or modify
@@ -76,7 +76,7 @@
   :link '(custom-manual "(Burly)Usage"))
 
 (defcustom burly-bookmark-prefix "Burly: "
-  "Prefix string prepended to the name of new Burly bookmarks."
+  "Prefix string for the name of new Burly bookmarks."
   :type 'string)
 
 (defcustom burly-major-mode-alist
@@ -107,10 +107,31 @@ See variable `frameset-filter-alist'."
 	(cons 'window-side 'writable)
 	(cons 'window-slot 'writable))
   "Additional window parameters to persist.
-See Info node `(elisp)Window Parameters'."
+See Info node `(elisp)Window Parameters'.  See also option
+`burly-set-window-persistent-parameters'."
   :type '(alist :key-type (symbol :tag "Window parameter")
                 :value-type (choice (const :tag "Not saved" nil)
                                     (const :tag "Saved" writable))))
+
+(defcustom burly-set-window-persistent-parameters t
+  "Sync `window-persistent-parameters' with `burly' option.
+When this option is non-nil, `window-persistent-parameters' is
+set to the value of `burly-window-persistent-parameters' when
+Burly restores a window configuration.
+
+By default, `window-persistent-parameters' does not save many of
+the parameters that are in the default value of
+`burly-window-persistent-parameters', which causes, e.g. a
+built-in command like `window-toggle-side-windows' to not persist
+such parameters when side windows are toggled (which could,
+e.g. cause a window's `mode-line-format' to not persist).  So
+enabling this option solves that.
+
+Note: When this option is non-nil,
+`burly-window-persistent-parameters' should be set heeding the
+warning in the manual about not using the `writable' value for
+parameters whose values do not have a read syntax."
+  :type 'boolean)
 
 ;;;; Commands
 
@@ -207,8 +228,14 @@ a project."
     (pcase-exhaustive subtype
       ("bookmark" (burly--bookmark-url-buffer urlobj))
       ("file" (burly--file-url-buffer urlobj))
-      ("name" (get-buffer (decode-coding-string (cdr (url-path-and-query urlobj))
-						'utf-8-unix))))))
+      ("name" (let ((buffer-name (decode-coding-string (cdr (url-path-and-query urlobj))
+						       'utf-8-unix)))
+                (or (get-buffer buffer-name)
+                    (with-current-buffer (get-buffer-create (concat "*Burly (error): " buffer-name "*"))
+                      (insert "Burly was unable to get a buffer named: " buffer-name "\n"
+                              "URL: " url "\n"
+                              "Please report this error to the developer\n\n")
+                      (current-buffer))))))))
 
 (defun burly-buffer-url (buffer)
   "Return URL for BUFFER."
@@ -266,6 +293,7 @@ FRAMES defaults to all live frames."
                                                window-persistent-parameters))
          (frameset-filter-alist (append burly-frameset-filter-alist frameset-filter-alist))
          (query (frameset-save frames))
+         (print-length nil)             ; Important!
          (filename (concat "?" (url-hexify-string (prin1-to-string query))))
          (url (url-recreate-url (url-parse-make-urlobj "emacs+burly+frames" nil nil nil nil
                                                        filename))))
@@ -276,6 +304,7 @@ FRAMES defaults to all live frames."
 
 (defun burly--frameset-restore (urlobj)
   "Restore FRAMESET according to URLOBJ."
+  (setf window-persistent-parameters (copy-sequence burly-window-persistent-parameters))
   (pcase-let* ((`(,_ . ,query-string) (url-path-and-query urlobj))
                (frameset (read (url-unhex-string query-string)))
                (frameset-filter-alist (append burly-frameset-filter-alist frameset-filter-alist)))
@@ -292,6 +321,7 @@ FRAMES defaults to all live frames."
   "Return URL for window configuration on FRAME."
   (with-selected-frame frame
     (let* ((query (burly--window-state frame))
+           (print-length nil)             ; Important!
            (filename (concat "?" (url-hexify-string (prin1-to-string query)))))
       (url-recreate-url (url-parse-make-urlobj "emacs+burly+windows" nil nil nil nil
                                                filename)))))
@@ -320,6 +350,7 @@ If NULLIFY, set the parameter to nil."
 
 (defun burly--windows-set (urlobj)
   "Set window configuration according to URLOBJ."
+  (setf window-persistent-parameters (copy-sequence burly-window-persistent-parameters))
   (pcase-let* ((window-persistent-parameters (append burly-window-persistent-parameters
                                                      window-persistent-parameters))
                (`(,_ . ,query-string) (url-path-and-query urlobj))
@@ -380,13 +411,20 @@ from the hook."
 ;;;###autoload
 (defun burly-bookmark-handler (bookmark)
   "Handler function for Burly BOOKMARK."
-  (burly-open-url (alist-get 'url (bookmark-get-bookmark-record bookmark)))
-  (setf burly-opened-bookmark-name (car bookmark)))
+  (let ((previous-name burly-opened-bookmark-name))
+    ;; Set opened bookmark name before actually opening it so that the
+    ;; tabs-mode advice functions can use it beforehand.
+    (setf burly-opened-bookmark-name (car bookmark))
+    (condition-case err
+	(burly-open-url (alist-get 'url (bookmark-get-bookmark-record bookmark)))
+      (error (setf burly-opened-bookmark-name previous-name)
+	     (signal (car err) (cdr err))))))
 
 (defun burly--bookmark-record-url (record)
   "Return a URL for bookmark RECORD."
   (cl-assert record)
   (pcase-let* ((`(,name . ,props) record)
+               (print-length nil)             ; Important!
                (query (cl-loop for prop in props
                                ;; HACK: Remove unreadable values from props.
                                do (cl-loop for value in-ref (cdr prop)
@@ -409,7 +447,13 @@ URLOBJ should be a URL object as returned by
                                for value = (pcase key
                                              ('handler (intern (cadr prop)))
                                              ('help-args (read (cadr prop)))
-                                             ('help-fn (read (cadr prop)))
+                                             ('help-fn (ignore-errors
+                                                         ;; NOTE: Due to changes in help-mode.el which serialize natively
+                                                         ;; compiled subrs in the bookmark record, which cannot be read
+                                                         ;; back (which actually break the entire bookmark system when
+                                                         ;; such a record is saved in the bookmarks file), we have to
+                                                         ;; workaround a failure to read here.  See bug#56643.
+                                                         (read (cadr prop))))
                                              ('position (cl-parse-integer (cadr prop)))
                                              (_ (read (cadr prop))))
                                collect (cons key value)))
@@ -484,6 +528,7 @@ URLOBJ should be a URL object as returned by
                            (- (point) (save-excursion
                                         (org-back-to-heading)
                                         (point)))))
+           (print-length nil)             ; Important!
            (query (list (list "pos" pos)
                         (when top-olp
                           (list "top-olp" (prin1-to-string top-olp)))
@@ -535,7 +580,6 @@ indirect buffer is returned.  Otherwise BUFFER is returned."
         (when (and heading-pos relative-pos)
           (forward-char (string-to-number relative-pos)))
         (current-buffer)))))
-
 
 ;;;; Footer
 
