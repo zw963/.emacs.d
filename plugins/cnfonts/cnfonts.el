@@ -313,8 +313,12 @@ It record the current profile and profile fontsize."
   "The cofonts config info read from config file.")
 
 (defconst cnfonts--fontsizes-fallback
-  '((9    10.5  10.5  9    9   )
+  '((6    7     7     6    6   )
+    (7    8     8     7    7   )
+    (8    9     9     8    8   )
+    (9    10.5  10.5  9    9   )
     (10   12.0  12.0  10   10  )
+    (11   13.0  13.0  11   11  )
     (11.5 13.5  13.5  11.5 11.5)
     (12   14.0  14.0  12   12  )
     (12.5 15.0  15.0  12.5 12.5)
@@ -492,7 +496,7 @@ When RETURN-PROFILE-NAME is non-nil, return current profile file's name."
                        ;; fontsize, 所以有小于9的情况，这里做一下兼容。
                        ;; v1.0 以后简化代码。
                        (if (and (integerp (cdr x))
-                                (< (cdr x) 9))
+                                (< (cdr x) 6))
                            (cons (car x)
                                  (car (nth (- (cdr x) 1) cnfonts--fontsizes-fallback)))
                          x))
@@ -501,7 +505,7 @@ When RETURN-PROFILE-NAME is non-nil, return current profile file's name."
 (defun cnfonts--get-profile-fontsize (profile-name)
   "Get the font size info from profile which name is PROFILE-NAME."
   (let ((fontsize (cdr (assoc profile-name cnfonts--config-info))))
-    (min (max (or fontsize cnfonts-default-fontsize) 9) 32)))
+    (min (max (or fontsize cnfonts-default-fontsize) 6) 32)))
 
 (defun cnfonts--save-profile (&optional profile-name use-fallback)
   "Save FONTNAMES and FONTSIZES to current profile.
@@ -728,13 +732,18 @@ When PROFILE-NAME is non-nil, save to this profile instead."
       (dolist (charset '(kana han cjk-misc bopomofo gb18030))
         (set-fontset-font "fontset-default" charset chinese-fontspec)))
 
+    ;; 当所选的 chinese-fontspec 不支持韩语(hangul)时, 用 extb-fontspec 来显示
+    (when (cnfonts--fontspec-valid-p extb-fontspec)
+      (set-fontset-font "fontset-default" 'hangul extb-fontspec nil 'append))
+
     ;; 设置 EXT-B 字体，用于显示不常用的汉字。
     (when (cnfonts--fontspec-valid-p extb-fontspec)
       (set-fontset-font "fontset-default" nil extb-fontspec nil 'prepend))
 
     ;; 设置 symbol 字体。
     (when (cnfonts--fontspec-valid-p symbol-fontspec)
-      (set-fontset-font "fontset-default" 'symbol symbol-fontspec nil 'prepend))
+      (dolist (charset '(symbol phonetic))
+        (set-fontset-font "fontset-default" charset symbol-fontspec nil 'prepend)))
 
     ;; 设置点缀字符的字体。
     (when (cnfonts--fontspec-valid-p ornament-fontspec)
