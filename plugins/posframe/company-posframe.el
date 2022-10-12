@@ -256,12 +256,15 @@ be triggered manually using `company-posframe-quickhelp-show'."
   "Poshandler showing `company-posframe' at `company-prefix'."
   (let* ((parent-window (plist-get info :parent-window))
          (point (with-current-buffer (window-buffer parent-window)
-                  (max (line-beginning-position)
-                       (- (plist-get info :position)
-                          (plist-get info :company-prefix-length)
-                          (plist-get info :company-margin)))))
-         (info (plist-put info :position (posn-at-point point parent-window))))
-    (posframe-poshandler-point-bottom-left-corner info)))
+                  (- (plist-get info :position)
+                     (plist-get info :company-prefix-length))))
+         (posn (posn-at-point point parent-window))
+         ;; TODO: Strictly speaking, if company-posframe-font is not nil, that
+         ;; should be used to find the default width...
+         (expected-margin-width (* (plist-get info :company-margin) (default-font-width)))
+         (xy (posn-x-y posn)))
+    (setcar xy (- (car xy) expected-margin-width))
+    (posframe-poshandler-point-bottom-left-corner (plist-put info :position posn))))
 
 (defun company-posframe-show ()
   "Show company-posframe candidate menu."
@@ -288,21 +291,20 @@ be triggered manually using `company-posframe-quickhelp-show'."
                                                             (substring meta 0 width)
                                                           meta)
                                                         'face 'company-posframe-metadata))
+                             "")
+                           (if company-posframe-show-indicator
+                               (concat "\n" (substring backend-names 0
+                                                       (min width (length backend-names))))
                              "")))
          (buffer (get-buffer-create company-posframe-buffer)))
     ;; FIXME: Do not support mouse at the moment, so remove mouse-face
     (setq contents (copy-sequence contents))
     (remove-text-properties 0 (length contents) '(mouse-face nil) contents)
-    (with-current-buffer buffer
-      (when company-posframe-show-indicator
-        (setq-local mode-line-format `(,(substring backend-names 0
-                                                   (min width (length backend-names)))))))
     (apply #'posframe-show buffer
            :string contents
-           :min-height (+ height (if meta 1 0))
+           :min-height (+ (+ height (if meta 1 0)) (if company-posframe-show-indicator 1 0))
            :min-width (+ company-tooltip-minimum-width (* 2 company-tooltip-margin))
            :max-width (+ company-tooltip-maximum-width (* 2 company-tooltip-margin))
-           :respect-mode-line company-posframe-show-indicator
            :font company-posframe-font
            :background-color (face-attribute 'company-tooltip :background)
            :lines-truncate t
