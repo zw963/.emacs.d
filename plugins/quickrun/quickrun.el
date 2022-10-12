@@ -1,11 +1,14 @@
-;;; quickrun.el --- Run commands quickly -*- lexical-binding: t; -*-
+;;; quickrun.el --- Run commands quickly  -*- lexical-binding: t; -*-
 
 ;; Copyright (C) 2017 by Syohei YOSHIDA
+;; Copyright (C) 2020-2022 by Jen-Chieh Shen
 
 ;; Author: Syohei YOSHIDA <syohex@gmail.com>
-;; URL: https://github.com/syohex/emacs-quickrun
+;; Maintainer: Jen-Chieh Shen <jcs090218@gmail.com>
+;; URL: https://github.com/emacsorphanage/quickrun
 ;; Version: 2.3.1
-;; Package-Requires: ((emacs "24.3"))
+;; Package-Requires: ((emacs "26.1") (ht "2.0"))
+;; Keywords: tools
 
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -23,7 +26,7 @@
 ;;; Commentary:
 
 ;; quickrun.el executes editing buffer.  quickrun.el selects commands to execute
-;; buffer automatically.  Please see https://github.com/syohex/emacs-quickrun
+;; buffer automatically.  Please see https://github.com/emacsorphanage/quickrun
 ;; for more information.
 ;;
 ;; This package respects `quickrun.vim' developed by thinca
@@ -42,10 +45,14 @@
 (require 'em-banner)
 (require 'eshell)
 
+(require 'ht)
+
 ;; for warnings of byte-compile
 (declare-function anything "anything")
 (declare-function helm "helm")
 (declare-function tramp-dissect-file-name "tramp")
+(declare-function tramp-file-name-localname "tramp")
+(declare-function clear-image-cache "image")
 
 (defgroup quickrun nil
   "Execute buffer quickly."
@@ -59,6 +66,11 @@
 
 (defcustom quickrun-focus-p t
   "If this value is `nil`, quickrun.el does not move focus to output buffer."
+  :type 'boolean
+  :group 'quickrun)
+
+(defcustom quickrun-truncate-lines t
+  "The `truncate-lines' value for `*quickrun*` buffer."
   :type 'boolean
   :group 'quickrun)
 
@@ -114,24 +126,24 @@ FMT and ARGS passed `message'."
         `(put (quote ,name) 'safe-local-variable (quote ,safep)))))
 
 (quickrun--defvar quickrun-option-cmd-alist
-                  nil listp
-                  "Specify command alist directly as file local variable")
+  nil listp
+  "Specify command alist directly as file local variable")
 
 (quickrun--defvar quickrun-option-command
-                  nil stringp
-                  "Specify command directly as file local variable")
+  nil stringp
+  "Specify command directly as file local variable")
 
 (quickrun--defvar quickrun-option-cmdkey
-                  nil stringp
-                  "Specify language key directly as file local variable")
+  nil stringp
+  "Specify language key directly as file local variable")
 
 (quickrun--defvar quickrun-option-cmdopt
-                  nil stringp
-                  "Specify command option directly as file local variable")
+  nil stringp
+  "Specify command option directly as file local variable")
 
 (quickrun--defvar quickrun-option-args
-                  nil stringp
-                  "Specify command argument directly as file local variable")
+  nil stringp
+  "Specify command argument directly as file local variable")
 
 (defun quickrun--outputter-p (_x)
   "Not documented."
@@ -140,20 +152,20 @@ FMT and ARGS passed `message'."
         (quickrun--outputter-multi-p x))))
 
 (quickrun--defvar quickrun-option-outputter
-                  nil quickrun--outputter-p
-                  "Specify format function output buffer as file local variable")
+  nil quickrun--outputter-p
+  "Specify format function output buffer as file local variable")
 
 (quickrun--defvar quickrun-option-shebang
-                  t booleanp
-                  "Select using command from schebang as file local variable")
+  t booleanp
+  "Select using command from schebang as file local variable")
 
 (quickrun--defvar quickrun-option-timeout-seconds
-                  nil integerp
-                  "Timeout seconds as file local variable")
+  nil integerp
+  "Timeout seconds as file local variable")
 
 (quickrun--defvar quickrun-option-default-directory
-                  nil file-directory-p
-                  "Default directory where command is executed")
+  nil file-directory-p
+  "Default directory where command is executed")
 
 ;; hooks
 (defvar quickrun-after-run-hook nil
@@ -182,12 +194,30 @@ FMT and ARGS passed `message'."
 ;;
 
 (defvar quickrun--language-alist
-  '(("c/gcc" . ((:command . "gcc")
+  '(("asm/masm" . ((:command . "ml")
+                   (:exec . ("%c /c /coff %s"
+                             "link /subsystem:windows %n.obj"
+                             "%n.exe"))
+                   (:compile-only . "%c /c /coff %s")
+                   (:remove  . ("%n.obj" "%n.exe"))
+                   (:description . "Compile Assembly file with masm and execute")))
+    ("asm/masm64" . ((:command . "ml64")
+                     (:exec . ("%c /c /coff %s"
+                               "link /subsystem:windows %n.obj"
+                               "%n.exe"))
+                     (:compile-only . "%c /c /coff %s")
+                     (:remove  . ("%n.obj" "%n.exe"))
+                     (:description . "Compile Assembly file with masm x64 and execute")))
+    ("asm/nasm" . ((:command . "nasm")
+                   (:exec . ("%c -f elf64 %o %s -o %e.o" "ld -o %e %e.o" "%e %a"))
+                   (:remove . ("%e" "%e.o"))
+                   (:description . "Compile Assembly file with nasm and execute")))
+
+    ("c/gcc" . ((:command . "gcc")
                 (:exec    . ("%c -x c %o -o %e %s" "%e %a"))
                 (:compile-only . "%c -Wall -Werror %o -o %e %s")
                 (:remove . ("%e"))
                 (:description . "Compile C file with gcc and execute")))
-
     ("c/clang" . ((:command . "clang")
                   (:exec    . ("%c -x c %o -o %e %s" "%e %a"))
                   (:compile-only . "%c -Wall -Werror %o -o %e %s")
@@ -311,6 +341,10 @@ FMT and ARGS passed `message'."
                              (:exec . "%c //e:jscript %o %s %a")
                              (:cmdopt . "//Nologo")
                              (:description . "Run Javascript file with cscript")))
+    ("javascript/deno" . ((:command . "deno")
+                          (:exec . "%c run %s")
+                          (:compile-only . "%c compile %s")
+                          (:description . "Run Javascript file with deno")))
 
     ("coffee" . ((:command . "coffee")
                  (:compile-only . "coffee --print %s")
@@ -323,12 +357,18 @@ FMT and ARGS passed `message'."
               (:compile-conf . ((:compilation-mode . nil) (:mode . js-mode)))
               (:description . "Run JSX script")))
 
-    ("typescript" . ((:command . "tsc")
-                     (:exec . ("%c --target es5 --module commonjs %o %s %a" "node %n.js"))
-                     (:compile-only . "%c %o %s %s")
-                     (:compile-conf . ((:compilation-mode . nil) (:mode . js-mode)))
-                     (:remove  . ("%n.js"))
-                     (:description . "Run TypeScript script")))
+    ("typescript/tsc" . ((:command . "tsc")
+                         (:exec . ("%c --target es5 --module commonjs %o %s %a" "node %n.js"))
+                         (:compile-only . "%c %o %s %s")
+                         (:compile-conf . ((:compilation-mode . nil) (:mode . js-mode)))
+                         (:remove  . ("%n.js"))
+                         (:description . "Run TypeScript script")))
+    ("typescript/deno" . ((:command . "deno")
+                          (:exec . "%c run %s")
+                          (:compile-only . "%c compile %s")
+                          (:compile-conf . ((:compilation-mode . nil) (:mode . js-mode)))
+                          (:remove  . ("%n.js"))
+                          (:description . "Run TypeScript script with deno")))
 
     ("markdown/Markdown.pl" . ((:command . "Markdown.pl")
                                (:description . "Convert Markdown to HTML with Markdown.pl")))
@@ -564,7 +604,7 @@ if you set your own language configuration.")
     (scheme-mode . "scheme")
     (smalltalk-mode . "st/gst")
     (racket-mode . "racket")
-    ((javascript-mode js-mode js2-mode) . "javascript")
+    ((javascript-mode js-mode js2-mode js3-mode) . "javascript")
     (clojure-mode . "clojure")
     (erlang-mode . "erlang")
     ((ocaml-mode tuareg-mode) . "ocaml")
@@ -592,6 +632,7 @@ if you set your own language configuration.")
     (elixir-mode . "elixir")
     (tcl-mode . "tcl")
     (swift-mode . "swift")
+    ((asm-mode nasm-mode masm-mode) . "asm")
     (ats-mode . "ats")
     (ess-mode . "r")
     (nim-mode . "nim")
@@ -641,7 +682,7 @@ if you set your own language configuration.")
 (defun quickrun--pop-to-buffer (buf cb)
   "Not documented."
   (let ((win (selected-window)))
-    (pop-to-buffer buf)
+    (switch-to-buffer-other-window buf)
     (funcall cb)
     (unless quickrun-focus-p
       (select-window win))))
@@ -659,10 +700,10 @@ if you set your own language configuration.")
              (process-file-shell-command cmd nil t)
              (goto-char (point-min))
              (quickrun--awhen (assoc-default :mode compile-conf)
-                              (funcall it)
-                              (quickrun--pop-to-buffer
-                               (current-buffer) (lambda () (read-only-mode +1)))
-                              (read-only-mode +1)))
+               (funcall it)
+               (quickrun--pop-to-buffer
+                (current-buffer) (lambda () (read-only-mode +1)))
+               (read-only-mode +1)))
            (quickrun--remove-temp-files)))))
 
 (defun quickrun--compilation-finish-func (_buffer _str)
@@ -783,7 +824,7 @@ if you set your own language configuration.")
       (when eshell-buf
         (kill-buffer eshell-buf))
       (eshell)
-      (kill-buffer quickrun--buffer-name)
+      (quickrun--kill-quickrun-buffer)
       (setq-local quickrun--shell-last-command cmd-str)
       (add-hook 'eshell-post-command-hook 'quickrun--eshell-post-hook)
       (quickrun--insert-command cmd-str)
@@ -798,15 +839,15 @@ if you set your own language configuration.")
   "Not documented."
   (let ((cmd-info (quickrun--command-info cmd-key)))
     (quickrun--awhen (assoc-default :default-directory cmd-info)
-                     (let ((formatted (file-name-as-directory it)))
-                       (unless (file-directory-p formatted)
-                         (throw 'quickrun (format "'%s' is not existed directory" it)))
-                       (let* ((has-space (string-match-p "[ \t]" formatted))
-                              (quoted-name (shell-quote-argument
-                                            (if has-space
-                                                (concat "\"" formatted "\"")
-                                              formatted))))
-                         (setq quickrun-option-default-directory quoted-name))))))
+      (let ((formatted (file-name-as-directory it)))
+        (unless (file-directory-p formatted)
+          (throw 'quickrun (format "'%s' is not existed directory" it)))
+        (let* ((has-space (string-match-p "[ \t]" formatted))
+               (quoted-name (shell-quote-argument
+                             (if has-space
+                                 (concat "\"" formatted "\"")
+                               formatted))))
+          (setq quickrun-option-default-directory quoted-name))))))
 
 (defsubst quickrun--process-connection-type (cmd)
   "Not documented."
@@ -870,6 +911,7 @@ if you set your own language configuration.")
 (define-derived-mode quickrun--mode nil "Quickrun"
   "Major mode for Quickrun execution process."
   (read-only-mode +1)
+  (setq-local truncate-lines quickrun-truncate-lines)
   (use-local-map quickrun--mode-map))
 
 ;;
@@ -930,7 +972,7 @@ if you set your own language configuration.")
 (defun quickrun--outputter-null ()
   "Not documented."
   (delete-region (point-min) (point-max))
-  (kill-buffer (get-buffer quickrun--buffer-name)))
+  (quickrun--kill-quickrun-buffer))
 
 (defun quickrun--outputter-replace-region ()
   "Not documented."
@@ -1178,7 +1220,7 @@ Place holders are beginning with '%' and replaced by:
     "d" "markdown" "coffee" "scala" "groovy" "sass" "less" "shellscript" "awk"
     "lua" "rust" "dart" "elixir" "tcl" "jsx" "typescript" "fortran" "haml"
     "swift" "ats" "r" "nim" "nimscript" "fish" "julia" "gnuplot" "kotlin" "crystal" "v"
-    "applescript")
+    "applescript" "asm")
   "Programming languages and Markup languages supported as default
 by quickrun.el. But you can register your own command for some languages")
 
@@ -1191,6 +1233,24 @@ by quickrun.el. But you can register your own command for some languages")
   (unless (assoc key quickrun--language-alist)
     (error "%s is not registered" key))
   (puthash lang key quickrun--command-key-table))
+
+;;;###autoload
+(defun quickrun-select-default ()
+  "Update the default."
+  (interactive)
+  (when-let*
+      ((src (buffer-name))
+       (lang (or (and src (quickrun--decide-file-type src))
+                 (quickrun--find-from-major-mode-alist)))
+       (default (ht-get quickrun--command-key-table lang))
+       (candidates (cl-remove-if-not (lambda (item)
+                                       (string= lang (nth 0 (split-string (car item) "/"))))
+                                     quickrun--language-alist))
+       (prompt (format "QuickRun Lang%s: "(if default
+                                              (format " [Default: %s]" default)
+                                            "")))
+       (key (completing-read prompt candidates nil nil nil nil default)))
+    (quickrun-set-default lang key)))
 
 (defun quickrun--override-command (cmdkey cmd-alist)
   "Not documented."
@@ -1230,7 +1290,7 @@ by quickrun.el. But you can register your own command for some languages")
 (defun quickrun--set-command-key (lang candidates)
   "Not documented."
   (quickrun--awhen (quickrun--find-executable candidates)
-                   (puthash lang (format "%s/%s" lang it) quickrun--command-key-table)))
+    (puthash lang (format "%s/%s" lang it) quickrun--command-key-table)))
 
 (defsubst quickrun--c-compiler ()
   "Not documented."
@@ -1245,15 +1305,17 @@ by quickrun.el. But you can register your own command for some languages")
         (t '("g++" "clang++"))))
 
 (defconst quicklang/lang-candidates
-  `(("c" . ,(quickrun--c-compiler))
+  `(("asm" . ("nasm" "masm" "masm64"))
+    ("c" . ,(quickrun--c-compiler))
     ("c++" . ,(quickrun--c++-compiler))
     ("c#" . ("dotnet" "mono"))
     ("fortran" . ("gfortran"))
-    ("javascript" . ("node" "v8" "js" "jrunscript" "cscript"))
+    ("javascript" . ("node" "v8" "js" "jrunscript" "cscript" "deno"))
     ("ruby" . ("ruby" "mruby"))
     ("lisp" . ("clisp" "sbcl" "ccl"))
     ("scheme" . ("gosh"))
     ("swift" . ("xcrun" "swift"))
+    ("typescript" . ("tsc" "deno"))
     ("markdown" . ("Markdown.pl" "kramdown" "bluecloth" "redcarpet" "pandoc"))
     ("clojure" . ("jark" "clj-env-dir"))
     ("go" . ("go" "gccgo")))
@@ -1291,9 +1353,10 @@ by quickrun.el. But you can register your own command for some languages")
 ;;
 ;;;###autoload
 (defun quickrun (&rest plist)
-  "Run commands quickly for current buffer
-   With universal prefix argument(C-u), select command-key,
-   With double prefix argument(C-u C-u), run in compile-only-mode."
+  "Run commands quickly for current buffer.
+
+With universal prefix argument(C-u), select command-key,
+With double prefix argument(C-u C-u), run in compile-only-mode."
   (interactive)
   (quickrun--set-executed-file)
   (let ((beg (or (plist-get plist :start) (point-min)))
@@ -1313,6 +1376,12 @@ by quickrun.el. But you can register your own command for some languages")
 (defvar quickrun--with-arg--history nil)
 
 ;;;###autoload
+(defun quickrun-select ()
+  "Run commands after selecting the backend."
+  (interactive)
+  (when (quickrun-select-default) (quickrun)))
+
+;;;###autoload
 (defun quickrun-with-arg (arg)
   "Run commands quickly for current buffer with arguments."
   (interactive
@@ -1326,7 +1395,7 @@ by quickrun.el. But you can register your own command for some languages")
   "Not documented."
   (let* ((default (or quickrun-option-cmdkey quickrun--last-cmd-key))
          (prompt (format "QuickRun Lang%s: "(if default
-                                                (format "[Default: %s]" default)
+                                                (format " [Default: %s]" default)
                                               ""))))
     (completing-read prompt quickrun--language-alist nil nil nil nil default)))
 
@@ -1363,6 +1432,13 @@ by quickrun.el. But you can register your own command for some languages")
   (interactive)
   (let ((quickrun--compile-only-flag t))
     (quickrun)))
+
+;;;###autoload
+(defun quickrun-compile-only-select ()
+  "Run commands after selecting the backend."
+  (interactive)
+  (let ((quickrun--compile-only-flag t))
+    (quickrun-select)))
 
 ;;;###autoload
 (defun quickrun-shell ()
