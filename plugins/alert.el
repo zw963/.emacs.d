@@ -135,6 +135,7 @@
 ;;   osx-notifier  - Native OSX notifier using AppleScript
 ;;   toaster       - Use the toast notification system
 ;;   x11           - Changes the urgency property of the window in the X Window System
+;;   termux        - Use termux-notification from the Termux API
 ;;
 ;; * Defining new styles
 ;;
@@ -633,9 +634,8 @@ fringe gets colored whenever people chat on BitlBee:
                     :notifier #'alert-fringe-notify
                     :remover #'alert-fringe-restore)
 
-
+(copy-face 'mode-line 'alert-saved-mode-line-face)
 (defun alert-mode-line-notify (info)
-  (copy-face 'mode-line 'alert-saved-mode-line-face)
   (set-face-background 'mode-line (cdr (assq (plist-get info :severity)
                                              alert-severity-colors)))
   (set-face-foreground 'mode-line "white"))
@@ -671,17 +671,33 @@ This is found in the Growl Extras: http://growl.info/extras.php."
 
 (defun alert-growl-notify (info)
   (if alert-growl-command
-      (let ((args
-             (list "--appIcon"  "Emacs"
-                   "--name"     "Emacs"
-                   "--title"    (alert-encode-string (plist-get info :title))
-                   "--message"  (alert-encode-string (plist-get info :message))
-                   "--priority" (number-to-string
-                                 (cdr (assq (plist-get info :severity)
-                                            alert-growl-priorities))))))
+      (let* ((title (alert-encode-string (plist-get info :title)))
+             (priority (number-to-string
+                        (cdr (assq (plist-get info :severity)
+                                   alert-growl-priorities))))
+             (args
+              (case system-type
+                ('windows-nt (mapcar
+                              (lambda (lst) (apply #'concat lst))
+                              `(
+                                ;; http://www.growlforwindows.com/gfw/help/growlnotify.aspx
+                                ("/i:" ,(file-truename (concat invocation-directory "../share/icons/hicolor/48x48/apps/emacs.png")))
+                                ("/t:" ,title)
+                                ("/p:" ,priority))))
+                (t (list
+                    "--appIcon"  "Emacs"
+                    "--name"     "Emacs"
+                    "--title"    title
+                    "--priority" priority)))))
         (if (and (plist-get info :persistent)
                  (not (plist-get info :never-persist)))
-            (nconc args (list "--sticky")))
+            (case system-type
+              ('windows-nt (nconc args (list "/s:true")))
+              (t (nconc args (list "--sticky")))))
+        (let ((message (alert-encode-string (plist-get info :message))))
+          (case system-type
+            ('windows-nt (nconc args (list message)))
+            (t (nconc args (list "--message" message)))))
         (apply #'call-process alert-growl-command nil nil nil args))
     (alert-message-notify info)))
 
@@ -971,6 +987,30 @@ This is found at https://github.com/nels-o/toaster."
 (alert-define-style 'toaster :title "Notify using Toaster"
                     :notifier #'alert-toaster-notify)
 
+(defcustom alert-termux-command (executable-find "termux-notification")
+  "Path to the termux-notification command.
+This is found in the termux-api package, and it requires the Termux
+API addon app to be installed."
+  :type 'file
+  :group 'alert)
+
+(defun alert-termux-notify (info)
+  "Send INFO using termux-notification.
+Handles :TITLE and :MESSAGE keywords from the
+INFO plist."
+  (if alert-termux-command
+      (let ((args (nconc
+                   (when (plist-get info :title)
+                     (list "-t" (alert-encode-string (plist-get info :title))))
+                   (list "-c" (alert-encode-string (plist-get info :message))))))
+        (apply #'call-process alert-termux-command nil
+               (list (get-buffer-create " *termux-notification output*") t)
+               nil args))
+    (alert-message-notify info)))
+
+(alert-define-style 'termux :title "Notify using termux"
+                    :notifier #'alert-termux-notify)
+
 ;; jww (2011-08-25): Not quite working yet
 ;;(alert-define-style 'frame :title "Popup buffer in a frame"
 ;;                    :notifier #'alert-frame-notify
@@ -1035,19 +1075,21 @@ MESSAGE is what the user will see.  You may also use keyword
 arguments to specify additional details.  Here is a full example:
 
 \(alert \"This is a message\"
-       :severity \\='high          ;; The default severity is `normal'
-       :title \"Title\"           ;; An optional title
-       :category \\='example       ;; A symbol to identify the message
-       :mode \\='text-mode         ;; Normally determined automatically
-       :buffer (current-buffer) ;; This is the default
-       :data nil                ;; Unused by alert.el itself
-       :persistent nil          ;; Force the alert to be persistent;
-                                ;; it is best not to use this
-       :never-persist nil       ;; Force this alert to never persist
-       :id \\='my-id)              ;; Used to replace previous message of
-                                ;; the same id in styles that support it
-       :style \\='fringe)          ;; Force a given style to be used;
-                                ;; this is only for debugging!
+       :severity \\='high            ;; The default severity is `normal'
+       :title \"Title\"              ;; An optional title
+       :category \\='example         ;; A symbol to identify the message
+       :mode \\='text-mode           ;; Normally determined automatically
+       :buffer (current-buffer)      ;; This is the default
+       :data nil                     ;; Unused by alert.el itself
+       :persistent nil               ;; Force the alert to be persistent;
+                                     ;; it is best not to use this
+       :never-persist nil            ;; Force this alert to never persist
+       :id \\='my-id)                ;; Used to replace previous message of
+                                     ;; the same id in styles that support it
+       :style \\='fringe)            ;; Force a given style to be used;
+                                     ;; this is only for debugging!
+       :icon \\=\"mail-message-new\" ;; if style supports icon then add icon
+                                     ;; name or path here
 
 If no :title is given, the buffer-name of :buffer is used.  If
 :buffer is nil, it is the current buffer at the point of call.
@@ -1089,9 +1131,11 @@ Here are some more typical examples of usage:
                            :severity severity
                            :category category
                            :buffer alert-buffer
+                           :persistent persistent
                            :mode current-major-mode
                            :id id
-                           :data data))
+                           :data data
+                           :persistent persistent))
           matched)
 
       (if alert-log-messages
@@ -1099,8 +1143,9 @@ Here are some more typical examples of usage:
 
       (unless alert-hide-all-notifications
         (catch 'finish
-          (dolist (config (append alert-user-configuration
-                                  alert-internal-configuration))
+          (dolist (config (or (append alert-user-configuration
+                                      alert-internal-configuration)
+                              (when style '(nil))))
             (let* ((style-def (cdr (assq (or style (nth 1 config))
                                          alert-styles)))
                    (options (nth 2 config))
