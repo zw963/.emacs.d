@@ -86,6 +86,7 @@
 ;; (define-key dired-mode-map (kbd "K") 'dired-k)
 ;; (add-hook 'dired-after-readin-hook #'dired-k-no-revert)
 
+;; Enable additional font locking in ‘dired-mode’.
 (require 'diredfl)
 (diredfl-global-mode t)
 
