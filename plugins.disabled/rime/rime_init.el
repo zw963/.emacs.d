@@ -4,6 +4,9 @@
 
 (setq default-input-method "rime")
 
+;; 默認配置文件存儲位置： ~/.emacs.d/rime/
+;; (setq rime-user-data-dir "~/.config/fcitx/rime/")
+
 (setq rime-show-candidate 'posframe)
 
 ;; 默认是 C-\, 这里将 C-SPC 也绑定为同样的命令
