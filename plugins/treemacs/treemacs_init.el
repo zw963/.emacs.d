@@ -25,7 +25,7 @@
 ;;       ;; (string-prefix-p "/x/y/z/" absolute-path)
 ;;       ))
 
-;; (add-to-list 'treemacs-ignored-file-predicates #'treemacs-ignore-example)
+;; (add-to-list 'treemacs-ignored-file-predicates 'treemacs-ignore-example)
 
 (global-set-key [(control x) (\1)] 'treemacs-delete-other-windows)
 
@@ -44,13 +44,14 @@
 ;; (setq treemacs-indentation-string (propertize " ⫶ " 'face 'font-lock-comment-face)
 ;;       treemacs-indentation 1)
 
-(add-hook 'treemacs-mode-hook '(lambda ()
-                                 (with-eval-after-load 'doom-themes
-                                   (require 'doom-themes-ext-treemacs)
-                                   (doom-themes-treemacs-config)
-                                   )
-                                 (define-key treemacs-mode-map [(control d)] 'treemacs-remove-project-from-workspace)
-                                 ))
+(add-hook 'treemacs-mode-hook
+          (lambda ()
+            (with-eval-after-load 'doom-themes
+              (require 'doom-themes-ext-treemacs)
+              (doom-themes-treemacs-config)
+              )
+            (define-key treemacs-mode-map [(control d)] 'treemacs-remove-project-from-workspace)
+            ))
 
 (with-eval-after-load 'lsp-mode
   ;; (add-hook 'treemacs-switch-workspace-hook 'lsp-treemacs-symbols)

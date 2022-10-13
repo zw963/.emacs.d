@@ -50,12 +50,13 @@
 (global-set-key [(control x) (control p)] 'helm-resume)
 ;; (define-key global-map [remap dabbrev-expand] 'helm-dabbrev)
 
-(add-hook 'helm-mode-hook '(lambda ()
-                             (define-key helm-map (kbd "TAB") #'helm-execute-persistent-action)
-                             (define-key helm-map (kbd "<tab>") #'helm-execute-persistent-action)
-                             (define-key helm-map (kbd "C-i") #'helm-select-action)
-                             (define-key helm-map (kbd "C-z") #'helm-select-action)
-                             ))
+(add-hook 'helm-mode-hook
+          (lambda ()
+            (define-key helm-map (kbd "TAB") #'helm-execute-persistent-action)
+            (define-key helm-map (kbd "<tab>") #'helm-execute-persistent-action)
+            (define-key helm-map (kbd "C-i") #'helm-select-action)
+            (define-key helm-map (kbd "C-z") #'helm-select-action)
+            ))
 
 (require 'helm-imenu)
 (custom-set-variables '(helm-imenu-fuzzy-match t))
