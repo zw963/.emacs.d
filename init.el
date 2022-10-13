@@ -82,7 +82,6 @@
 
 (require 'dpaste_init)
 (require 'ws-butler_init)
-
 (require 'whitespace-cleanup-mode_init)
 
 ;; 关闭一些有用，但最近不常用的 mode
