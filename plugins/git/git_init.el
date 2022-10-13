@@ -5,6 +5,9 @@
 (require 'gist_init)
 (require 'mo-git-blame_init)
 
+(require 'git-link)
+(setq git-link-default-remote "origin")
+
 (provide 'git_init)
 
 ;;; git_init.el ends here
