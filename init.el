@@ -82,7 +82,6 @@
 
 (require 'dpaste_init)
 (require 'ws-butler_init)
-;; (require 'solaire-mode_init) ;; 这个似乎没见有用过
 
 (require 'whitespace-cleanup-mode_init)
 
