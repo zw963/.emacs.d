@@ -18,6 +18,7 @@
           (lambda ()
             (define-key color-rg-mode-map (kbd "n") 'color-rg-jump-next-file)
             (define-key color-rg-mode-map (kbd "p") 'color-rg-jump-prev-file)
+            (define-key color-rg-mode-map [(f3)] 'color-rg-switch-to-edit-mode)
             ))
 
 (global-set-key [(control meta r)] 'color-rg-search-input-in-project)
