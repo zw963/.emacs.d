@@ -1,6 +1,6 @@
 ;;; rustic.el --- Rust development environment -*-lexical-binding: t-*-
 
-;; Version: 3.2
+;; Version: 3.4
 ;; Author: Mozilla
 ;;
 ;; Keywords: languages
@@ -79,7 +79,7 @@
         (setq-local process-environment env)
         ;; Set PATH so we can find cargo.
         (setq-local exec-path path)
-        (let ((ret (call-process (rustic-cargo-bin) nil (list (current-buffer) nil) nil "locate-project" "--workspace")))
+        (let ((ret (process-file (rustic-cargo-bin) nil (list (current-buffer) nil) nil "locate-project" "--workspace")))
           (cond ((and (/= ret 0) nodefault)
                  (error "`cargo locate-project' returned %s status: %s" ret (buffer-string)))
                 ((and (/= ret 0) (not nodefault))
@@ -150,7 +150,10 @@ this variable."
   "Major mode for Rust code.
 
 \\{rustic-mode-map}"
-  :group 'rustic)
+  :group 'rustic
+
+  (when (bound-and-true-p rustic-cargo-auto-add-missing-dependencies)
+   (add-hook 'lsp-after-diagnostics-hook 'rustic-cargo-add-missing-dependencies-hook nil t)))
 
 ;;;###autoload
 (add-to-list 'auto-mode-alist '("\\.rs\\'" . rustic-mode))

@@ -29,6 +29,11 @@
   :type 'string
   :group 'rustic-cargo)
 
+(defcustom rustic-cargo-nextest-exec-command "nextest run"
+  "Execute command to run nextest."
+  :type 'string
+  :group 'rustic-cargo)
+
 (defcustom rustic-cargo-run-exec-command "run"
   "Execute command to run cargo run."
   :type 'string
@@ -65,7 +70,7 @@ If nil then the project is simply created."
   :type 'string
   :group 'rustic-cargo)
 
-(defcustom rustic-cargo-default-install-arguments '("--path" ".")
+(defcustom rustic-cargo-default-install-arguments '("--path" "." "--locked")
   "Default arguments when running 'cargo install'."
   :type '(list string)
   :group 'rustic-cargo)
@@ -78,6 +83,14 @@ If nil then the project is simply created."
 (defcustom rustic-cargo-build-arguments ""
   "Default arguments when running 'cargo build'."
   :type 'string
+  :group 'rustic-cargo)
+
+(defcustom rustic-cargo-auto-add-missing-dependencies nil
+  "Automatically adds dependencies to Cargo.toml.
+This way rustic checks new diagnostics for 'unresolved import'
+errors and passes the crates to 'cargo add'.
+Currently only working with lsp-mode."
+  :type 'boolean
   :group 'rustic-cargo)
 
 (defvar rustic-cargo-outdated-face nil)
@@ -121,13 +134,16 @@ stored in this variable.")
 (define-derived-mode rustic-cargo-test-mode rustic-compilation-mode "cargo-test"
   :group 'rustic
 
-  ;; TODO: append to rustic-compile-rustflags
   (when rustic-cargo-test-disable-warnings
-    (setq-local rustic-compile-rustflags "-Awarnings")))
+    (setq-local rustic-compile-rustflags (concat rustic-compile-rustflags " -Awarnings"))))
 
-(defun rustic-cargo-run-test (test)
-  "Run TEST which can be a single test or mod name."
-  (let* ((c (list (rustic-cargo-bin) rustic-cargo-test-exec-command test))
+(defun rustic-cargo-run-nextest (&optional arg)
+  "Command for running nextest."
+  (interactive "P")
+  (let* ((nextest (if arg
+                      (read-from-minibuffer "nextest command: " rustic-cargo-nextest-exec-command)
+                    rustic-cargo-nextest-exec-command))
+         (c (-flatten (list (rustic-cargo-bin) (split-string nextest))))
          (buf rustic-test-buffer-name)
          (proc rustic-test-process-name)
          (mode 'rustic-cargo-test-mode))
@@ -178,6 +194,14 @@ When calling this function from `rustic-popup-mode', always use the value of
                               (rustic-cargo--get-test-target)))
       (rustic-cargo-run-test test-to-run)
     (message "Could not find test at point.")))
+
+(defun rustic-cargo-run-test (test)
+  "Run TEST which can be a single test or mod name."
+  (let* ((c (list (rustic-cargo-bin) rustic-cargo-test-exec-command test))
+         (buf rustic-test-buffer-name)
+         (proc rustic-test-process-name)
+         (mode 'rustic-cargo-test-mode))
+    (rustic-compilation c (list :buffer buf :process proc :mode mode))))
 
 ;;;###autoload
 (defun rustic-cargo-test-dwim ()
@@ -627,9 +651,13 @@ in your project like `pwd'"
     (rustic-compilation-start c (append (list :no-default-dir t) args))))
 
 ;;;###autoload
-(defun rustic-cargo-build ()
-  "Run 'cargo build' for the current project."
-  (interactive)
+(defun rustic-cargo-build (&optional arg)
+  "Run 'cargo build' for the current project, allow configuring
+`rustic-cargo-build-arguments' when prefix argument (C-u) is enabled."
+  (interactive "P")
+  (when arg
+    (setq rustic-cargo-build-arguments
+          (read-string "Cargo build arguments: " "")))
   (rustic-run-cargo-command `(,(rustic-cargo-bin)
                               ,rustic-cargo-build-exec-command
                               ,@(split-string rustic-cargo-build-arguments))
@@ -658,9 +686,13 @@ When calling this function from `rustic-popup-mode', always use the value of
                          (t rustic-clean-arguments)))))))
 
 ;;;###autoload
-(defun rustic-cargo-check ()
-  "Run 'cargo check' for the current project."
-  (interactive)
+(defun rustic-cargo-check (&optional arg)
+  "Run 'cargo check' for the current project, allow configuring
+`rustic-cargo-check-arguments' when prefix argument (C-u) is enabled."
+  (interactive "P")
+  (when arg
+    (setq rustic-cargo-check-arguments
+          (read-string "Cargo check arguments: " "")))
   (rustic-run-cargo-command `(,(rustic-cargo-bin)
                               ,rustic-cargo-check-exec-command
                               ,@(split-string rustic-cargo-check-arguments))))
@@ -692,6 +724,9 @@ The documentation is built if necessary."
 
 ;;; cargo edit
 
+(defvar rustic-cargo-dependencies "*cargo-add-dependencies*"
+  "Buffer that is used for adding missing dependencies with 'cargo add'.")
+
 (defun rustic-cargo-edit-installed-p ()
   "Check if cargo-edit is installed. If not, ask the user if he wants to install it."
   (if (executable-find "cargo-add") t (rustic-cargo-install-crate-p "edit") nil))
@@ -708,6 +743,96 @@ If running with prefix command `C-u', read whole command from minibuffer."
                       (concat (rustic-cargo-bin) " add "
                               (read-from-minibuffer "Crate: ")))))
       (rustic-run-cargo-command command))))
+
+(defun rustic-cargo-add-missing-dependencies (&optional arg)
+  "Lookup and add missing dependencies to Cargo.toml.
+Adds all missing crates by default with latest version using lsp functionality.
+Supports both lsp-mode and egot.
+Use with 'C-u` to open prompt with missing crates."
+  (interactive)
+  (when (rustic-cargo-edit-installed-p)
+    (-if-let (deps (rustic-cargo-find-missing-dependencies))
+        (progn
+          (when current-prefix-arg
+            (setq deps (read-from-minibuffer "Add dependencies: " deps)))
+          (rustic-compilation-start
+           (split-string (concat (rustic-cargo-bin) " add " deps))
+           (append (list :buffer rustic-cargo-dependencies))))
+      (message "No missing crates found. Maybe check your lsp server."))))
+
+(defun rustic-cargo-add-missing-dependencies-hook ()
+  "Silently look for missing dependencies in the current buffer and add
+them to Cargo.toml."
+  (-when-let (deps (rustic-cargo-find-missing-dependencies))
+    (rustic-compilation-start
+     (split-string (concat (rustic-cargo-bin) " add " deps))
+     (append (list :buffer rustic-cargo-dependencies
+                   :no-default-dir t
+                   :no-display t
+                   :sentinel (lambda (proc msg) ()))))))
+
+(defun rustic-cargo-find-missing-dependencies ()
+  "Return missing dependencies using either lsp-mode or eglot/flymake
+as string."
+  (let ((crates nil))
+    (setq crates (cond ((bound-and-true-p lsp-mode)
+                        (rustic-cargo-add-missing-dependencies-lsp-mode))
+                       ((bound-and-true-p eglot)
+                        (rustic-cargo-add-missing-dependencies-eglot))
+                       ((bound-and-true-p flycheck-mode)
+                        (rustic-cargo-add-missing-dependencies-flycheck))
+                       (t
+                        nil)))
+    (if (> (length crates) 0)
+        (mapconcat 'identity crates " ")
+      crates)))
+
+(defun rustic-cargo-add-missing-dependencies-lsp-mode ()
+  "Return missing dependencies using `lsp-diagnostics'."
+  (let* ((diags (gethash (buffer-file-name) (lsp-diagnostics t)))
+         (lookup-missing-crates
+          (lambda (missing-crates errortable)
+            (if (string= "E0432" (gethash "code" errortable))
+                (cons (nth 3 (split-string (gethash "message" errortable) "`"))
+                      missing-crates)
+              missing-crates))))
+    (delete-dups (seq-reduce lookup-missing-crates
+                             diags
+                             '()))))
+
+(defun rustic-cargo-add-missing-dependencies-eglot ()
+  "Return missing dependencies by parsing flymake diagnostics buffer."
+  (let* ((buf (flymake--diagnostics-buffer-name))
+         crates)
+    ;; ensure flymake diagnostics buffer exists
+    (unless (buffer-live-p buf)
+      (let* ((name (flymake--diagnostics-buffer-name))
+             (source (current-buffer))
+             (target (or (get-buffer name)
+                         (with-current-buffer (get-buffer-create name)
+                           (flymake-diagnostics-buffer-mode)
+                           (current-buffer)))))
+        (with-current-buffer target
+          (setq flymake--diagnostics-buffer-source source)
+          (revert-buffer))))
+    (with-current-buffer buf
+      (let ((errors (split-string (buffer-substring-no-properties (point-min) (point-max)) "\n")))
+        (dolist (s errors)
+          (if (string-match-p (regexp-quote "unresolved import") s)
+              (push (string-trim (car (reverse (split-string s))) "`" "`" ) crates)))))
+    crates))
+
+(defun rustic-cargo-add-missing-dependencies-flycheck ()
+  "Return missing dependencies by parsing flycheck diagnostics buffer."
+  (let* (crates)
+    (unless (get-buffer flycheck-error-list-buffer)
+      (flycheck-list-errors))
+    (with-current-buffer (get-buffer flycheck-error-list-buffer)
+      (let ((errors (split-string (buffer-substring-no-properties (point-min) (point-max)) "\n")))
+        (dolist (s errors)
+          (when (string-match-p (regexp-quote "unresolved import") s)
+            (push  (string-trim (nth 7 (split-string s))  "`" "`" )  crates)))))
+    crates))
 
 ;;;###autoload
 (defun rustic-cargo-rm (&optional arg)
@@ -733,6 +858,18 @@ If running with prefix command `C-u', read whole command from minibuffer."
                                               (rustic-cargo-bin) " upgrade ")
                       (concat (rustic-cargo-bin) " upgrade"))))
       (rustic-run-cargo-command command))))
+
+;;;###autoload
+(defun rustic-cargo-update (&optional arg)
+  "Update dependencies as recorded in the local lock file.
+If running with prefix command `C-u', use ARG by reading whole
+command from minibuffer."
+  (interactive "P")
+  (let* ((command (if arg
+                      (read-from-minibuffer "Cargo update command: "
+                                            (format "%s %s" (rustic-cargo-bin) "update"))
+                    (concat (rustic-cargo-bin) " update"))))
+    (rustic-run-cargo-command command)))
 
 ;;;###autoload
 (defun rustic-cargo-login (token)

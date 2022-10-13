@@ -238,7 +238,11 @@ Set environment variables for rust process."
       (run-hook-with-args 'compilation-start-hook process)
       (set-process-filter process (plist-get args :filter))
       (set-process-sentinel process (plist-get args :sentinel))
-      (set-process-coding-system process 'utf-8-emacs-unix 'utf-8-emacs-unix)
+      ;; Workaround for rustic-format-file hanging bug on Windows
+      ;; See https://github.com/brotzeit/rustic/issues/423
+      (if (eq system-type 'windows-nt)
+          (set-process-coding-system process default-process-coding-system default-process-coding-system)
+        (set-process-coding-system process 'utf-8-emacs-unix 'utf-8-emacs-unix))
       (process-put process 'command (plist-get args :command))
       (process-put process 'workspace (plist-get args :workspace))
       (process-put process 'file-buffer (plist-get args :file-buffer))
@@ -398,7 +402,7 @@ Return non-nil if there was a live process."
     (when procs
       (rustic-process-kill-p (car procs)))
     (unless nosave
-      (rustic-save-some-buffers))
+      (rustic-save-some-buffers t))
     procs))
 
 (defun rustic-process-kill-p (proc &optional no-error)
@@ -416,11 +420,15 @@ If NO-ERROR is t, don't throw error if user chooses not to kill running process.
     (unless no-error
       (error "Cannot have two rust processes at once"))))
 
-(defun rustic-save-some-buffers ()
+(defun rustic-save-some-buffers (&optional pre-compile)
   "Unlike `save-some-buffers', only consider project related files.
 
-The variable `compilation-ask-about-save' can be used for customization and
-buffers are formatted after saving if turned on by `rustic-format-trigger'."
+The optional argument `pre-compile' is used for rustic compile commands
+that make use of `compilation-ask-about-save'. If called without
+the optional argument, `buffer-save-without-query' determines if
+buffers will saved automatically.
+
+Buffers are formatted after saving if turned on by `rustic-format-trigger'."
   (let ((buffers (cl-remove-if-not
                   #'buffer-file-name
                   (if (fboundp rustic-list-project-buffers-function)
@@ -438,7 +446,9 @@ buffers are formatted after saving if turned on by `rustic-format-trigger'."
             (let ((rustic-format-trigger nil)
                   (rustic-format-on-save nil))
               (setq saved-p
-                    (if (not compilation-ask-about-save)
+                    (if (if pre-compile
+                            (not compilation-ask-about-save)
+                          buffer-save-without-query)
                         (progn (save-buffer) t)
                       (if (yes-or-no-p (format "Save file %s ? "
                                                (buffer-file-name buffer)))
