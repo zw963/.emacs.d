@@ -11,6 +11,7 @@
 (require 'dired_init)
 (require 'shell_init)
 (require 'treemacs_init)
+(require 'dimmer_init)
 
 (require 'fancy-narrow_init)
 (require 'zoom-frm_init)
