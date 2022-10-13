@@ -131,5 +131,8 @@ Otherwise, forward to `goto-line' with ARG."
 ;; 进入 help-mode, 测试快捷键 o.
 (ace-link-setup-default)
 
+(require 'goto-line-preview)
+(global-set-key [remap goto-line] 'goto-line-preview)
+
 (provide 'avy_init)
 ;;; avy_init.el ends here
