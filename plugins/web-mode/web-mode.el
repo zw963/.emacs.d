@@ -2,7 +2,7 @@
 
 ;; Copyright 2011-2022 François-Xavier Bois
 
-;; Version: 17.2.3
+;; Version: 17.3.3
 ;; Author: François-Xavier Bois
 ;; Maintainer: François-Xavier Bois <fxbois@gmail.com>
 ;; Package-Requires: ((emacs "23.1"))
@@ -23,7 +23,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "17.2.3"
+(defconst web-mode-version "17.3.3"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -329,8 +329,8 @@ See web-mode-block-face."
   :group 'web-mode)
 
 (defcustom web-mode-commands-like-expand-region
-  '(web-mode-mark-and-expand er/expand-region mc/mark-next-like-this)
-  "Add it to here if you have some wrapper function for er/expand-region"
+  '(web-mode-mark-and-expand er/expand-region mc/mark-next-like-this mc/mark-previous-like-this)
+  "Add commmand here if you have some wrapper function for er/expand-region"
   :type '(repeat function)
   :group 'web-mode)
 
@@ -354,6 +354,57 @@ See web-mode-block-face."
     "text/mustache"
     "text/x-dust-template")
   "<script> block types that are interpreted as HTML."
+  :type '(repeat string)
+  :group 'web-mode)
+
+;; https://developer.mozilla.org/en-US/docs/Web/HTML/Element
+(defcustom web-mode-tag-list
+  '("html" "base" "head" "link" "meta" "style" "title" "body" "address"
+    "article" "aside" "footer" "header" "h1" "h2" "h3" "h4" "h5" "h6" "main"
+    "nav" "section" "blockquote" "dd" "div" "dl" "dt" "figcaption" "figure"
+    "hr" "li" "menu" "ol" "p" "pre" "ula" "a" "abbr" "b" "bdi" "bdo" "br"
+    "cite" "code" "data" "dfn" "em" "i" "kbdmark" "q" "rp" "rt" "ruby" "s"
+    "samp" "small" "span" "strong" "sub" "sup" "time" "u" "var" "wbr" "area"
+    "audio" "img" "map" "track" "video" "embed" "iframe" "object" "picture"
+    "portal" "source" "svg" "math" "canvas" "noscript" "script" "del" "ins"
+    "caption" "col" "colgroup" "table" "tbody" "td" "tfoot" "th" "thead" "tr"
+    "button" "datalist" "fieldset" "form" "input" "label" "legend" "meter"
+    "optgroup" "option" "output" "progress" "select" "textarea" "details"
+    "dialog" "summary" "slot" "template")
+  "HTML tags used for completion."
+  :type '(repeat string)
+  :group 'web-mode)
+
+
+;; https://www.w3schools.com/tags/ref_attributes.asp
+;; Attributes marked as deprecated in HTML 5 are not added.
+(defcustom web-mode-attribute-list
+  '("accept" "accesskey" "action" "alt" "async" "autocomplete" "autofocus"
+    "autoplay" "charset" "checked" "cite" "class" "cols" "colspan" "content"
+    "contenteditable" "controls" "coords" "data" "datetime" "default" "defer"
+    "dir" "dirname" "disabled" "download" "draggable" "enctype" "for" "form"
+    "formaction" "headers" "height" "hidden" "high" "href" "hreflang" "http"
+    "id" "ismap" "kind" "label" "lang" "list" "loop" "low" "max" "maxlength"
+    "media" "method" "min" "multiple" "muted" "name" "novalidate" "onabort"
+    "onafterprint" "onbeforeprint" "onbeforeunload" "onblur" "oncanplay"
+    "oncanplaythrough" "onchange" "onclick" "oncontextmenu" "oncopy"
+    "oncuechange" "oncut" "ondblclick" "ondrag" "ondragend" "ondragenter"
+    "ondragleave" "ondragover" "ondragstart" "ondrop" "ondurationchange"
+    "onemptied" "onended" "onerror" "onfocus" "onhashchange" "oninput"
+    "oninvalid" "onkeydown" "onkeypress" "onkeyup" "onload" "onloadeddata"
+    "onloadedmetadata" "onloadstart" "onmousedown" "onmousemove" "onmouseout"
+    "onmouseover" "onmouseup" "onmousewheel" "onoffline" "ononline"
+    "onpagehide" "onpageshow" "onpaste" "onpause" "onplay" "onplaying"
+    "onpopstate" "onprogress" "onratechange" "onreset" "onresize" "onscroll"
+    "onsearch" "onseeked" "onseeking" "onselect" "onstalled" "onstorage"
+    "onsubmit" "onsuspend" "ontimeupdate" "ontoggle" "onunload"
+    "onvolumechange" "onwaiting" "onwheel" "open" "optimum" "pattern"
+    "placeholder" "poster" "preload" "readonly" "rel" "required" "reversed"
+    "rows" "rowspan" "sandbox" "scope" "selected" "shape" "size" "sizes"
+    "span" "spellcheck" "src" "srcdoc" "srclang" "srcset" "start" "step"
+    "style" "tabindex" "target" "title" "translate" "type" "usemap" "value"
+    "width" "wrap")
+  "HTML attributes used for completion."
   :type '(repeat string)
   :group 'web-mode)
 
@@ -492,6 +543,16 @@ See web-mode-block-face."
   "Face for CSS rules."
   :group 'web-mode-faces)
 
+(defface web-mode-css-selector-class-face
+  '((t :inherit font-lock-keyword-face))
+  "Face for CSS class rules."
+  :group 'web-mode-faces)
+
+(defface web-mode-css-selector-tag-face
+  '((t :inherit font-lock-keyword-face))
+  "Face for CSS tag rules."
+  :group 'web-mode-faces)
+
 (defface web-mode-css-pseudo-class-face
   '((t :inherit font-lock-builtin-face))
   "Face for CSS pseudo-classes."
@@ -573,6 +634,11 @@ See web-mode-block-face."
   :group 'web-mode-faces)
 
 (defface web-mode-interpolate-color3-face
+  '((t :inherit web-mode-string-face))
+  "Face for element interpolation strings."
+  :group 'web-mode-faces)
+
+(defface web-mode-interpolate-color4-face
   '((t :inherit web-mode-string-face))
   "Face for element interpolation strings."
   :group 'web-mode-faces)
@@ -877,6 +943,10 @@ Must be used in conjunction with web-mode-enable-block-face."
     ("case-extra-offset" . t)
     ))
 
+(defvar web-mode-tag-history nil)
+(defvar web-mode-attribute-history nil)
+(defvar web-mode-attribute-value-history nil)
+
 (defvar web-mode-engines
   '(("angular"          . ("angularjs"))
     ("anki"             . ())
@@ -916,6 +986,7 @@ Must be used in conjunction with web-mode-enable-block-face."
     ("svelte"           . ("svelte"))
     ("template-toolkit" . ())
     ("thymeleaf"        . ())
+    ("perl"             . ())
     ("underscore"       . ("underscore.js"))
     ("velocity"         . ("vtl" "cheetah" "ssp"))
     ("vue"              . ("vuejs" "vue.js"))
@@ -979,13 +1050,14 @@ Must be used in conjunction with web-mode-enable-block-face."
     ("go"               . "\\.go\\(html\\|tmpl\\)\\'")
     ("handlebars"       . "\\.\\(hb\\.html\\|hbs\\)\\'")
     ("hero"             . "\\.hero\\'")
-    ("jinja"            . "\\.jinja\\'")
+    ("jinja"            . "\\.\\(jinja\\|nwt\\)\\'")
     ("jsp"              . "\\.[gj]sp\\'")
     ("lsp"              . "\\.lsp\\'")
     ("mako"             . "\\.mako?\\'")
     ("marko"            . "\\.marko\\'")
     ("mason"            . "\\.mas\\'")
     ("mojolicious"      . "\\.epl?\\'")
+    ("perl"             . "\\.\\(ptmpl\\|perl\\.html\\)\\'")
     ("php"              . "\\.\\(p[hs]p\\|ctp\\|inc\\)\\'")
     ("python"           . "\\.pml\\'")
     ("razor"            . "\\.\\(cs\\|vb\\)html\\|\\.razor\\'")
@@ -1026,6 +1098,7 @@ Must be used in conjunction with web-mode-enable-block-face."
     (?\> . "&gt;"))
   "XML chars")
 
+;; #1254 : https://html.spec.whatwg.org/entities.json
 (defvar web-mode-html-entities
   ;; #985
   ;; remove ("gt" . 62) ("lt" . 60) ("amp" . 38)
@@ -1172,9 +1245,10 @@ Must be used in conjunction with web-mode-enable-block-face."
                            ("<%=" . " | %>")
                            ("<%#" . " | %>")))
     ("ctemplate"        . (("{{ " . "| }}")
+                           ("{{~ " . "| }}")
                            ("{{{" . " | }}}")
                            ("{~{" . " | }}")
-                           ("{{~" . "{ | }}}")
+                           ("{{~{" . " | }}}")
                            ("{{!" . "-- | --}}")
                            ("{{^" . "}}")
                            ("{{/" . "}}")
@@ -1332,6 +1406,7 @@ Must be used in conjunction with web-mode-enable-block-face."
    '("marko"            . "${")
    '("mason"            . "</?[&%]\\|^%.")
    '("mojolicious"      . "<%\\|^[ \t]*%.")
+   '("perl"             . "</?TMPL_[[:alpha:]]+")
    '("php"              . "<\\?")
    '("python"           . "<\\?")
    '("razor"            . "@.\\|^[ \t]*}")
@@ -1887,7 +1962,8 @@ shouldn't be moved back.)")
          '(0 'web-mode-css-at-rule-face))
    '("\\_<\\(all\|braille\\|embossed\\|handheld\\|print\\|projection\\|screen\\|speech\\|tty\\|tv\\|and\\|or\\)\\_>"
      1 'web-mode-keyword-face)
-   '("[^,]+" 0 'web-mode-css-selector-face)
+   '("\\.[^ ,]+" 0 'web-mode-css-selector-class-face)
+   '("[^,]+" 0 'web-mode-css-selector-tag-face)
    (cons (concat ":\\([ ]*[[:alpha:]][^,{]*\\)") '(0 'web-mode-css-pseudo-class-face t t))
    ))
 
@@ -2182,7 +2258,7 @@ shouldn't be moved back.)")
 
 (defvar web-mode-engine-tag-font-lock-keywords
   (list
-   '("</?\\([[:alpha:]]+\\(?:Template\\|[:.][[:alpha:]-]+\\)\\)" 1 'web-mode-block-control-face)
+   '("</?\\([[:alpha:]]+\\(?:Template\\|[:.][[:alpha:]-]+\\)\\|TMPL_[[:alpha:]]+\\)" 1 'web-mode-block-control-face)
    '("\\_<\\([[:alpha:]-]+=\\)\\(\"[^\"]*\"\\)"
      (1 'web-mode-block-attr-name-face t t)
      (2 'web-mode-block-attr-value-face t t))
@@ -2292,11 +2368,11 @@ shouldn't be moved back.)")
 
 (defvar web-mode-elixir-font-lock-keywords
   (list
-   (cons (concat "\\_<\\(" web-mode-elixir-keywords "\\)\\_>") '(0 'web-mode-builtin-face))
-   (cons (concat "\\_<\\(" web-mode-elixir-constants "\\)\\_>") '(0 'web-mode-constant-face))
-   '("def[ ]+\\([[:alnum:]_]+\\)" 1 'web-mode-function-name-face)
    '("@\\([[:alnum:]_]+\\)" 0 'web-mode-variable-name-face)
    '("[ ]\\(:[[:alnum:]-_]+\\)" 1 'web-mode-symbol-face)
+   '("def[ ]+\\([[:alnum:]_]+\\)" 1 'web-mode-function-name-face)
+   (cons (concat "\\_<\\(" web-mode-elixir-keywords "\\)\\_>") '(0 'web-mode-builtin-face))
+   (cons (concat "\\_<\\(" web-mode-elixir-constants "\\)\\_>") '(0 'web-mode-constant-face))
    ))
 
 (defvar web-mode-erlang-font-lock-keywords
@@ -3504,6 +3580,12 @@ Also return non-nil if it is the command `self-insert-command' is remapped to."
                 delim-close "/?>")
           ) ;clip
 
+         ((string= web-mode-engine "perl")
+          (setq closing-string ">"
+                delim-open "</?"
+                delim-close "/?>")
+          ) ;perl
+
          ((string= web-mode-engine "blade")
           (cond
            ((string= tagopen "{{-")
@@ -4207,6 +4289,7 @@ Also return non-nil if it is the command `self-insert-command' is remapped to."
                 '("artanis" "anki" "asp" "aspx" "cl-emb" "clip" "closure" "ctemplate" "django" "dust"
                   "elixir" "ejs" "erb" "expressionengine" "freemarker" "go" "hero" "jsp" "lsp"
                   "mako" "mason" "mojolicious"
+                  "perl"
                   "smarty" "template-toolkit" "web2py" "xoops" "svelte"))
     (save-excursion
       (when delim-open
@@ -4407,6 +4490,10 @@ Also return non-nil if it is the command `self-insert-command' is remapped to."
      ((string= web-mode-engine "clip")
       (setq regexp nil)
       ) ;clip
+
+     ((string= web-mode-engine "perl")
+      (setq regexp nil)
+      ) ;perl
 
      ((and (string= web-mode-engine "asp")
            (string= sub2 "<%"))
@@ -4918,23 +5005,25 @@ Also return non-nil if it is the command `self-insert-command' is remapped to."
          )
         ) ;aspx underscore
 
-       ((member web-mode-engine '("jsp" "asp" "clip"))
+       ((member web-mode-engine '("jsp" "asp" "clip" "perl"))
         (cond
-         ((eq (char-after (1- reg-end)) ?\/)
+          ((eq (char-after (1- reg-end)) ?\/)
+           )
+          ((looking-at "<TMPL_ELSE")
+           (setq controls (append controls (list (cons 'inside "TMPL_IF")))))
+          ((looking-at "</?\\([[:alpha:]]+\\(?:[:.][[:alpha:]]+\\)\\|[[:alpha:]]+Template\\|TMPL_[[:alpha:]]+\\)")
+           (setq control (match-string-no-properties 1)
+                 type (if (eq (aref (match-string-no-properties 0) 1) ?\/) 'close 'open))
+           (when (not (member control '("h:inputtext" "jsp:usebean" "jsp:forward" "struts:property")))
+             (setq controls (append controls (list (cons type control)))))
+           )
+          (t
+           (when (web-mode-block-starts-with "}" reg-beg)
+             (setq controls (append controls (list (cons 'close "{")))))
+           (when (web-mode-block-ends-with "{" reg-beg)
+             (setq controls (append controls (list (cons 'open "{")))))
+           )
           )
-         ((looking-at "</?\\([[:alpha:]]+\\(?:[:.][[:alpha:]]+\\)\\|[[:alpha:]]+Template\\)")
-          (setq control (match-string-no-properties 1)
-                type (if (eq (aref (match-string-no-properties 0) 1) ?\/) 'close 'open))
-          (when (not (member control '("h:inputtext" "jsp:usebean" "jsp:forward" "struts:property")))
-            (setq controls (append controls (list (cons type control)))))
-          )
-         (t
-          (when (web-mode-block-starts-with "}" reg-beg)
-            (setq controls (append controls (list (cons 'close "{")))))
-          (when (web-mode-block-ends-with "{" reg-beg)
-            (setq controls (append controls (list (cons 'open "{")))))
-          )
-         )
         ) ;jsp asp
 
        ((string= web-mode-engine "mako")
@@ -5392,7 +5481,7 @@ Also return non-nil if it is the command `self-insert-command' is remapped to."
 
 ;; FLAGS: attr
 ;; (1)custom-attr (2)engine-attr (4)spread-attr[jsx] (8)code-value
-;; SPECS: https://www.w3.org/TR/2012/WD-html-markup-20120329/syntax.html#attr-value-unquoted
+;; https://www.w3.org/TR/2012/WD-html-markup-20120329/syntax.html#attr-value-unquoted
 
 ;; STATES: attr
 ;; (0)nil (1)space (2)name (3)space-before (4)equal (5)space-after
@@ -5403,15 +5492,16 @@ Also return non-nil if it is the command `self-insert-command' is remapped to."
   (let ((tag-flags 0) (attr-flags 0) (continue t) (attrs 0) (counter 0) (brace-depth 0)
         (pos-ori (point)) (state 0) (equal-offset 0) (go-back nil)
         (is-jsx (or (string= web-mode-content-type "jsx") (eq (get-text-property (point) 'part-type) 'jsx)))
-        attr name-beg name-end val-beg char pos escaped spaced quoted)
+        attr name-beg name-end val-beg char pos escaped spaced quoted mem step)
 
     (while continue
 
       (setq pos (point)
             char (char-after)
+            mem state
             ;;spaced (eq char ?\s)
             spaced (member char '(?\s ?\n))
-            )
+            step nil)
 
       (when quoted (setq quoted (1+ quoted)))
 
@@ -5434,10 +5524,11 @@ Also return non-nil if it is the command `self-insert-command' is remapped to."
        ((and (= state 9) (eq char ?\}) (> brace-depth 1))
         (setq brace-depth (1- brace-depth)))
 
-       ((get-text-property pos 'block-side)
-        (when (= state 2)
-          (setq name-end pos))
-        )
+       ;; #1233
+       ;;((get-text-property pos 'block-side)
+       ;; (when (= state 2)
+       ;;   (setq name-end pos))
+       ;; )
 
        ((and (= state 2) is-jsx (eq char ?\}) (eq attr-flags 4))
         (setq name-end pos)
@@ -5454,8 +5545,6 @@ Also return non-nil if it is the command `self-insert-command' is remapped to."
             (and (= state 7) (eq ?\' char) (not escaped))
             (and (= state 9) (eq ?\} char) (= brace-depth 1))
             )
-
-        ;;(message "%S %S" (point) attr-flags)
         (setq attrs (+ attrs (web-mode-attr-scan pos state char name-beg name-end val-beg attr-flags equal-offset tag-flags)))
         (setq state 0
               attr-flags 0
@@ -5471,8 +5560,8 @@ Also return non-nil if it is the command `self-insert-command' is remapped to."
         (setq state (cond ((eq ?\' char) 7)
                           ((eq ?\" char) 8)
                           (t             9)))
-        (when (= state 9)
-          (setq brace-depth 1))
+        (setq step 100)
+        (when (= state 9) (setq brace-depth 1))
         )
 
        ((and (eq ?\= char) (member state '(2 3)))
@@ -5481,7 +5570,6 @@ Also return non-nil if it is the command `self-insert-command' is remapped to."
         (setq state 4)
         (setq attr (buffer-substring-no-properties name-beg (1+ name-end)))
         (when (and web-mode-indentless-attributes (member (downcase attr) web-mode-indentless-attributes))
-          ;;(message "onclick")
           (setq attr-flags (logior attr-flags 8)))
         )
 
@@ -5602,10 +5690,6 @@ Also return non-nil if it is the command `self-insert-command' is remapped to."
              ((member attr '("http-equiv"))
               (setq attr-flags (1- attr-flags))
               )
-             ;;((and web-mode-engine-attr-regexp
-             ;;      (string-match-p web-mode-engine-attr-regexp attr))
-             ;; (setq attr-flags (logior attr-flags 2))
-             ;; )
              ((and (eq char ?\-) (not (string= attr "http-")))
               (setq attr-flags (logior attr-flags 1)))
              ) ;cond
@@ -5624,6 +5708,8 @@ Also return non-nil if it is the command `self-insert-command' is remapped to."
       (when (null go-back)
         (forward-char))
 
+      ;;(when (not (= mem state)) (message "pos=%S before=%S after=%S step=%S" pos mem state step))
+
       ) ;while
 
     (when (> attrs 0) (setq tag-flags (logior tag-flags 1)))
@@ -5631,13 +5717,11 @@ Also return non-nil if it is the command `self-insert-command' is remapped to."
     tag-flags))
 
 (defun web-mode-attr-scan (pos state char name-beg name-end val-beg attr-flags equal-offset tag-flags)
-  ;;(message "point(%S) state(%S) c(%c) name-beg(%S) name-end(%S) val-beg(%S) attr-flags(%S) equal-offset(%S) tag-flags(%S)"
-  ;;         pos state char name-beg name-end val-beg attr-flags equal-offset tag-flags)
+  ;;(message "point(%S) state(%S) c(%c) name-beg(%S) name-end(%S) val-beg(%S) attr-flags(%S) equal-offset(%S) tag-flags(%S)" pos state char name-beg name-end val-beg attr-flags equal-offset tag-flags)
   (when (null attr-flags) (setq attr-flags 0))
   (when (and name-beg name-end web-mode-engine-attr-regexp)
     (let (name)
       (setq name (buffer-substring-no-properties name-beg (1+ name-end)))
-      ;;(message "%S" name)
       (cond
        ((string-match-p "^data[-]" name)
         (setq attr-flags (logior attr-flags 1))
@@ -6672,6 +6756,10 @@ Also return non-nil if it is the command `self-insert-command' is remapped to."
       (setq keywords web-mode-engine-tag-font-lock-keywords)
       ) ;clip
 
+     ((string= web-mode-engine "perl")
+      (setq keywords web-mode-engine-tag-font-lock-keywords)
+      ) ;perl
+
      ((string= web-mode-engine "aspx")
       (cond
        ((string= sub3 "<%@")
@@ -6867,12 +6955,12 @@ Also return non-nil if it is the command `self-insert-command' is remapped to."
               (cond
                ((and (eq (char-after beg) ?\`)
                      web-mode-enable-literal-interpolation
-                     (member content-type '("javascript" "jsx")))
+                     (member content-type '("javascript" "jsx" "typescript")))
                 (web-mode-interpolate-javascript-literal beg end)
                 )
                ((and (eq (char-after beg) ?\")
                      web-mode-enable-string-interpolation
-                     (member content-type '("javascript" "jsx")))
+                     (member content-type '("javascript" "jsx" "typescript")))
                 (web-mode-interpolate-javascript-string beg end))
                ) ;cond
               ) ;case string
@@ -7223,15 +7311,10 @@ Also return non-nil if it is the command `self-insert-command' is remapped to."
 
 (defun web-mode-interpolate-javascript-literal (beg end)
   (save-excursion
-    (goto-char (1+ beg))
     (setq end (1- end))
-    (while (re-search-forward "${.*?}" end t)
-      (put-text-property (match-beginning 0) (match-end 0)
-                           'font-lock-face
-                           'web-mode-variable-name-face)
-      )
+    (goto-char (1+ beg))
     (cond
-     ((web-mode-looking-back "\\(css\\|styled[[:alnum:].]+\\)" beg)
+     ((web-mode-looking-back "\\(css\\|styled[[:alnum:].]+\\|css = \\)" beg)
       (goto-char (1+ beg))
       (while (re-search-forward ".*?:" end t)
         (put-text-property (match-beginning 0) (match-end 0)
@@ -7239,7 +7322,7 @@ Also return non-nil if it is the command `self-insert-command' is remapped to."
                            'web-mode-interpolate-color1-face)
         )
       ) ;case css
-     ((web-mode-looking-back "\\(template\\|html\\)" beg)
+     ((web-mode-looking-back "\\(template\\|html\\|html = \\)" beg)
       (goto-char (1+ beg))
       (while (re-search-forward web-mode-tag-regexp end t)
         (put-text-property (match-beginning 1) (match-end 1)
@@ -7261,8 +7344,20 @@ Also return non-nil if it is the command `self-insert-command' is remapped to."
           ) ;t
          ) ;cond
         ) ;while
+      (goto-char (1+ beg))
+      (while (re-search-forward "<\\(script\\|style\\)>\\(.*\\)</\\(script\\|style\\)>" end t)
+        (put-text-property (match-beginning 2) (match-end 2)
+                           'font-lock-face
+                           'web-mode-interpolate-color4-face)
+        )
       ) ;case html
      ) ;cond type of literal
+    (goto-char (1+ beg))
+    (while (re-search-forward "${.*?}" end t)
+      (put-text-property (match-beginning 0) (match-end 0)
+                           'font-lock-face
+                           'web-mode-variable-name-face)
+      ) ;while
     ))
 
 ;; todo : parsing plus compliqué: {$obj->values[3]->name}
@@ -8356,7 +8451,7 @@ Also return non-nil if it is the command `self-insert-command' is remapped to."
                      (not (eq ?\< curr-char))))
         (let (prev)
           (cond
-           ((member language '("html" "xml" "javascript" "jsx" "css"))
+           ((member language '("html" "xml" "javascript" "typescript" "jsx" "css"))
             (when (setq prev (web-mode-part-previous-live-line reg-beg))
               (setq prev-line (nth 0 prev)
                     prev-indentation (nth 1 prev)
@@ -10549,7 +10644,7 @@ Pos should be in a tag."
     (let (beg end line-beg line-end pos tag tag-start tag-end)
       (save-excursion
         (combine-after-change-calls
-          (setq tag (read-from-minibuffer "Tag name? ")
+          (setq tag (web-mode-element-complete)
                 tag-start (concat "<" tag ">")
                 tag-end (concat "</" tag ">")
                 pos (point)
@@ -10600,13 +10695,22 @@ Pos should be in a tag."
     ) ;let
   )
 
+(defun web-mode-element-complete (&optional prompt)
+  "Completes for an element tag."
+  (completing-read
+   (or prompt "Tag name: ")
+   (append
+    web-mode-tag-list
+    web-mode-tag-history)
+   nil nil nil 'web-mode-tag-history))
+
 (defun web-mode-element-wrap (&optional tag-name)
   "Wrap current REGION with start and end tags.
 Prompt user if TAG-NAME isn't provided."
   (interactive)
   (let (beg end pos tag sep)
     (save-excursion
-      (setq tag (or tag-name (read-from-minibuffer "Tag name? ")))
+      (setq tag (or tag-name (web-mode-element-complete)))
       (setq pos (point))
       (cond
        (mark-active
@@ -10716,7 +10820,7 @@ Prompt user if TAG-NAME isn't provided."
      ((and (get-text-property (point) 'tag-type)
            (not (get-text-property (point) 'tag-beg)))
       (message "element-insert ** invalid context **"))
-     ((not (and (setq tag-name (read-from-minibuffer "Tag name? "))
+     ((not (and (setq tag-name (web-mode-element-complete))
                 (> (length tag-name) 0)))
       (message "element-insert ** failure **"))
      ((web-mode-element-is-void tag-name)
@@ -10766,7 +10870,7 @@ Prompt user if TAG-NAME isn't provided."
   (interactive)
   (save-excursion
     (let (pos)
-      (unless tag-name (setq tag-name (read-from-minibuffer "New tag name? ")))
+      (unless tag-name (setq tag-name (web-mode-element-complete "New tag name: ")))
       (when (and (> (length tag-name) 0)
                  (web-mode-element-beginning)
                  (looking-at "<\\([[:alnum:]]+\\(:?[[:alpha:]_-]+\\)?\\)"))
@@ -10969,7 +11073,14 @@ Prompt user if TAG-NAME isn't provided."
      (t
       (newline 1)
       (indent-line-to (plist-get ctx :col))
-      (insert (concat (plist-get ctx :prefix) "")))
+      (let ((prefix (plist-get ctx :prefix)))
+        (insert
+         (concat prefix
+                 ;; Check if the comment ends with a space, and if not, insert one.
+                 (if
+                     (string-equal (substring prefix -1 (length prefix)) " ")
+                     ""
+                   " ")))))
      ) ;cond
     ))
 
@@ -11857,7 +11968,7 @@ Prompt user if TAG-NAME isn't provided."
                         (not (get-text-property (1- pos) 'part-side))))
                (not (get-text-property (1- pos) 'block-side))
                )
-      (setq expanders (append web-mode-expanders web-mode-extra-expanders))
+      (setq expanders (append web-mode-extra-expanders web-mode-expanders))
       (let ((i 0) pair (l (length expanders)))
         (setq chunk (buffer-substring-no-properties (- pos 2) pos))
         ;;(message "%S" chunk)
@@ -12087,19 +12198,27 @@ Prompt user if TAG-NAME isn't provided."
       ;;(message "attrs=%S" attrs)
       )))
 
-(defun web-mode-attribute-insert ()
+(defun web-mode-attribute-insert (&optional attr-name attr-value)
   "Insert an attribute inside current tag."
   (interactive)
   (let (attr attr-name attr-value)
     (cond
      ((not (member (get-text-property (point) 'tag-type) '(start void)))
       (message "attribute-insert ** invalid context **"))
-     ((not (and (setq attr-name (read-from-minibuffer "Attribute name? "))
+     ((not (and (setq attr-name (or attr-name (completing-read
+                                               "Attribute name: "
+                                               (append
+                                                web-mode-attribute-list
+                                                web-mode-attribute-history)
+                                               nil nil nil 'web-mode-attribute-history)))
                 (> (length attr-name) 0)))
       (message "attribute-insert ** failure **"))
      (t
       (setq attr (concat " " attr-name))
-      (when (setq attr-value (read-from-minibuffer "Attribute value? "))
+      (when (setq attr-value (or attr-value (completing-read
+                                             "Attribute value: "
+                                             web-mode-attribute-value-history
+                                             nil nil nil 'web-mode-attribute-value-history)))
         (setq attr (concat attr "=\"" attr-value "\"")))
       (web-mode-tag-end)
       (if (looking-back "/>" (point-min))
