@@ -38,6 +38,7 @@
 (require 'wgrep_init)
 (require 'quickrun_init)
 (require 'amx_init)
+(require 'spatial-navigate_init)
 
 ;; (require 'valign_init)
 (require 'vterm_init)
@@ -62,7 +63,7 @@
 ;; (require 'reformatter_init)
 (require 'flycheck_init)
 
-(require 'tabnine_init)
+;; (require 'tabnine_init)
 (require 'company_init)
 
 (require 'dart-mode_init)

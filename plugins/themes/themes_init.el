@@ -3,6 +3,7 @@
 ;; popular themes: https://emacsthemes.com/popular/index.html
 
 (setq custom-theme-directory (expand-file-name "plugins/themes"))
+(load-theme 'vscode-dark-plus t)
 
 ;; (setq zenburn-use-variable-pitch t)
 ;; (setq zenburn-scale-org-headlines t)
@@ -11,7 +12,6 @@
 
 ;; (load-theme 'material t) ;; 这个是原来的
 ;; (load-theme 'material-light t) ;; 这个是原来的
-(load-theme 'vscode-dark-plus t)
 ;; (load-theme 'soothe t)
 ;; (require 'spacemacs-common)
 ;; (load-theme 'spacemacs-dark t)
