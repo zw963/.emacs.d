@@ -101,8 +101,8 @@ Otherwise, forward to `goto-line' with ARG."
 
 ;; (setq avy-zap-function 'delete-region)
 
-(require 'goto-char-preview)
-(global-set-key [remap goto-char] 'goto-char-preview)
+;; (require 'goto-char-preview)
+;; (global-set-key [remap goto-char] 'goto-char-preview)
 
 (require 'ace-window)
 ;; (setq aw-keys '(?a ?s ?d ?f ?g ?h ?j ?k ?l))
@@ -126,6 +126,17 @@ Otherwise, forward to `goto-line' with ARG."
 ;; 这个和 treemacs rightclick menu 冲突.
 (require 'ace-popup-menu)
 (ace-popup-menu-mode 1)
+
+(require 'char-menu)
+
+(global-set-key (kbd "<menu> SPC") #'char-menu)
+
+(setq char-menu '("—" "‘’" "“”" "…" "«»" "–"
+ ("Typography" "•" "©" "†" "‡" "°" "·" "§" "№" "★")
+ ("Math"       "≈" "≡" "≠" "∞" "×" "±" "∓" "÷" "√")
+ ("Arrows"     "←" "→" "↑" "↓" "⇐" "⇒" "⇑" "⇓")
+ ("Greek"      "α" "β" "Y" "δ" "ε" "ζ" "η" "θ" "ι" "κ" "λ" "μ"
+               "ν" "ξ" "ο" "π" "ρ" "σ" "τ" "υ" "φ" "χ" "ψ" "ω")))
 
 (require 'ace-link)
 ;; 进入 help-mode, 测试快捷键 o.
