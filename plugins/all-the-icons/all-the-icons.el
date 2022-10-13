@@ -158,6 +158,7 @@
     ;; ?
     ("pkg"          all-the-icons-octicon "package"           :v-adjust 0.0 :face all-the-icons-dsilver)
     ("rpm"          all-the-icons-octicon "package"           :v-adjust 0.0 :face all-the-icons-dsilver)
+    ("pkgbuild"     all-the-icons-octicon "package"           :v-adjust 0.0 :face all-the-icons-dsilver)
     ("elc"          all-the-icons-octicon "file-binary"       :v-adjust 0.0 :face all-the-icons-dsilver)
     ("gz"           all-the-icons-octicon "file-binary"       :v-adjust 0.0 :face all-the-icons-lmaroon)
     ("zip"          all-the-icons-octicon "file-zip"          :v-adjust 0.0 :face all-the-icons-lmaroon)
@@ -571,6 +572,7 @@ for performance sake.")
     (emacs-lisp-mode           all-the-icons-fileicon "elisp"              :height 1.0 :v-adjust -0.1 :face all-the-icons-purple)
     (circe-server-mode         all-the-icons-faicon "commenting-o"         :height 1.0 :v-adjust 0.0)
     (circe-channel-mode        all-the-icons-faicon "commenting-o"         :height 1.0 :v-adjust 0.0)
+    (circe-query-mode          all-the-icons-faicon "commenting-o"         :height 1.0 :v-adjust 0.0)
     (crystal-mode              all-the-icons-fileicon "crystal"            :v-adjust 0.0 :face all-the-icons-yellow)
     (erc-mode                  all-the-icons-faicon "commenting-o"         :height 1.0 :v-adjust 0.0)
     (inferior-emacs-lisp-mode  all-the-icons-fileicon "elisp"              :height 1.0 :v-adjust -0.1 :face all-the-icons-lblue)
@@ -609,6 +611,7 @@ for performance sake.")
     (mu4e-headers-mode         all-the-icons-octicon "mail"                :v-adjust 0.0)
     (mu4e-main-mode            all-the-icons-octicon "mail"                :v-adjust 0.0)
     (mu4e-view-mode            all-the-icons-octicon "mail-read"           :v-adjust 0.0)
+    (sieve-mode                all-the-icons-octicon "mail"                :v-adjust 0.0)
     (package-menu-mode         all-the-icons-faicon "archive"              :height 1.0 :v-adjust 0.0 :face all-the-icons-silver)
     (paradox-menu-mode         all-the-icons-faicon "archive"              :height 1.0 :v-adjust 0.0 :face all-the-icons-silver)
     (Custom-mode               all-the-icons-octicon "settings"            :v-adjust -0.1)
@@ -726,7 +729,8 @@ for performance sake.")
     (lilypond-mode                      all-the-icons-faicon   "music"            :face all-the-icons-green)
     (magik-session-mode                 all-the-icons-alltheicon "terminal"       :face all-the-icons-blue)
     (magik-cb-mode                      all-the-icons-faicon "book"               :face all-the-icons-blue)
-    (meson-mode                         all-the-icons-fileicon "meson"            :face all-the-icons-purple)))
+    (meson-mode                         all-the-icons-fileicon "meson"            :face all-the-icons-purple)
+    (man-common                         all-the-icons-fileicon "man-page"         :face all-the-icons-blue)))
 
 (defvar all-the-icons-url-alist
   '(
@@ -999,7 +1003,12 @@ inserting functions."
 ;; Family Face Functions
 (defun all-the-icons-icon-family-for-file (file)
   "Get the icons font family for FILE."
-  (let ((icon (all-the-icons-match-to-alist file all-the-icons-regexp-icon-alist)))
+  (let* ((ext (file-name-extension file))
+	(icon (or (all-the-icons-match-to-alist file all-the-icons-regexp-icon-alist)
+                   (and ext
+                        (cdr (assoc (downcase ext)
+                                    all-the-icons-extension-icon-alist)))
+                   all-the-icons-default-file-icon)))
     (funcall (intern (format "%s-family" (car icon))))))
 
 (defun all-the-icons-icon-family-for-mode (mode)
