@@ -40,11 +40,10 @@
 (require 'amx_init)
 (require 'spatial-navigate_init)
 
-;; (require 'valign_init)
 (require 'vterm_init)
 (require 'async_init)
 (require 'mu4e_init)
-(require 'volatile-highlights_init)
+;; (require 'volatile-highlights_init) ;; 这个现在看不出效果？
 (require 'buffer-move_init)
 (require 'goto-chg_init)
 (require 'symbol-overlay_init)

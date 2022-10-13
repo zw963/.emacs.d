@@ -20,6 +20,7 @@
  helm-window-prefer-horizontal-split t
  ;; 必须开启 follow 模式, 才能有跟随 buffer 的 follow 效果.
  helm-follow-mode-persistent t
+ helm-grep-save-buffer-name-no-confirm t
  )
 
 ;; 让 helm 弹出的窗口, 总在最下面, 当开启 follow-mode 时, 这个和 neotree 不工作.
