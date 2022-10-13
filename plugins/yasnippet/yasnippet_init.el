@@ -179,6 +179,9 @@
 ;;      )))
 ;; (setq yas-prompt-functions '(yas/popup-isearch-prompt yas/no-prompt))
 
+;; 当设定为 yas-x-prompt 时, 会使用 avy-menu
+(setq yas-prompt-functions '(yas-x-prompt))
+
 ;; (require 'dropdown-list)
 ;; (setq yas-prompt-functions '(yas-x-prompt yas-dropdown-prompt))
 
