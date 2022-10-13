@@ -38,7 +38,6 @@
 (require 'wgrep_init)
 (require 'quickrun_init)
 (require 'amx_init)
-;; (require 'spaceline_init)
 
 ;; (require 'valign_init)
 (require 'vterm_init)
