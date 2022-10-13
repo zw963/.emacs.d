@@ -15,7 +15,7 @@
 (require 'fancy-narrow_init)
 (require 'zoom-frm_init)
 (require 'back-button_init)
-;; (require 'winum_init)
+(require 'winum_init)
 (require 'which-key_init)
 (require 'anzu_init)
 (require 'beacon_init)
@@ -30,10 +30,13 @@
 (require 'toggle-quotes_init)
 (require 'beyond-compare_init)
 ;; (require 'ido_init)
+
+(require 'company_init)
 (require 'helm_init)
 (require 'helm-bindings_init) ; 和 ivy_init 冲突， 二者选其一.
 ;; (require 'ivy_init)
-;; (require 'prescient_init) ;; 这个必须放在 ivy_init 后面.
+(require 'prescient_init) ;; 这个必须放在 ivy_init 或 company_init 后面.
+
 (require 'yasnippet_init)
 (require 'wgrep_init)
 (require 'quickrun_init)
@@ -63,7 +66,6 @@
 (require 'flycheck_init)
 
 ;; (require 'tabnine_init)
-(require 'company_init)
 
 (require 'dart-mode_init)
 (require 'smartparens_init)
@@ -82,7 +84,6 @@
 
 (require 'dpaste_init)
 (require 'ws-butler_init)
-(require 'whitespace-cleanup-mode_init)
 
 ;; 关闭一些有用，但最近不常用的 mode
 ;; (require 'go-mode_init)
