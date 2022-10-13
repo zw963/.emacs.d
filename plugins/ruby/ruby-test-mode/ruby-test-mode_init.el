@@ -7,6 +7,7 @@
 (add-to-list 'ruby-test-file-name-extensions "axlsx")
 
 (defun ruby-test-toggle ()
+  "切换测试文件之前，自动保存"
   (interactive)
   ;; basic-save-buffer-1 不会调用 save-hook.
   (when (buffer-modified-p) (basic-save-buffer-1))

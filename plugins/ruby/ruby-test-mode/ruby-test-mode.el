@@ -5,11 +5,11 @@
 
 ;; Author: Roman Scherer <roman.scherer@gmx.de>
 ;;         Caspar Florian Ebeling <florian.ebeling@gmail.com>
-;;
+;; URL: https://github.com/ruby-test-mode/ruby-test-mode
 ;; Maintainer: Roman Scherer <roman.scherer@burningswell.com>
 ;; Created: 09.02.08
 ;; Version: 1.7
-;; Keywords: ruby unit test rspec
+;; Keywords: ruby unit test rspec tools
 ;; Package-Requires: ((ruby-mode "1.0") (pcre2el "1.8"))
 
 ;; This file is not part of GNU Emacs.
@@ -55,8 +55,10 @@
 ;; C-c C-t t    - Runs the unit test or rspec example at the current buffer's
 ;; C-c C-t C-t    buffer's point.
 ;;
+;; C-c C-t r    - Reruns the last unit test or rspec example
+;; C-c C-t C-r
+;;
 ;; C-c C-s      - Toggle between implementation and test/example files.
-
 
 (require 'ruby-mode)
 (require 'pcre2el)
@@ -75,9 +77,38 @@ Test Driven Development in Ruby."
   :type '(list)
   :group 'ruby-test)
 
+(defcustom ruby-test-plain-test-options
+  '()
+  "Pass extra command line options to minitest when running specs."
+  :initialize 'custom-initialize-default
+  :type '(list)
+  :group 'ruby-test)
+
+(defcustom ruby-test-rails-test-options
+  '("-v")
+  "Pass extra command line options to `rails test` when running tests."
+  :initialize 'custom-initialize-default
+  :type '(list)
+  :group 'ruby-test)
+
+(defcustom ruby-test-execution-environment
+  '("PAGER=cat")
+  "Environment variables to be set when running tests."
+  :initialize 'custom-initialize-default
+  :type '(repeat (string :tag "ENVVARNAME=VALUE"))
+  :group 'ruby-test)
+
 (defvar ruby-test-default-library
   "test"
   "Define the default test library.")
+
+(defvar ruby-test-last-run
+  nil
+  "The last ruby test run.")
+
+(defvar ruby-test-last-test-command
+  nil
+  "The last ruby test command ran.")
 
 (defvar ruby-test-mode-map
   (let ((map (make-sparse-keymap)))
@@ -85,6 +116,8 @@ Test Driven Development in Ruby."
     (define-key map (kbd "C-c C-t C-n") 'ruby-test-run)
     (define-key map (kbd "C-c C-t t")   'ruby-test-run-at-point)
     (define-key map (kbd "C-c C-t C-t") 'ruby-test-run-at-point)
+    (define-key map (kbd "C-c C-t r")   'ruby-test-rerun)
+    (define-key map (kbd "C-c C-t C-r") 'ruby-test-rerun)
     (define-key map (kbd "C-c C-s")     'ruby-test-toggle-implementation-and-specification)
     map)
   "The keymap used in command `ruby-test-mode' buffers.")
@@ -98,11 +131,10 @@ Test Driven Development in Ruby."
 (defcustom ruby-test-implementation-filename-mapping
   `(
     (,(pcre-to-elisp "(.*)/spec/routing/routes_spec\\.rb$") "\\1/config/routes.rb")
-    (,(pcre-to-elisp "(.*)/spec/routing/routes_spec\\.rb$") "\\1/config/routes.rb")
     (,(pcre-to-elisp "(.*)/test/routing/routes_test\\.rb$") "\\1/config/routes.rb")
-    (,(pcre-to-elisp "(.*)/spec/(controllers|models|jobs|helpers|mailers|uploaders|api|graph|graphql)/(.*)_spec\\.rb$")
+    (,(pcre-to-elisp "(.*)/spec/(controllers|models|jobs|helpers|mailers|uploaders|api|services)/(.*)_spec\\.rb$")
      "\\1/app/\\2/\\3.rb")
-    (,(pcre-to-elisp "(.*)/test/(controllers|models|jobs|helpers|mailers|uploaders|api|graph|graphql|interactions)/(.*)_test\\.rb$")
+    (,(pcre-to-elisp "(.*)/test/(controllers|models|jobs|helpers|mailers|uploaders|api|services)/(.*)_test\\.rb$")
      "\\1/app/\\2/\\3.rb")
 
     (,(pcre-to-elisp "(.*)/spec/(views/.*)_spec\\.rb$") "\\1/app/\\2")
@@ -124,8 +156,7 @@ Test Driven Development in Ruby."
     (,(pcre-to-elisp "(.*)/test/functional/(.*)_test\\.rb$") "\\1/app/controllers/\\2.rb")
 
     ;; Project/test/aaa/bbb_test.rb => Project/lib/aaa/bbb.rb
-    ;; Project/test/aaa/bbb_test.rb => Project/app/aaa/bbb.rb
-    (,(pcre-to-elisp "(.*)/test/(.*)_test\\.rb$") "\\1/app/\\2.rb" "\\1/lib/\\2.rb")
+    (,(pcre-to-elisp "(.*)/test/(.*)_test\\.rb$") "\\1/lib/\\2.rb")
 
     ;; make ruby-test-mode support asserts spec.
     (,(pcre-to-elisp "(.*)/spec/javascripts/(.*)_spec\\.(js|coffee)$")
@@ -143,9 +174,7 @@ second the replace expression."
 (defcustom ruby-test-specification-filename-mapping
   `(
     (,(pcre-to-elisp "(.*)/config/routes\\.rb$") "\\1/spec/routing/routes_spec.rb")
-    ;; view to controller
-    (,(pcre-to-elisp "(.*)/app/views/(.*)/(.*)\\.(.*)$") "\\1/app/controllers/\\2_controller.rb")
-    ;; (,(pcre-to-elisp "(.*)/app/views/(.*)$") "\\1/spec/views/\\2_spec.rb")
+    (,(pcre-to-elisp "(.*)/app/views/(.*)$") "\\1/spec/views/\\2_spec.rb")
     ;; everything in app, should exist same path in spec/test.
     (,(pcre-to-elisp "(.*?)/app/(.*)\\.rb$") "\\1/spec/\\2_spec.rb")
     (,(pcre-to-elisp "(.*)/lib/(tasks/.*)\\.rake$") "\\1/spec/\\2_tasks_spec.rb")
@@ -204,21 +233,31 @@ mode."
   :group 'ruby-test)
 
 (defmacro ruby-test-with-ruby-directory (filename form)
-  "Run the provided FORM with default-directory set to ruby or rails root."
+  "Set to ruby or rails root inferred from FILENAME and run the provided FORM with `default-directory` bound."
   `(let ((default-directory (or (ruby-test-rails-root ,filename)
                                 (ruby-test-ruby-root ,filename)
                                 default-directory)))
      ,form))
 
-(defun select (fn ls)
-  "Create a list from elements of list LS for which FN is non-nil."
+(defun ruby-test-select (fn ls)
+  "Call FN and create a list from elements of list LS for which FN is non-nil."
   (let ((result nil))
     (dolist (item ls)
       (if (funcall fn item)
           (setq result (cons item result))))
     (reverse result)))
 
-(defalias 'find-all 'select)
+(defalias 'find-all 'ruby-test-select)
+
+(defun ruby-test-rails-p (filename)
+  "Return non-nil if FILENAME is part of a Ruby on Rails project."
+  (and (stringp filename) (ruby-test-rails-root filename)))
+
+(defun ruby-test-minitest-p (filename)
+  "Return non-nil if FILENAME is a minitest."
+  (and (stringp filename)
+    (or (and (string-match "test\.rb$" filename) (file-exists-p "test/minitest_helper.rb"))
+      (and (string-match "spec\.rb$" filename) (file-exists-p "spec/minitest_helper.rb")))))
 
 (defun ruby-test-spec-p (filename)
   "Return non-nil if FILENAME is a spec."
@@ -253,7 +292,7 @@ test; or the last run test (if there was one)."
                   (window-list))))
     (if (boundp 'ruby-test-last-run)
         (nconc files (list ruby-test-last-run)))
-    (setq ruby-test-last-run (car (select 'ruby-test-any-p (select 'identity files))))))
+    (setq ruby-test-last-run (car (ruby-test-select 'ruby-test-any-p (ruby-test-select 'identity files))))))
 
 (defun ruby-test-find-target-filename (filename mapping)
   "Find the target filename.
@@ -355,17 +394,62 @@ and replace the match with the second element."
                                            (ruby-test-run-command (ruby-test-command filename line)))))
       (message ruby-test-not-found-message))))
 
+;;;###autoload
+(defun ruby-test-rerun ()
+  "Rerun the last test that was run by ruby-test.
+
+When no tests had been run before calling this function, do nothing."
+  (interactive)
+  (if ruby-test-last-test-command
+      (ruby-test-with-ruby-directory ruby-test-last-run
+                                     (ruby-test-run-command ruby-test-last-test-command))
+    (message "No tests have been run yet")))
+
 (defun ruby-test-run-command (command)
   "Run compilation COMMAND in rails or ruby root directory."
-  (compilation-start command t))
+  (setq ruby-test-last-test-command command)
+  (let ((compilation-environment
+         (append ruby-test-execution-environment compilation-environment)))
+    (compilation-start command t)))
 
 (defun ruby-test-command (filename &optional line-number)
   "Return the command to run a unit test or a specification depending on the FILENAME and LINE-NUMBER."
-  (cond ((ruby-test-spec-p filename)
+  (cond ((ruby-test-minitest-p filename)
+         (ruby-test-minitest-command filename line-number))
+        ((ruby-test-spec-p filename)
          (ruby-test-spec-command filename line-number))
+        ((ruby-test-rails-p filename)
+         (ruby-test-rails-command filename line-number))
         ((ruby-test-p filename)
          (ruby-test-test-command filename line-number))
         (t (message "File is not a known ruby test file"))))
+
+(defun ruby-test-rails-command (filename &optional line-number)
+  "Return command to run test in FILENAME at LINE-NUMBER with Rails test runner."
+  (let ((line-part (if line-number
+                       (format ":%d" line-number)
+                     ""))
+        (extra-options (if (not (null ruby-test-rails-test-options))
+                           (mapconcat 'identity ruby-test-rails-test-options " ")
+                         "")))
+    (format "bundle exec rails test %s %s%s" extra-options filename line-part)))
+
+(defun ruby-test-minitest-command (filename &optional line-number)
+  "Return command to run minitest in FILENAME at LINE-NUMBER."
+  (let (command options name-options)
+    (if (file-exists-p ".zeus.sock")
+      (setq command "zeus test")
+      (setq command "bundle exec ruby"))
+    (if (ruby-test-gem-root filename)
+      (setq options (cons "-rrubygems" options)))
+    (setq options (cons "-I'lib:test:spec'" options))
+    (if line-number
+      (let ((test-case (ruby-test-find-testcase-at filename line-number)))
+        (if test-case
+          (setq name-options (format "-n \"/%s/\"" test-case))
+          (error "No test case at %s:%s" filename line-number)))
+      (setq name-options ""))
+    (format "%s %s %s %s" command (mapconcat 'identity options " ") filename name-options)))
 
 (defun ruby-test-spec-command (filename &optional line-number)
   "Return command to run spec in FILENAME at LINE-NUMBER."
@@ -381,12 +465,12 @@ and replace the match with the second element."
 
 (defun ruby-test-test-command (filename &optional line-number)
   "Return command to run test in FILENAME at LINE-NUMBER."
-  (let (command options name-options)
+  (let (command options name-options extra-options)
     (if (file-exists-p ".zeus.sock")
         (setq command "zeus test")
       (setq command "bundle exec ruby"))
     (if (ruby-test-gem-root filename)
-        (setq options (cons "-rubygems" options)))
+        (setq options (cons "-rrubygems" options)))
     (setq options (cons "-I'lib:test'" options))
     (if line-number
         (let ((test-case (ruby-test-find-testcase-at filename line-number)))
@@ -394,7 +478,11 @@ and replace the match with the second element."
               (setq name-options (format "--name \"/%s/\"" test-case))
             (error "No test case at %s:%s" filename line-number)))
       (setq name-options ""))
-    (format "%s %s %s %s" command (mapconcat 'identity options " ") filename name-options)))
+    (setq extra-options
+          (if (not (null ruby-test-plain-test-options))
+              (mapconcat 'identity ruby-test-plain-test-options " ")
+            ""))
+    (format "%s %s %s %s %s" command (mapconcat 'identity options " ") filename name-options extra-options)))
 
 (defun ruby-test-project-root (filename root-predicate)
   "Return the project root directory.
@@ -412,7 +500,7 @@ FILENAME is tested to t by evaluating the ROOT-PREDICATE."
       root-predicate))))
 
 (defun ruby-test-project-root-p (directory candidates)
-  "Return t if one of the filenames in CANDIDATES is existing relative to the given DIRECTORY."
+  "Return t if the given DIRECTORY has one of the filenames in CANDIDATES."
   (let ((found nil))
     (while (and (not found) (car candidates))
       (setq found
@@ -427,9 +515,10 @@ FILENAME is tested to t by evaluating the ROOT-PREDICATE."
 
 (defun ruby-test-rails-root-p (directory)
   "Return t if the given DIRECTORY is the root of a Ruby on Rails project, else nil."
-  (and (ruby-test-ruby-root-p directory)
+  (and directory
+       (ruby-test-ruby-root-p directory)
        (ruby-test-project-root-p directory
-                                 '("config/environment.rb" "config/database.yml"))))
+                                 '("config/environment.rb" "config/database.yml" "config/routes.rb"))))
 
 (defun ruby-test-gem-root (filename)
   "Return the gem project directory for the given FILENAME, else nil."
@@ -463,15 +552,10 @@ FILENAME is tested to t by evaluating the ROOT-PREDICATE."
   (let ((filename (or filename (buffer-file-name))))
     (cond ((ruby-test-implementation-p filename)
            (cond ((file-exists-p (ruby-test-specification-filename filename))
-                  (make-directory (file-name-directory (ruby-test-specification-filename filename)) t)
                   (find-file (ruby-test-specification-filename filename)))
-
                  ((file-exists-p (ruby-test-unit-filename filename))
-                  (make-directory (file-name-directory (ruby-test-unit-filename filename)) t)
                   (find-file (ruby-test-unit-filename filename)))
-
                  ((ruby-test-default-test-filename filename)
-                  (make-directory (file-name-directory (ruby-test-default-test-filename filename)) t)
                   (find-file (ruby-test-default-test-filename filename)))
                  (t
                   (put-text-property 0 (length filename) 'face 'bold filename)
@@ -490,8 +574,8 @@ FILENAME is tested to t by evaluating the ROOT-PREDICATE."
 (defun ruby-test-default-test-filename (filename)
   "Return the default test filename for FILENAME."
   (cond
-   ;; ((file-exists-p (concat (ruby-test-project-root filename 'ruby-test-ruby-root-p) "/spec"))
-   ;;  (ruby-test-specification-filename filename))
+   ((file-exists-p (concat (ruby-test-project-root filename 'ruby-test-ruby-root-p) "/spec"))
+    (ruby-test-specification-filename filename))
    ((file-exists-p (concat (ruby-test-project-root filename 'ruby-test-ruby-root-p) "/test"))
     (ruby-test-unit-filename filename))
    ((and (string-equal ruby-test-default-library "test")
