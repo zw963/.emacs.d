@@ -12,6 +12,7 @@ endif()
 add_library(vterm-module MODULE vterm-module.c utf8.c elisp.c)
 set_target_properties(vterm-module PROPERTIES
   C_STANDARD 99
+  C_VISIBILITY_PRESET "hidden"
   POSITION_INDEPENDENT_CODE ON
   PREFIX ""
   LIBRARY_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}
@@ -41,6 +42,12 @@ if (USE_SYSTEM_LIBVTERM)
 #    add_compile_definitions(VTermStringFragmentNotExists)
     add_definitions(-DVTermStringFragmentNotExists)
     endif()
+    execute_process(COMMAND  grep -c "VTermSelectionMask" "${LIBVTERM_INCLUDE_DIR}/vterm.h" OUTPUT_VARIABLE VTermSelectionMaskExists)
+    if (${VTermSelectionMaskExists} EQUAL "0")
+#    add_compile_definitions(VTermStringFragmentNotExists)
+    add_definitions(-DVTermSelectionMaskNotExists)
+    endif()
+
   else()
     message(STATUS "System libvterm not found: libvterm will be downloaded and compiled as part of the build process")
   endif()
@@ -62,8 +69,8 @@ else()
   endif()
 
   ExternalProject_add(libvterm
-    GIT_REPOSITORY https://github.com/neovim/libvterm.git
-    GIT_TAG 54c03b21f763fa775a4c0643a9d8326342873179
+    GIT_REPOSITORY https://github.com/Sbozzolo/libvterm-mirror.git
+    GIT_TAG 15133bba2c0bce32baabbf91610a2450495fea02
     CONFIGURE_COMMAND ""
     BUILD_COMMAND ${LIBVTERM_BUILD_COMMAND} "CFLAGS='-fPIC'"
     BUILD_IN_SOURCE ON

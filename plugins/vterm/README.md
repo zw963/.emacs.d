@@ -68,7 +68,7 @@ Before installing emacs-libvterm, you need to make sure you have installed
  3. libtool-bin (related issues:
     [#66](https://github.com/akermu/emacs-libvterm/issues/66)
     [#85](https://github.com/akermu/emacs-libvterm/issues/85#issuecomment-491845136))
- 4. OPTIONAL: [libvterm](https://github.com/neovim/libvterm) (>= 0.1). This
+ 4. OPTIONAL: [libvterm](https://github.com/Sbozzolo/libvterm-mirror.git) (>= 0.2). This
     library can be found in the official repositories of most distributions
     (e.g., Arch, Debian, Fedora, Gentoo, openSUSE, Ubuntu). Typical names are
     `libvterm` (Arch, Fedora, Gentoo, openSUSE), or `libvterm-dev` (Debian,
@@ -455,6 +455,18 @@ or remove it from `vterm-mode-map`. By default, `vterm.el` binds most of the
 like `<backspace>` and `<return>`. Sending a keyboard interrupt is bound to `C-c
 C-c`.
 
+In order to send a keypress that is already recognized by Emacs, such as `C-g`,
+use the interactive function `vterm-send-next-key`. This can be bound to a key
+in the `vterm-mode-map` like `C-q`, in which case pressing `C-q C-g` will send a
+`C-g` key to the terminal, and so on for other modified keys:
+
+``` emacs
+(define-key vterm-mode-map (kbd "C-q") #'vterm-send-next-key)
+```
+
+This can be useful for controlling an application running in the terminal, such
+as Emacs or Nano.
+
 ## Fonts
 
 You can change the font (the _face_) used in a vterm with the following code:
@@ -835,6 +847,12 @@ not appropriate in some cases like terminals."
 ### Breaking changes
 
 Obsolete variables will be removed in version 0.1.
+
+#### August 2022
+* `vterm-send-C-[a-z]` `vterm-send-M-[a-z]` `vterm-define-key`
+ `vterm-send-{up/down/left/right/prior/next/meta-dot/meta-comma/ctrl-slash}`
+ were obsolete, please use `vterm-send` or `vterm-send-key` or
+ `vterm--self-insert` instead.
 
 #### October 2020
 
