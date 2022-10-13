@@ -5,8 +5,8 @@
 
 (add-hook 'org-mode-hook
           (lambda ()
-           (global-set-key [(control j)] 'avy-goto-char-timer)
-           ))
+            (global-set-key [(control j)] 'avy-goto-char-timer)
+            ))
 
 (with-eval-after-load 'treemacs
   (add-hook 'treemacs-mode-hook
@@ -127,16 +127,18 @@ Otherwise, forward to `goto-line' with ARG."
 (require 'ace-popup-menu)
 (ace-popup-menu-mode 1)
 
+(with-eval-after-load 'yasnippet
+  ;; 当设定为 yas-x-prompt 时, 会使用 ace-popup-menu
+  (setq yas-prompt-functions '(yas-x-prompt))
+  )
+
 (require 'char-menu)
-
-(global-set-key (kbd "<menu> SPC") #'char-menu)
-
 (setq char-menu '("—" "‘’" "“”" "…" "«»" "–"
- ("Typography" "•" "©" "†" "‡" "°" "·" "§" "№" "★")
- ("Math"       "≈" "≡" "≠" "∞" "×" "±" "∓" "÷" "√")
- ("Arrows"     "←" "→" "↑" "↓" "⇐" "⇒" "⇑" "⇓")
- ("Greek"      "α" "β" "Y" "δ" "ε" "ζ" "η" "θ" "ι" "κ" "λ" "μ"
-               "ν" "ξ" "ο" "π" "ρ" "σ" "τ" "υ" "φ" "χ" "ψ" "ω")))
+                  ("Typography" "•" "©" "†" "‡" "°" "·" "§" "№" "★")
+                  ("Math"       "≈" "≡" "≠" "∞" "×" "±" "∓" "÷" "√")
+                  ("Arrows"     "←" "→" "↑" "↓" "⇐" "⇒" "⇑" "⇓")
+                  ("Greek"      "α" "β" "Y" "δ" "ε" "ζ" "η" "θ" "ι" "κ" "λ" "μ"
+                   "ν" "ξ" "ο" "π" "ρ" "σ" "τ" "υ" "φ" "χ" "ψ" "ω")))
 
 (require 'ace-link)
 ;; 进入 help-mode, 测试快捷键 o.
