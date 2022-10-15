@@ -14,7 +14,7 @@
 
 (setq apheleia-log-only-errors nil)
 
-(apheleia-global-mode)
+(add-hook 'prog-mode-hook 'apheleia-global-mode)
 
 (provide 'apheleia_init)
 
