@@ -7,6 +7,11 @@
 (setf (alist-get 'dart-format apheleia-formatters)
       '("flutter" "format" filepath))
 
+(setq apheleia-mode-alist
+      (delete '(js3-mode . prettier-javascript)
+              (delete '(js-mode . prettier-javascript)
+                      apheleia-mode-alist)))
+
 (setq apheleia-log-only-errors nil)
 
 (apheleia-global-mode)
