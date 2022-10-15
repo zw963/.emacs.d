@@ -6,6 +6,8 @@
 
 ;; (setq quickrun-focus-p nil)
 
+(setq quickrun-debug t)
+
 (dolist (hook '(
                 ruby-mode-hook
                 enh-ruby-mode-hook
