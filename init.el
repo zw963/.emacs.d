@@ -24,7 +24,7 @@
 (require 'doom-modeline_init)
 (require 'rich-minority_init)
 (require 'show-point-mode_init)
-(require 'hydra_init);; depend by treemacs
+;; (require 'hydra_init);; depend by treemacs
 (require 'edit-server_init)
 (require 'iedit_init)
 (require 'undo-tree_init)
@@ -53,21 +53,15 @@
 (require 'symbol-overlay_init)
 (require 'color-rg_init)
 (require 'markdown-mode_init)
-;; (require 'cursor-chg_init)
 (require 'easy-kill_init)
 
 ;; ============================== 编程相关 ==============================
 
-;; (require 'awesome-tab_init)
 (require 'prog-mode_init)
 (require 'dumb-jump_init)
 (require 'apheleia_init)
 (require 'git_init)
-;; (require 'reformatter_init)
 (require 'flycheck_init)
-
-;; (require 'tabnine_init)
-
 (require 'dart-mode_init)
 (require 'smartparens_init)
 (require 'string-inflection_init)
@@ -77,7 +71,6 @@
 (require 'expand-region_init)
 (require 'ruby_init)
 (require 'crystal-mode_init)
-;; (require 'mini-frame_init)
 (require 'rainbow-mode_init)
 (require 'scss-css-mode_init)
 ;; (require 'tree-sitter_init)
@@ -90,21 +83,15 @@
 ;; (require 'go-mode_init)
 ;; (require 'rust_init)
 (require 'lsp-bridge_init)
+;; (require 'tabnine_init) ;; lsp-bridge 默认会开启 tabnine
 ;; (require 'haskell-mode_init)
 ;; (require 'js2-mode_init)
 ;; (require 'lua-mode_init)
-;; (require 'tide_init)
-
-;; 加载 dotfiles 时，阻止 gc.
-;; (when (file-exists-p (expand-file-name ".emacs" config))
-;;   (let ((gc-cons-threshold 20000000))
-;;    (load ".emacs")))
 
 ;; 这个似乎要放到最后面？
 (require 'posframe_init)
 (require 'shackle_init)
 (require 'popper_init)
-;; (require 'burly_init)
 (require 'all-the-icons_init)
 
 (add-hook 'prog-mode-hook 'display-line-numbers-mode)
