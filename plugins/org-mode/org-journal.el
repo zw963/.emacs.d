@@ -1,11 +1,39 @@
 ;;; org-journal.el --- a simple org-mode based journaling mode -*- lexical-binding: t; -*-
 
+;; Copyright 2013-2022 Bastian Bechtold
+
 ;; Author: Bastian Bechtold
 ;;         Christian Schwarzgruber
 
 ;; URL: http://github.com/bastibe/org-journal
 ;; Version: 2.1.2
 ;; Package-Requires: ((emacs "25.1") (org "9.1"))
+
+;; Redistribution and use in source and binary forms, with or without
+;; modification, are permitted provided that the following conditions are met:
+;;
+;; 1. Redistributions of source code must retain the above copyright notice,
+;; this list of conditions and the following disclaimer.
+;;
+;; 2. Redistributions in binary form must reproduce the above copyright notice,
+;; this list of conditions and the following disclaimer in the documentation
+;; and/or other materials provided with the distribution.
+;;
+;; 3. Neither the name of the copyright holder nor the names of its contributors
+;; may be used to endorse or promote products derived from this software without
+;; specific prior written permission.
+;;
+;; THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+;; AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+;; IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+;; ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
+;; LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+;; CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+;; SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+;; INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+;; CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+;; ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+;; POSSIBILITY OF SUCH DAMAGE.
 
 ;;; Commentary:
 
@@ -386,7 +414,6 @@ This runs once per date, before `org-journal-after-entry-create-hook'.")
 (define-derived-mode org-journal-mode org-mode
   "Journal"
   "Mode for writing or viewing entries written in the journal."
-  (turn-on-visual-line-mode)
   (add-hook 'after-save-hook 'org-journal-after-save-hook nil t)
   (when (or org-journal-tag-alist org-journal-tag-persistent-alist)
     (org-journal--set-current-tag-alist))
@@ -426,9 +453,11 @@ This runs once per date, before `org-journal-after-entry-create-hook'.")
 (global-set-key (kbd "C-c C-j") 'org-journal-new-entry)
 
 (defmacro org-journal--with-journal (file &rest body)
-  "Opens JOURNAL-FILE in fundamental mode, or switches to the buffer which is visiting JOURNAL-FILE.
+  "Opens JOURNAL-FILE in fundamental mode, or switches to the
+buffer which is visiting JOURNAL-FILE.
 
-Returns the last value from BODY. If the buffer didn't exist before it will be deposed."
+Returns the last value from BODY. If the buffer didn't exist
+before it will be deposed."
   ;; Use find-file... instead of view-file... since
   ;; view-file does not respect auto-mode-alist
   (declare (indent 1))
@@ -501,7 +530,8 @@ Returns the last value from BODY. If the buffer didn't exist before it will be d
 
 ;;;###autoload
 (defun org-journal-convert-created-property-timestamps (old-format)
-  "Convert CREATED property timestamps to `org-journal-created-property-timestamp-format'."
+  "Convert format of CREATED property timestamps.
+Convert OLD-FORMAT or input to `org-journal-created-property-timestamp-format'."
   (interactive "sEnter old format: ")
   (if (org-journal--daily-p)
       (message "Nothing to do, org-journal-file-type is 'daily")
@@ -541,21 +571,21 @@ the first date of the year."
     ;; Round to the monday of the current week, e.g. 20181231 is the first week of 2019
     (`weekly
      (let* ((absolute-monday
-	     (calendar-iso-to-absolute
-	      (mapcar 'string-to-number
-		      (split-string (format-time-string "%V 1 %G" time) " "))))
-	    (absolute-now
-	     (calendar-absolute-from-gregorian
-	      (mapcar 'string-to-number
-		      (split-string (format-time-string "%m %d %Y" time) " "))))
-	    (target-date
-	     (+ absolute-monday
-		(- org-journal-start-on-weekday 1)))
-	    (date
+             (calendar-iso-to-absolute
+              (mapcar 'string-to-number
+                      (split-string (format-time-string "%V 1 %G" time) " "))))
+            (absolute-now
+             (calendar-absolute-from-gregorian
+              (mapcar 'string-to-number
+                      (split-string (format-time-string "%m %d %Y" time) " "))))
+            (target-date
+             (+ absolute-monday
+                (- org-journal-start-on-weekday 1)))
+            (date
              (calendar-gregorian-from-absolute
               (if (> target-date absolute-now)
-		  (- target-date 7)
-		target-date))))
+                  (- target-date 7)
+                target-date))))
        (org-journal--calendar-date->time date)))
     ;; Round to the first day of the month, e.g. 20190301
     (`monthly
@@ -567,7 +597,8 @@ the first date of the year."
       (mapcar 'string-to-number (split-string (format-time-string "1 1 %Y" time) " "))))))
 
 (defun org-journal--get-entry-path (&optional time)
-  "Return the path to an entry matching TIME, if no TIME is given, uses the current time."
+  "Return the path to an entry matching TIME.
+If no TIME is given, uses the current time."
   (let ((file (file-truename
                (expand-file-name
                 (format-time-string org-journal-file-format
@@ -720,12 +751,12 @@ This allows the use of `org-journal-tag-alist' and
 (defun org-journal-new-entry (prefix &optional time)
   "Open today's journal file and start a new entry.
 
-With a PREFIX arg, open the today's file, create a heading if it doesn't exist yet,
-but do not create a new entry.
+With a PREFIX arg, open the today's file, create a heading if it
+doesn't exist yet, but do not create a new entry.
 
-If given a TIME, create an entry for the time's day. If no TIME was given,
-use the current time (which is interpreted as belonging to yesterday if
-smaller than `org-extend-today-until').
+If given a TIME, create an entry for the time's day. If no TIME
+was given, use the current time (which is interpreted as
+belonging to yesterday if smaller than `org-extend-today-until').
 
 Whenever a journal entry is created the `org-journal-after-entry-create-hook'
 hook is run."
@@ -1030,6 +1061,14 @@ This is the counterpart of `org-journal--file-name->calendar-date' for
           (string-to-number (match-string 3 date))    ;; Day
           (string-to-number (match-string 1 date))))) ;; Year
 
+(defun org-journal--skip-meta-data ()
+  "Advance point past any file-level properties drawer.
+
+Extracted from org-roam (org-roam-end-of-meta-data)."
+  (when (looking-at org-property-drawer-re)
+    (goto-char (match-end 0))
+    (forward-line)))
+
 (defun org-journal--file->calendar-dates (file)
   "Return journal dates from FILE."
   (org-journal--with-journal
@@ -1037,6 +1076,7 @@ This is the counterpart of `org-journal--file-name->calendar-date' for
     (let (dates)
       (save-excursion
         (goto-char (point-min))
+        (org-journal--skip-meta-data)
         (while (re-search-forward org-journal--created-re nil t)
           (when (= (save-excursion (org-back-to-heading) (org-outline-level)) 1)
             (push (org-journal--entry-date->calendar-date) dates)))
@@ -1046,11 +1086,12 @@ This is the counterpart of `org-journal--file-name->calendar-date' for
 (defun org-journal-new-date-entry (prefix &optional event)
   "Open the journal for the date indicated by point and start a new entry.
 
-If the date is not today, it won't be given a time heading. With one prefix (C-u),
-don't add a new heading.
+If the date is not today, it won't be given a time heading. With
+one prefix (C-u), don't add a new heading.
 
-If the date is in the future, create a schedule entry, unless two universal prefix
-arguments (C-u C-u) are given. In that case insert just the heading."
+If the date is in the future, create a schedule entry, unless two
+universal prefix arguments (C-u C-u) are given. In that case
+insert just the heading."
   (interactive
    (list current-prefix-arg last-nonmenu-event))
   (let* ((time (or (ignore-errors (org-journal--calendar-date->time (calendar-cursor-to-date t event)))
@@ -1513,8 +1554,8 @@ existed before)."
 (def-edebug-spec org-journal--with-find-file (form body))
 
 (defun org-journal--update-org-agenda-files ()
-  "Adds the current and future journal files to `org-agenda-files' containing TODOs,
-and cleans out past org-journal files."
+  "Adds the current and future journal files to `org-agenda-files'
+containing TODOs, and cleans out past org-journal files."
   (when org-journal-enable-agenda-integration
     (let ((not-org-journal-agenda-files
            (seq-filter
@@ -1533,7 +1574,7 @@ and cleans out past org-journal files."
               (org-journal--calendar-date->time beg)
               (org-journal--calendar-date->time end)))))
       (org-store-new-agenda-file-list (append not-org-journal-agenda-files
-					      org-journal-agenda-files)))))
+                                              org-journal-agenda-files)))))
 
 (defvar org-journal--schedule-buffer-name "*Org-journal schedule*")
 
@@ -1832,7 +1873,7 @@ If STR is empty, search for all entries using `org-journal-time-prefix'."
 (defun org-journal-re-encrypt-journals (recipient)
   "Re-encrypt journal files."
   (interactive (list (epa-select-keys (epg-make-context epa-protocol)
-			              "Select new recipient for encryption.
+                                      "Select new recipient for encryption.
 Only one recipient is supported.  ")))
 
   (unless recipient
@@ -1842,29 +1883,29 @@ Only one recipient is supported.  ")))
     (user-error "org-journal encryption not enabled"))
 
   (cl-loop
-    with buf
-    with kill-buffer
-    for journal in (org-journal--list-files)
-    do
-      (setq buf (find-buffer-visiting journal)
-            kill-buffer nil)
+   with buf
+   with kill-buffer
+   for journal in (org-journal--list-files)
+   do
+   (setq buf (find-buffer-visiting journal)
+         kill-buffer nil)
 
-      (when (and buf
-                 (buffer-modified-p buf)
-                 (y-or-n-p (format "Journal \"%s\" modified, save before re-encryption?"
-                                   (file-name-nondirectory journal))))
-        (save-buffer buf))
+   (when (and buf
+              (buffer-modified-p buf)
+              (y-or-n-p (format "Journal \"%s\" modified, save before re-encryption?"
+                                (file-name-nondirectory journal))))
+     (save-buffer buf))
 
-      (unless buf
-        (setq kill-buffer t
-              buf (find-file-noselect journal)))
+   (unless buf
+     (setq kill-buffer t
+           buf (find-file-noselect journal)))
 
-      (with-current-buffer buf
-        (let ((epa-file-encrypt-to (epg-sub-key-id (car (epg-key-sub-key-list (car recipient))))))
-          (set-buffer-modified-p t)
-          (save-buffer)
-          (when kill-buffer
-            (kill-buffer))))))
+   (with-current-buffer buf
+     (let ((epa-file-encrypt-to (epg-sub-key-id (car (epg-key-sub-key-list (car recipient))))))
+       (set-buffer-modified-p t)
+       (save-buffer)
+       (when kill-buffer
+         (kill-buffer))))))
 
 (defun org-journal--decrypt ()
   "Decrypt journal entry at point."
@@ -1880,12 +1921,18 @@ Only one recipient is supported.  ")))
                    'before-save-hook)
       (save-buffer))))
 
-;; Setup encryption by default
-;;;###autoload
-(add-hook 'org-journal-mode-hook
-          (lambda () (add-hook org-journal-encrypt-on
-                               'org-journal-encryption-hook
-                               nil t)))
+(defun org-journal-default-enable-encryption ()
+  "Add org-journal-encryption-hook to the hook org-journal-encrypt-on,
+enabling encryption by default."
+  (add-hook org-journal-encrypt-on
+            'org-journal-encryption-hook
+            nil t))
+
+(defcustom org-journal-mode-hook
+  '(turn-on-visual-line-mode
+    org-journal-default-enable-encryption)
+  "Hook to run when org-journal-mode is loaded."
+  :type 'hook)
 
 (provide 'org-journal)
 
