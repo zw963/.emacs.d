@@ -83,16 +83,19 @@
 (add-hook 'org-mode-hook #'org-superstar-mode)
 
 ;; 快捷键：C-c C-j 打开新的 entry, C-c C-k 保存并关闭
-(require 'org-journal)
-(setq org-journal-dir (expand-file-name "org/journal" default-directory))
-;; (setq org-journal-date-prefix "#+TITLE: ")
-;; (setq org-journal-time-prefix "* ")
-(setq org-journal-date-format "%F, %A")
-(setq org-journal-time-format "%T ")
-(setq org-journal-file-format "%Y/%m.org")
-(setq org-journal-file-type 'Monthly)
-(setq org-journal-enable-agenda-integration t)
-(setq org-journal-enable-cache t)
+;; (require 'org-journal)
+;; (setq org-journal-dir (expand-file-name "org/journal" default-directory))
+;; ;; (setq org-journal-date-prefix "#+TITLE: ")
+;; ;; (setq org-journal-time-prefix "* ")
+;; (setq org-journal-date-format "%F, %A")
+;; (setq org-journal-time-format "%T ")
+;; (setq org-journal-file-format "%Y/%m.org")
+;; (setq org-journal-file-type 'Monthly)
+;; (setq org-journal-enable-agenda-integration t)
+;; (setq org-journal-enable-cache t)
+
+(require 'org-roam)
+(global-set-key [(control c) (control j)] 'org-roam-capture)
 
 (provide 'org-mode_init)
 ;;; org-mode_init.el ends here
