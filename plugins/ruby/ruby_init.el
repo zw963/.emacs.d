@@ -37,16 +37,25 @@
     ;; Emacs 的正则很奇怪,
     ;; 例如: 要匹配 ], 它必须是在第一个的位置, 要匹配 -, 它必须在最后的位置.
     (looking-at (concat "[]a-zA-Z_.[0-9(){}:/ \"'=>-]*" "\\s-+\\(.+\\s-+\\)*do[\s\t\n]+"))
-    (if (featurep 'enh-ruby-mode)
-        (enh-ruby-end-of-block)
-      (progn
-        (ruby-end-of-block)
-        (forward-word 1))))
+    (cond
+     ((equal major-mode 'enh-ruby-mode) (enh-ruby-end-of-block))
+     ((equal major-mode 'crystal-mode) (progn
+                                         ;; 这里 crystal-end-of-block 死循环
+                                         (ruby-end-of-block)
+                                         (forward-word 1)))
+     (t (progn
+          (ruby-end-of-block)
+          (forward-word 1)))
+     )
+    )
    ;; ((fourth (syntax-ppss)) (er/expand-region arg))
    (t
-    (if (featurep 'enh-ruby-mode)
-        (enh-ruby-forward-sexp)
-      (ruby-forward-sexp)))))
+    (cond
+     ((equal major-mode 'enh-ruby-mode) (enh-ruby-forward-sexp))
+     ((equal major-mode 'crystal-mode) (ruby-forward-sexp))
+     (t (ruby-forward-sexp))
+     )
+    )))
 
 (defun seeing-is-believing ()
   "Replace the current region (or the whole buffer, if none) with the output
