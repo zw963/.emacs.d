@@ -55,6 +55,7 @@
 (require 'widget)
 (require 'xref)
 (require 'minibuffer)
+(require 'help-mode)
 (require 'yasnippet nil t)
 (require 'lsp-protocol)
 
@@ -354,6 +355,8 @@ the server has requested that."
     "[/\\\\]build-aux\\'"
     "[/\\\\]autom4te.cache\\'"
     "[/\\\\]\\.reference\\'"
+    ;; Bazel
+    "bazel-[^/\\\\]+\\'"
     ;; Clojure
     "[/\\\\]\\.lsp\\'"
     "[/\\\\]\\.clj-kondo\\'"
@@ -4291,12 +4294,6 @@ interface TextDocumentEdit {
 
 (lsp-defun lsp--apply-text-edit ((edit &as &TextEdit :range (&RangeToPoint :start :end) :new-text))
   "Apply the edits described in the TextEdit object in TEXT-EDIT."
-  ;; We sort text edits so as to apply edits that modify latter parts of the
-  ;; document first. Furthermore, because the LSP spec dictates that:
-  ;; "If multiple inserts have the same position, the order in the array
-  ;; defines which edit to apply first."
-  ;; We reverse the initial list and sort stably to make sure the order among
-  ;; edits with the same position is preserved.
   (setq new-text (s-replace "\r" "" (or new-text "")))
   (lsp:set-text-edit-new-text edit new-text)
   (goto-char start)
@@ -4420,6 +4417,13 @@ OPERATION is symbol representing the source of this text edit."
                            #'lsp--apply-text-edit)))
         (unwind-protect
             (->> edits
+                 ;; We sort text edits so as to apply edits that modify latter
+                 ;; parts of the document first. Furthermore, because the LSP
+                 ;; spec dictates that: "If multiple inserts have the same
+                 ;; position, the order in the array defines which edit to
+                 ;; apply first."  We reverse the initial list and sort stably
+                 ;; to make sure the order among edits with the same position
+                 ;; is preserved.
                  (nreverse)
                  (seq-sort #'lsp--text-edit-sort-predicate)
                  (mapc (lambda (edit)
@@ -5087,9 +5091,32 @@ If EXCLUDE-DECLARATION is non-nil, request the server to include declarations."
                            :mode 'tick
                            :cancel-token :highlights)))))
 
+(defun lsp--help-open-link (&rest _)
+  "Open markdown link at point via mouse or keyboard."
+  (interactive "P")
+  (let ((buffer-list-update-hook nil))
+    (-let [(buffer point) (if-let* ((valid (and (listp last-input-event)
+                                                (eq (car last-input-event) 'mouse-2)))
+                                    (event (cadr last-input-event))
+                                    (win (posn-window event))
+                                    (buffer (window-buffer win)))
+                              `(,buffer ,(posn-point event))
+                            `(,(current-buffer) ,(point)))]
+      (with-current-buffer buffer
+        ;; Markdown-mode puts the url in 'help-echo
+        (-some-> (get-text-property point 'help-echo)
+          (lsp--document-link-handle-target))))))
+
+(defvar lsp-help-mode-map
+  (-doto (make-sparse-keymap)
+    (define-key [remap markdown-follow-link-at-point] #'lsp--help-open-link))
+  "Keymap for `lsp-help-mode'.")
+
+(define-derived-mode lsp-help-mode help-mode "LspHelp"
+  "Major mode for displaying lsp help.")
+
 (defun lsp-describe-thing-at-point ()
-  "Display the type signature and documentation of the thing at
-point."
+  "Display the type signature and documentation of the thing at point."
   (interactive)
   (let ((contents (-some->> (lsp--text-document-position-params)
                     (lsp--make-request "textDocument/hover")
@@ -5098,6 +5125,7 @@ point."
     (if (and contents (not (equal contents "")))
         (let ((lsp-help-buf-name "*lsp-help*"))
           (with-current-buffer (get-buffer-create lsp-help-buf-name)
+            (lsp-help-mode)
             (with-help-window lsp-help-buf-name
               (insert (string-trim-right (lsp--render-on-hover-content contents t))))))
       (lsp--info "No content at point."))))
@@ -5371,7 +5399,7 @@ RENDER-ALL - nil if only the signature should be rendered."
     (define-key (kbd "M-a") #'lsp-signature-toggle-full-docs)
     (define-key (kbd "C-c C-k") #'lsp-signature-stop)
     (define-key (kbd "C-g") #'lsp-signature-stop))
-  "Keymap for `lsp-signature-mode-map'.")
+  "Keymap for `lsp-signature-mode'.")
 
 (define-minor-mode lsp-signature-mode
   "Mode used to show signature popup."
@@ -8379,7 +8407,8 @@ When ALL is t, erase all log buffers of the running session."
   "Describes current `lsp-session'."
   (interactive)
   (let ((session (lsp-session))
-        (buf (get-buffer-create "*lsp session*")))
+        (buf (get-buffer-create "*lsp session*"))
+        (root (lsp-workspace-root)))
     (with-current-buffer buf
       (lsp-browser-mode)
       (let ((inhibit-read-only t))
@@ -8393,7 +8422,11 @@ When ALL is t, erase all log buffers of the running session."
                     (lsp-session-folder->servers)
                     (gethash it)
                     (-map 'lsp--render-workspace)))))))
-    (pop-to-buffer buf)))
+    (pop-to-buffer buf)
+    (goto-char (point-min))
+    (cl-loop for tag = (widget-get (widget-get (widget-at) :node) :tag)
+             until (or (and root (string= tag root)) (eobp))
+             do (goto-char (next-overlay-change (point))))))
 
 (defun lsp--session-workspaces (session)
   "Get all workspaces that are part of the SESSION."
@@ -8741,7 +8774,9 @@ argument ask the user to select which language server to start."
           (when lsp-auto-configure (lsp--auto-configure))
           (setq lsp-buffer-uri (lsp--buffer-uri))
           (lsp--info "Connected to %s."
-                     (apply 'concat (--map (format "[%s]" (lsp--workspace-print it))
+                     (apply 'concat (--map (format "[%s %s]"
+                                                   (lsp--workspace-print it)
+                                                   (lsp--workspace-root it))
                                            lsp--buffer-workspaces)))))
        ;; look for servers which are currently being downloaded.
        ((setq clients (lsp--filter-clients (-andfn #'lsp--supports-buffer?
