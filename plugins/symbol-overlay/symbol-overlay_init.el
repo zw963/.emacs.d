@@ -18,9 +18,6 @@
 ;; (define-key map (kbd ">") 'symbol-overlay-jump-last)
 ;; (define-key map (kbd "h") 'symbol-overlay-map-help)
 
-;; (define-key symbol-overlay-map (kbd "s-n") 'symbol-overlay-jump-next)
-(define-key symbol-overlay-map (kbd "C-g") 'symbol-overlay-remove-all)
-
 (dolist (hook '(prog-mode-hook
                 web-mode-hook
                 ))
@@ -29,6 +26,20 @@
                    )))
 
 (global-set-key (kbd "<f7>") 'symbol-overlay-put)
+(define-key symbol-overlay-map (kbd "C-g") 'symbol-overlay-remove-all)
+
+;; (require 'idle-highlight-mode)
+
+;; (global-idle-highlight-mode)
+;; (setq idle-highlight-idle-time 0.2)
+;; (setq global-idle-highlight-ignore-buffer (lambda (buf) (buffer-local-value 'buffer-read-only buf)))
+
+;; (add-hook 'after-change-major-mode-hook
+;;   (lambda ()
+;;     (when (derived-mode-p 'c-mode)
+;;       (setq-local idle-highlight-exceptions '("unsigned" "signed" "long" "int" "shot" "char")))
+;;     (when (derived-mode-p 'python-mode)
+;;       (setq-local idle-highlight-exceptions '("list" "tuple" "int" "float" "str" "bool")))))
 
 (provide 'symbol-overlay_init)
 
