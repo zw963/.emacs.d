@@ -22,6 +22,7 @@
 ;;; Code:
 
 (require 'dash)
+(require 'f)
 (require 'lsp-mode)
 
 (defcustom lsp-dart-sdk-dir nil
@@ -60,6 +61,15 @@ Used by features that needs to know project entrypoint like DAP support."
   :risky t
   :type '(repeat string))
 
+(defcustom lsp-dart-project-root-discovery-strategies '(lsp-root closest-pubspec)
+  "Strategies to consider to find project-root for most lsp-dart commands.
+Order is important."
+  :group 'lsp-dart
+  :type '(repeat
+          (choice
+           (const :tag "lsp-mode workspace root" lsp-root)
+           (const :tag "Searches since the the current buffer until `/` for a pubspec file" closest-pubspec))))
+
 
 ;; Internal
 
@@ -78,11 +88,12 @@ Used by features that needs to know project entrypoint like DAP support."
 
 (defun lsp-dart--flutter-repo-p ()
   "Return non-nil if buffer is the flutter repository."
-  (if-let (bin-path (locate-dominating-file default-directory lsp-dart-flutter-executable))
-      (and (file-regular-p (expand-file-name lsp-dart-flutter-executable bin-path))
-           (->> bin-path
-                (expand-file-name "cache/dart-sdk")
-                file-directory-p))))
+  (let ((bin-command (f-join "bin" lsp-dart-flutter-executable)))
+    (when-let (root-path (locate-dominating-file default-directory bin-command))
+      (and (file-regular-p (expand-file-name bin-command root-path))
+           (->> root-path
+                (expand-file-name (f-join "bin" "cache" "dart-sdk"))
+                file-directory-p)))))
 
 (defun lsp-dart-flutter-project-p ()
   "Return non-nil if buffer is a flutter project."
@@ -109,6 +120,14 @@ Used by features that needs to know project entrypoint like DAP support."
       (append list (list value))
     list))
 
+(defun lsp-dart-flutter-snap-install-p ()
+  "Detecting whether this is a Linux system with a Snap style install."
+  (and (string= system-type "gnu/linux")
+       (let ((first-dir (-some-> (executable-find lsp-dart-flutter-executable) f-split cdr car)))
+         (and first-dir
+              (string= first-dir "snap")
+              (file-exists-p "~/snap/flutter/common/flutter/bin/flutter")))))
+
 
 ;; SDKs
 
@@ -123,6 +142,7 @@ is used in preference."
           (if (file-exists-p dart-sdk)
               dart-sdk
             (error "Dart SDK not found inside flutter cache dir %s.  Consider setting `lsp-dart-sdk-dir` variable" dart-sdk))))
+      (and (lsp-dart-flutter-snap-install-p) "~/snap/flutter/common/flutter/bin/cache/dart-sdk")
       (-some-> (executable-find "dart")
         file-truename
         (locate-dominating-file "bin")
@@ -134,6 +154,7 @@ Check for `lsp-dart-flutter-sdk-dir` then
 flutter executable on PATH then
 FLUTTER_ROOT environment variable."
   (or lsp-dart-flutter-sdk-dir
+      (and (lsp-dart-flutter-snap-install-p) "~/snap/flutter/common/flutter")
       (-some-> (executable-find lsp-dart-flutter-executable)
         file-truename
         (locate-dominating-file "bin")
@@ -176,10 +197,14 @@ FLUTTER_ROOT environment variable."
 
 (defun lsp-dart-get-project-root ()
   "Return the dart or flutter project root."
-  (or (lsp-workspace-root)
-      (-some-> default-directory
-        (locate-dominating-file "pubspec.yaml")
-        file-truename)))
+  (-some
+   (lambda (strategy)
+     (cl-case strategy
+       ('lsp-root (lsp-workspace-root))
+       ('closest-pubspec (-some-> default-directory
+                           (locate-dominating-file "pubspec.yaml")
+                           file-truename))))
+   lsp-dart-project-root-discovery-strategies))
 
 (defun lsp-dart-get-project-entrypoint ()
   "Return the dart or flutter project entrypoint."
