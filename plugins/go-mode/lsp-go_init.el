@@ -24,8 +24,8 @@
 ;;  )
 
 
-(require 'dap-mode_init)
-(require 'dap-dlv-go)
+;; (require 'dap-mode_init)
+;; (require 'dap-dlv-go)
 
 (provide 'lsp-go_init)
 

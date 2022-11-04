@@ -1,5 +1,5 @@
 (require 'lsp-mode_init)
-(require 'dap-mode_init)
+;; (require 'dap-mode_init)
 (require 'lsp-dart)
 
 (defun special-mode-lsp-dart-dap-flutter-hot-reload ()
