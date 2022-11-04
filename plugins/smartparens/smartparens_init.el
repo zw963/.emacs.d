@@ -4,7 +4,7 @@
 (sp-pair "\\`" "\\'" :when '(sp-in-comment-p))
 
 (sp-local-pair 'sh-mode "'" "'" :unless nil)
-;; (sp-local-pair 'org-mode "=" "=" :when nil)
+(sp-local-pair 'org-mode "=" nil :actions nil)
 
 (let ((pairs '(("{" nil) ("[" nil) ("(" nil))))
   (mapc
@@ -19,7 +19,8 @@
 (sp-local-pair
  '(markdown-mode gfm-mode) "*" "*" :unless '(sp-in-string-p) :actions '(insert wrap))
 
-(add-hook 'prog-mode-hook #'smartparens-mode)
+;; (add-hook 'prog-mode-hook #'smartparens-mode)
+(smartparens-global-mode)
 
 (provide 'smartparens_init)
 
