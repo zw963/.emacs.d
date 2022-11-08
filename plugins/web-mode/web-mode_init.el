@@ -1,4 +1,5 @@
 (require 'web-mode)
+(require 'auto-rename-tag)
 
 (setq
  web-mode-markup-indent-offset 2
@@ -40,6 +41,7 @@
             (local-set-key [(control meta ?\s)] 'rhtml-mark-sexp-tag)
             (local-set-key [(control tab)] 'web-mode-element-children-fold-or-unfold)
             (local-set-key [(meta return)] 'html-mode-newline-and-indent)
+            (auto-rename-tag-mode)
             ))
 
 (defun save-buffer-and-browse-url ()
