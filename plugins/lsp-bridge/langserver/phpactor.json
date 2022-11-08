@@ -1,9 +1,9 @@
 {
-  "name": "intelephense",
+  "name": "phpactor",
   "languageId": "php",
   "command": [
-    "intelephense",
-    "--stdio"
+    "phpactor",
+    "language-server"
   ],
   "settings": {}
 }

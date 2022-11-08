@@ -22,6 +22,7 @@
 import threading
 import os
 import traceback
+import re
 
 from core.utils import get_emacs_vars, message_emacs, eval_in_emacs, logger
 from core.pystardict import Dictionary
@@ -57,7 +58,7 @@ class SearchSdcvWords:
                     dictionary_path = self.search_dictionary
                     
                 if os.path.exists("{}.ifo".format(dictionary_path)):
-                    start_dictionary = Dictionary(dictionary_path)
+                    start_dictionary = Dictionary(dictionary_path, in_memory=True)
                     
                     candidates = []
                     for word in start_dictionary.keys():
@@ -87,8 +88,10 @@ class SearchSdcvWords:
                     
     def search_words(self, prefix: str, ticker: int):
         candidates = []
+        
+        prefix_regexp = re.compile(".*".join(prefix))
         for word, translation in self.words.items():
-            if word.startswith(prefix.lower()):
+            if word.startswith(prefix.lower()) or prefix_regexp.match(word):
                 candidate = {
                     "key": word,
                     "icon": "translation",
@@ -103,4 +106,4 @@ class SearchSdcvWords:
                     break
                 
         if ticker == self.search_ticker:
-            eval_in_emacs("lsp-bridge-search-sdcv-words--record-items", candidates)
+            eval_in_emacs("lsp-bridge-search-sdcv-words--record-items", sorted(candidates, key=lambda item: len(item["label"])))

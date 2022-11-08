@@ -8,7 +8,7 @@
 ;; Copyright (C) 2022, Andy Stewart, all rights reserved.
 ;; Created: 2022-05-31 16:29:33
 ;; Version: 0.1
-;; Last-Updated: 2022-10-09 14:56:54 +0800
+;; Last-Updated: 2022-10-26 14:05:49 +0800
 ;;           By: Gong Qijian
 ;; URL: https://www.github.org/manateelazycat/acm
 ;; Keywords:
@@ -100,6 +100,7 @@
 (require 'acm-backend-tempel)
 (require 'acm-backend-telega)
 (require 'acm-backend-tabnine)
+(require 'acm-backend-tailwind)
 (require 'acm-backend-citre)
 (require 'acm-quick-access)
 
@@ -120,8 +121,9 @@
   '(nil ignore universal-argument universal-argument-more digit-argument
         self-insert-command org-self-insert-command
         ;; Avoid flashing completion menu when backward delete char
-        grammatical-edit-backward-delete backward-delete-char-untabify python-indent-dedent-line-backspace delete-backward-char
-        "\\`acm-" "\\`scroll-other-window")
+        grammatical-edit-backward-delete backward-delete-char-untabify
+        python-indent-dedent-line-backspace delete-backward-char hungry-delete-backward
+        "\\`acm-" "\\`scroll-other-window" "\\`special-lispy-")
   "Continue ACM completion after executing these commands."
   :type '(repeat (choice regexp symbol))
   :group 'acm)
@@ -172,6 +174,7 @@
     (define-key map [remap previous-line] #'acm-select-prev)
     (define-key map [down] #'acm-select-next)
     (define-key map [up] #'acm-select-prev)
+    (define-key map [tab]  #'acm-complete)
     (define-key map "\M-n" #'acm-select-next)
     (define-key map "\M-p" #'acm-select-prev)
     (define-key map "\M-," #'acm-select-last)
@@ -453,6 +456,7 @@ influence of C1 on the result."
         ;; Fetch syntax completion candidates.
         (setq lsp-candidates (acm-backend-lsp-candidates keyword))
         (setq mode-candidates (append
+                               (acm-backend-tailwind-candidates keyword)
                                (acm-backend-elisp-candidates keyword)
                                lsp-candidates
                                citre-candidates
@@ -491,10 +495,11 @@ The key of candidate will change between two LSP results."
   ;; make sure Emacs not do GC when filter/sort candidates.
   (let* ((gc-cons-threshold most-positive-fixnum)
          (keyword (acm-get-input-prefix))
+         (previous-select-candidate-index (+ acm-menu-offset acm-menu-index))
          (previous-select-candidate (acm-menu-index-info (acm-menu-current-candidate)))
          (candidates (acm-update-candidates))
          (menu-candidates (cl-subseq candidates 0 (min (length candidates) acm-menu-length)))
-         (menu-index (cl-position previous-select-candidate (mapcar 'acm-menu-index-info menu-candidates) :test 'equal))
+         (current-select-candidate-index (cl-position previous-select-candidate (mapcar 'acm-menu-index-info menu-candidates) :test 'equal))
          (bounds (acm-get-input-prefix-bound)))
     (cond
      ;; Hide completion menu if user type first candidate completely.
@@ -511,26 +516,36 @@ The key of candidate will change between two LSP results."
         ;; Use `pre-command-hook' to hide completion menu when command match `acm-continue-commands'.
         (add-hook 'pre-command-hook #'acm--pre-command nil 'local)
 
-        ;; Init candidates and offset.
+        ;; Adjust candidates.
+        (setq-local acm-menu-offset 0)  ;init offset to 0
+        (if (zerop (length acm-menu-candidates))
+            ;; Adjust `acm-menu-index' to -1 if no candidates found.
+            (setq-local acm-menu-index -1)
+          ;; First init `acm-menu-index' to 0.
+          (setq-local acm-menu-index 0)
+
+          ;; The following code is specifically to adjust the selection position of candidate when typing fast.
+          (when (and current-select-candidate-index
+                     (> (length candidates) 1))
+            (cond
+             ;; Swap the position of the first two candidates
+             ;; if previous candidate's position change from 1st to 2nd.
+             ((and (= previous-select-candidate-index 0) (= current-select-candidate-index 1))
+              (cl-rotatef (nth 0 candidates) (nth 1 candidates))
+              (cl-rotatef (nth 0 menu-candidates) (nth 1 menu-candidates)))
+             ;; Swap the position of the first two candidates and select 2nd postion
+             ;; if previous candidate's position change from 2nd to 1st.
+             ((and (= previous-select-candidate-index 1) (= current-select-candidate-index 0))
+              (cl-rotatef (nth 0 candidates) (nth 1 candidates))
+              (cl-rotatef (nth 0 menu-candidates) (nth 1 menu-candidates))
+              (setq-local acm-menu-index 1))
+             ;; Select 2nd position if previous candidate's position still is 2nd.
+             ((and (= previous-select-candidate-index 1) (= current-select-candidate-index 1))
+              (setq-local acm-menu-index 1)))))
+
+        ;; Set candidates and menu candidates.
         (setq-local acm-candidates candidates)
         (setq-local acm-menu-candidates menu-candidates)
-        (setq-local acm-menu-offset 0)
-
-        ;; Set menu index.
-        (setq-local acm-menu-index
-                    (cond
-                     ;; If `acm-menu-candidates' size is zero, menu index set to -1
-                     ((zerop (length acm-menu-candidates)) -1)
-                     ;; If `menu-index' is non-nil, restore menu index with new postion that match previous select candidate
-                     ;;
-                     ;; NOTE:
-                     ;; LSP server will return newest candidates to acm when user select non-first candidate,
-                     ;; `acm-complete' will expand wrong candidate content if we just make `acm-menu-index' equal 0.
-                     ;; So we need record previous select candidate before call `acm-update-candidates',
-                     ;; and try to restore new menu index that match previous select candidate.
-                     (menu-index menu-index)
-                     ;; Otherwise, menu index set to 0
-                     (t 0)))
 
         ;; Init colors.
         (acm-init-colors)
@@ -568,15 +583,18 @@ The key of candidate will change between two LSP results."
 
 (defun acm-init-colors (&optional force)
   (let* ((is-dark-mode (string-equal (acm-get-theme-mode) "dark"))
-         (blend-background (if is-dark-mode "#000000" "#AAAAAA")))
+         (blend-background (if is-dark-mode "#000000" "#AAAAAA"))
+         (default-background (if (equal (face-attribute 'acm-default-face :background) 'unspecified)
+                                 (face-attribute 'default :background)
+                               (face-attribute 'acm-default-face :background))))
     ;; Make sure font size of frame same as Emacs.
     (set-face-attribute 'acm-buffer-size-face nil :height (face-attribute 'default :height))
 
     ;; Make sure menu follow the theme of Emacs.
     (when (or force (equal (face-attribute 'acm-default-face :background) 'unspecified))
-      (set-face-background 'acm-default-face (acm-color-blend (face-attribute 'default :background) blend-background (if is-dark-mode 0.8 0.9))))
+      (set-face-background 'acm-default-face (acm-color-blend default-background blend-background (if is-dark-mode 0.8 0.9))))
     (when (or force (equal (face-attribute 'acm-select-face :background) 'unspecified))
-      (set-face-background 'acm-select-face (acm-color-blend (face-attribute 'default :background) blend-background 0.6)))
+      (set-face-background 'acm-select-face (acm-color-blend default-background blend-background 0.6)))
     (when (or force (equal (face-attribute 'acm-select-face :foreground) 'unspecified))
       (set-face-foreground 'acm-select-face (face-attribute 'font-lock-function-name-face :foreground)))))
 
@@ -664,28 +682,35 @@ The key of candidate will change between two LSP results."
      (cancel-timer ,timer)
      (setq ,timer nil)))
 
-(defun acm-doc-hide ()
-  (unless acm-doc-frame-hide-p
-    ;; FIXME:
-    ;; Because `make-frame-invisible' is ver slow in Emacs29,
-    ;; We use `run-with-timer' to avoid call `make-frame-invisible' too frequently.
-    (when (version< emacs-version "29.0")
-      (make-frame-invisible acm-doc-frame))
-    (setq acm-doc-frame-hide-p t)))
+(defun acm-running-in-wayland-native ()
+  (and (eq window-system 'pgtk)
+       (fboundp 'pgtk-backend-display-class)
+       (string-equal (pgtk-backend-display-class) "GdkWaylandDisplay")))
 
-(unless (version< emacs-version "29.0")
+(defun acm-doc-hide ()
+  (if (acm-running-in-wayland-native)
+      ;; FIXME:
+      ;; Because `make-frame-invisible' is ver slow in pgtk branch.
+      ;; We use `run-with-timer' to avoid call `make-frame-invisible' too frequently.
+      (unless acm-doc-frame-hide-p
+        (acm-doc--hide)
+        (setq acm-doc-frame-hide-p t))
+    (acm-doc--hide)))
+
+(defun acm-doc--hide()
+  (when (acm-frame-visible-p acm-doc-frame)
+    (make-frame-invisible acm-doc-frame)))
+
+(when (acm-running-in-wayland-native)
   (unless acm-doc-frame-hide-timer
     (setq acm-doc-frame-hide-timer
           (run-with-timer 0 0.5
                           #'(lambda ()
-                              (when (and acm-doc-frame-hide-p
-                                         acm-doc-frame
-                                         (frame-live-p acm-doc-frame)
-                                         (frame-visible-p acm-doc-frame))
-                                ;; FIXME:
-                                ;; Because `make-frame-invisible' is ver slow in Emacs29,
-                                ;; We use `run-with-timer' to avoid call `make-frame-invisible' too frequently.
-                                (make-frame-invisible acm-doc-frame)))))))
+                              ;; FIXME:
+                              ;; Because `make-frame-invisible' is ver slow in pgtk branch.
+                              ;; We use `run-with-timer' to avoid call `make-frame-invisible' too frequently.
+                              (when acm-doc-frame-hide-p
+                                (acm-doc--hide)))))))
 
 (defun acm--pre-command ()
   ;; Use `pre-command-hook' to hide completion menu when command match `acm-continue-commands'.
@@ -846,8 +871,11 @@ The key of candidate will change between two LSP results."
 
             ;; Adjust doc frame position and size.
             (acm-doc-frame-adjust))
-        ;; Hide doc frame.
-        (acm-doc-hide)))))
+
+        ;; Hide doc frame immediately if backend is not LSP.
+        ;; If backend is LSP, doc frame hide is control by `lsp-bridge-completion-item--update'.
+        (unless (string-equal backend "lsp")
+          (acm-doc-hide))))))
 
 (defun acm-doc-frame-adjust ()
   (let* ((emacs-width (frame-pixel-width))
@@ -953,6 +981,11 @@ The key of candidate will change between two LSP results."
 (defun acm-frame-visible-p (frame)
   (and (frame-live-p frame)
        (frame-visible-p frame)))
+
+(defun acm-is-elisp-mode-p ()
+  (or (derived-mode-p 'emacs-lisp-mode)
+      (derived-mode-p 'inferior-emacs-lisp-mode)
+      (derived-mode-p 'lisp-interaction-mode)))
 
 (defun acm-select-first ()
   "Select first candidate."

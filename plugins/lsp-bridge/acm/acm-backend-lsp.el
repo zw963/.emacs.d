@@ -93,12 +93,12 @@
   :type 'integer
   :group 'acm-backend-lsp)
 
-(defcustom acm-backend-lsp-candidate-max-length 30
+(defcustom acm-backend-lsp-candidate-max-length 60
   "Maximal length of candidate."
   :type 'integer
   :group 'acm-backend-lsp)
 
-(defcustom acm-backend-lsp-candidates-max-number 1000
+(defcustom acm-backend-lsp-candidates-max-number 100
   "Maximal number of candidate of menu."
   :type 'integer
   :group 'acm-backend-lsp)
@@ -124,26 +124,16 @@
           (when-let* ((server-items (gethash server-name acm-backend-lsp-items)))
             (maphash (lambda (k v)
                        (let ((candidate-label (plist-get v :label)))
-                         (when (or (string-equal keyword "")
-                                   (acm-candidate-fuzzy-search keyword candidate-label))
+                         (when (equal server-name "文")
+                           (plist-put v :display-label (plist-get (plist-get v :textEdit) :newText)))
 
-                           ;; Adjust display label.
-                           (plist-put v :display-label
-                                      (cond ((equal server-name "文")
-                                             (plist-get (plist-get v :textEdit) :newText))
-                                            ((> (length candidate-label) acm-backend-lsp-candidate-max-length)
-                                             (format "%s ..." (substring candidate-label 0 acm-backend-lsp-candidate-max-length)))
-                                            (t
-                                             candidate-label)))
-
-                           ;; FIXME: This progn here is to workaround invalid-function error for macros that have function bindings
-                           ;; References: https://debbugs.gnu.org/cgi/bugreport.cgi?bug=46958
-                           (progn
-                             (plist-put v :backend "lsp")
-                             (add-to-list 'candidates v t)))))
+                         (add-to-list 'candidates v t)))
                      server-items)))))
 
-    (acm-candidate-sort-by-prefix keyword candidates)))
+    ;; NOTE:
+    ;; lsp-bridge has sort candidate at Python side,
+    ;; please do not do secondary sorting here, elisp is very slow.
+    candidates))
 
 (defun acm-backend-lsp-candidate-expand (candidate-info bound-start)
   (let* ((label (plist-get candidate-info :label))

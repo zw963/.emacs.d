@@ -36,16 +36,14 @@ from core.fileaction import (FileAction,
 from core.lspserver import LspServer
 from core.search_file_words import SearchFileWords
 from core.search_sdcv_words import SearchSdcvWords
+from core.search_elisp_symbols import SearchElispSymbols
+from core.search_tailwindcss_keywords import SearchTailwindKeywords
 from core.tabnine import TabNine
 from core.utils import *
 from core.handler import *
 
 class LspBridge:
     def __init__(self, args):
-
-        # Object cache to exchange information between Emacs and LSP server.
-        self.tabnine = TabNine()
-
         # Build EPC interfaces.
         handler_subclasses = list(map(lambda cls: cls.name, Handler.__subclasses__()))
         for name in ["change_file", "update_file", "change_cursor", "save_file", 
@@ -76,6 +74,9 @@ class LspBridge:
         self.server_thread = threading.Thread(target=self.server.serve_forever)
         self.server_thread.start()
         
+        # Init tabnine.
+        self.tabnine = TabNine()        
+
         # Init search file words.
         self.search_file_words = SearchFileWords()
         for name in ["change_file", "close_file", "rebuild_cache", "search"]:
@@ -85,6 +86,16 @@ class LspBridge:
         self.search_sdcv_words = SearchSdcvWords()
         for name in ["search"]:
             self.build_prefix_function("search_sdcv_words", "search_sdcv_words", name)
+            
+        # Init search elisp symbols.
+        self.search_elisp_symbols = SearchElispSymbols()
+        for name in ["search", "update"]:
+            self.build_prefix_function("search_elisp_symbols", "search_elisp_symbols", name)
+
+        # Init search tailwind keywords
+        self.search_tailwind_keywords = SearchTailwindKeywords()
+        for name in ["search"]:
+            self.build_prefix_function("search_tailwind_keywords", "search_tailwind_keywords", name)
             
         # Init emacs option.
         enable_lsp_server_log = get_emacs_var("lsp-bridge-enable-log")
@@ -141,10 +152,6 @@ class LspBridge:
         if is_in_path_dict(FILE_ACTION_DICT, old_filepath):
             get_from_path_dict(FILE_ACTION_DICT, old_filepath).rename_file(old_filepath, new_filepath)
         
-    def completion_hide(self, filepath):
-        if is_in_path_dict(FILE_ACTION_DICT, filepath):
-            get_from_path_dict(FILE_ACTION_DICT, filepath).last_completion_candidates = {}
-            
     def fetch_completion_item_info(self, filepath, item_key, server_name):
         if is_in_path_dict(FILE_ACTION_DICT, filepath):
             get_from_path_dict(FILE_ACTION_DICT, filepath).completion_item_resolve(item_key, server_name)
@@ -214,7 +221,8 @@ class LspBridge:
                 # We always replace LSP server command with absolute path of 'which' command.
                 lang_server_info["command"][0] = server_command_path
             else:
-                self.turn_off(filepath, "Error: can't find LSP server '{}' for {}, disable lsp-bridge-mode.".format(server_command, filepath))
+                self.turn_off(filepath, "Error: can't find command '{}' to start LSP server {} ({}), disable lsp-bridge-mode.".format(
+                    server_command, lang_server_info["name"], filepath))
         
                 return False
         else:

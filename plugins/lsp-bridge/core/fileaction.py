@@ -63,7 +63,6 @@ class FileAction:
         self.filepath = filepath
         self.last_change_cursor_time = -1.0
         self.last_change_file_time = -1.0
-        self.last_completion_candidates = {}
         self.request_dict = {}
         self.try_completion_timer = None
         self.version = 1
@@ -78,12 +77,14 @@ class FileAction:
          self.completion_items_limit, 
          self.insert_spaces,
          self.enable_push_diagnostics,
-         self.push_diagnostic_idle) = get_emacs_vars([
-            "acm-backend-lsp-enable-auto-import",
-            "acm-backend-lsp-candidates-max-number",
-            "indent-tabs-mode",
-            "lsp-bridge-enable-diagnostics",
-            "lsp-bridge-diagnostic-fetch-idle"
+         self.push_diagnostic_idle,
+         self.display_label_max_length) = get_emacs_vars([
+             "acm-backend-lsp-enable-auto-import",
+             "acm-backend-lsp-candidates-max-number",
+             "indent-tabs-mode",
+             "lsp-bridge-enable-diagnostics",
+             "lsp-bridge-diagnostic-fetch-idle",
+             "acm-backend-lsp-candidate-max-length"
         ])
         self.insert_spaces = not self.insert_spaces
 
@@ -129,7 +130,7 @@ class FileAction:
         else:
             self.send_server_request(method_server, method, *args, **kwargs) 
             
-    def change_file(self, start, end, range_length, change_text, position, before_char, completion_visible, buffer_name):
+    def change_file(self, start, end, range_length, change_text, position, before_char, buffer_name, prefix):
         buffer_content = ''
         # Send didChange request to LSP server.
         for lsp_server in self.get_lsp_servers():
@@ -152,7 +153,7 @@ class FileAction:
         self.last_change_file_time = time.time()
 
         # Send textDocument/completion 100ms later.
-        self.try_completion_timer = threading.Timer(0.1, lambda : self.try_completion(position, before_char, completion_visible))
+        self.try_completion_timer = threading.Timer(0.1, lambda : self.try_completion(position, before_char, prefix))
         self.try_completion_timer.start()
         
     def update_file(self, buffer_name):
@@ -162,7 +163,7 @@ class FileAction:
 
         self.version += 1
 
-    def try_completion(self, position, before_char, completion_visible):
+    def try_completion(self, position, before_char, prefix):
         # Only send textDocument/completion request when match one of following rules:
         # 1. Character before cursor is match completion trigger characters.
         # 2. Completion UI is invisible.
@@ -170,9 +171,9 @@ class FileAction:
         if self.multi_servers:
             for lsp_server in self.multi_servers.values():
                 if lsp_server.server_info["name"] in self.multi_servers_info["completion"]:
-                    self.send_server_request(lsp_server, "completion", lsp_server, position, before_char)
+                    self.send_server_request(lsp_server, "completion", lsp_server, position, before_char, prefix)
         else:
-            self.send_server_request(self.single_server, "completion", self.single_server, position, before_char)
+            self.send_server_request(self.single_server, "completion", self.single_server, position, before_char, prefix)
                 
     def change_cursor(self, position):
         # Record change cursor time.
