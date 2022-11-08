@@ -230,6 +230,58 @@ the cursor by ARG lines."
       (setq menu-updating-frame nil)
       (kill-buffer (current-buffer)))))
 
+;; Stolen from https://github.com/manateelazycat/toggle-one-window/blob/main/toggle-one-window.el
+(defvar toggle-one-window-window-configuration nil
+  "The window configuration use for `toggle-one-window'.")
+
+(defun toggle-one-window ()
+  "Toggle between window layout and one window."
+  (interactive)
+  (if (equal (length (cl-remove-if #'window-dedicated-p (window-list))) 1)
+      (if toggle-one-window-window-configuration
+          (progn
+            (set-window-configuration toggle-one-window-window-configuration)
+            (setq toggle-one-window-window-configuration nil))
+        (message "No other windows exist."))
+    (setq toggle-one-window-window-configuration (current-window-configuration))
+    (delete-other-windows)))
+
+(global-set-key [(meta \8)] 'toggle-one-window)
+
+;; Stolen from https://github.com/manateelazycat/delete-block/blob/master/delete-block.el
+(defun delete-block-forward ()
+  (interactive)
+  (if (eobp)
+      (message "End of buffer")
+    (let* ((syntax-move-point
+            (save-excursion
+              (skip-syntax-forward (string (char-syntax (char-after))))
+              (point)
+              ))
+           (subword-move-point
+            (save-excursion
+              (subword-forward)
+              (point))))
+      (kill-region (point) (min syntax-move-point subword-move-point)))))
+
+(defun delete-block-backward ()
+  (interactive)
+  (if (bobp)
+      (message "Beginning of buffer")
+    (let* ((syntax-move-point
+            (save-excursion
+              (skip-syntax-backward (string (char-syntax (char-before))))
+              (point)
+              ))
+           (subword-move-point
+            (save-excursion
+              (subword-backward)
+              (point))))
+      (kill-region (point) (max syntax-move-point subword-move-point)))))
+
+(define-key global-map [remap kill-word] 'delete-block-forward)
+(define-key global-map [remap backward-kill-word] 'delete-block-backward)
+
 ;; (defun mark-next-line ()
 ;;   "Mark next line continuously."
 ;;   (interactive)
