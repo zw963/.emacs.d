@@ -895,17 +895,19 @@ With a prefix ARG also forget about all the nodes opened in the project."
 
 (defun treemacs-collapse-all-projects (&optional arg)
   "Collapses all projects.
-With a prefix ARG also forget about all the nodes opened in the projects."
+With a prefix ARG remember which nodes were expanded."
   (interactive "P")
-  (save-excursion
-    (treemacs--forget-last-highlight)
-    (dolist (project (treemacs-workspace->projects (treemacs-current-workspace)))
-      (-when-let (pos (treemacs-project->position project))
-        (when (eq 'root-node-open (treemacs-button-get pos :state))
-          (goto-char pos)
-          (treemacs--collapse-root-node pos arg)))))
-  (treemacs--maybe-recenter 'on-distance)
-  (treemacs-pulse-on-success "Collapsed all projects"))
+  (-when-let (buffer (treemacs-get-local-buffer))
+    (with-current-buffer buffer
+      (save-excursion
+        (treemacs--forget-last-highlight)
+        (dolist (project (treemacs-workspace->projects (treemacs-current-workspace)))
+          (-when-let (pos (treemacs-project->position project))
+            (when (eq 'root-node-open (treemacs-button-get pos :state))
+              (goto-char pos)
+              (treemacs--collapse-root-node pos (not arg))))))
+      (treemacs--maybe-recenter 'on-distance)
+      (treemacs-pulse-on-success "Collapsed all projects"))))
 
 (defun treemacs-collapse-other-projects (&optional arg)
   "Collapses all projects except the project at point.

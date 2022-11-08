@@ -81,6 +81,8 @@ face changes, especially when a full project is refreshed.
 Since this table is a global value that can effectively grow indefinitely its
 value is limited by `treemacs--git-cache-max-size'.")
 
+(defvar treemacs-git-mode)
+
 (define-inline treemacs--git-status-face (status default)
   "Get the git face for the given STATUS.
 Use DEFAULT as default match.
@@ -224,7 +226,9 @@ GIT-FUTURE: Pfuture"
                           (setq i (1+ i))
                         (ht-set! git-info-hash
                                  (treemacs-join-path git-root (s-trim-left path))
-                                 (substring (s-trim-left status) 0 1)))))
+                                 (treemacs--git-status-face
+                                  (substring (s-trim-left status) 0 1)
+                                  'treemacs-git-unmodified-face)))))
                   (setq i (1+ i)))))))))
     git-info-hash))
 
@@ -256,9 +260,13 @@ OVERRIDE-STATUS: Boolean"
   (let* ((local-buffer (current-buffer))
          (parent (treemacs--parent file))
          (parent-node (treemacs-find-in-dom parent)))
-    (when (and parent-node (null (ht-get treemacs--single-git-update-debouce-store file)))
+    (when (and
+           treemacs-git-mode
+           parent-node
+           (null (ht-get treemacs--single-git-update-debouce-store file)))
       (ht-set! treemacs--single-git-update-debouce-store file t)
       (let* ((parents (unless (or exclude-parents
+                                  (eq 'simple treemacs--git-mode)
                                   (null (treemacs-dom-node->parent parent-node)))
                         ;; include the first parent...
                         (cons (treemacs-dom-node->key parent-node)
