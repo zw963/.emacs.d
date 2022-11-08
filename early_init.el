@@ -43,6 +43,7 @@
 (relative-load "autoloads.el")
 (relative-load "functions.el")
 (relative-load "base_init.el")
+(relative-load "session.el")
 (relative-load "init.el")
 
 ;; 打开这两个变量, 查看那些包有错误.

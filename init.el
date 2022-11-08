@@ -12,6 +12,7 @@
 (require 'shell_init)
 (require 'treemacs_init)
 (require 'dimmer_init)
+(require 'sort-tab_init)
 
 (require 'fancy-narrow_init)
 (require 'zoom-frm_init)
@@ -77,6 +78,8 @@
 
 (require 'dpaste_init)
 (require 'ws-butler_init)
+(require 'yafolding_init)
+(require 'ligature_init)
 
 ;; 关闭一些有用，但最近不常用的 mode
 ;; (require 'go-mode_init)
