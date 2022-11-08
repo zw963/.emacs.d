@@ -25,7 +25,8 @@
                    (symbol-overlay-mode 1)
                    )))
 
-(global-set-key (kbd "<f7>") 'symbol-overlay-put)
+;; (global-set-key (kbd "<f7>") 'symbol-overlay-put)
+(global-set-key (kbd "C-;") 'symbol-overlay-put)
 (define-key symbol-overlay-map (kbd "C-g") 'symbol-overlay-remove-all)
 
 ;; (require 'idle-highlight-mode)
