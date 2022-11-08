@@ -46,12 +46,14 @@
                 elixir-mode-hook
                 web-mode-hook
                 org-mode-hook
-                conf-mode-hook))
+                conf-mode-hook
+                markdown-mode
+                ))
   (add-hook hook (lambda ()
                    (local-set-key [(?\,)] 'input-comma-with-space)
                    (local-set-key [(?\;)] 'input-semicolon-with-space)
                    (local-set-key [(meta c) (?.)] 'input-rocket-with-space)
-                   (local-set-key [(meta c) (=)] 'input-add-equal)
+                   ;; (local-set-key [(meta c) (=)] 'input-add-equal)
                    )))
 
 (add-hook 'prog-mode-hook (lambda ()
