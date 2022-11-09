@@ -154,6 +154,8 @@ ac-auto-show-menu 为 nil 的情形, 这种模式比较适合在 yasnippet 正�
 ;; (setq company-insertion-triggers '(41 46))
 
 ;; (add-hook 'after-init-hook 'global-company-mode)
+
+;; (setq company-global-modes '(not org-mode))
 (global-company-mode 1)
 
 ;; (defun ora-company-number ()
