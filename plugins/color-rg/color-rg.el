@@ -332,9 +332,14 @@ Default is disabled, set this variable to true if you found it's useful"
   :group 'color-rg)
 
 (defcustom color-rg-search-no-ignore-file t
-  "Don’t respect ignore files.
+  "Don't respect ignore files.
 
 Default is enable, set this variable to nil if you want search files match gitignore rule."
+  :type 'boolean
+  :group 'color-rg)
+
+(defcustom color-rg-recenter-match-line nil
+  "Non-nil means to recenter when jump between matched lines."
   :type 'boolean
   :group 'color-rg)
 
@@ -494,8 +499,9 @@ used to restore window configuration after file content changed.")
     (define-key map (kbd "E") 'color-rg-rerun-change-exclude-files)
 
     (define-key map (kbd "o") 'color-rg-rerun-parent-dir)
-    (define-key map (kbd "O") 'color-rg-rerun-change-dir)
+    (define-key map (kbd "O") 'color-rg-rerun-in-project)
 
+    (define-key map (kbd "s") 'color-rg-rerun-change-dir)
     (define-key map (kbd "S") 'color-rg-customized-search)
 
     (define-key map (kbd "q") 'color-rg-quit)
@@ -1378,6 +1384,13 @@ This function is the opposite of `color-rg-rerun-change-globs'"
         (file-name-directory (directory-file-name (color-rg-search-dir color-rg-cur-search))))
   (color-rg-rerun))
 
+(defun color-rg-rerun-in-project ()
+  "Rerun last command in project root."
+  (interactive)
+  (setf (color-rg-search-dir color-rg-cur-search)
+        (file-name-directory (color-rg-project-root-dir)))
+  (color-rg-rerun))
+
 (defun color-rg-rerun-change-dir ()
   "Rerun last command but prompt for new dir."
   (interactive)
@@ -1514,6 +1527,8 @@ This function is the opposite of `color-rg-rerun-change-globs'"
     (insert current-line)))
 
 (defun color-rg-open-file (&optional stay)
+  "Open file in other window.
+If STAY is non-nil, move cursor to the opened file."
   (interactive)
   (setq color-rg-window-configuration-before-open (current-window-configuration))
   (let* ((match-file (color-rg-get-match-file))
@@ -1530,7 +1545,7 @@ This function is the opposite of `color-rg-rerun-change-globs'"
               (and (color-rg-is-org-file match-file)
                    (color-rg-in-org-link-content-p)))
         ;; Open file in other window.
-        ;; Note, don't use `find-file-other-window', it will failed if path is tramp path that start with /sudo:root
+        ;; NOTE: don't use `find-file-other-window', it will fail if path is a tramp path that starts with /sudo:root
         (other-window 1)
         (find-file match-file)
         ;; Add to temp list if file's buffer is not exist.
@@ -1551,7 +1566,9 @@ This function is the opposite of `color-rg-rerun-change-globs'"
                 (t
                  (color-rg-move-to-point match-line match-column)))))
       ;; Flash match line.
-      (color-rg-flash-line))
+      (color-rg-flash-line)
+      (when color-rg-recenter-match-line
+        (recenter)))
     (unless stay
       ;; Keep cursor in search buffer's window.
       (setq color-buffer-window (get-buffer-window color-rg-buffer))

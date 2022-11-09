@@ -14,14 +14,6 @@
 (global-set-key [(meta \9)] 'sort-tab-select-prev-tab)
 (global-set-key [(meta \0)] 'sort-tab-select-next-tab)
 
-(defun initialize-sort-tab-delay (&optional frame)
-  (run-with-idle-timer 0 nil 'sort-tab-turn-on))
-
-(if (and (fboundp 'daemonp) (daemonp))
-    (add-hook 'after-make-frame-functions 'initialize-sort-tab-delay t)
-  )
-
-
 (provide 'sort-tab_init)
 
 ;;; sort-tab_init.el ends here

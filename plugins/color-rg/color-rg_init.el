@@ -21,8 +21,8 @@
             (define-key color-rg-mode-map [(f3)] 'color-rg-switch-to-edit-mode)
             ))
 
-(global-set-key [(control meta r)] 'color-rg-search-input-in-project)
-
+;; 默认搜索当前目录下文件，可以
+(global-set-key [(control meta r)] 'color-rg-search-input)
 
 (provide 'color-rg_init)
 
