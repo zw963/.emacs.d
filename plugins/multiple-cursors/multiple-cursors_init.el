@@ -25,6 +25,11 @@
 ;;(global-set-key (kbd "C-u C-@") 'set-rectangular-region-anchor)
 ;; (global-set-key (kbd "C-c C-<") 'mc/mark-all-like-this)
 
+(add-hook 'sgml-mode-hook
+          (lambda ()
+            (local-set-key [(control c)(control r)] 'mc/mark-sgml-tag-pair)
+            ))
+
 ;; 这个是用鼠标左键点一下, 就新增加一个 cursor.
 (global-set-key (kbd "C-S-<mouse-1>") 'mc/add-cursor-on-click)
 
