@@ -27,7 +27,6 @@
 (require 'show-point-mode_init)
 ;; (require 'hydra_init);; depend by treemacs
 (require 'edit-server_init)
-(require 'iedit_init)
 (require 'undo-tree_init)
 (require 'toggle-quotes_init)
 (require 'beyond-compare_init)
@@ -52,6 +51,7 @@
 (require 'buffer-move_init)
 (require 'goto-chg_init)
 (require 'symbol-overlay_init)
+(require 'iedit_init) ;; 确保放到 symbol-overlay 后面
 (require 'color-rg_init)
 (require 'markdown-mode_init)
 (require 'easy-kill_init)
