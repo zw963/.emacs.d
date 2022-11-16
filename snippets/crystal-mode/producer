@@ -1,0 +1,13 @@
+# -*- mode: snippet -*-
+# name: channel producer
+# key: producer
+# --
+def producer(name : String, &generator : -> T) forall T
+  Channel(T).new.tap { |ch|
+    spawn(name: name) do
+      loop do
+        ch.send generator.call
+      end
+    end
+  }
+end

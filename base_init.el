@@ -229,7 +229,7 @@
       backup-by-copying t
       backup-directory-alist '(("." . "~/.backups")) ;设置备份文件保存的目录
       vc-suppress-confirm t             ;vc操作不需提示确认
-      vc-command-messages t             ;显示vc backend命令的提示消息.
+      ;; vc-command-messages t             ;显示vc backend命令的提示消息, 这个不要开，否则 diff-hl 内容非常多。
       vc-follow-symlinks t              ; vc 操作符号链接指向的那个文件。
       )
 
