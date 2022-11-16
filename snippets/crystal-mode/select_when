@@ -1,8 +1,10 @@
 # -*- mode: snippet -*-
 # name: select ... when
 # key: selectw
+# binding: s
+# condition: (yas-use-region-p)
 # --
 select
-when $0
-
+when `(yas-selected-text)`
+  $0
 end
