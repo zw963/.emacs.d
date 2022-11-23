@@ -5,6 +5,6 @@
 # condition: (yas-use-region-p)
 # --
 select
-when `(yas-selected-text)`
-  $0
+when `(yas-selected-text)``(if-key "$0")`
+  `(if-binding "$0")`
 end

@@ -1,7 +1,7 @@
 (setq dap-utils-extension-path (expand-file-name ".extension" (file-name-directory (or load-file-name buffer-file-name))))
 
 (require 'dap-mouse)
-(require 'dapui)
+(require 'dap-ui)
 
 ;; (dap-mode 1)
 ;; (dap-tooltip-mode 1)

@@ -2,4 +2,4 @@
 # name: spawn do ... end
 # key: spawn
 # --
-spawn`(string-field "1" "name" "(" ")")` `(ruby-do-block)`
+spawn`(string-field "1" "name" "(name: " ")")` `(ruby-do-block)`
