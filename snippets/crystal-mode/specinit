@@ -1,0 +1,11 @@
+# -*- mode: snippet -*-
+# name: specinit
+# key: specinit
+# --
+require "spec"
+
+describe `(string-field "1" "Spec")` do
+  it "works" do
+    $0
+  end
+end
