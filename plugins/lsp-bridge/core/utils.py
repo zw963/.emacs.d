@@ -46,6 +46,13 @@ KIND_MAP = ["", "Text", "Method", "Function", "Constructor", "Field",
             "File", "Reference", "Folder", "EnumMember", "Constant",
             "Struct", "Event", "Operator", "TypeParameter"]
 
+SYMBOL_MAP = ["", "File", "Module", "Namespace", "Package",
+              "Class", "Method", "Property", "Field", "Constructor",
+              "Enum", "Interface", "Function", "Variable", "Constant",
+              "String", "Number", "Boolean", "Array", "Object",
+              "Key", "Null", "EnumMember", "Struct", "Event",
+              "Operator", "TypeParameter"]
+
 epc_client: Optional[EPCClient] = None
 
 # for test purpose
@@ -263,9 +270,6 @@ def windows_get_env_value(var_name: str) -> str:
     """
     if var_name in os.environ.keys():
         return os.environ[var_name]
-
-def windows_parse_path(path: str) -> str:
-    return path.replace("%USERPROFILE%", windows_get_env_value("USERPROFILE"))
 
 class MessageSender(Thread):
     

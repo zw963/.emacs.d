@@ -1,4 +1,4 @@
-;;; acm-backend-path.el --- Path backend for acm
+;;; acm-backend-path.el --- Path backend for acm  -*- lexical-binding: t -*-
 
 ;; Filename: acm-backend-path.el
 ;; Description: Path backend for acm
@@ -96,7 +96,7 @@
 (defun acm-backend-path-candidates (keyword)
   (when acm-enable-path
     (let* ((candidates (list))
-          (parent-dir (ignore-errors (expand-file-name (file-name-directory (thing-at-point 'filename))))))
+           (parent-dir (ignore-errors (expand-file-name (file-name-directory (thing-at-point 'filename))))))
       (when (and parent-dir
                  (file-exists-p parent-dir))
         (let ((current-file (file-name-base keyword))
@@ -119,6 +119,12 @@
   (let* ((keyword (acm-get-input-prefix))
          (file-name (plist-get candidate-info :label))
          (parent-dir (file-name-directory keyword)))
+
+    ;; Avoid insert duplicate `.' for file that have LSP server, such as python, golang, rust etc.
+    (when (and (string-equal (char-to-string (char-before bound-start)) ".")
+               (string-equal (substring file-name 0 1) "."))
+      (setq bound-start (1- bound-start)))
+
     (delete-region bound-start (point))
     (insert (concat parent-dir file-name))))
 

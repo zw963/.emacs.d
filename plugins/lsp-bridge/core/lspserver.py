@@ -170,8 +170,6 @@ class LspServer:
         self.message_queue = message_queue
         self.project_path = project_path
         self.server_info = server_info
-        if self.server_info["name"]=="omnisharp":
-            self.server_info["command"][1]=os.path.expandvars(self.server_info["command"][1])
 
         self.initialize_id = generate_request_id()
         self.server_name = server_name
@@ -252,10 +250,6 @@ class LspServer:
         logger.info("\n--- Send initialize for {} ({})".format(self.project_path, self.server_info["name"]))
 
         initialize_options = self.server_info.get("initializationOptions", {})
-        if os.name == 'nt':
-            if 'typescript' in initialize_options.keys():
-                if 'serverPath' in initialize_options['typescript'].keys():
-                    initialize_options['typescript']['serverPath'] = windows_parse_path(initialize_options['typescript']['serverPath'])
 
         self.worksplace_folder = get_emacs_func_result("get-workspace-folder", self.project_path)
 
@@ -294,6 +288,10 @@ class LspServer:
                             "valueSet": [
                                 1
                             ]
+                        },
+                        "resolveSupport": {
+                            # rust-analyzer need add `additionalTextEdits` to enable auto-import.
+                            "properties": ["documentation", "detail", "additionalTextEdits"]
                         }
                     }
                 },

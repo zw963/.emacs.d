@@ -1,4 +1,4 @@
-;;; lsp-bridge.el --- LSP bridge  -*- lexical-binding: t; -*-
+;;; lsp-bridge.el --- LSP bridge  -*- lexical-binding: t -*-
 
 ;; Filename: lsp-bridge.el
 ;; Description: LSP bridge
@@ -12,7 +12,7 @@
 ;; URL: https://github.com/manateelazycat/lsp-bridge
 ;; Keywords:
 ;; Compatibility: emacs-version >= 28
-;; Package-Requires: ((emacs "28") (posframe "1.1.7") (markdown-mode "2.6-dev"))
+;; Package-Requires: ((emacs "28") (posframe "1.1.7") (markdown-mode "2.6"))
 ;;
 ;; Features that might be required by this library:
 ;;
@@ -77,12 +77,20 @@
 (require 'seq)
 (require 'subr-x)
 
+(defvar acm-library-path (expand-file-name "acm" (if load-file-name
+                                                     (file-name-directory load-file-name)
+                                                   default-directory)))
+(add-to-list 'load-path acm-library-path t)
+(require 'acm-frame)
+
 (require 'lsp-bridge-epc)
 (require 'lsp-bridge-ref)
 (require 'lsp-bridge-jdtls)
+(require 'lsp-bridge-call-hierarchy)
 
 (require 'posframe)
 (require 'markdown-mode)
+(require 'diff)
 
 (require 'lsp-bridge-lsp-installer)
 
@@ -90,10 +98,6 @@
   "LSP-Bridge group."
   :group 'applications)
 
-(defvar acm-library-path (expand-file-name "acm" (if load-file-name
-                                                     (file-name-directory load-file-name)
-                                                   default-directory)))
-(add-to-list 'load-path acm-library-path t)
 (require 'acm)
 
 (setq acm-backend-lsp-fetch-completion-item-func 'lsp-bridge-fetch-completion-item-info)
@@ -111,14 +115,14 @@
 (defcustom lsp-bridge-completion-popup-predicates '(lsp-bridge-not-only-blank-before-cursor
                                                     lsp-bridge-not-match-hide-characters
                                                     lsp-bridge-not-match-stop-commands
-                                                    lsp-bridge-not-in-string
-                                                    lsp-bridge-not-in-comment
+                                                    lsp-bridge-not-complete-manually
                                                     lsp-bridge-not-follow-complete
+                                                    lsp-bridge-not-in-string
+                                                    lsp-bridge-not-in-org-table
+                                                    lsp-bridge-not-in-multiple-cursors
+                                                    lsp-bridge-not-in-mark-macro
                                                     lsp-bridge-is-evil-state
                                                     lsp-bridge-is-meow-state
-                                                    lsp-bridge-multiple-cursors-disable
-                                                    lsp-bridge-not-complete-manually
-                                                    lsp-bridge-not-in-org-table
                                                     )
   "A list of predicate functions with no argument to enable popup completion in callback."
   :type 'list
@@ -129,6 +133,11 @@
 
 Setting this to nil or 0 will turn off the indicator."
   :type 'number
+  :group 'lsp-bridge)
+
+(defcustom lsp-bridge-enable-mode-line t
+  "Whether display LSP-bridge's server info in mode-line ."
+  :type 'boolean
   :group 'lsp-bridge)
 
 (defcustom lsp-bridge-completion-stop-commands
@@ -145,6 +154,11 @@ Setting this to nil or 0 will turn off the indicator."
   :type 'cons
   :group 'lsp-bridge)
 
+(defcustom lsp-bridge-completion-obey-trigger-characters-p nil
+  "If non-nil makes trigger characters a higher priority than `lsp-bridge-completion-hide-characters'."
+  :type 'boolean
+  :group 'lsp-bridge)
+
 (defcustom lsp-bridge-apply-edit-commands '("java.apply.workspaceEdit")
   "Apply workspace edit if command match `lsp-bridge-apply-edit-commands', otherwise send workspace/executeCommand to LSP server."
   :type 'cons
@@ -153,11 +167,6 @@ Setting this to nil or 0 will turn off the indicator."
 (defcustom lsp-bridge-lookup-doc-tooltip " *lsp-bridge-hover*"
   "Buffer for display hover information."
   :type 'string
-  :group 'lsp-bridge)
-
-(defcustom lsp-bridge-lookup-doc-tooltip-font-height 130
-  "Font size for hover tooltip."
-  :type 'integer
   :group 'lsp-bridge)
 
 (defcustom lsp-bridge-lookup-doc-tooltip-border-width 20
@@ -259,6 +268,7 @@ Start discarding off end if gets this big."
                (lsp-bridge-epc-define-method mngr 'get-multi-lang-server 'lsp-bridge--get-multi-lang-server-func)
                (lsp-bridge-epc-define-method mngr 'get-single-lang-server 'lsp-bridge--get-single-lang-server-func)
                (lsp-bridge-epc-define-method mngr 'get-emacs-version 'emacs-version)
+               (lsp-bridge-epc-define-method mngr 'get-user-emacs-directory 'lsp-bridge--user-emacs-directory)
                (lsp-bridge-epc-define-method mngr 'is-snippet-support 'acm-backend-lsp-snippet-expansion-fn)
                (lsp-bridge-epc-define-method mngr 'get-buffer-content 'lsp-bridge--get-buffer-content-func)
                ))))
@@ -337,6 +347,10 @@ Then LSP-Bridge will start by gdb, please send new issue with `*lsp-bridge*' buf
   "Default LSP server for (la)tex, you can choose `taxlab' or `digestif'."
   :type 'string)
 
+(defcustom lsp-bridge-csharp-lsp-server "omnisharp-dotnet"
+  "Default LSP server for C#, you can choose `omnisharp-mono' or `omnisharp-dotnet'."
+  :type 'string)
+
 (defcustom lsp-bridge-use-wenls-in-org-mode nil
   "Use `wen' lsp server in org-mode, default is disable.")
 
@@ -383,7 +397,7 @@ Then LSP-Bridge will start by gdb, please send new issue with `*lsp-bridge*' buf
     (ess-r-mode . "rlanguageserver")
     (graphql-mode . "graphql-lsp")
     (swift-mode . "swift-sourcekit")
-    (csharp-mode . "omnisharp")
+    (csharp-mode . lsp-bridge-csharp-lsp-server)
     )
   "The lang server rule for file mode."
   :type 'cons)
@@ -581,6 +595,9 @@ So we build this macro to restore postion after code format."
         (lsp-bridge--with-file-buffer filepath
           (lsp-bridge-get-single-lang-server-by-mode))))))
 
+(defun lsp-bridge--user-emacs-directory ()
+  "Get lang server with project path, file path or file extension."
+  (expand-file-name user-emacs-directory))
 
 (defun lsp-bridge--get-buffer-content-func (buffer-name)
   "Get buffer content for lsp. BUFFER-NAME is name eval from (buffer-name)."
@@ -788,10 +805,7 @@ So we build this macro to restore postion after code format."
   (lsp-bridge-search-words-index-files)
 
   ;; Synchronize elisp symbol to Python side.
-  (lsp-bridge-elisp-symbols-update)
-
-  (when (acm-running-in-wayland-native)
-    (message "[LSP-Bridge] Frame render performance is very poor in pgtk branch, recommand use x11 branch to get best render performance.")))
+  (lsp-bridge-elisp-symbols-update))
 
 (defvar-local lsp-bridge-last-cursor-position 0)
 (defvar-local lsp-bridge-prohibit-completion nil)
@@ -856,10 +870,6 @@ So we build this macro to restore postion after code format."
   (setq-local acm-backend-search-sdcv-words-items candidates)
   (lsp-bridge-try-completion))
 
-(defun lsp-bridge-search-elisp-symbols--record-items (candidates)
-  (setq-local acm-backend-elisp-items candidates)
-  (lsp-bridge-try-completion))
-
 (defun lsp-bridge-try-completion ()
   (cond (lsp-bridge-prohibit-completion
          (setq-local lsp-bridge-prohibit-completion nil))
@@ -871,7 +881,9 @@ So we build this macro to restore postion after code format."
              (if (cl-every (lambda (pred)
                              (if (functionp pred) (funcall pred) t))
                            lsp-bridge-completion-popup-predicates)
-                 (acm-update)
+                 (progn
+                   (acm-template-candidate-init)
+                   (acm-update))
                (acm-hide))))))
 
 (defun lsp-bridge-popup-complete-menu ()
@@ -893,49 +905,21 @@ So we build this macro to restore postion after code format."
         acm-backend-lsp-filepath
         (string-suffix-p ".vue" acm-backend-lsp-filepath))
    ;; Other language not allowed popup completion in string, it's annoy
-   (not (lsp-bridge-in-string-p))
+   (not (acm-in-string-p))
    ;; Allow file path completion in string area
    (ignore-errors
      (and (thing-at-point 'filename)
           (file-exists-p (file-name-directory (thing-at-point 'filename)))))))
 
-(defun lsp-bridge-not-in-comment ()
-  "Hide completion if cursor in comment area."
-  (or
-   ;; Allow sdcv completion in string area
-   acm-enable-search-sdcv-words
-   ;; Other language not allowed popup completion in comment.
-   (not (lsp-bridge-in-comment-p))))
+(defun lsp-bridge-not-in-mark-macro ()
+  "Hide completion markmacro enable."
+  (not (and (featurep 'markmacro)
+            markmacro-overlays)))
 
 (defun lsp-bridge-not-follow-complete ()
   "Hide completion if last command is `acm-complete'."
   (or (not (eq last-command 'acm-complete))
       (member (format "%s" this-command) '("self-insert-command" "org-self-insert-command"))))
-
-(defun lsp-bridge-in-comment-p (&optional state)
-  (ignore-errors
-    (unless (or (bobp) (eobp))
-      (save-excursion
-        (or
-         (nth 4 (or state (lsp-bridge-current-parse-state)))
-         (eq (get-text-property (point) 'face) 'font-lock-comment-face))
-        ))))
-
-(defun lsp-bridge-in-string-p (&optional state)
-  (ignore-errors
-    (unless (or (bobp) (eobp))
-      (save-excursion
-        (and
-         (nth 3 (or state (lsp-bridge-current-parse-state)))
-         (not (equal (point) (line-end-position))))
-        ))))
-
-(defun lsp-bridge-current-parse-state ()
-  (let ((point (point)))
-    (beginning-of-defun)
-    (when (equal point (point))
-      (beginning-of-line))
-    (parse-partial-sexp (point) point)))
 
 (defun lsp-bridge-not-only-blank-before-cursor ()
   "Hide completion if only blank before cursor."
@@ -945,7 +929,11 @@ So we build this macro to restore postion after code format."
 
 (defun lsp-bridge-not-match-hide-characters ()
   "Hide completion if char before cursor match `lsp-bridge-completion-hide-characters'."
-  (not (member (ignore-errors (char-to-string (char-before))) lsp-bridge-completion-hide-characters)))
+  (let ((char (ignore-errors (char-to-string (char-before)))))
+    (or (and lsp-bridge-completion-obey-trigger-characters-p
+             (member char (if (boundp 'acm-backend-lsp-completion-trigger-characters)
+                              (symbol-value 'acm-backend-lsp-completion-trigger-characters))))
+        (not (member char lsp-bridge-completion-hide-characters)))))
 
 (defun lsp-bridge-is-evil-state ()
   "If `evil' mode is enable, only show completion when evil is in insert mode."
@@ -958,16 +946,16 @@ So we build this macro to restore postion after code format."
   (or (not (featurep 'meow))
       meow-insert-mode))
 
-(defun lsp-bridge-multiple-cursors-disable ()
+(defun lsp-bridge-not-in-multiple-cursors ()
   "If `multiple-cursors' mode is enable, hide completion menu."
-  (not (and (ignore-errors (require 'multiple-cursors))
+  (not (and (featurep 'multiple-cursors)
             multiple-cursors-mode)))
 
 (defun lsp-bridge-not-complete-manually ()
   "If `lsp-bridge-complete-manually' is non-nil, hide completion menu."
   (or
    ;; Always update candidate if completion menu is visible now.
-   (acm-frame-visible-p acm-frame)
+   (acm-frame-visible-p acm-menu-frame)
    ;; Don't update candidate if `lsp-bridge-complete-manually' is non-nil.
    (not lsp-bridge-complete-manually)))
 
@@ -999,6 +987,28 @@ So we build this macro to restore postion after code format."
   (when (lsp-bridge-has-lsp-server-p)
     (setq-local lsp-bridge--before-change-begin-pos (lsp-bridge--point-position begin))
     (setq-local lsp-bridge--before-change-end-pos (lsp-bridge--point-position end))))
+
+(defun lsp-bridge-monitor-post-self-insert ()
+  ;; Make sure this function be called after `electric-pair-mode'
+  ;; `smartparens-mode' or something similar if they are enabled.
+  ;;
+  ;; Because pairing parethness or quotes will call `after-change-functions'
+  ;; multiple times. For example: (| represents the cursor)
+  ;;
+  ;;         dic|
+  ;;
+  ;; Press `[', then the following situation will be observed in
+  ;; `lsp-bridge-monitor-after-change':
+  ;;
+  ;;         dic[|
+  ;;         dic|
+  ;;         dic[|
+  ;;         dic[]|
+  ;;
+  ;; The last position of cursor is wrong, that makes a misjudgment in
+  ;; `lsp-bridge-try-completion'.
+  (setq lsp-bridge-last-change-position
+        (list (current-buffer) (buffer-chars-modified-tick) (point))))
 
 (defun lsp-bridge-monitor-after-change (begin end length)
   (unless lsp-bridge-revert-buffer-flag
@@ -1033,10 +1043,7 @@ So we build this macro to restore postion after code format."
             (lsp-bridge-call-async "search_sdcv_words_search" current-word)))
 
         ;; Search elisp symbol.
-        (when (acm-is-elisp-mode-p)
-          ;; Search words if current prefix is not empty.
-          (unless (or (string-equal current-symbol "") (null current-symbol))
-            (lsp-bridge-call-async "search_elisp_symbols_search" current-symbol)))
+        (lsp-bridge-elisp-symbols-search current-symbol)
 
         ;; Send change file to search-words backend.
         (when buffer-file-name
@@ -1049,25 +1056,37 @@ So we build this macro to restore postion after code format."
 
         ;; Send tailwind keyword search request just when cursor in class area.
         (when (and (derived-mode-p 'web-mode)
-                   (lsp-bridge-in-string-p)
+                   (acm-in-string-p)
                    (save-excursion
                      (search-backward-regexp "class=" (point-at-bol) t)))
           (unless (or (string-equal current-symbol "") (null current-symbol))
             (lsp-bridge-call-async "search_tailwind_keywords_search" buffer-file-name current-symbol)))
         ))))
 
-(defvar lsp-bridge-elisp-symbols-timer nil)
-(defvar lsp-bridge-elisp-symbols-size 0)
-
 (defun lsp-bridge-elisp-symbols-update ()
   "We need synchronize elisp symbols to Python side when idle."
   (when (lsp-bridge-epc-live-p lsp-bridge-epc-process)
-    (let* ((symbols (all-completions "" obarray))
+    (let* ((symbols (acm-backend-elisp-get-symbols))
            (symbols-size (length symbols)))
       ;; Only synchronize when new symbol created.
-      (unless (equal lsp-bridge-elisp-symbols-size symbols-size)
-        (lsp-bridge-call-async "search_elisp_symbols_update" symbols)
-        (setq lsp-bridge-elisp-symbols-size symbols-size)))))
+      (unless (equal acm-backend-elisp-symbols-update-size symbols-size)
+        (lsp-bridge-call-async "search_list_update"
+                               "elisp"
+                               symbols
+                               acm-backend-elisp-search-max-number
+                               "lsp-bridge-elisp-symbols-record")
+        (setq acm-backend-elisp-symbols-update-size symbols-size)))))
+
+(defun lsp-bridge-elisp-symbols-search (current-symbol)
+  (when (and (acm-is-elisp-mode-p)
+             (not (acm-in-comment-p)))
+    ;; Search words if current prefix is not empty.
+    (unless (or (string-equal current-symbol "") (null current-symbol))
+      (lsp-bridge-call-async "search_list_search" "elisp" current-symbol))))
+
+(defun lsp-bridge-elisp-symbols-record (candidates)
+  (setq-local acm-backend-elisp-items candidates)
+  (lsp-bridge-try-completion))
 
 (defun lsp-bridge-search-words-open-file ()
   (when (and buffer-file-name
@@ -1086,8 +1105,7 @@ So we build this macro to restore postion after code format."
       (lsp-bridge-call-async "search_file_words_rebuild_cache"))))
 
 (defun lsp-bridge-completion-ui-visible-p ()
-  (and (frame-live-p acm-frame)
-       (frame-visible-p acm-frame)))
+  (acm-frame-visible-p acm-menu-frame))
 
 (defun lsp-bridge-monitor-after-save ()
   (lsp-bridge-call-file-api "save_file" (buffer-name)))
@@ -1175,13 +1193,35 @@ So we build this macro to restore postion after code format."
     (unless (eq last-command 'mwheel-scroll)
       (lsp-bridge-call-file-api "signature_help" (lsp-bridge--position)))))
 
-(defun lsp-bridge-file-apply-edits (filepath edits &optional just-reverse)
-  (if (string-match "^/[A-Za-z]:" filepath)
-      (setq filepath (substring filepath 1)))
-  (find-file-noselect filepath)
-  (save-excursion
-    (find-file filepath)
-    (acm-backend-lsp-apply-text-edits edits just-reverse))
+(defun lsp-bridge-pick-file-path (filepath)
+  ;; Remove `file://' and `:file://' prefix.
+  (cond ((string-prefix-p "file://" filepath)
+         (setq filepath (string-remove-prefix "file://" filepath)))
+        ((string-prefix-p ":file://" filepath)
+         (setq filepath (string-remove-prefix ":file://" filepath))))
+
+  ;; Convert `%XX' sequences to `:'
+  (setq filepath (url-unhex-string filepath))
+
+  ;; Remove / before drive letter on Windows
+  (when (string-match "^/[A-Za-z]:" filepath)
+    (setq filepath (substring filepath 1)))
+
+  filepath)
+
+(defun lsp-bridge-file-apply-edits (filepath edits &optional temp-buffer)
+  (if temp-buffer
+      ;; Apply edits to temp buffer.
+      (with-current-buffer temp-buffer
+        (acm-backend-lsp-apply-text-edits edits))
+
+    ;; Pick filepath from LSP return file string.
+    (setq filepath (lsp-bridge-pick-file-path filepath))
+
+    (find-file-noselect filepath)
+    (save-excursion
+      (find-file filepath)
+      (acm-backend-lsp-apply-text-edits edits)))
 
   (setq-local lsp-bridge-prohibit-completion t))
 
@@ -1215,32 +1255,28 @@ So we build this macro to restore postion after code format."
   (posframe-funcall lsp-bridge-lookup-doc-tooltip
                     #'scroll-down-command arg))
 
-(defun lsp-bridge-frame-background-color ()
-  (let* ((theme-mode (format "%s" (frame-parameter nil 'background-mode))))
-    (if (string-equal theme-mode "dark") "#191a1b" "#f0f0f0")))
-
 (defun lsp-bridge-popup-documentation--show (value)
   (with-current-buffer (get-buffer-create lsp-bridge-lookup-doc-tooltip)
     (erase-buffer)
     (insert value)
-    (lsp-bridge-render-markdown-content))
+    (acm-markdown-render-content))
   (when (posframe-workable-p)
     (posframe-show lsp-bridge-lookup-doc-tooltip
                    :position (point)
                    :internal-border-width lsp-bridge-lookup-doc-tooltip-border-width
-                   :background-color (lsp-bridge-frame-background-color)
+                   :background-color (acm-frame-background-color)
                    :max-width lsp-bridge-lookup-doc-tooltip-max-width
                    :max-height lsp-bridge-lookup-doc-tooltip-max-height)))
 
 (defun lsp-bridge-hide-doc-tooltip ()
   (posframe-hide lsp-bridge-lookup-doc-tooltip)
 
-  (when lsp-bridge-lookup-doc-tooltip-background
-    (set-face-background 'markdown-code-face lsp-bridge-lookup-doc-tooltip-background)
-    (setq lsp-bridge-lookup-doc-tooltip-background nil))
+  (when acm-markdown-render-background
+    (set-face-background 'markdown-code-face acm-markdown-render-background)
+    (setq acm-markdown-render-background nil))
 
-  (when lsp-bridge-lookup-doc-tooltip-height
-    (set-face-attribute 'markdown-code-face nil :height lsp-bridge-lookup-doc-tooltip-height)))
+  (when acm-markdown-render-height
+    (set-face-attribute 'markdown-code-face nil :height acm-markdown-render-height)))
 
 (defun lsp-bridge-hide-diagnostic-tooltip ()
   (posframe-hide lsp-bridge-diagnostic-tooltip))
@@ -1277,7 +1313,7 @@ So we build this macro to restore postion after code format."
              (append
               lsp-bridge-signature-posframe-params
               (list :position (point)
-                    :background-color (lsp-bridge-frame-background-color))))
+                    :background-color (acm-frame-background-color))))
     (lsp-bridge-hide-signature-tooltip)))
 
 (defun lsp-bridge-signature-help--update (help-infos help-index)
@@ -1310,13 +1346,14 @@ So we build this macro to restore postion after code format."
 (add-hook 'post-command-hook 'lsp-bridge-monitor-window-buffer-change)
 
 (defconst lsp-bridge--internal-hooks
-  '((before-change-functions . lsp-bridge-monitor-before-change)
-    (after-change-functions . lsp-bridge-monitor-after-change)
-    (post-command-hook . lsp-bridge-monitor-post-command)
-    (after-save-hook . lsp-bridge-monitor-after-save)
-    (kill-buffer-hook . lsp-bridge-close-buffer-file)
-    (find-file-hook . lsp-bridge-search-words-open-file)
-    (before-revert-hook . lsp-bridge-close-buffer-file)
+  '((before-change-functions lsp-bridge-monitor-before-change nil t)
+    (after-change-functions lsp-bridge-monitor-after-change nil t)
+    (post-command-hook lsp-bridge-monitor-post-command nil t)
+    (after-save-hook lsp-bridge-monitor-after-save nil t)
+    (kill-buffer-hook lsp-bridge-close-buffer-file nil t)
+    (find-file-hook lsp-bridge-search-words-open-file nil t)
+    (before-revert-hook lsp-bridge-close-buffer-file nil t)
+    (post-self-insert-hook lsp-bridge-monitor-post-self-insert 90 t)
     ))
 
 (defvar lsp-bridge-mode-map (make-sparse-keymap))
@@ -1361,6 +1398,13 @@ So we build this macro to restore postion after code format."
   :type 'integer
   :group 'lsp-bridge)
 
+(defcustom lsp-bridge-code-action-preview-delay 0.5
+  "The delay to show code action diff preview.
+
+Default is 0.5 second, preview window will stick if this value too small."
+  :type 'float
+  :group 'lsp-bridge)
+
 (defvar lsp-bridge-signature-help-timer nil)
 
 (defvar lsp-bridge-search-words-timer nil)
@@ -1389,6 +1433,8 @@ So we build this macro to restore postion after code format."
 
   (setq-local lsp-bridge-revert-buffer-flag nil)
 
+  (acm-run-idle-func acm-backend-elisp-symbols-update-timer lsp-bridge-elisp-symbols-update-idle 'lsp-bridge-elisp-symbols-update)
+
   (when-let* ((lsp-server-name (lsp-bridge-has-lsp-server-p)))
     ;; Wen LSP server need `acm-get-input-prefix-bound' return ASCII keyword prefix,
     ;; other LSP server need use `bounds-of-thing-at-point' of symbol as keyword prefix.
@@ -1410,12 +1456,10 @@ So we build this macro to restore postion after code format."
     (when lsp-bridge-enable-search-words
       (acm-run-idle-func lsp-bridge-search-words-timer lsp-bridge-search-words-rebuild-cache-idle 'lsp-bridge-search-words-rebuild-cache))
     (when lsp-bridge-enable-auto-format-code
-      (acm-run-idle-func lsp-bridge-auto-format-code-timer lsp-bridge-auto-format-code-idle 'lsp-bridge-auto-format-code))
-
-    (acm-run-idle-func lsp-bridge-elisp-symbols-timer lsp-bridge-elisp-symbols-update-idle 'lsp-bridge-elisp-symbols-update))
+      (acm-run-idle-func lsp-bridge-auto-format-code-timer lsp-bridge-auto-format-code-idle 'lsp-bridge-auto-format-code)))
 
   (dolist (hook lsp-bridge--internal-hooks)
-    (add-hook (car hook) (cdr hook) nil t))
+    (apply #'add-hook hook))
 
   (advice-add #'acm-hide :after #'lsp-bridge--completion-hide-advisor)
 
@@ -1427,16 +1471,16 @@ So we build this macro to restore postion after code format."
   "Disable LSP Bridge mode."
   ;; Remove hooks.
   (dolist (hook lsp-bridge--internal-hooks)
-    (remove-hook (car hook) (cdr hook) t))
+    (remove-hook (nth 0 hook) (nth 1 hook) (nth 3 hook)))
 
   ;; Cancel idle timer.
   (acm-cancel-timer lsp-bridge-signature-help-timer)
   (acm-cancel-timer lsp-bridge-search-words-timer)
   (acm-cancel-timer lsp-bridge-auto-format-code-timer)
-  (acm-cancel-timer lsp-bridge-elisp-symbols-timer)
+  (acm-cancel-timer acm-backend-elisp-symbols-update-timer)
 
-  ;; Reset `lsp-bridge-elisp-symbols-size' to zero.
-  (setq lsp-bridge-elisp-symbols-size 0)
+  ;; Reset `acm-backend-elisp-symbols-update-size' to zero.
+  (setq acm-backend-elisp-symbols-update-size 0)
 
   ;; Remove hide advice.
   (advice-remove #'acm-hide #'lsp-bridge--completion-hide-advisor))
@@ -1476,7 +1520,7 @@ So we build this macro to restore postion after code format."
                        (if (> diagnostic-number 1)
                            (format "[%s:%s] %s" (1+ diagnostic-index) diagnostic-number message)
                          message))
-          (push  overlay lsp-bridge-diagnostic-overlays))
+          (push overlay lsp-bridge-diagnostic-overlays))
 
         (setq diagnostic-index (1+ diagnostic-index))))
     (setq-local lsp-bridge-diagnostic-overlays (reverse lsp-bridge-diagnostic-overlays))))
@@ -1503,7 +1547,7 @@ So we build this macro to restore postion after code format."
             (posframe-show lsp-bridge-diagnostic-tooltip
                            :position (point)
                            :internal-border-width lsp-bridge-diagnostic-tooltip-border-width
-                           :background-color (lsp-bridge-frame-background-color)
+                           :background-color (acm-frame-background-color)
                            :foreground-color foreground-color
                            )))))
 
@@ -1540,16 +1584,22 @@ So we build this macro to restore postion after code format."
       (lsp-bridge-show-diagnostic-tooltip diagnostic-overlay)
     (message "[LSP-Bridge] Reach first diagnostic.")))
 
+(defun lsp-bridge-diagnostic-overlay-at-point ()
+  (dolist (overlay lsp-bridge-diagnostic-overlays)
+    (when (and (>= (point) (overlay-start overlay))
+               (< (point) (overlay-end overlay)))
+      (cl-return overlay)
+      )))
+
 (defun lsp-bridge-diagnostic-copy ()
   (interactive)
-  (if (or (zerop (length lsp-bridge-diagnostic-overlays))
-          (not (frame-visible-p lsp-bridge-diagnostic-frame)))
+  (if (zerop (length lsp-bridge-diagnostic-overlays))
       (message "[LSP-Bridge] No diagnostics.")
-    (let ((diagnostic-message (with-current-buffer lsp-bridge-diagnostic-tooltip
-                                lsp-bridge-diagnostic-message)))
-      (kill-new diagnostic-message)
-      (message "Copy diagnostics: '%s'" diagnostic-message)
-      )))
+    (let ((overlay (lsp-bridge-diagnostic-overlay-at-point)))
+      (when overlay
+        (let ((diagnostic-message (overlay-get overlay 'message)))
+          (kill-new diagnostic-message)
+          (message "Copy diagnostics: '%s'" diagnostic-message))))))
 
 (defun lsp-bridge-diagnostic-list ()
   (interactive)
@@ -1633,7 +1683,7 @@ SymbolKind (defined in the LSP)."
            (match-info (seq-filter (lambda (i) (string-equal match-symbol (lsp-bridge-workspace-transform-info i))) info)))
       (when match-info
         (let* ((symbol-info (plist-get (car match-info) :location))
-               (symbol-file (url-unhex-string (string-remove-prefix "file://" (format "%s" (plist-get symbol-info :uri)))))
+               (symbol-file (lsp-bridge-pick-file-path (format "%s" (plist-get symbol-info :uri))))
                (symbol-position (plist-get (plist-get symbol-info :range) :start)))
           (find-file symbol-file)
           (goto-char (acm-backend-lsp-position-to-point symbol-position))
@@ -1651,12 +1701,26 @@ SymbolKind (defined in the LSP)."
                               'face font-lock-comment-face)))
     (concat typestr name pathstr)))
 
+(defun lsp-bridge-code-action-get-range ()
+  (cond ((region-active-p)
+         (cons (region-beginning) (region-end)))
+        (t
+         (let ((overlay (lsp-bridge-diagnostic-overlay-at-point)))
+           (if overlay
+               (cons (overlay-start overlay) (overlay-end overlay))
+             (cons (point) (point)))))))
+
 (defun lsp-bridge-code-action (&optional action-kind)
   (interactive)
   (when (lsp-bridge-has-lsp-server-p)
-    (lsp-bridge-call-file-api "code_action" (lsp-bridge-get-range-start) (lsp-bridge-get-range-end) action-kind)
+    (let ((range (lsp-bridge-code-action-get-range)))
+      (lsp-bridge-call-file-api "code_action"
+                                (lsp-bridge--point-position (car range))
+                                (lsp-bridge--point-position (cdr range))
+                                action-kind)
 
-    (setq-local lsp-bridge-code-action-notify t)))
+      (setq-local lsp-bridge-code-action-notify t)
+      )))
 
 (defvar-local lsp-bridge-code-action-notify nil)
 
@@ -1684,7 +1748,7 @@ SymbolKind (defined in the LSP)."
   (lsp-bridge-save-position
    (let ((inhibit-modification-hooks t))
      ;; Apply code format edits, not sort, just reverse order.
-     (lsp-bridge-file-apply-edits filepath edits t)
+     (lsp-bridge-file-apply-edits filepath edits)
      ;; Make LSP server update full content.
      (lsp-bridge-call-file-api "update_file" (buffer-name))
      ;; Notify format complete.
@@ -1692,6 +1756,193 @@ SymbolKind (defined in the LSP)."
      )))
 
 (defvar lsp-bridge-sdcv-helper-dict nil)
+
+(defvar lsp-bridge-code-action--current-buffer nil)
+(defvar lsp-bridge-code-action-popup-maybe-preview-timer nil)
+(defvar lsp-bridge-code-action--oldfile nil)
+(defvar lsp-bridge-code-action--preview-alist nil)
+(defvar lsp-bridge-code-action--preview-index nil)
+
+(defun lsp-bridge-code-action-popup-select ()
+  (interactive)
+  (lsp-bridge-code-action-popup-quit)
+  (lsp-bridge-code-action--fix-do
+   (cdr (nth lsp-bridge-call-hierarchy--index lsp-bridge-call-hierarchy--popup-response))))
+
+(defun lsp-bridge-code-action-popup-quit ()
+  (interactive)
+  (acm-cancel-timer lsp-bridge-code-action-popup-maybe-preview-timer)
+
+  (acm-frame-delete-frame lsp-bridge-call-hierarchy--frame)
+  (kill-buffer "*lsp-bridge-code-action-menu*")
+
+  (advice-remove 'lsp-bridge-call-hierarchy-maybe-preview #'lsp-bridge-code-action-popup-maybe-preview)
+  (advice-remove 'lsp-bridge-call-hierarchy-select #'lsp-bridge-code-action-popup-select)
+  (advice-remove 'lsp-bridge-call-hierarchy-quit #'lsp-bridge-code-action-popup-quit)
+  (select-window (get-buffer-window lsp-bridge-code-action--current-buffer)))
+
+(defun lsp-bridge-code-action-popup-maybe-preview-show (&optional buffer-content)
+  (when-let* ((pos (frame-position lsp-bridge-call-hierarchy--frame))
+              (call-frame-height (frame-height lsp-bridge-call-hierarchy--frame))
+              (call-frame-width (frame-width lsp-bridge-call-hierarchy--frame))
+              (width 0) (height 0)
+              (live-p (frame-live-p lsp-bridge-call-hierarchy--frame)))
+    (with-current-buffer  "*lsp-bridge-code-action-preview*"
+      (read-only-mode -1)
+
+      (cond
+       (buffer-content
+        (delete-region (point-min) (point-max))
+        (insert buffer-content))
+       (t
+        (goto-char (point-min))
+        ;; delete info lines
+        (kill-line 3)
+        ;; delete finish
+        (goto-char (point-min))
+        (when (search-forward "Diff finished." nil t)
+          (beginning-of-line)
+          (kill-line 1))
+        (push (cons lsp-bridge-code-action--preview-index (buffer-string))
+              lsp-bridge-code-action--preview-alist)))
+
+      ;; get width and height
+      (goto-char (point-min))
+      (while (not (eobp))
+        (cl-incf height)
+        (setq width (max (- (line-end-position)
+                            (line-beginning-position))
+                         width))
+        (forward-line))
+      (setq width (min width 80))
+      ;; show top
+      (goto-char (point-min))
+      ;; truncate lines
+      (setq-local mode-line-format nil)
+      (setq-local truncate-lines t))
+
+    (acm-frame-set-frame-size lsp-bridge-call-hierarchy--frame (max width call-frame-width)
+                                     (+ height (length lsp-bridge-call-hierarchy--popup-response)))
+    (acm-frame-adjust-frame-pos lsp-bridge-call-hierarchy--frame)
+    (select-frame-set-input-focus lsp-bridge-call-hierarchy--frame)
+
+    (let ((menu-window (get-buffer-window "*lsp-bridge-code-action-menu*"
+                                          lsp-bridge-call-hierarchy--frame))
+          (frame-window-list (window-list lsp-bridge-call-hierarchy--frame)))
+      (when (eq (length frame-window-list) 1)
+        (split-window (selected-window) height 'below)
+        (setq frame-window-list (window-list lsp-bridge-call-hierarchy--frame)))
+      (dolist (window frame-window-list)
+        (unless (eq window menu-window)
+          (set-window-buffer window "*lsp-bridge-code-action-preview*")))
+      (select-window menu-window)
+      (set-window-text-height menu-window
+                              (length lsp-bridge-call-hierarchy--popup-response)))))
+
+(defun lsp-bridge-code-action-popup-maybe-preview-do ()
+  (let* ((buffer (buffer-name lsp-bridge-code-action--current-buffer))
+         (buffer-content (with-current-buffer buffer (buffer-string)))
+         (recentf-keep '(".*" . nil)) ;; not push temp file in recentf-list
+         (recentf-exclude '(".*"))
+         (action (cdr (nth lsp-bridge-call-hierarchy--index
+                           lsp-bridge-call-hierarchy--popup-response)))
+         (cache-buffer-string (alist-get lsp-bridge-call-hierarchy--index
+                                         lsp-bridge-code-action--preview-alist)))
+
+    (setq lsp-bridge-code-action--preview-index lsp-bridge-call-hierarchy--index)
+    (if cache-buffer-string
+        ;; use cache
+        (lsp-bridge-code-action-popup-maybe-preview-show cache-buffer-string)
+      ;; diff
+      (with-temp-buffer
+        (insert buffer-content)
+        (lsp-bridge-code-action--fix-do action (current-buffer))
+        (diff-no-select lsp-bridge-code-action--current-buffer (current-buffer)
+                        nil nil (get-buffer-create "*lsp-bridge-code-action-preview*")))
+
+      (if-let ((proc (get-buffer-process "*lsp-bridge-code-action-preview*")))
+          (set-process-sentinel
+           proc (lambda (proc _msg)
+                  (with-current-buffer (process-buffer proc)
+                    (diff-sentinel (process-exit-status proc))
+                    (lsp-bridge-code-action-popup-maybe-preview-show))))
+        (lsp-bridge-code-action-popup-maybe-preview-show)))))
+
+(defun lsp-bridge-code-action-popup-maybe-preview ()
+  (acm-cancel-timer lsp-bridge-code-action-popup-maybe-preview-timer)
+  (setq lsp-bridge-code-action-popup-maybe-preview-timer
+        (run-with-idle-timer lsp-bridge-code-action-preview-delay nil #'lsp-bridge-code-action-popup-maybe-preview-do)))
+
+(defun lsp-bridge-code-action-popup-menu (menu-items default-action)
+  (let ((recentf-keep '(".*" . nil)) ;; not push temp file in recentf-list
+        (recentf-exclude '(".*"))
+        (menu-lenght (length menu-items))
+        (menu-buffer (get-buffer-create "*lsp-bridge-code-action-menu*"))
+        (menu-width 0)
+        (cursor (acm-frame-get-popup-position (point))))
+    ;; prepare for previewing
+    (setq lsp-bridge-code-action--current-buffer (current-buffer))
+
+    (setq lsp-bridge-code-action--oldfile (make-temp-file
+                                           (buffer-name) nil nil (buffer-string)))
+    (setq lsp-bridge-code-action--preview-alist '())
+
+    ;; reuse hierarchy popup keymap and mode here
+    (setq lsp-bridge-call-hierarchy--popup-response menu-items)
+
+    (acm-frame-create-frame-if-not-exist lsp-bridge-call-hierarchy--frame
+                                         menu-buffer "code action" 0 nil)
+
+    (with-current-buffer menu-buffer
+      (cl-loop for i from 0 to (1- (length menu-items))
+               do (let* ((title (car (nth i menu-items)))
+                         (format-line (format "%d. %s\n" (1+ i) title))
+                         (line-width (length format-line)))
+                    (insert format-line)
+                    (setq menu-width (max line-width menu-width))))
+      (lsp-bridge-call-hierarchy-mode)
+      (goto-char (point-min))
+      (setq-local cursor-type nil)
+      (setq-local truncate-lines t)
+      (setq-local mode-line-format nil))
+
+    (acm-frame-set-frame-position lsp-bridge-call-hierarchy--frame (car cursor) (cdr cursor))
+    (acm-frame-set-frame-size lsp-bridge-call-hierarchy--frame menu-width menu-lenght)
+
+    (advice-add 'lsp-bridge-call-hierarchy-maybe-preview :override #'lsp-bridge-code-action-popup-maybe-preview)
+    (advice-add 'lsp-bridge-call-hierarchy-select :override #'lsp-bridge-code-action-popup-select)
+    (advice-add 'lsp-bridge-call-hierarchy-quit :override #'lsp-bridge-code-action-popup-quit)
+
+    (lsp-bridge-code-action-popup-maybe-preview)
+    ))
+
+
+(defun lsp-bridge-code-action--fix-do (action &optional temp-buffer)
+  (let* ((command (plist-get action :command))
+         (edit (plist-get action :edit))
+         (arguments (plist-get action :arguments)))
+    (cond (edit
+           (lsp-bridge-workspace-apply-edit edit temp-buffer))
+          (arguments
+           (dolist (argument arguments)
+             (lsp-bridge-workspace-apply-edit argument temp-buffer)))
+          (command
+           (let (arguments)
+             ;; Pick command and arguments.
+             (cond ((consp command)
+                    (setq arguments (plist-get command :arguments))
+                    (setq command (plist-get command :command)))
+                   ((stringp command)
+                    (setq arguments (plist-get action :arguments))))
+
+             (if (member command lsp-bridge-apply-edit-commands)
+                 ;; Apply workspace edit if command match `lsp-bridge-apply-edit-commands'.
+                 (dolist (argument arguments)
+                   (lsp-bridge-workspace-apply-edit argument temp-buffer))
+               ;; Otherwise send `workspace/executeCommand' request to LSP server.
+               (lsp-bridge-call-file-api "execute_command" command)))))
+    (unless temp-buffer
+      (message "[LSP-BRIDGE] Execute code action '%s'" (plist-get action :title)))))
 
 (defun lsp-bridge-code-action--fix (actions action-kind)
   (let* ((menu-items
@@ -1711,67 +1962,35 @@ SymbolKind (defined in the LSP)."
                             menu-items))
          (default-action (car (or preferred-action (car menu-items))))
          (action (if (and action-kind (null (cadr menu-items)))
-                     (cdr (car menu-items))
-                   (cdr (assoc (completing-read
-                                (format "[LSP-BRIDGE] Pick an action (default: %s): " default-action)
-                                menu-items nil t nil nil default-action)
-                               menu-items)))))
+                     (cdr (car menu-items)) nil)))
+    (cond
+     (action
+      (lsp-bridge-code-action--fix-do action))
+     ((posframe-workable-p) ;;posframe
+      (lsp-bridge-code-action-popup-menu menu-items default-action))
+     (t
+      (let ((select-name
+             (completing-read
+              (format "[LSP-BRIDGE] Pick an action (default: %s): " default-action)
+              menu-items nil t nil nil default-action)))
+        (lsp-bridge-code-action--fix-do (cdr (assoc select-name menu-items))))))))
 
-    (let* ((command (plist-get action :command))
-           (edit (plist-get action :edit))
-           (arguments (plist-get action :arguments)))
-      (cond (edit
-             (lsp-bridge-workspace-apply-edit edit))
-            (arguments
-             (dolist (argument arguments)
-               (lsp-bridge-workspace-apply-edit argument)))
-            (command
-             (let (arguments)
-               ;; Pick command and arguments.
-               (cond ((consp command)
-                      (setq arguments (plist-get command :arguments))
-                      (setq command (plist-get command :command)))
-                     ((stringp command)
-                      (setq arguments (plist-get action :arguments))))
-
-               (if (member command lsp-bridge-apply-edit-commands)
-                   ;; Apply workspace edit if command match `lsp-bridge-apply-edit-commands'.
-                   (dolist (argument arguments)
-                     (lsp-bridge-workspace-apply-edit argument))
-                 ;; Otherwise send `workspace/executeCommand' request to LSP server.
-                 (lsp-bridge-call-file-api "execute_command" command)))))
-      (message "[LSP-BRIDGE] Execute code action '%s'" (plist-get action :title)))))
-
-(defun lsp-bridge-workspace-apply-edit (info)
+(defun lsp-bridge-workspace-apply-edit (info &optional temp-buffer)
   (lsp-bridge-save-position
    (cond ((plist-get info :documentChanges)
           (dolist (change (plist-get info :documentChanges))
             (lsp-bridge-file-apply-edits
-             (string-remove-prefix "file://" (plist-get (plist-get change :textDocument) :uri))
-             (plist-get change :edits))))
+             (plist-get (plist-get change :textDocument) :uri)
+             (plist-get change :edits)  temp-buffer)))
          ((plist-get info :changes)
           (let* ((changes (plist-get info :changes))
                  (changes-number (/ (length changes) 2)))
             (dotimes (changes-index changes-number)
               (lsp-bridge-file-apply-edits
-               (string-remove-prefix ":file://" (format "%s" (nth (* changes-index 2) changes)))
-               (nth (+ (* changes-index 2) 1) changes)))))))
+               (format "%s" (nth (* changes-index 2) changes))
+               (nth (+ (* changes-index 2) 1) changes) temp-buffer))))))
 
   (setq-local lsp-bridge-prohibit-completion t))
-
-(defun lsp-bridge-get-range-start ()
-  (lsp-bridge--point-position
-   (or (if (region-active-p)
-           (region-beginning)
-         (point))
-       (point))))
-
-(defun lsp-bridge-get-range-end ()
-  (lsp-bridge--point-position
-   (or (if (region-active-p)
-           (region-end)
-         (point))
-       (point))))
 
 (defun lsp-bridge-diagnostic--ignore (comment-string)
   (move-end-of-line 1)
@@ -1796,6 +2015,12 @@ SymbolKind (defined in the LSP)."
                                  (goto-line line)
                                  (buffer-substring-no-properties (line-beginning-position) (line-end-position))))))
           (insert (concat "\033[93m" (format "%s %s" (1+ diagnostic-counter) message) "\033[0m" "\n"))
+
+          ;; `start' point and `end' point will same if the diagnostic message is for a location rather than region.
+          ;; Then we need adjust end-column to highlight diagnostic location.
+          (when (equal start-column end-column)
+            (setq end-column (1+ end-column)))
+
           (insert (format "%s:%s:%s\n\n"
                           line
                           start-column
@@ -1832,21 +2057,6 @@ SymbolKind (defined in the LSP)."
           (acm-doc-try-show)
         ;; Hide doc frame immediately.
         (acm-doc-hide)))))
-
-(defvar lsp-bridge-lookup-doc-tooltip-background nil)
-(defvar lsp-bridge-lookup-doc-tooltip-height nil)
-
-(defun lsp-bridge-render-markdown-content ()
-  (when (fboundp 'gfm-view-mode)
-    (let ((inhibit-message t))
-      (setq-local markdown-fontify-code-blocks-natively t)
-      (setq lsp-bridge-lookup-doc-tooltip-background (face-background 'markdown-code-face))
-      (setq lsp-bridge-lookup-doc-tooltip-height (face-attribute 'markdown-code-face :height))
-      (set-face-background 'markdown-code-face (lsp-bridge-frame-background-color))
-      (set-face-attribute 'markdown-code-face nil :height lsp-bridge-lookup-doc-tooltip-font-height)
-      (gfm-view-mode)))
-  (read-only-mode 0)
-  (font-lock-ensure))
 
 (defun lsp-bridge-toggle-sdcv-helper ()
   "Toggle sdcv helper."
@@ -1985,20 +2195,9 @@ SymbolKind (defined in the LSP)."
   (when lsp-bridge-server
     (propertize (format "lsp-bridge:%s" lsp-bridge-server-port) 'face mode-face)))
 
-(add-to-list 'mode-line-misc-info
-             `(lsp-bridge-mode (" [" lsp-bridge--mode-line-format "] ")))
-
-(defalias 'lsp-bridge-insert-common-prefix #'acm-insert-common "This function is obsolete, use `acm-insert-common' instead.")
-(defalias 'lsp-bridge-find-define #'lsp-bridge-find-def "This function is obsolete, use `lsp-bridge-find-define' instead.")
-(defalias 'lsp-bridge-lookup-documentation #'lsp-bridge-popup-documentation "This function is obsolete, use `lsp-bridge-lookup-documentation' instead.")
-(defalias 'lsp-bridge-list-workspace-symbols #'lsp-bridge-workspace-list-symbols "This function is obsolete, use `lsp-bridge-workspace-list-symbols' instead.")
-(defalias 'lsp-bridge-jump-to-next-diagnostic #'lsp-bridge-diagnostic-jump-next "This function is obsolete, use `lsp-bridge-jump-to-next-diagnostic' instead.")
-(defalias 'lsp-bridge-jump-to-prev-diagnostic #'lsp-bridge-diagnostic-jump-prev "This function is obsolete, use `lsp-bridge-jump-to-prev-diagnostic' instead.")
-(defalias 'lsp-bridge-list-diagnostics #'lsp-bridge-diagnostic-list "This function is obsolete, use `lsp-bridge-list-diagnostics' instead.")
-(defalias 'lsp-bridge-ignore-current-diagnostic #'lsp-bridge-diagnostic-ignore "This function is obsolete, use `lsp-bridge-ignore-current-diagnostic' instead.")
-(defalias 'lsp-bridge-popup-complete #'lsp-bridge-popup-complete-menu "This function is obsolete, use `lsp-bridge-popup-complete' instead.")
-(defalias 'lsp-bridge-return-from-def #'lsp-bridge-find-def-return "This function is obsolete, use `lsp-bridge-find-def-return' instead.")
-(defalias 'lsp-bridge-toggle-english-helper #'lsp-bridge-toggle-sdcv-helper "This function is obsolete, use `lsp-bridge-toggle-sdcv-helper' instead.")
+(when lsp-bridge-enable-mode-line
+  (add-to-list 'mode-line-misc-info
+               `(lsp-bridge-mode (" [" lsp-bridge--mode-line-format "] "))))
 
 (provide 'lsp-bridge)
 

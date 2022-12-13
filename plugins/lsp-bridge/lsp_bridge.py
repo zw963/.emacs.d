@@ -36,7 +36,7 @@ from core.fileaction import (FileAction,
 from core.lspserver import LspServer
 from core.search_file_words import SearchFileWords
 from core.search_sdcv_words import SearchSdcvWords
-from core.search_elisp_symbols import SearchElispSymbols
+from core.search_list import SearchList
 from core.search_tailwindcss_keywords import SearchTailwindKeywords
 from core.tabnine import TabNine
 from core.utils import *
@@ -87,11 +87,11 @@ class LspBridge:
         for name in ["search"]:
             self.build_prefix_function("search_sdcv_words", "search_sdcv_words", name)
             
-        # Init search elisp symbols.
-        self.search_elisp_symbols = SearchElispSymbols()
+        # Init search list.
+        self.search_list = SearchList()
         for name in ["search", "update"]:
-            self.build_prefix_function("search_elisp_symbols", "search_elisp_symbols", name)
-
+            self.build_prefix_function("search_list", "search_list", name)
+            
         # Init search tailwind keywords
         self.search_tailwind_keywords = SearchTailwindKeywords()
         for name in ["search"]:
@@ -191,6 +191,7 @@ class LspBridge:
                 return False
             
             lang_server_info = load_single_server_info(single_lang_server)
+
             if ((not os.path.isdir(project_path)) and
                 "support-single-file" in lang_server_info and
                 lang_server_info["support-single-file"] == False):
@@ -213,14 +214,41 @@ class LspBridge:
         message_emacs(message)
         eval_in_emacs("lsp-bridge--turn-off", filepath)
     
+    def server_info_replace_template(self, lang_server_info):
+        # Replace template in command options.
+        command_args = lang_server_info["command"]
+        for i, arg in enumerate(command_args):
+            if "%USER_EMACS_DIRECTORY%" in arg:
+                user_emacs_dir = get_emacs_func_result("get-user-emacs-directory").replace("/", "\\")
+                command_args[i] = arg.replace("%USER_EMACS_DIRECTORY%", user_emacs_dir)
+            elif "$HOME" in arg:
+                command_args[i] = os.path.expandvars(arg)
+            elif "%FILEHASH%" in arg:
+                # pyright use `--cancellationReceive` option enable "background analyze" to improve completion performance.
+                command_args[i] = arg.replace("%FILEHASH%", os.urandom(21).hex())
+        lang_server_info["command"] = command_args
+        
+        # Replace template in initializationOptions.
+        initialize_args = lang_server_info.get("initializationOptions", None)
+        if initialize_args:
+            initialize_args_string = json.dumps(initialize_args)
+            if "%USERPROFILE%" in initialize_args_string:
+                initialize_args_string.replace("%USERPROFILE%", windows_get_env_value("USERPROFILE"))
+                initialize_args = json.load(initialize_args_string)
+                lang_server_info["initializationOptions"] = initialize_args
+
+        return lang_server_info
+        
     def create_lsp_server(self, filepath, project_path, lang_server_info):
+        lang_server_info = self.server_info_replace_template(lang_server_info)
+        
         if len(lang_server_info["command"]) > 0:
             server_command = lang_server_info["command"][0]
             server_command_path = shutil.which(server_command)
             if server_command_path:
                 # We always replace LSP server command with absolute path of 'which' command.
                 lang_server_info["command"][0] = server_command_path
-            else:
+            elif not os.path.exists(server_command):
                 self.turn_off(filepath, "Error: can't find command '{}' to start LSP server {} ({}), disable lsp-bridge-mode.".format(
                     server_command, lang_server_info["name"], filepath))
         
@@ -323,7 +351,7 @@ def load_single_server_info(lang_server):
     else:
         # Otherwise, we load LSP server configuration from file lsp-bridge/langserver/lang_server.json.
         lang_server_info_path = get_lang_server_path(lang_server)
-
+        
     with open(lang_server_info_path, encoding="utf-8", errors="ignore") as f:
         return json.load(f)
     
@@ -331,7 +359,7 @@ def get_lang_server_path(server_name):
     server_dir = Path(__file__).resolve().parent / "langserver"
     server_path_current = server_dir / "{}_{}.json".format(server_name, get_os_name())
     server_path_default = server_dir / "{}.json".format(server_name)
-    
+
     return server_path_current if server_path_current.exists() else server_path_default
     
 if __name__ == "__main__":
