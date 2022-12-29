@@ -97,6 +97,13 @@ class FileAction:
             self.method_handlers[lsp_server.server_info["name"]] = method_handlers_dict
             
             lsp_server.attach(self)
+            
+        # Set acm-input-bound-style when opened file.
+        if self.single_server_info != None:
+            eval_in_emacs("lsp-bridge-set-prefix-style", self.single_server_info.get("prefixStyle", "ascii"))
+
+        # Init server names.
+        eval_in_emacs("lsp-bridge-set-server-names", self.filepath, self.get_lsp_server_names())
 
     @property
     def last_change(self) -> Tuple[float, float]:
@@ -164,10 +171,6 @@ class FileAction:
         self.version += 1
 
     def try_completion(self, position, before_char, prefix):
-        # Only send textDocument/completion request when match one of following rules:
-        # 1. Character before cursor is match completion trigger characters.
-        # 2. Completion UI is invisible.
-        # 3. Last completion candidates is empty.
         if self.multi_servers:
             for lsp_server in self.multi_servers.values():
                 if lsp_server.server_info["name"] in self.multi_servers_info["completion"]:

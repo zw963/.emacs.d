@@ -147,6 +147,7 @@ def get_emacs_func_result(method_name, *args):
 
 def get_command_result(command_string, cwd):
     import subprocess
+    
     process = subprocess.Popen(command_string, cwd=cwd, shell=True, text=True,
                                stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                                encoding="utf-8")
@@ -252,6 +253,10 @@ def get_project_path(filepath):
             return get_command_result("git rev-parse --show-toplevel", dir_path)
         else:
             return filepath
+        
+def log_time(message):
+    import datetime
+    logger.info("\n--- [{}] {}".format(datetime.datetime.now().time(), message))
 
 @functools.lru_cache(maxsize=None)
 def get_emacs_version():

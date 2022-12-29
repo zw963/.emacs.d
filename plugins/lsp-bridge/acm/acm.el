@@ -197,6 +197,7 @@
     (define-key map "\n" #'acm-complete)
     (define-key map "\M-h" #'acm-complete)
     (define-key map "\M-H" #'acm-insert-common)
+    (define-key map "\M-u" #'acm-filter)
     (define-key map "\M-d" #'acm-doc-toggle)
     (define-key map "\M-j" #'acm-doc-scroll-up)
     (define-key map "\M-k" #'acm-doc-scroll-down)
@@ -219,7 +220,10 @@
 (defvar-local acm-menu-index -1)
 (defvar-local acm-menu-offset 0)
 
-(defvar-local acm-input-bound-style nil)
+(defvar-local acm-input-bound-style "ascii")
+
+(defvar-local acm-filter-overlay nil)
+(defvar-local acm-filter-string "")
 
 (defvar acm-doc-frame nil)
 (defvar acm-doc-frame-hide-p nil)
@@ -228,6 +232,10 @@
 (defface acm-deprecated-face
   '((t :inherit shadow :strike-through t))
   "Face used for deprecated candidates.")
+
+(defface acm-filter-face
+  '()
+  "Filter face.")
 
 (defsubst acm-indent-pixel (xpos)
   "Return a display property that aligns to XPOS."
@@ -248,14 +256,24 @@
 
 
 (defun acm-get-input-prefix-bound ()
-  (if (string-equal acm-input-bound-style "symbol")
-      (bounds-of-thing-at-point 'symbol)
-    (let ((bound (bounds-of-thing-at-point 'symbol)))
-      (when bound
-        (let* ((keyword (buffer-substring-no-properties (car bound) (cdr bound)))
-               (offset (or (string-match "[[:nonascii:]]+" (reverse keyword))
-                           (length keyword))))
-          (cons (- (cdr bound) offset) (cdr bound)))))))
+  (pcase acm-input-bound-style
+    ("symbol"
+     (bounds-of-thing-at-point 'symbol))
+    ("string"
+     (cons (point)
+           (save-excursion
+             (if (search-backward-regexp "\\s-" (point-at-bol) t)
+                 (progn
+                   (forward-char)
+                   (point))
+               (point-at-bol)))))
+    ("ascii"
+     (let ((bound (bounds-of-thing-at-point 'symbol)))
+       (when bound
+         (let* ((keyword (buffer-substring-no-properties (car bound) (cdr bound)))
+                (offset (or (string-match "[[:nonascii:]]+" (reverse keyword))
+                            (length keyword))))
+           (cons (- (cdr bound) offset) (cdr bound))))))))
 
 (defun acm-get-input-prefix ()
   "Get user input prefix."
@@ -386,7 +404,14 @@ Only calculate template candidate when type last character."
                 (append mode-candidates yas-candidates tempel-candidates tabnine-candidates)
                 ))))
 
-    candidates))
+    ;; Return candidates.
+    (if acm-filter-overlay
+        ;; When acm-filter turn on, use `acm-filter-string' filter candidates.
+        (cl-remove-if-not (lambda (candidate)
+                            (acm-candidate-fuzzy-search acm-filter-string (plist-get candidate :label)))
+                          candidates)
+      ;; Otherwise return origin candidates.
+      candidates)))
 
 (defun acm-menu-index-info (candidate)
   "Pick label and backend information to record and restore menu select index.
@@ -405,11 +430,10 @@ The key of candidate will change between two LSP results."
          (current-select-candidate-index (cl-position previous-select-candidate (mapcar 'acm-menu-index-info menu-candidates) :test 'equal))
          (bounds (acm-get-input-prefix-bound)))
     (cond
-     ;; Hide completion menu if user type first candidate completely.
+     ;; Hide completion menu if user type first candidate completely, except when candidate annotation is `emmet' or `snippet'.
      ((and (equal (length candidates) 1)
            (string-equal keyword (plist-get (nth 0 candidates) :label))
-           ;; Volar always send back single emmet candidate, we need filter this condition.
-           (not (string-equal "Emmet Abbreviation" (plist-get (nth 0 candidates) :annotation))))
+           (not (member (plist-get (nth 0 candidates) :annotation) '("Emmet Abbreviation" "Snippet" "Yas-Snippet" "Tempel"))))
       (acm-hide))
      ((> (length candidates) 0)
       (let* ((menu-old-cache (cons acm-menu-max-length-cache acm-menu-number-cache)))
@@ -512,6 +536,9 @@ The key of candidate will change between two LSP results."
 
     ;; Hide doc frame.
     (acm-doc-hide)
+
+    ;; Turn off acm filter.
+    (acm-filter-off t)
 
     ;; Clean `acm-menu-max-length-cache'.
     (setq acm-menu-max-length-cache 0)
@@ -741,9 +768,9 @@ The key of candidate will change between two LSP results."
 
     ;; Make sure doc frame size not out of Emacs area.
     (acm-frame-set-frame-max-size acm-doc-frame
-                                         (ceiling (/ acm-doc-frame-max-width (frame-char-width)))
-                                         (min (ceiling (/ acm-doc-frame-max-height (window-default-line-height)))
-                                              acm-doc-frame-max-lines))
+                                  (ceiling (/ acm-doc-frame-max-width (frame-char-width)))
+                                  (min (ceiling (/ acm-doc-frame-max-height (window-default-line-height)))
+                                       acm-doc-frame-max-lines))
 
     ;; Adjust doc frame with it's size.
     (let* ((acm-doc-frame-width (frame-pixel-width acm-doc-frame))
@@ -952,6 +979,61 @@ The key of candidate will change between two LSP results."
     (when (equal point (point))
       (beginning-of-line))
     (parse-partial-sexp (point) point)))
+
+(defun acm-filter ()
+  (interactive)
+  (if acm-filter-overlay
+      (acm-filter-off)
+    (acm-filter-on)))
+
+(defun acm-filter-on ()
+  (setq-local acm-filter-overlay (make-overlay (point) (point)))
+  (message "Turn on acm filter."))
+
+(defun acm-filter-off (&optional quiet)
+  (when acm-filter-overlay
+    (delete-overlay acm-filter-overlay))
+  (setq-local acm-filter-overlay nil)
+  (setq-local acm-filter-string "")
+  (unless quiet
+    (message "Turn off acm filter.")))
+
+(defun acm-filter-insert-char ()
+  "Insert filter character."
+  (interactive)
+  (when acm-filter-overlay
+    ;; Append current character in `acm-filter-string'.
+    (setq-local acm-filter-string (concat acm-filter-string (format "%s" (this-command-keys))))
+
+    (acm-filter-update)))
+
+(defun acm-filter-delete-char ()
+  "Delete filter character."
+  (interactive)
+  (when acm-filter-overlay
+    (if (length= acm-filter-string 0)
+        (acm-filter-off)
+      ;; Delete last char of `acm-filter-string'
+      (setq-local acm-filter-string (substring acm-filter-string 0 -1))
+
+      (acm-filter-update)
+      )))
+
+(defun acm-filter-update ()
+  ;; Update filter face.
+  (when (facep 'hl-line)
+    (set-face-background 'acm-filter-face (face-attribute 'hl-line :background)))
+  (set-face-foreground 'acm-filter-face (face-attribute 'font-lock-function-name-face :foreground))
+
+  ;; Change overlay string.
+  (overlay-put acm-filter-overlay
+               'after-string
+               (propertize acm-filter-string
+                           'face
+                           'acm-filter-face))
+
+  ;; Filter candiates.
+  (acm-update))
 
 ;; Emacs 28: Do not show Acm commands with M-X
 (dolist (sym '(acm-hide acm-complete acm-select-first acm-select-last acm-select-next

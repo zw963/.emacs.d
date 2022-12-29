@@ -2,5 +2,7 @@
   "name": "文",
   "languageId": "文",
   "command": ["wenls"],
-  "settings": {}
+  "settings": {},
+  "prefixStyle": "symbol",
+  "displayNewText": true
 }

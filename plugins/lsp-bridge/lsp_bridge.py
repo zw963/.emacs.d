@@ -79,7 +79,7 @@ class LspBridge:
 
         # Init search file words.
         self.search_file_words = SearchFileWords()
-        for name in ["change_file", "close_file", "rebuild_cache", "search"]:
+        for name in ["index_files", "change_file", "close_file", "rebuild_cache", "search"]:
             self.build_prefix_function("search_file_words", "search_file_words", name)
             
         # Init search sdcv words.
@@ -329,10 +329,6 @@ class LspBridge:
             logger.info("Exit server: {}".format(server_name))
             del LSP_SERVER_DICT[server_name]
             
-    def search_file_words_index_files(self, filepaths):
-        for filepath in filepaths:
-            self.search_file_words.change_file(filepath)
-        
     def cleanup(self):
         """Do some cleanup before exit python process."""
         close_epc_client()
@@ -341,7 +337,14 @@ class LspBridge:
         # Called from lsp-bridge-test.el to start test.
         from test.test import start_test
         start_test(self)
-
+        
+    def profile_dump(self):
+        try:
+            global profiler
+            profiler.dump_stats(os.path.expanduser("~/lsp-bridge.prof"))
+            message_emacs("Output profile data to ~/lsp-bridge.prof, please use snakeviz open it.")
+        except:
+            message_emacs("Set option 'lsp-bridge-enable-profile' to 't' and call lsp-bridge-restart-process, then call lsp-bridge-profile-dump again.")
 
 def load_single_server_info(lang_server):
     lang_server_info_path = ""
@@ -363,4 +366,10 @@ def get_lang_server_path(server_name):
     return server_path_current if server_path_current.exists() else server_path_default
     
 if __name__ == "__main__":
-    LspBridge(sys.argv[1:])
+    if len(sys.argv) >= 3:
+        import cProfile
+        profiler = cProfile.Profile()
+        profiler.run("LspBridge(sys.argv[1:])")
+    else:
+        LspBridge(sys.argv[1:])
+    
