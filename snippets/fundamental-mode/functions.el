@@ -151,7 +151,13 @@ yas-field 的依赖函数"
 (defun _yas-quotation-mark ()
   "Insert quotation mark."
   (cond
-   ((member major-mode '(emacs-lisp-mode snippet-mode html-mode rhtml-mode web-mode)) "\"")
+   ((member major-mode '(
+                         emacs-lisp-mode
+                         snippet-mode
+                         html-mode
+                         rhtml-mode
+                         web-mode))
+    "\"")
    (t "\"")))
 
 ;; ---------------------------
