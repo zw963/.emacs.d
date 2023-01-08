@@ -2,6 +2,7 @@
 (require 'cnfonts-ui)
 
 (setq cnfonts-use-face-font-rescale t)
+(setq cnfonts-directory (expand-file-name "configs_retina" (file-name-directory (or load-file-name buffer-file-name))))
 
 (defconst cnfonts-personal-fontnames
  '(;; 英文字体
@@ -16,8 +17,6 @@
    ()
    ;; Emacs 社区配置中，用于装饰的字符使用的字体
    ()))
-
-(setq cnfonts-directory (expand-file-name "configs" (file-name-directory (or load-file-name buffer-file-name))))
 
 (cnfonts-enable)
 
