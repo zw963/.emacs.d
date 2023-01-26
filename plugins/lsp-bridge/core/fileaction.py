@@ -212,7 +212,9 @@ class FileAction:
         else:
             return 0
         
-    def record_diagnostics(self, diagnostics):
+    def record_diagnostics(self, diagnostics, server_name):
+        log_time("Record diagnostics from '{}' for file {}".format(server_name, os.path.basename(self.filepath)))
+
         # Record diagnostics data that push from LSP server.
         import functools
         self.diagnostics = sorted(diagnostics, key=functools.cmp_to_key(self.sort_diagnostic))

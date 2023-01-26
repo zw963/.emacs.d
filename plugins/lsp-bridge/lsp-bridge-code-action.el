@@ -111,6 +111,23 @@ Default is 0.5 second, preview window will stick if this value too small."
              (cons (point) (point)))))))
 
 (defun lsp-bridge-code-action (&optional action-kind)
+  "Send code action to LSP server to fixes code or problems.
+
+Default request all kind code-action.
+
+You can send speical kind of code-action, parameter `action-kind' can use one of below:
+
+'quickfix'
+'refactor'
+'refactor.extract'
+'refactor.inline'
+'refactor.rewrite'
+'source'
+'source.organizeImports'
+'source.fixAll'
+
+Please read https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#codeActionKind for detail explain.
+"
   (interactive)
   (when (lsp-bridge-has-lsp-server-p)
     (let ((range (lsp-bridge-code-action-get-range)))
@@ -315,11 +332,11 @@ Default is 0.5 second, preview window will stick if this value too small."
 (defun lsp-bridge-code-action--fix (actions action-kind)
   (let* ((menu-items
           (or
-           (mapcar #'(lambda (action)
-                       (when (or (not action-kind)
-                                 (equal action-kind (plist-get action :kind)))
-                         (cons (plist-get action :title) action)))
-                   actions)
+           (remove-if #'null (mapcar #'(lambda (action)
+                                         (when (or (not action-kind)
+                                                   (equal action-kind (plist-get action :kind)))
+                                           (cons (plist-get action :title) action)))
+                                     actions))
            (apply #'error
                   (if action-kind
                       (format "No '%s' code action here" action-kind)

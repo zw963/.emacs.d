@@ -21,11 +21,9 @@
 
 import threading
 import os
-import traceback
-import sexpdata
 import re
 
-from core.utils import get_emacs_vars, message_emacs, eval_in_emacs, logger, get_project_path
+from core.utils import eval_in_emacs, get_project_path
 
 class SearchTailwindKeywords:
     
@@ -67,4 +65,4 @@ class SearchTailwindKeywords:
                     break
                 
         if ticker == self.search_ticker:
-            eval_in_emacs("lsp-bridge-search-tailwind-keywords--record-items", candidates)
+            eval_in_emacs("lsp-bridge-search-backend--record-items", "tailwind-keywords", candidates)

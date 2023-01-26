@@ -176,6 +176,16 @@
   :type 'integer
   :group 'acm)
 
+(defcustom acm-frame-background-dark-color "#191a1b"
+  "The frame background color for dark theme."
+  :type 'string
+  :group 'acm)
+
+(defcustom acm-frame-background-light-color "#f0f0f0"
+  "The frame background color for dark theme."
+  :type 'string
+  :group 'acm)
+
 (cl-defmacro acm-run-idle-func (timer idle func)
   `(unless ,timer
      (setq ,timer
@@ -187,11 +197,13 @@
     (define-key map [remap previous-line] #'acm-select-prev)
     (define-key map [down] #'acm-select-next)
     (define-key map [up] #'acm-select-prev)
-    (define-key map [tab]  #'acm-complete)
     (define-key map "\M-n" #'acm-select-next)
     (define-key map "\M-p" #'acm-select-prev)
     (define-key map "\M-," #'acm-select-last)
     (define-key map "\M-." #'acm-select-first)
+    (define-key map "\C-v" #'acm-select-next-page)
+    (define-key map "\M-v" #'acm-select-prev-page)
+    (define-key map [tab]  #'acm-complete)
     (define-key map "\C-m" #'acm-complete)
     (define-key map "\t" #'acm-complete)
     (define-key map "\n" #'acm-complete)
@@ -203,7 +215,6 @@
     (define-key map "\M-k" #'acm-doc-scroll-down)
     (define-key map "\M-l" #'acm-hide)
     (define-key map "\C-g" #'acm-hide)
-    (acm-keymap--bind-quick-access map)
     map)
   "Keymap used when popup is shown.")
 
@@ -268,12 +279,11 @@
                    (point))
                (point-at-bol)))))
     ("ascii"
-     (let ((bound (bounds-of-thing-at-point 'symbol)))
-       (when bound
-         (let* ((keyword (buffer-substring-no-properties (car bound) (cdr bound)))
-                (offset (or (string-match "[[:nonascii:]]+" (reverse keyword))
-                            (length keyword))))
-           (cons (- (cdr bound) offset) (cdr bound))))))))
+     (when-let ((bound (bounds-of-thing-at-point 'symbol)))
+       (let* ((keyword (buffer-substring-no-properties (car bound) (cdr bound)))
+              (offset (or (string-match "[[:nonascii:]]+" (reverse keyword))
+                          (length keyword))))
+         (cons (- (cdr bound) offset) (cdr bound)))))))
 
 (defun acm-get-input-prefix ()
   "Get user input prefix."
@@ -322,8 +332,7 @@ Only calculate template candidate when type last character."
 (defun acm-template-candidate-update ()
   "Set `acm-template-candidate-show-p' to t to calculate template candidates."
   (setq-local acm-template-candidate-show-p t)
-  (when (acm-frame-visible-p acm-menu-frame)
-    (acm-update)))
+  (acm-update))
 
 (cl-defmacro acm-cancel-timer (timer)
   `(when ,timer
@@ -419,6 +428,9 @@ The key of candidate will change between two LSP results."
   (format "%s###%s" (plist-get candidate :label) (plist-get candidate :backend)))
 
 (defun acm-update ()
+  ;; Init quick mode map.
+  (acm-quick-access-init)
+
   ;; Adjust `gc-cons-threshold' to maximize temporary,
   ;; make sure Emacs not do GC when filter/sort candidates.
   (let* ((gc-cons-threshold most-positive-fixnum)
@@ -839,6 +851,16 @@ The key of candidate will change between two LSP results."
           (menu-old-cache (cons acm-menu-max-length-cache acm-menu-number-cache)))
      ,@body
 
+     (cond ((< acm-menu-index 0)
+            (setq-local acm-menu-index 0))
+           ((>= acm-menu-index (length acm-menu-candidates))
+            (setq-local acm-menu-index (1- (length acm-menu-candidates)))))
+
+     (cond ((< acm-menu-offset 0)
+            (setq-local acm-menu-offset 0))
+           ((>= acm-menu-offset (- (length acm-candidates) (length acm-menu-candidates)))
+            (setq-local acm-menu-offset (- (length acm-candidates) (length acm-menu-candidates)))))
+
      ;; Only update menu candidates when menu index or offset changed.
      (when (or (not (equal menu-old-index acm-menu-index))
                (not (equal menu-old-offset acm-menu-offset)))
@@ -889,6 +911,24 @@ The key of candidate will change between two LSP results."
          ((> acm-menu-offset 0)
           (setq-local acm-menu-offset (1- acm-menu-offset))))))
 
+(defun acm-select-next-page ()
+  "Select next page candidate."
+  (interactive)
+  (acm-menu-update
+   (cond ((< acm-menu-index (1- (length acm-menu-candidates)))
+          (setq-local acm-menu-index (+ acm-menu-index acm-menu-length)))
+         ((< (+ acm-menu-offset acm-menu-index) (1- (length acm-candidates)))
+          (setq-local acm-menu-offset (+ acm-menu-offset acm-menu-length))))))
+
+(defun acm-select-prev-page ()
+  "Select previous page candidate."
+  (interactive)
+  (acm-menu-update
+   (cond ((> acm-menu-index 0)
+          (setq-local acm-menu-index (- acm-menu-index acm-menu-length)))
+         ((> acm-menu-offset 0)
+          (setq-local acm-menu-offset (- acm-menu-offset acm-menu-length))))))
+
 (defun acm-doc-scroll-up ()
   (interactive)
   (with-current-buffer acm-doc-buffer
@@ -926,8 +966,9 @@ The key of candidate will change between two LSP results."
      ("&lt;" . ?<) ("&gt;" . ?>) ("&amp;" . ?&))))
 
 (defun acm-frame-background-color ()
-  (let* ((theme-mode (format "%s" (frame-parameter nil 'background-mode))))
-    (if (string-equal theme-mode "dark") "#191a1b" "#f0f0f0")))
+  (pcase (format "%s" (frame-parameter nil 'background-mode))
+    ("dark" acm-frame-background-dark-color)
+    ("light" acm-frame-background-light-color)))
 
 (defun acm-markdown-render-content ()
   (when (fboundp 'gfm-view-mode)
@@ -935,6 +976,9 @@ The key of candidate will change between two LSP results."
       (setq-local markdown-fontify-code-blocks-natively t)
       (setq acm-markdown-render-background (face-background 'markdown-code-face))
       (setq acm-markdown-render-height (face-attribute 'markdown-code-face :height))
+      ;; NOTE:
+      ;; Please DON'T use `face-remap-add-relative' here, it's WRONG.
+      ;;
       (set-face-background 'markdown-code-face (acm-frame-background-color))
       (set-face-attribute 'markdown-code-face nil :height acm-markdown-render-font-height)
       (gfm-view-mode)))
