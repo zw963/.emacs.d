@@ -184,7 +184,8 @@ the latest build duration."
   :package-version '(lsp-mode . "6.1"))
 
 (defcustom lsp-rust-features []
-  "List of Cargo features to enable."
+  "List of features to activate.
+Set this to `\"all\"` to pass `--all-features` to cargo."
   :type 'lsp-string-vector
   :group 'lsp-rust-rls
   :package-version '(lsp-mode . "6.1"))
@@ -328,7 +329,7 @@ PARAMS progress report notification data."
 
 (lsp-register-client
  (make-lsp-client :new-connection (lsp-stdio-connection (lambda () lsp-rust-rls-server-command))
-                  :major-modes '(rust-mode rustic-mode)
+                  :activation-fn (lsp-activate-on "rust")
                   :priority (if (eq lsp-rust-server 'rls) 1 -1)
                   :initialization-options '((omitInitBuild . t)
                                             (cmdRun . t))
@@ -482,7 +483,7 @@ belongs to."
   :package-version '(lsp-mode . "6.2.2"))
 
 (defcustom lsp-rust-analyzer-cargo-watch-args []
-  "Cargo watch args."
+  "Extra arguments for `cargo check`."
   :type 'lsp-string-vector
   :group 'lsp-rust-analyzer
   :package-version '(lsp-mode . "6.2.2"))
@@ -494,11 +495,12 @@ The command should include `--message=format=json` or similar option."
   :group 'lsp-rust-analyzer
   :package-version '(lsp-mode . "6.2.2"))
 
-(defcustom lsp-rust-analyzer-cargo-all-targets t
-  "Cargo watch all targets or not."
-  :type 'boolean
-  :group 'lsp-rust-analyzer
-  :package-version '(lsp-mode . "6.2.2"))
+(defcustom lsp-rust-analyzer-checkonsave-features []
+  "List of features to activate.
+Set this to `\"all\"` to pass `--all-features` to cargo."
+  :type 'lsp-string-vector
+  :group 'lsp-rust-rust-analyzer
+  :package-version '(lsp-mode . "8.0.2"))
 
 (defcustom lsp-rust-analyzer-cargo-unset-test []
   "force rust-analyzer to unset `#[cfg(test)]` for the specified crates."
@@ -745,7 +747,7 @@ or JSON objects in `rust-project.json` format."
     :checkOnSave (:enable ,(lsp-json-bool lsp-rust-analyzer-cargo-watch-enable)
                   :command ,lsp-rust-analyzer-cargo-watch-command
                   :extraArgs ,lsp-rust-analyzer-cargo-watch-args
-                  :allTargets ,(lsp-json-bool lsp-rust-analyzer-cargo-all-targets)
+                  :features ,lsp-rust-analyzer-checkonsave-features
                   :overrideCommand ,lsp-rust-analyzer-cargo-override-command)
     :files (:exclude ,lsp-rust-analyzer-exclude-globs
             :watcher ,(if lsp-rust-analyzer-use-client-watching "client" "notify")
@@ -772,7 +774,7 @@ or JSON objects in `rust-project.json` format."
                                         :useParameterNames ,(lsp-json-bool lsp-rust-analyzer-display-lifetime-elision-hints-use-parameter-names))
                  :maxLength ,lsp-rust-analyzer-max-inlay-hint-length
                  :parameterHints ,(lsp-json-bool lsp-rust-analyzer-display-parameter-hints)
-                 :reborrowHints ,(lsp-json-bool lsp-rust-analyzer-display-reborrow-hints)
+                 :reborrowHints ,lsp-rust-analyzer-display-reborrow-hints
                  :renderColons ,(lsp-json-bool lsp-rust-analyzer-server-format-inlay-hints)
                  :typeHints (:enable ,(lsp-json-bool lsp-rust-analyzer-server-display-inlay-hints)
                              :hideClosureInitialization ,(lsp-json-bool lsp-rust-analyzer-hide-closure-initialization)
@@ -1237,7 +1239,7 @@ tokens legend."
                             (lsp-package-path 'rust-analyzer)
                             "rust-analyzer")
                        ,@(cl-rest lsp-rust-analyzer-server-command))))
-  :major-modes '(rust-mode rustic-mode)
+  :activation-fn (lsp-activate-on "rust")
   :priority (if (eq lsp-rust-server 'rust-analyzer) 1 -1)
   :initialization-options 'lsp-rust-analyzer--make-init-options
   :notification-handlers (ht<-alist lsp-rust-notification-handlers)
