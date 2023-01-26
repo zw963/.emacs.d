@@ -2,7 +2,7 @@
 (require 'wakatime-mode)
 
 (setq wakatime-disable-on-error t)
-(setq wakatime-cli-path (expand-file-name "~/utils/bin/wakatime-cli"))
+(setq wakatime-cli-path (expand-file-name "~/utils/modern-unix-commands/bin/wakatime"))
 
 (global-wakatime-mode)
 
