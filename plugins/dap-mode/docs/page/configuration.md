@@ -77,19 +77,25 @@ settings.
 
 1.  Installation
 
-      - install latest version of ptvsd.
+    - install debugpy
+    ``` bash
+    pip install "debugpy"
+    ```
+	- Or install ptvsd
+	```bash
+	pip install "ptvsd>=4.2"
+	```
+	NOTE: ptvsd is depracated, and as of 8/10/2022, ptvsd caused dap to break when it hits a breakpoint.
+	This comment and issue has context: https://github.com/emacs-lsp/dap-mode/issues/625#issuecomment-1128961454
 
-        ``` bash
-        pip install "ptvsd>=4.2"
-        ```
-
-          - Then add the following line in your config:
-
-            ``` elisp
-            (require 'dap-python)
-            ```
-
-        This will add the python related configuration to `dap-debug`.
+    - Then add the following line in your config:
+    ```elisp
+    (require 'dap-python)
+    ;; if you installed debugpy, you need to set this
+    ;; https://github.com/emacs-lsp/dap-mode/issues/306
+    (setq dap-python-debugger 'debugpy)
+    ```
+    This will add the python related configuration to `dap-debug`.
 
 2.  Usage
 
@@ -312,8 +318,14 @@ To fully support rust and pretty printing of strings when debugging, remember to
             Dlv Launch File Configuration"
           - if you want to debug current test function inside test
             file use "Go Dlv Test Current Function Configuration"
+          - if you want to debug current subtest put your cursor on this
+            subtest and use "Go Dlv Test Current Subtest Configuration"
           - if you want to debug already running application select
             "Go Dlv Attach Configuration"
+          - if you want to debug binary and need to interact with your
+            application, install `vterm` package and call `M-x`
+            `dap-dlv-go-debug-in-vterm`. If you need to add arguments
+            to your command, use `C-u` `M-x` `dap-dlv-go-debug-in-vterm`
           - if you want to debug remote application you need start
             delve on remote machine first, for example: `dlv --headless
             --accept-multiclient attach 123 -l :1080` (see [dlv usage
@@ -352,6 +364,7 @@ To fully support rust and pretty printing of strings when debugging, remember to
                                            :mode "remote"
                                            :substitutePath (vector (ht ("from" "/home/user/projects/tribonacci") ("to" "/app"))))))))))
             ```
+	    If you need to provide build flags, use `:buildFlags` key.
 
     2.  Trouble shooting
 

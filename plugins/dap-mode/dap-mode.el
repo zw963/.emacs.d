@@ -981,7 +981,8 @@ PARAMS are the event params.")
          (puthash thread-id (or type reason)
                   (dap--debug-session-thread-states debug-session))
          (dap--select-thread-id debug-session thread-id)
-         (when (string= "exception" reason)
+         (when (and (string= "exception" reason)
+                    (gethash "supportsExceptionInfoRequest" (dap--debug-session-current-capabilities debug-session)))
            (dap--send-message
             (dap--make-request "exceptionInfo" (list :threadId thread-id))
             (-lambda ((&hash "body" (&hash? "description" "exceptionId" exception-id)))
@@ -1223,7 +1224,7 @@ ADAPTER-ID the id of the adapter."
                           :launch-args launch-args
                           :proc proc
                           :name session-name
-                          :local-to-remote-path-fn (or local-to-remote-path-fn (-partial #'dap--local-to-remote-path-identical nil))
+                          :local-to-remote-path-fn (or local-to-remote-path-fn (-partial #'dap--local-to-remote-path-1 nil))
                           :remote-to-local-path-fn (or remote-to-local-path-fn (-partial #'dap--remote-to-local-path-identical nil))
                           :output-buffer (dap--create-output-buffer session-name))))
     (set-process-sentinel proc
@@ -1247,17 +1248,13 @@ ADAPTER-ID the id of the adapter."
   "Make `setBreakpoints' request for FILE-NAME.
 FILE-BREAKPOINTS is a list of the breakpoints to set for FILE-NAME."
   (let ((file-name-only (f-filename file-name))
-        (local-file-path (if (eq system-type 'windows-nt)
-                                   (s-replace "/" "\\" file-name)
-                           file-name))
         (remote-file-path (--> debug-session dap--debug-session-local-to-remote-path-fn (funcall it file-name))))
     (with-temp-buffer
       (insert-file-contents file-name)
       (dap--make-request
        "setBreakpoints"
        (list :source (list :name file-name-only
-                           :path remote-file-path
-                           )
+                           :path remote-file-path)
              :breakpoints (->> file-breakpoints
                                (-map (-lambda ((it &as &plist :condition :hit-condition :log-message))
                                        (let ((result (->> it dap-breakpoint-get-point line-number-at-pos (list :line))))
@@ -1995,9 +1992,11 @@ If the current session it will be terminated."
       (lsp--uri-to-path-1 (lsp-docker--path->uri mappings path))
     path))
 
-(defun dap--local-to-remote-path-identical (_mappings path)
-  "Don't translate anything"
-  path)
+(defun dap--local-to-remote-path-1 (_mappings path)
+  "Don't translate anything, just fix the separator for Windows."
+  (if (eq system-type 'windows-nt)
+      (s-replace "/" "\\" path)
+    path))
 
 (defun dap--remote-to-local-path (mappings path)
   "Translate paths using lsp-docker and path mappings"

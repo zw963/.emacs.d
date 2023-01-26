@@ -89,6 +89,13 @@
   (when (string= (plist-get conf :name) "Test function")
     (-when-let (name (dap-dlv-go--extract-current--method-or-function-name t))
       (dap--put-if-absent conf :args (list (format "-test.run=^%s$" name)))))
+
+  (when (string= (plist-get conf :name) "Test subtest")
+    (-when-let (name (concat
+		      (dap-dlv-go--extract-current--method-or-function-name t)
+		      "/"
+		      (shell-quote-argument (dap-dlv-go--extract-current-subtest-name t))))
+      (dap--put-if-absent conf :args (list (format "-test.run=^%s" name)))))
   
   (-> conf
       (dap--put-if-absent :dlvToolPath dap-dlv-go-delve-path)
@@ -123,6 +130,16 @@
 	(unless no-signal?
 	  (user-error "No method or function at point")))))
 
+(defun dap-dlv-go--extract-current-subtest-name (&optional no-signal?)
+  "Extract current subtest name."
+  (save-excursion
+    (save-restriction
+      (search-backward-regexp "^[[:space:]]*{" nil t)
+      (search-forward-regexp "name:[[:space:]]+[\"`]\\(.*\\)[\"`]\," nil t)
+      (or (match-string-no-properties 1)
+	  (unless no-signal?
+	    (user-error "No subtest at point"))))))
+
 (defun dap-dlv-go--parse-env-file (file)
   "Parse env FILE."
   (with-temp-buffer
@@ -136,6 +153,59 @@
 	  (ht-set res (match-string 1) (match-string 2)))
 	(kill-buffer)
 	res))))
+
+(defun dap-dlv-go--get-cmd-pid (cmd)
+  "Return pid of CMD."
+  (string-to-number
+   (cadr
+    (s-split-words
+     (car
+      (seq-filter
+       (lambda(s) (s-contains? cmd s))
+       (process-lines (executable-find "ps") "aux")))))))
+
+(defun dap-dlv-go--run-cmd-in-vterm (cmd buf)
+  "Run CMD with vterm in BUF."
+  (with-current-buffer buf
+    (require 'vterm)
+    (let ((vterm-shell cmd)
+          (vterm-kill-buffer-on-exit nil))
+      (vterm-mode))))
+
+(defun dap-dlv-go--run-cmd-in-vterm-get-pid (cmd buf)
+  "Run CMD in vterm inside BUF and return pid."
+  (dap-dlv-go--run-cmd-in-vterm cmd buf)
+  (dap-dlv-go--get-cmd-pid cmd))
+
+(defun dap-dlv-go-debug-in-vterm ()
+  "Debug go program in vterm.
+With `C-u' you can edit command before run."
+  (interactive)
+  (let* ((exe (f-expand (read-file-name "enter path to executable: ")))
+	 (cmd (if (equal (car current-prefix-arg) 4)
+		  (read-string "command: " exe)
+		exe))
+	 (buf (generate-new-buffer
+	       (format "*%s console*"
+		       (f-base exe))))
+	 (debug-port (dap--find-available-port))
+	 (pid (dap-dlv-go--run-cmd-in-vterm-get-pid cmd buf)))
+    (dap-start-debugging-noexpand (list :type "go"
+					:request "attach"
+					:name "Attach to running process"
+					:mode "local"
+					:host "localhost"
+					:debugServer debug-port
+					:processId pid
+					:dlvToolPath dap-dlv-go-delve-path
+					:program-to-start
+					(format
+					 "%s dap --listen 127.0.0.1:%s %s"
+					 dap-dlv-go-delve-path
+					 debug-port
+					 dap-dlv-go-extra-args)))
+    (display-buffer buf)
+    (dap-ui--show-buffer buf)))
 
 (dap-register-debug-provider "go" 'dap-dlv-go--populate-default-args)
 
@@ -174,6 +244,15 @@
                              (list :type "go"
                                    :request "launch"
                                    :name "Test function"
+                                   :mode "test"
+                                   :program nil
+                                   :args nil
+                                   :env nil))
+
+(dap-register-debug-template "Go Dlv Test Current Subtest Configuration"
+                             (list :type "go"
+                                   :request "launch"
+                                   :name "Test subtest"
                                    :mode "test"
                                    :program nil
                                    :args nil
