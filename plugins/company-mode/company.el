@@ -1620,7 +1620,7 @@ end of the match."
                           (let ((base-size (cdr company-icon-size))
                                 (dfh (default-font-height)))
                             (min
-                             (if (> dfh (* 2 base-size))
+                             (if (>= dfh (* 2 base-size))
                                  (* 2 base-size)
                                base-size)
                              (* company-icon-margin dfw))))))
@@ -1633,10 +1633,21 @@ end of the match."
                          :background (unless (eq bkg 'unspecified)
                                        bkg)))
              (spacer-px-width (- (* company-icon-margin dfw) icon-size)))
-        (concat
-         (propertize " " 'display spec)
-         (propertize (company-space-string (1- company-icon-margin))
-                     'display `(space . (:width (,spacer-px-width))))))
+        (cond
+         ((<= company-icon-margin 2)
+          (concat
+           (propertize " " 'display spec)
+           (propertize (company-space-string (1- company-icon-margin))
+                       'display `(space . (:width (,spacer-px-width))))))
+         (t
+          (let* ((spacer-left (/ spacer-px-width 2))
+                 (spacer-right (- spacer-px-width spacer-left)))
+            (concat
+             (propertize (company-space-string 1)
+                         'display `(space . (:width (,spacer-left))))
+             (propertize " " 'display spec)
+             (propertize (company-space-string (- company-icon-margin 2))
+                         'display `(space . (:width (,spacer-right)))))))))
     nil))
 
 (defun company-vscode-dark-icons-margin (candidate selected)
@@ -2887,7 +2898,7 @@ automatically show the documentation buffer for each selection."
 
 (defvar-local company-callback nil)
 
-(defun company-remove-callback (&optional ignored)
+(defun company-remove-callback (&optional _ignored)
   (remove-hook 'company-completion-finished-hook company-callback t)
   (remove-hook 'company-completion-cancelled-hook 'company-remove-callback t)
   (remove-hook 'company-completion-finished-hook 'company-remove-callback t))
@@ -2921,7 +2932,7 @@ successfully completes the input.
 Example: \(company-begin-with \\='\(\"foo\" \"foobar\" \"foobarbaz\"\)\)"
   (let ((begin-marker (copy-marker (point) t)))
     (company-begin-backend
-     (lambda (command &optional arg &rest ignored)
+     (lambda (command &optional arg &rest _ignored)
        (pcase command
          (`prefix
           (when (equal (point) (marker-position begin-marker))
