@@ -2,4 +2,4 @@
 # name: bash shebang!
 # key: bash
 # --
-`(sh-mode)`#!/bin/env bash
+`(sh-mode)`#!/usr/bin/env bash
