@@ -2,7 +2,8 @@
 
 ;; yay -S python-epc python-orjson
 
-(delete 'dockerfile-mode lsp-bridge-default-mode-hooks)
+(delete 'dockerfile-mode-hook lsp-bridge-default-mode-hooks)
+(delete 'ruby-mode-hook lsp-bridge-default-mode-hooks)
 
 (global-lsp-bridge-mode)
 

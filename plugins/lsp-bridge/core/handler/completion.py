@@ -83,12 +83,14 @@ class Completion(Handler):
                     continue
                 
                 annotation = kind if kind != "" else item.get("detail", "")
-                key = "{},{}".format(item_index, label)
+
+                # Key use label, don't add index in key, elisp hashmap will create new item when index change.
+                key = label
                 display_label = label[:self.file_action.display_label_max_length] + " ..." if len(label) > self.file_action.display_label_max_length else label
                 
                 if display_new_text:
                     text_edit = item.get("textEdit", None)
-                    if text_edit != None:
+                    if text_edit is not None:
                         display_label = text_edit.get("newText", None)
                 
                 candidate = {

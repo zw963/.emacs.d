@@ -25,12 +25,10 @@ import threading
 import traceback
 import json
 from pathlib import Path
-from typing import Dict
 
 from epc.server import ThreadingEPCServer
 
-from core.fileaction import (FileAction, 
-                             create_file_action_with_single_server, 
+from core.fileaction import (create_file_action_with_single_server,
                              create_file_action_with_multi_servers,
                              FILE_ACTION_DICT, LSP_SERVER_DICT)
 from core.lspserver import LspServer
@@ -47,8 +45,11 @@ class LspBridge:
     def __init__(self, args):
         # Build EPC interfaces.
         handler_subclasses = list(map(lambda cls: cls.name, Handler.__subclasses__()))
-        for name in ["change_file", "update_file", "change_cursor", "save_file", 
-                     "ignore_diagnostic", "list_diagnostics", "workspace_symbol"] + handler_subclasses:
+        for name in ["change_file", "update_file",  "save_file",
+                     "change_cursor",
+                     "ignore_diagnostic", "list_diagnostics",
+                     "try_code_action",
+                     "workspace_symbol"] + handler_subclasses:
             self.build_file_action_function(name)
             
         for name in ["open_file", "close_file"]:
@@ -171,7 +172,7 @@ class LspBridge:
             multi_lang_server_dir = Path(__file__).resolve().parent / "multiserver"
             multi_lang_server_path = multi_lang_server_dir / "{}.json".format(multi_lang_server)
             
-            user_multi_lang_server_dir = Path(str(get_emacs_var("lsp-bridge-user-multiserver-dir")))
+            user_multi_lang_server_dir = Path(str(get_emacs_var("lsp-bridge-user-multiserver-dir"))).expanduser()
             user_multi_lang_server_path = user_multi_lang_server_dir / "{}.json".format(multi_lang_server)
             if user_multi_lang_server_path.exists():
                 multi_lang_server_path = user_multi_lang_server_path
@@ -199,6 +200,8 @@ class LspBridge:
                             else:
                                 return False
 
+                    self.enjoy_hacking(servers, project_path)
+
                     create_file_action_with_multi_servers(filepath, multi_lang_server_info, multi_servers)
                 else:
                     # Try load single language server if multi language server load failed.
@@ -216,6 +219,14 @@ class LspBridge:
 
         return True
 
+    def enjoy_hacking(self, servers, project_path):
+        # Notify user server is ready.
+        message_emacs("Start LSP server ({}) for {} with '{}' mode, enjoy hacking!".format(
+            ", ".join(servers),
+            project_path,
+            "project" if os.path.isdir(project_path) else "single-file"
+        ))
+
     def load_single_lang_server(self, project_path, filepath):
         single_lang_server = get_emacs_func_result("get-single-lang-server", project_path, filepath)
 
@@ -228,7 +239,7 @@ class LspBridge:
 
         if ((not os.path.isdir(project_path)) and
             "support-single-file" in lang_server_info and
-            lang_server_info["support-single-file"] == False):
+            lang_server_info["support-single-file"] is False):
             self.turn_off(
                 filepath,
                 "ERROR: {} not support single-file, put this file in a git repository to enable lsp-bridge-mode.".format(single_lang_server))
@@ -238,6 +249,8 @@ class LspBridge:
         lsp_server = self.create_lsp_server(filepath, project_path, lang_server_info)
 
         if lsp_server:
+            self.enjoy_hacking([lang_server_info["name"]], project_path)
+
             create_file_action_with_single_server(filepath, lang_server_info, lsp_server)
         else:
             return False
@@ -432,7 +445,7 @@ def get_lang_server_path(server_name):
     server_path_current = server_dir / "{}_{}.json".format(server_name, get_os_name())
     server_path_default = server_dir / "{}.json".format(server_name)
 
-    user_server_dir = Path(str(get_emacs_var("lsp-bridge-user-langserver-dir")))
+    user_server_dir = Path(str(get_emacs_var("lsp-bridge-user-langserver-dir"))).expanduser()
     user_server_path_current = user_server_dir / "{}_{}.json".format(server_name, get_os_name())
     user_server_path_default = user_server_dir / "{}.json".format(server_name)
 

@@ -21,16 +21,13 @@
 
 import json
 import os
-import queue
 import subprocess
 import threading
 import traceback
 
 from core.utils import *
-from platform import version
 from subprocess import PIPE
 from sys import stderr
-from threading import Thread
 from distutils.version import StrictVersion
 
 TABNINE_PROTOCOL_VERSION = "1.0.14"
@@ -95,11 +92,11 @@ class TabNine:
         return None
     
     def is_tabnine_exist(self):
-        if self.path == None:
+        if self.path is None:
             self.path = self.get_tabnine_path()
             
         if isinstance(self.path, str) and os.path.exists(self.path):
-            if self.process == None:
+            if self.process is None:
                 self.process = subprocess.Popen(
                     [self.path, "--client", "emacs"], 
                     bufsize=DEFAULT_BUFFER_SIZE, 
@@ -118,7 +115,7 @@ class TabNine:
                 
                 log_time("Start TabNine server ({})".format(self.path))
                 
-            return self.process != None
+            return self.process is not None
         else:
             return False
         

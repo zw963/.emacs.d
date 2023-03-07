@@ -89,7 +89,8 @@ class LspServerSender(MessageSender):
 
         message_type = message.get("message_type")
 
-        if message_type == "request":
+        if message_type == "request" and \
+           not message.get('method', 'response') == 'textDocument/documentSymbol':
             log_time("Send {} request ({}) to '{}' for project {}".format(
                 message.get('method', 'response'),
                 message.get('id', 'notification'),
@@ -488,7 +489,7 @@ class LspServer:
         settings = self.server_info.get("settings", {})
 
         # We send empty message back to server if nothing in 'settings' of server.json file.
-        if len(settings) == 0:
+        if settings is None or len(settings) == 0:
             self.sender.send_response(request_id, [])
             return
 
@@ -530,7 +531,9 @@ class LspServer:
                 # server response
                 if message["id"] in self.request_dict:
                     method = self.request_dict[message["id"]].method
-                    log_time("Recv {} response ({}) from '{}' for project {}".format(method, message["id"], self.server_info["name"], self.project_name))
+                    if method != 'textDocument/documentSymbol':
+                        # not log for textDocument/documentSymbol
+                        log_time("Recv {} response ({}) from '{}' for project {}".format(method, message["id"], self.server_info["name"], self.project_name))
                 else:
                     log_time("Recv response ({}) from '{}' for project {}".format(message["id"], self.server_info["name"], self.project_name))
         else:
@@ -613,13 +616,6 @@ class LspServer:
                                               self.get_server_workspace_change_configuration(), init=True)
 
                 self.sender.initialized.set()
-
-                # Notify user server is ready.
-                message_emacs("Start LSP server ({}) for {} with '{}' mode, enjoy hacking!".format(
-                    self.server_info["name"],
-                    self.root_path,
-                    "project" if os.path.isdir(self.root_path) else "single-file"
-                ))
             else:
                 if "method" not in message and message["id"] in self.request_dict:
                     handler = self.request_dict[message["id"]]

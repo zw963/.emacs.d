@@ -42,7 +42,7 @@ class Handler(abc.ABC):
             logger.error(traceback.format_exc())
 
 # import subclasses so that we can use core.handler.Handler.__subclasses__()
-# import at the end of this file to avoid circular import
+# import at the end of this file to avoid CIRCULAR IMPORT
 from core.handler.completion import Completion
 from core.handler.completion_item import CompletionItem
 from core.handler.find_define import FindDefine
@@ -59,3 +59,6 @@ from core.handler.formatting import Formatting
 from core.handler.execute_command import ExecuteCommand
 from core.handler.workspace_symbol import WorkspaceSymbol
 from core.handler.call_hierarchy import PrepareCallHierarchyIncomingCalls, PrepareCallHierarchyOutgoingCalls, CallHierarchyIncomingCalls, CallHierarchyOutgoingCalls
+from core.handler.document_symbol import DocumentSymbol
+from core.handler.jdtls.jdtls_list_overridable_methods import JdtlsListOverridableMethods
+from core.handler.jdtls.jdtls_add_overridable_methods import JdtlsAddOverridableMethods
