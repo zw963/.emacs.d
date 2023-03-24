@@ -9,6 +9,7 @@
 (set-popup-rule! "\\*midje-test-report\\*" :side 'right :width 0.5)
 (set-popup-rule! "*cider-test-report*" :side 'right :width 0.4)
 (set-popup-rule! "^\\*cider-repl" :side 'bottom :quit nil)
+(set-popup-rule! "\\*Crystal-Context\\*" :side 'right :width 0.3)
 
 (provide 'popup_init)
 

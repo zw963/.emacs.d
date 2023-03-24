@@ -13,7 +13,7 @@
             ;; (add-hook 'before-save-hook #'crystal-tool-format nil 'local)
             (define-key crystal-mode-map [(meta \.) ] #'crystal-tool-imp)
             (define-key crystal-mode-map [(control meta \.) ] #'crystal-tool-expand)
-            ;; (define-key crystal-mode-map [(control meta \.) ] #'crystal-tool-context)
+            (define-key crystal-mode-map [(control meta \,) ] #'crystal-tool-context)
             (define-key crystal-mode-map [(control t) ] #'crystal-spec-switch)
             (local-set-key [(control meta ?\s)] 'ruby-mark-sexp-or-block)
             ;; (local-set-key [(kbd "RET")] 'reindent-then-newline-and-indent)
