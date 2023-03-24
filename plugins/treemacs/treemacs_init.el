@@ -1,6 +1,7 @@
 (require 'cfrs)
 (require 'treemacs)
 (require 'treemacs-file-management)
+(require 'treemacs-extensions)
 
 (treemacs-git-mode 'deferred)
 (treemacs-filewatch-mode t)
