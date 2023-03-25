@@ -1,6 +1,6 @@
 ;;; helm-help.el --- Help messages for Helm. -*- lexical-binding: t -*-
 
-;; Copyright (C) 2012 ~ 2021 Thierry Volpiatto 
+;; Copyright (C) 2012 ~ 2023 Thierry Volpiatto 
 
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -1109,7 +1109,7 @@ make this command asynchronous by customizing
 
 _WARNING_: When deleting files asynchronously you will NOT be
 WARNED if directories are not empty, that's mean non empty directories will
-be deleted in background without asking.
+be deleted recursively in background without asking.
 
 A good compromise is to trash your files
 when using asynchronous method (see [[Trashing files][Trashing files]]).
@@ -1147,16 +1147,8 @@ Tip: Navigate to your Trash/files directories with `helm-find-files' and set a b
 there with \\<helm-find-files-map>\\[helm-ff-bookmark-set] for fast access to Trash.
 
 NOTE: Restoring files from trash is working only on system using
-the [[http://freedesktop.org/wiki/Specifications/trash-spec][freedesktop trash specifications]].
-
-_WARNING:_
-
-If you have an ENV var XDG_DATA_HOME in your .profile or .bash_profile
-and this var is set to something like $HOME/.local/share (like preconized)
-`move-file-to-trash' may try to create $HOME/.local/share/Trash (literally)
-and its subdirs in the directory where you are actually trying to trash files.
-because `move-file-to-trash' is interpreting XDG_DATA_HOME literally instead
-of evaling its value (with `substitute-in-file-name').
+the
+[[http://freedesktop.org/wiki/Specifications/trash-spec][freedesktop trash specifications]].
 
 ***** Trashing remote files with tramp
 
@@ -1167,15 +1159,15 @@ The package on most GNU/Linux based distributions is trash-cli, it is available 
 
 NOTE:
 When deleting your files with sudo method, your trashed files will not be listed
-with trash-list until you log in as root.
+with trash-list command line until you log in as root.
 
 *** Checksum file
 
 Checksum is calculated with the md5sum, sha1sum, sha224sum,
-sha256sum, sha384sum and sha512sum when available, otherwise the
+sha256sum, sha384sum and sha512sum commands when available, otherwise the
 Emacs function `secure-hash' is used but it is slow and may crash
 Emacs and even the whole system as it eats all memory.  So if
-your system doesn't have the md5 and sha command line tools be
+your system doesn't have the md5sum and sha*sum command line tools be
 careful when checking sum of larges files e.g. isos.
 
 *** Ignored or boring files
@@ -1882,10 +1874,11 @@ Nowaday the best backend is Ripgrep aka RG, it is the fastest and
 is actively maintained, see `helm-grep-ag-command' and
 `helm-grep-ag-pipe-cmd-switches' to configure it.
 
-You can ignore files and directories with a \".agignore\" file, local to a
-directory or global when placed in the home directory. (See the AG man page for
-more details.)  That file follows the same syntax as `helm-grep-ignored-files'
-and `helm-grep-ignored-directories'.
+You can ignore files and directories with a \".agignore\" or
+\".rgignore\" file, local to a directory or global when placed in
+the home directory. (See the AG/RG man pages for more details.)
+Note that `helm-grep-ignored-files'and
+`helm-grep-ignored-directories' have no effect in helm-AG/RG.
 
 As always you can access Helm AG from `helm-find-files'.
 
@@ -2117,6 +2110,51 @@ Multiple regexp matching is allowed, simply enter a space to separate the regexp
 Matching empty lines is supported with the regexp \"^$\", you then get the
 results displayed as the buffer-name and the line number only.  You can
 save and edit these results, i.e. add text to the empty line.
+
+**** Matching shorthands symbols in Elisp code
+
+Helm-occur have a basic support of [[info:elisp#Shorthands][read-symbol-shorthands]].
+You can enable this by customizing =helm-occur-match-shorthands=.
+
+The main usage is when you are in a given buffer with cursor on a
+symbol and you want to see where the definition is or where it is
+used in another buffer or other buffers.  Of course matching is
+working on both versions of the definition, the short one and the
+long one.  Here an example reusing the sample files used in the
+Manual:
+
+Here snu.el file with cursor on snu-lines definition:
+
+#+begin_src elisp
+     (defun snu-split (separator s &optional omit-nulls)
+       \"A match-data saving variation on `split-string'.\"
+       (save-match-data (split-string s separator omit-nulls)))
+
+     (defun snu-lines (s)
+       \"Split string S into a list of strings on newline characters.\"
+       (snu-split \"\\\\(\\r\\n\\\\|[\\n\\r]\\\\)\" s))
+
+     ;; Local Variables:
+     ;; read-symbol-shorthands: ((\"snu-\" . \"some-nice-string-utils-\"))
+     ;; End:
+#+end_src
+
+And here the my-tricks.el file reusing snu-lines but under another name:
+
+#+begin_src elisp
+     (defun t-reverse-lines (s)
+       (string-join (reverse (sns-lines s)) \"\\n\"))
+
+     ;; Local Variables:
+     ;; read-symbol-shorthands: ((\"t-\" . \"my-tricks-\")
+     ;;                          (\"sns-\" . \"some-nice-string-utils-\"))
+     ;; End:
+
+#+end_src
+
+You want to know where the definition currently at point ('snu-lines') is used in the my-tricks.el buffer.
+You launch for example helm-mini and start helm-occur on my-tricks.el, helm occur will match immediately
+'sns-lines'.
 
 *** Automatically match symbol at point
 

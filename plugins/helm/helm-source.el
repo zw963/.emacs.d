@@ -498,9 +498,14 @@
     "  Enable fuzzy matching in this source.
   This will overwrite settings in MATCH slot, and for
   sources built with child class `helm-source-in-buffer' the SEARCH slot.
+  This also add a `filtered-candidate-transformer' function to sort candidates
+  (see `helm-fuzzy-sort-fn') according to the score of each candidate which is
+  computed with `helm-fuzzy-default-score-fn'. 
   This is an easy way of enabling fuzzy matching, but you can use the MATCH
   or SEARCH slots yourself if you want something more elaborated, mixing
-  different type of match (See `helm-source-buffers' class for example).
+  different type of match (See `helm-source-buffers' class for example), you
+  will have in this case to provide as well a sort fn
+  in `filtered-candidate-transformer' yourself.
 
   This attribute is not supported for asynchronous sources
   since they perform pattern matching themselves.")
@@ -756,6 +761,8 @@
     "  Disable all helm matching functions when non nil.
   The :candidates function in this case is in charge of fetching
   candidates dynamically according to `helm-pattern'.
+  If you want to make your :candidates function working with `completion-styles'
+  use the function `helm-dynamic-completion'. 
   Note that :volatile is automatically enabled when using this, so no
   need to specify it."))
 
@@ -1167,7 +1174,7 @@ The header line is based on one of `persistent-action-if',
            (pred (consp)))
        (warn "Helm source `%s': before-init-hook Should be defined as a symbol" sname)))
     (pcase (slot-value source 'after-init-hook)
-      ((or (and (pred (functionp)) (pred (not symbolp)))
+      ((or (and val (pred (functionp)) (guard (not (symbolp val))))
            (pred (consp)))
        (warn "Helm source `%s': after-init-hook Should be defined as a symbol" sname)))))
 

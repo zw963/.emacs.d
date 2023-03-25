@@ -1,6 +1,6 @@
 ;;; helm-fd.el --- helm interface for fd command line tool. -*- lexical-binding: t -*-
 
-;; Copyright (C) 2012 ~ 2021 Thierry Volpiatto 
+;; Copyright (C) 2012 ~ 2023 Thierry Volpiatto
 
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -28,6 +28,11 @@
 (defcustom helm-fd-switches '("--no-ignore" "--hidden" "--type" "f" "--type" "d" "--color" "always")
   "A list of options to pass to fd shell command."
   :type '(repeat string)
+  :group 'helm-files)
+
+(defcustom helm-fd-mode-line-function 'helm-fd-default-mode-line
+  "Function called when `fd' process is finished to format mode-line."
+  :type 'function
   :group 'helm-files)
 
 (defface helm-fd-finish
@@ -78,13 +83,18 @@
 (defun helm-fd-process ()
   "Initialize fd process in an helm async source."
   (let* (process-connection-type
-         (cmd (append helm-fd-switches (split-string helm-pattern " ")))
+         (cmd (append helm-fd-switches
+                      (or (and (fboundp #'split-string-shell-command)
+                               (split-string-shell-command helm-pattern))
+                          (split-string helm-pattern))))
          (proc (apply #'start-process "fd" nil helm-fd-executable cmd))
          (start-time (float-time))
          (fd-version (replace-regexp-in-string
                       "\n" ""
-                      (shell-command-to-string (concat helm-fd-executable " --version")))))
-    (helm-log "helm-fd-process" "Fd command:\nfd %s" (mapconcat 'identity cmd " "))
+                      (shell-command-to-string
+                       (concat helm-fd-executable " --version")))))
+    (helm-log "helm-fd-process" "Fd command:\nfd %s"
+              (mapconcat 'identity cmd " "))
     (helm-log "helm-fd-process" "VERSION: %s" fd-version)
     (prog1
         proc
@@ -92,19 +102,24 @@
        proc (lambda (_process event)
               (if (string= event "finished\n")
                   (with-helm-window
-                    (setq mode-line-format
-                          `(" " mode-line-buffer-identification " "
-                            (:eval (format "L%s" (helm-candidate-number-at-point))) " "
-                            (:eval (propertize
-                                    (format
-                                     "[%s process finished in %.2fs - (%s results)] "
-                                     ,fd-version
-                                     ,(- (float-time) start-time)
-                                     (helm-get-candidate-number))
-                                    'face 'helm-fd-finish))))
-                    (force-mode-line-update))
+                    (when helm-fd-mode-line-function
+                      (funcall helm-fd-mode-line-function start-time fd-version)
+                      (force-mode-line-update)))
                 (helm-log "helm-fd-process sentinel" "Error: Fd %s"
                           (replace-regexp-in-string "\n" "" event))))))))
+
+(defun helm-fd-default-mode-line (start-time fd-version)
+  "Format mode-line with START-TIME and FD-VERSION, as well as `fd' results."
+  (setq mode-line-format
+        `(" " mode-line-buffer-identification " "
+          (:eval (format "L%s" (helm-candidate-number-at-point))) " "
+          (:eval (propertize
+                  (format
+                   "[%s process finished in %.2fs - (%s results)] "
+                   ,fd-version
+                   ,(- (float-time) start-time)
+                   (helm-get-candidate-number))
+                  'face 'helm-fd-finish)))))
 
 (defun helm-fd-fct (candidates _source)
   "The filtered-candidate-transformer function for helm-fd."

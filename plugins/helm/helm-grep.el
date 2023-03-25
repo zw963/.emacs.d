@@ -1,6 +1,6 @@
 ;;; helm-grep.el --- Helm Incremental Grep. -*- lexical-binding: t -*-
 
-;; Copyright (C) 2012 ~ 2021 Thierry Volpiatto 
+;; Copyright (C) 2012 ~ 2023 Thierry Volpiatto 
 
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -1742,15 +1742,16 @@ If INPUT is provided, use it as the search string."
   "Start grep AG in DIRECTORY.
 When WITH-TYPES is non-nil provide completion on AG types."
   (require 'helm-adaptive)
-  (helm-grep-ag-1 directory
-                  (helm-aif (and with-types
-                                 (helm-grep-ag-get-types))
-                      (helm-comp-read
-                       "Ag type: " it
-                       :must-match t
-                       :marked-candidates t
-                       :fc-transformer 'helm-adaptive-sort
-                       :buffer "*helm ag types*"))))
+  (let ((com (capitalize (helm-grep--ag-command))))
+    (helm-grep-ag-1 directory
+                    (helm-aif (and with-types
+                                   (helm-grep-ag-get-types))
+                        (helm-comp-read
+                         (format "%s type: " com) it
+                         :must-match t
+                         :marked-candidates t
+                         :fc-transformer 'helm-adaptive-sort
+                         :buffer (format "*helm %s types*" com))))))
 
 ;;; Git grep
 ;;

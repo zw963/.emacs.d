@@ -1,6 +1,6 @@
 ;;; helm-occur.el --- Incremental Occur for Helm. -*- lexical-binding: t -*-
 
-;; Copyright (C) 2012 ~ 2021 Thierry Volpiatto 
+;; Copyright (C) 2012 ~ 2023 Thierry Volpiatto
 
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -110,14 +110,34 @@ Any other non--nil value update after confirmation."
 
 (defcustom helm-occur-buffer-substring-fn-for-modes
   '((mu4e-headers-mode . buffer-substring))
-  "Function to use to display buffer contents for major-mode.
+  "Function used to display buffer contents per major-mode.
 
-Can be one of `buffer-substring' or `buffer-substring-no-properties'.
+Use this to display lines with their text properties in helm-occur
+buffer. Can be one of `buffer-substring' or `buffer-substring-no-properties'.
+See `helm-occur-buffer-substring-default-mode' to setup this globally. 
 
 Note that when using `buffer-substring' initialization will be slower."
   :type '(alist :key-type (symbol :tag "Mode")
-                :value-type (radio (const :tag "With text properties" buffer-substring)
-                                   (const :tag "Without text properties" buffer-substring-no-properties))))
+                :value-type (radio (const :tag "With text properties"
+                                    buffer-substring)
+                                   (const :tag "Without text properties"
+                                    buffer-substring-no-properties))))
+
+(defcustom helm-occur-buffer-substring-default-mode
+  'buffer-substring-no-properties
+  "Function used to display buffer contents in helm-occur buffer.
+
+Default mode for major modes not defined in
+`helm-occur-buffer-substring-fn-for-modes'.
+Can be one of `buffer-substring' or `buffer-substring-no-properties'.
+
+Note that when using `buffer-substring' initialization will be
+slower.  If buffer-substring, all buffers with the modes not
+defined in helm-occur-buffer-substring-fn-for-modes will be
+displayed with colors and properties in the helm-occur buffer"
+  :type '(radio
+          (const :tag "With text properties" buffer-substring)
+          (const :tag "Without text properties" buffer-substring-no-properties)))
 
 (defcustom helm-occur-keep-closest-position t
   "When non nil select closest candidate from point after update.
@@ -127,6 +147,10 @@ This happen only in `helm-source-occur' which is always related to
 
 (defcustom helm-occur-ignore-diacritics nil
   "When non nil helm-occur will ignore diacritics in patterns."
+  :type 'boolean)
+
+(defcustom helm-occur-match-shorthands nil
+  "Transform pattern according to `read-symbol-shorthands' when non nil."
   :type 'boolean)
 
 (defface helm-moccur-buffer
@@ -264,6 +288,29 @@ engine beeing completely different and also much faster."
            when (and disp (not (string= disp "")))
            collect (cons disp (string-to-number linum))))
 
+(defvar helm-occur--gshorthands nil)
+(defun helm-occur-symbol-shorthands-pattern-transformer (pattern buffer gshorthands)
+  "Maybe transform PATTERN to its `read-symbol-shorthands' counterpart in BUFFER.
+
+GSHORTHANDS is the concatenation of all `read-symbol-shorthands' value found in
+all buffers i.e. `buffer-list'.
+When GSHORTHANDS is nil use PATTERN unmodified."
+  (if gshorthands
+      (let* ((lshorthands (buffer-local-value 'read-symbol-shorthands buffer))
+             (prefix (cl-loop for (k . v) in gshorthands
+                              if (string-match (concat "\\`" k) pattern)
+                              return k
+                              else
+                              if (string-match (concat "\\`" v) pattern)
+                              return v))
+             (lgstr (cdr (or (assoc prefix gshorthands)
+                             (rassoc prefix gshorthands)))))
+        (if (and lgstr lshorthands)
+            (concat (car (rassoc lgstr lshorthands))
+                    (replace-regexp-in-string prefix "" pattern))
+          pattern))
+    pattern))
+
 (defclass helm-moccur-class (helm-source-in-buffer)
   ((buffer-name :initarg :buffer-name
                 :initform nil)
@@ -273,6 +320,14 @@ engine beeing completely different and also much faster."
 
 (defun helm-occur-build-sources (buffers &optional source-name)
   "Build sources for `helm-occur' for each buffer in BUFFERS list."
+  (setq helm-occur--gshorthands nil)
+  (and helm-occur-match-shorthands
+       (setq helm-occur--gshorthands
+             (cl-loop for b in (buffer-list)
+                      for rss = (buffer-local-value
+                                 'read-symbol-shorthands
+                                 b)
+                      when rss append rss)))
   (let (sources)
     (dolist (buf buffers)
       (let ((bname (buffer-name buf)))
@@ -297,12 +352,15 @@ engine beeing completely different and also much faster."
                           (condition-case _err
                               (re-search-forward pattern nil t)
                             (invalid-regexp nil)))
+                :pattern-transformer (lambda (pattern)
+                                       (helm-occur-symbol-shorthands-pattern-transformer
+                                        pattern buf helm-occur--gshorthands))
                 :init (lambda ()
                         (with-current-buffer buf
                           (let* ((bsfn (or (cdr (assq
                                                  major-mode
                                                  helm-occur-buffer-substring-fn-for-modes))
-                                           #'buffer-substring-no-properties))
+                                           helm-occur-buffer-substring-default-mode))
                                  (contents (funcall bsfn (point-min) (point-max))))
                             (helm-set-attr 'get-line bsfn)
                             (with-current-buffer (helm-candidate-buffer 'global)
@@ -367,7 +425,8 @@ Each buffer's result is displayed in a separated source."
         (helm :sources sources
               :buffer "*helm moccur*"
               :history 'helm-occur-history
-              :default (helm-aif (thing-at-point 'symbol) (regexp-quote it))
+              :default (helm-aif (thing-at-point 'symbol)
+                           (regexp-quote it))
               :input input
               :truncate-lines helm-occur-truncate-lines)
       (remove-hook 'helm-after-update-hook 'helm-occur--select-closest-candidate))))
@@ -390,7 +449,9 @@ METHOD can be one of buffer, buffer-other-window, buffer-other-frame."
     (with-current-buffer buf
       (helm-goto-line lineno)
       ;; Move point to the nearest matching regexp from bol.
-      (cl-loop for reg in split-pat
+      (cl-loop for str in split-pat
+               for reg = (helm-occur-symbol-shorthands-pattern-transformer
+                          str (get-buffer buf) helm-occur--gshorthands)
                when (save-excursion
                       (condition-case _err
                           (if helm-migemo-mode

@@ -1,6 +1,6 @@
 ;;; helm-elisp.el --- Elisp symbols completion for helm. -*- lexical-binding: t -*-
 
-;; Copyright (C) 2012 ~ 2021 Thierry Volpiatto
+;; Copyright (C) 2012 ~ 2023 Thierry Volpiatto
 
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -406,6 +406,7 @@ the same time to variable and a function."
         collect (cons (concat c spaces annot) c) into lst
         finally return (sort lst #'helm-generic-sort-fn)))
 
+;;;###autoload
 (cl-defun helm-get-first-line-documentation (sym &optional
                                                    (name "describe-function")
                                                    (end-column 72))
@@ -430,7 +431,7 @@ documentation when SYM name is the same for function and variable."
     (if (and doc (not (string= doc ""))
              ;; `documentation' return "\n\n(args...)"
              ;; for CL-style functions.
-             (not (string-match-p "^\n\n" doc)))
+             (not (string-match-p "\\`\n\n" doc)))
         ;; Some commands specify key bindings in their first line.
         (truncate-string-to-width
          (substitute-command-keys (car (split-string doc "\n")))
@@ -796,13 +797,16 @@ is only used to test DEFAULT."
       (helm-force-update (concat "^" (helm-stringify (helm-get-selection)))
                          (helm-get-current-source)))))
 
+(defun helm-apropos-get-default ()
+  (with-syntax-table emacs-lisp-mode-syntax-table
+    (symbol-name (intern-soft (thing-at-point 'symbol)))))
+
 ;;;###autoload
 (defun helm-apropos (default)
   "Preconfigured Helm to describe commands, functions, variables and faces.
 In non interactives calls DEFAULT argument should be provided as
 a string, i.e. the `symbol-name' of any existing symbol."
-  (interactive (list (with-syntax-table emacs-lisp-mode-syntax-table
-                       (thing-at-point 'symbol))))
+  (interactive (list (helm-apropos-get-default)))
   (let ((helm-M-x-show-short-doc
          (and helm-apropos-show-short-doc
               (null (memq 'helm-apropos helm-commands-using-frame)))))
@@ -969,7 +973,7 @@ a string, i.e. the `symbol-name' of any existing symbol."
             (if (timer--idle-delay timer)
                 (format "idle-for=[%s]"
                         (format-seconds "%dd %hh %mmin %z%,3ss"
-                                        (time-convert time t)))
+                                        (time-to-seconds time)))
               (format-time-string "%m/%d %T" time)))
           (or (timer--repeat-delay timer) "nil")
           (mapconcat #'identity (split-string

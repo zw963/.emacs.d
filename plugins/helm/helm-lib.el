@@ -28,8 +28,6 @@
 (declare-function ansi-color--find-face "ansi-color.el")
 (declare-function ansi-color-apply-sequence "ansi-color.el")
 (declare-function dired-current-directory "dired.el")
-(declare-function dired-log-summary "dired.el")
-(declare-function dired-mark-remembered "dired.el")
 (declare-function ffap-file-remote-p "ffap.el")
 (declare-function ffap-url-p "ffap.el")
 (declare-function helm-get-attr "helm-core.el")
@@ -51,13 +49,6 @@
 (declare-function org-table-align "org-table.el")
 (declare-function org-table-end "org-table.el")
 (declare-function org-open-at-point "org.el")
-(declare-function wdired-change-to-dired-mode "wdired.el")
-(declare-function wdired-do-perm-changes "wdired.el")
-(declare-function wdired-do-renames "wdired.el")
-(declare-function wdired-do-symlink-changes "wdired.el")
-(declare-function wdired-flag-for-deletion "wdired.el")
-(declare-function wdired-get-filename "wdired.el")
-(declare-function wdired-normalize-filename "wdired.el")
 (declare-function helm-read-file-name "helm-mode.el")
 (declare-function find-function-library "find-func.el")
 (declare-function find-library-name "find-func.el")
@@ -65,10 +56,6 @@
 (defvar helm-sources)
 (defvar helm-initial-frame)
 (defvar helm-current-position)
-(defvar wdired-old-marks)
-(defvar wdired-keep-marker-rename)
-(defvar wdired-allow-to-change-permissions)
-(defvar wdired-allow-to-redirect-links)
 (defvar helm-persistent-action-display-window)
 (defvar helm--buffer-in-new-frame-p)
 (defvar helm-completion-style)
@@ -76,6 +63,10 @@
 (defvar helm-persistent-action-window-buffer)
 (defvar completion-flex-nospace)
 (defvar find-function-source-path)
+(defvar ffap-machine-p-unknown)
+(defvar ffap-machine-p-local)
+(defvar ffap-machine-p-known)
+
 
 ;;; User vars.
 ;;
@@ -193,151 +184,6 @@ available APPEND is ignored."
       (add-face-text-property beg end face append object)
       (add-text-properties beg end `(face ,face) object)))
 
-;; Override `wdired-finish-edit'.
-;; Fix emacs bug in `wdired-finish-edit' where
-;; Wdired is not handling the case where `dired-directory' is a cons
-;; cell instead of a string.
-(defun helm--advice-wdired-finish-edit ()
-  (interactive)
-  (wdired-change-to-dired-mode)
-  ;; `wdired-old-marks' has been removed in emacs-28+.
-  (unless (boundp 'wdired-old-marks)
-    (setq-local wdired-old-marks nil))
-  (let ((changes nil)
-	(errors 0)
-	files-deleted
-	files-renamed
-	some-file-names-unchanged
-	file-old file-new tmp-value)
-    (save-excursion
-      (when (and wdired-allow-to-redirect-links
-		 (fboundp 'make-symbolic-link))
-	(setq tmp-value (wdired-do-symlink-changes))
-	(setq errors (cdr tmp-value))
-	(setq changes (car tmp-value)))
-      (when (and wdired-allow-to-change-permissions
-		 (boundp 'wdired-col-perm)) ; could have been changed
-	(setq tmp-value (wdired-do-perm-changes))
-	(setq errors (+ errors (cdr tmp-value)))
-	(setq changes (or changes (car tmp-value))))
-      (goto-char (point-max))
-      (while (not (bobp))
-	(setq file-old (wdired-get-filename nil t))
-	(when file-old
-	  (setq file-new (wdired-get-filename))
-          (if (equal file-new file-old)
-	      (setq some-file-names-unchanged t)
-            (setq changes t)
-            (if (not file-new)		;empty filename!
-                (push file-old files-deleted)
-	      (when wdired-keep-marker-rename
-		(let ((mark (cond ((integerp wdired-keep-marker-rename)
-				   wdired-keep-marker-rename)
-				  (wdired-keep-marker-rename
-				   (cdr (assoc file-old wdired-old-marks)))
-				  (t nil))))
-		  (when mark
-		    (push (cons (substitute-in-file-name file-new) mark)
-			  wdired-old-marks))))
-              (push (cons file-old (substitute-in-file-name file-new))
-                    files-renamed))))
-	(forward-line -1)))
-    (when files-renamed
-      (setq errors (+ errors (wdired-do-renames files-renamed))))
-    (if changes
-	(progn
-	  ;; If we are displaying a single file (rather than the
-	  ;; contents of a directory), change dired-directory if that
-	  ;; file was renamed.  (This ought to be generalized to
-	  ;; handle the multiple files case, but that's less trivial)
-          ;; fixit [1].
-	  (cond ((and (stringp dired-directory)
-                      (not (file-directory-p dired-directory))
-                      (null some-file-names-unchanged)
-                      (= (length files-renamed) 1))
-                 (setq dired-directory (cdr (car files-renamed))))
-                ;; Fix [1] i.e dired buffers created with
-                ;; (dired '(foo f1 f2 f3)).
-                ((and (consp dired-directory)
-                      (cdr dired-directory)
-                      files-renamed)
-                 (setq dired-directory
-                       ;; Replace in `dired-directory' files that have
-                       ;; been modified with their new name keeping
-                       ;; the ones that are unmodified at the same place.
-                       (cons (car dired-directory)
-                             (cl-loop for f in (cdr dired-directory)
-                                      collect (or (assoc-default f files-renamed)
-                                                  f))))))
-	  ;; Re-sort the buffer if all went well.
-	  (unless (> errors 0) (revert-buffer))
-	  (let ((inhibit-read-only t))
-	    (dired-mark-remembered wdired-old-marks)))
-      (let ((inhibit-read-only t))
-	(remove-text-properties (point-min) (point-max)
-				'(old-name nil end-name nil old-link nil
-					   end-link nil end-perm nil
-					   old-perm nil perm-changed nil))
-	(message "(No changes to be performed)")))
-    (when files-deleted
-      (wdired-flag-for-deletion files-deleted))
-    (when (> errors 0)
-      (dired-log-summary (format "%d rename actions failed" errors) nil)))
-  (set-buffer-modified-p nil)
-  (setq buffer-undo-list nil))
-
-;; Override `wdired-get-filename'.
-;; Fix emacs bug in `wdired-get-filename' which returns the current
-;; directory concatened with the filename i.e
-;; "/home/you//home/you/foo" when filename is absolute in dired
-;; buffer.
-;; In consequence Wdired try to rename files even when buffer have
-;; been modified and corrected, e.g delete one char and replace it so
-;; that no change to file is done.
-;; This also lead to ask confirmation for every files even when not
-;; modified and when `wdired-use-interactive-rename' is nil.
-;; Obviously, we could make an :around advice like this:
-;; (defun helm--advice-wdired-get-filename (old--fn &rest args)
-;;   (let* ((file  (apply old--fn args))
-;;          (split (and file (split-string file "//"))))
-;;     (if (and (cdr split)
-;;              (string-match (format "\\(%s/\\)\\1" (car split)) file))
-;;         (replace-match "" nil nil file 1)
-;;       file)))
-;; But for some reasons the original function in emacs-28 is returning
-;; nil in some conditions and operation fails with no errors but with
-;; something like "(no change performed)", so use an old version of
-;; `wdired-get-filename' with its output modified and advice it with
-;; :override.
-(defun helm--advice-wdired-get-filename (&optional no-dir old)
-  ;; FIXME: Use dired-get-filename's new properties.
-  (let (beg end file)
-    (save-excursion
-      (setq end (line-end-position))
-      (beginning-of-line)
-      (setq beg (next-single-property-change (point) 'old-name nil end))
-      (unless (eq beg end)
-	(if old
-	    (setq file (get-text-property beg 'old-name))
-	  ;; In the following form changed `(1+ beg)' to `beg' so that
-	  ;; the filename end is found even when the filename is empty.
-	  ;; Fixes error and spurious newlines when marking files for
-	  ;; deletion.
-	  (setq end (next-single-property-change beg 'end-name))
-	  (setq file (buffer-substring-no-properties (1+ beg) end)))
-	;; Don't unquote the old name, it wasn't quoted in the first place
-        (and file (setq file (condition-case _err
-                                 ;; emacs-25+
-                                 (apply #'wdired-normalize-filename
-                                        (list file (not old)))
-                               (wrong-number-of-arguments
-                                ;; emacs-24
-                                (wdired-normalize-filename file))))))
-      (if (or no-dir old (and file (file-name-absolute-p file)))
-	  file
-	(and file (> (length file) 0)
-             (expand-file-name file (dired-current-directory)))))))
-
 ;;; Override `push-mark'
 ;;
 ;; Fix duplicates in `mark-ring' and `global-mark-ring' and update
@@ -399,6 +245,46 @@ available APPEND is ignored."
 (defun helm-subr-native-elisp-p (object)
   (when (fboundp 'subr-native-elisp-p)
       (subr-native-elisp-p object)))
+
+;; Available only in Emacs-28+
+(unless (fboundp 'file-modes-number-to-symbolic)
+  (defun file-modes-number-to-symbolic (mode &optional filetype)
+    "Return a string describing a file's MODE.
+For instance, if MODE is #o700, then it produces `-rwx------'.
+FILETYPE if provided should be a character denoting the type of file,
+such as `?d' for a directory, or `?l' for a symbolic link and will override
+the leading `-' char."
+    (string
+     (or filetype
+         (pcase (lsh mode -12)
+           ;; POSIX specifies that the file type is included in st_mode
+           ;; and provides names for the file types but values only for
+           ;; the permissions (e.g., S_IWOTH=2).
+
+           ;; (#o017 ??) ;; #define S_IFMT  00170000
+           (#o014 ?s) ;; #define S_IFSOCK 0140000
+           (#o012 ?l) ;; #define S_IFLNK  0120000
+           ;; (8  ??)    ;; #define S_IFREG  0100000
+           (#o006  ?b) ;; #define S_IFBLK  0060000
+           (#o004  ?d) ;; #define S_IFDIR  0040000
+           (#o002  ?c) ;; #define S_IFCHR  0020000
+           (#o001  ?p) ;; #define S_IFIFO  0010000
+           (_ ?-)))
+     (if (zerop (logand   256 mode)) ?- ?r)
+     (if (zerop (logand   128 mode)) ?- ?w)
+     (if (zerop (logand    64 mode))
+         (if (zerop (logand  2048 mode)) ?- ?S)
+       (if (zerop (logand  2048 mode)) ?x ?s))
+     (if (zerop (logand    32 mode)) ?- ?r)
+     (if (zerop (logand    16 mode)) ?- ?w)
+     (if (zerop (logand     8 mode))
+         (if (zerop (logand  1024 mode)) ?- ?S)
+       (if (zerop (logand  1024 mode)) ?x ?s))
+     (if (zerop (logand     4 mode)) ?- ?r)
+     (if (zerop (logand     2 mode)) ?- ?w)
+     (if (zerop (logand 512 mode))
+         (if (zerop (logand   1 mode)) ?- ?x)
+       (if (zerop (logand   1 mode)) ?T ?t)))))
 
 ;;; Macros helper.
 ;;
@@ -483,7 +369,7 @@ When CYCLE is specified the iterator never ends."
 (cl-defun helm-iter-sub-next-circular (seq elm &key (test 'eq))
   "Infinite iteration of SEQ starting at ELM."
   (let* ((pos      (1+ (helm-position elm seq :test test)))
-         (sub      (append (nthcdr pos seq) (cl-subseq seq 0 pos)))
+         (sub      (append (nthcdr pos seq) (helm-take seq pos)))
          (iterator (helm-iter-circular sub)))
     (lambda ()
       (helm-iter-next iterator))))
@@ -737,7 +623,9 @@ displayed in BUFNAME."
 
 (defun helm-help-quit ()
   "Quit `helm-help'."
-  (throw 'helm-help-quit nil))
+  (if (get-buffer-window helm-help-buffer-name 'visible)
+      (throw 'helm-help-quit nil)
+    (quit-window)))
 
 (defun helm-help-org-open-at-point ()
   "Calls `org-open-at-point' ignoring errors."
@@ -841,8 +729,8 @@ See `helm-help-hkmap' for supported keys and functions."
     (nreverse result)))
 
 (defun helm-mklist (obj)
-  "If OBJ is a list (but not lambda), return itself.
-Otherwise make a list with one element."
+  "Return OBJ as a list.
+Otherwise make a list with one element OBJ."
   (if (and (listp obj) (not (functionp obj)))
       obj
     (list obj)))
@@ -958,13 +846,19 @@ When INDEX is 0 or negative, ELM is added at beginning of SEQ.
 
 Examples:
 
-    (helm-append-at-nth \\='(a b c d) \\='z 2)
-    =>(a b z c d)
     (helm-append-at-nth \\='(a b c d) \\='(z) 2)
     =>(a b z c d)
+
     (helm-append-at-nth \\='(a b c d) \\='((x . 1) (y . 2)) 2)
     =>(a b (x . 1) (y . 2) c d)
-"
+
+    But this is not working:
+    (helm-append-at-nth \\='(a b c d) \\='(x . 1) 2)
+    =>Wrong type argument: listp, 1
+
+NOTE: This function uses `append' internally, so ELM is expected
+to be a list to be appended to SEQ, even if for convenience an
+atom is supported as ELM value."
   (setq index (min (max index 0) (length seq))
         elm   (helm-mklist elm))
   (if (zerop index)
@@ -974,11 +868,23 @@ Examples:
            (beg-part (butlast seq len)))
       (append beg-part elm end-part))))
 
-(defun helm-take-first-elements (seq n)
+(cl-defgeneric helm-take (seq n)
   "Return the first N elements of SEQ if SEQ is longer than N.
 It is used for narrowing list of candidates to the
 `helm-candidate-number-limit'."
   (if (> (length seq) n) (cl-subseq seq 0 n) seq))
+
+(cl-defmethod helm-take ((seq list) n)
+  "`helm-take' optimized for lists."
+  (let ((store '()))
+    (if (> n (length seq))
+        seq
+      (while (> (1+ (cl-decf n)) 0)
+        (push (pop seq) store))
+      (nreverse store))))
+
+(defalias 'helm-take-first-elements 'helm-take)
+(make-obsolete 'helm-take-first-elements 'helm-take "3.9.1")
 
 (defun helm-source-by-name (name &optional sources)
   "Get a Helm source in SOURCES by NAME.
@@ -1059,7 +965,7 @@ Examples:
                        (reverse sequence)
                      sequence))
          (pos      (1+ (cl-position elm new-seq :test 'equal))))
-    (append (nthcdr pos new-seq) (cl-subseq new-seq 0 pos))))
+    (append (nthcdr pos new-seq) (helm-take new-seq pos))))
 
 ;;; Strings processing.
 ;;
@@ -1746,7 +1652,7 @@ I.e. when using `helm-next-line' and friends in BODY."
                 :test 'equal)))
 
 (defvar helm-blacklist-completion-styles '(emacs21 emacs22))
-(defun helm--prepare-completion-styles (&optional nomode styles)
+(defun helm--prepare-completion-styles (&optional com-or-mode styles)
   "Return a suitable list of styles for `completion-styles'.
 
 When `helm-completion-style' is not `emacs' the Emacs vanilla
@@ -1755,38 +1661,41 @@ default `completion-styles' is used except for
 value for `helm-completion-style'.
 
 If styles are specified in `helm-completion-styles-alist' for a
-particular mode, use these styles unless NOMODE is non nil.
+particular mode, use these styles for the corresponding mode.
+If COM-OR-MODE (a mode or a command) is specified it is used to find the
+corresponding styles in `helm-completion-styles-alist'.
+
 If STYLES is specified as a list of styles suitable for
 `completion-styles' these styles are used in the given order.
 Otherwise helm style is added to `completion-styles' always after
 flex or helm-flex completion style if present."
   ;; For `helm-completion-style' and `helm-completion-styles-alist'.
   (require 'helm-mode)
-  (if (memq helm-completion-style '(helm helm-fuzzy))
-      ;; Keep default settings, but probably nil is fine as well.
-      '(basic partial-completion emacs22)
-    (or
-     styles
-     (pcase (and (null nomode)
-                 (cdr (assq major-mode helm-completion-styles-alist)))
-       (`(,_l . ,ll) ll))
-     ;; We need to have flex always behind helm, otherwise
-     ;; when matching against e.g. '(foo foobar foao frogo bar
-     ;; baz) with pattern "foo" helm style if before flex will
-     ;; return foo and foobar only defeating flex that would
-     ;; return foo foobar foao and frogo.
-     (let* ((wflex (car (or (assq 'flex completion-styles-alist)
-                            (assq 'helm-flex completion-styles-alist))))
-            (styles (append (and (memq wflex completion-styles)
-                                 (list wflex))
-                            (cl-loop for s in completion-styles
-                                     unless (or (memq s helm-blacklist-completion-styles)
-                                                (memq wflex completion-styles))
-                                     collect s))))
-       (helm-append-at-nth
-        styles '(helm)
-        (if (memq wflex completion-styles)
-            1 0))))))
+  (let ((from (if com-or-mode com-or-mode major-mode)))
+    (if (memq helm-completion-style '(helm helm-fuzzy))
+        ;; Keep default settings, but probably nil is fine as well.
+        '(basic partial-completion emacs22)
+      (or
+       styles
+       (pcase (cdr (assq from helm-completion-styles-alist))
+         (`(,_l . ,ll) ll))
+       ;; We need to have flex always behind helm, otherwise
+       ;; when matching against e.g. '(foo foobar foao frogo bar
+       ;; baz) with pattern "foo" helm style if before flex will
+       ;; return foo and foobar only defeating flex that would
+       ;; return foo foobar foao and frogo.
+       (let* ((wflex (car (or (assq 'flex completion-styles-alist)
+                              (assq 'helm-flex completion-styles-alist))))
+              (styles (append (and (memq wflex completion-styles)
+                                   (list wflex))
+                              (cl-loop for s in completion-styles
+                                       unless (or (memq s helm-blacklist-completion-styles)
+                                                  (memq wflex completion-styles))
+                                       collect s))))
+         (helm-append-at-nth
+          styles '(helm)
+          (if (memq wflex completion-styles)
+              1 0)))))))
 
 (defun helm-dynamic-completion (collection predicate &optional point metadata nomode styles)
   "Build a completion function for `helm-pattern' in COLLECTION.
@@ -1858,6 +1767,18 @@ Also `helm-completion-style' settings have no effect here,
                           all)))))
       ;; Ensure circular objects are removed.
       (complete-with-action t compsfn helm-pattern predicate))))
+
+(defun helm-guess-filename-at-point ()
+  (with-helm-current-buffer
+    ;; Ensure to disable the evil `ffap-machine-at-point' which may run here as
+    ;; `file-name-at-point-functions' contains by default
+    ;; `ffap-guess-file-name-at-point' See bug#2574.
+    ;; Use same value as in Emacs-29 for next 3 vars to ensure `ffap-machine-p'
+    ;; never ping.
+    (let ((ffap-machine-p-known 'accept)
+          (ffap-machine-p-local 'reject)
+          (ffap-machine-p-unknown 'reject))
+      (run-hook-with-args-until-success 'file-name-at-point-functions))))
 
 ;; Yank text at point.
 ;;
@@ -1961,7 +1882,7 @@ broken."
 
 
 ;;; Fontlock
-(cl-dolist (mode '(emacs-lisp-mode lisp-interaction-mode))
+(dolist (mode '(emacs-lisp-mode lisp-interaction-mode))
   (font-lock-add-keywords
    mode
    '(("(\\<\\(with-helm-after-update-hook\\)\\>" 1 font-lock-keyword-face)

@@ -1,6 +1,6 @@
 ;;; helm-utils.el --- Utilities Functions for helm. -*- lexical-binding: t -*-
 
-;; Copyright (C) 2012 ~ 2021 Thierry Volpiatto 
+;; Copyright (C) 2012 ~ 2023 Thierry Volpiatto 
 
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -755,16 +755,7 @@ you have in `file-attributes'."
               (gid-change  (cl-getf all :gid-change))
               (inode       (cl-getf all :inode))
               (device-num  (cl-getf all :device-num))
-              (dired       (concat
-                            (helm-split-mode-file-attributes
-                             (cl-getf all :mode) t) " "
-                            (number-to-string (cl-getf all :links)) " "
-                            (cl-getf all :uid) ":"
-                            (cl-getf all :gid) " "
-                            (if human-size
-                                (helm-file-human-size (cl-getf all :size))
-                              (int-to-string (cl-getf all :size))) " "
-                            (cl-getf all :modif-time)))
+              (dired       (helm-file-attributes-dired-line all human-size))
               (human-size (helm-file-human-size (cl-getf all :size)))
               (mode-type  (cl-getf modes :mode-type))
               (mode-owner (cl-getf modes :user))
@@ -773,39 +764,44 @@ you have in `file-attributes'."
               (octal      (cl-getf modes :octal))
               (t          (append all modes))))))
 
-(defun helm-split-mode-file-attributes (str &optional string)
-  "Split mode file attributes STR into a proplist.
-If STRING is non--nil return instead a space separated string."
-  (cl-loop with type = (substring str 0 1)
-           with cdr = (substring str 1)
-           for i across cdr
-           for count from 1
-           if (<= count 3)
-           concat (string i) into user
-           if (and (> count 3) (<= count 6))
-           concat (string i) into group
-           if (and (> count 6) (<= count 9))
-           concat (string i) into other
-           finally return
-           (let ((octal (helm-ff-octal-permissions (list user group other))))
-             (if string
-                 (mapconcat 'identity (list type user group other octal) " ")
-               (list :mode-type type :user user
-                     :group group :other other
-                     :octal octal)))))
+(defun helm-file-attributes-dired-line (all &optional human-size)
+  (format "%s %s %s:%s %s %s"
+   (helm-split-mode-file-attributes
+    (cl-getf all :mode) t)
+   (number-to-string (cl-getf all :links))
+   (cl-getf all :uid)
+   (cl-getf all :gid)
+   (if human-size
+       (helm-file-human-size (cl-getf all :size))
+     (int-to-string (cl-getf all :size)))
+   (cl-getf all :modif-time)))
 
-(defun helm-ff-octal-permissions (perms)
+(defun helm-split-mode-file-attributes (modes &optional string)
+  "Split MODES in a list of modes.
+MODES is same as what (nth 8 (file-attributes \"foo\")) would return."
+  (if (string-match "\\`\\(.\\)\\(...\\)\\(...\\)\\(...\\)\\'" modes)
+      (let* ((type  (match-string 1 modes))
+             (user  (match-string 2 modes))
+             (group (match-string 3 modes))
+             (other (match-string 4 modes))
+             (octal (helm-ff-numeric-permissions (list user group other))))
+        (if string
+            (mapconcat 'identity (list type user group other octal) " ")
+          (list :mode-type type :user user
+                :group group :other other
+                :octal octal)))
+    (error "Wrong modes specification for %s" modes)))
+
+(defun helm-ff-numeric-permissions (perms)
   "Return the numeric representation of PERMS.
 PERMS is the list of permissions for owner, group and others."
-  (cl-flet ((string-to-octal (str)
-              (cl-loop for c across str
-                       sum (pcase c
-                             (?r 4)
-                             (?w 2)
-                             (?x 1)
-                             (?- 0)))))
-    (cl-loop for str in perms
-             concat (number-to-string (string-to-octal str)))))
+  ;; `file-modes-symbolic-to-number' interpret its MODES argument as what would
+  ;; result when calling such mode on a file with chmod, BTW we have to remove
+  ;; all "-" like read-file-modes does.
+  (helm-aand (listp perms)
+             (apply 'format "u=%s,g=%s,o=%s" perms)
+             (replace-regexp-in-string "-" "" it)
+             (format "%o" (file-modes-symbolic-to-number it))))
 
 (defun helm-format-columns-of-files (files)
   "Same as `dired-format-columns-of-files'.

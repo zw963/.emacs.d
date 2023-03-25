@@ -1,7 +1,7 @@
 ;;; helm-semantic.el --- Helm interface for Semantic -*- lexical-binding: t -*-
 
 ;; Copyright (C) 2012 ~ 2017 Daniel Hackney <dan@haxney.org>
-;;               2012 ~ 2021  Thierry Volpiatto
+;;               2012 ~ 2023  Thierry Volpiatto
 
 ;; Author: Daniel Hackney <dan@haxney.org>
 
@@ -83,7 +83,7 @@ you have completion on these functions with `C-M i' in the customize interface."
         (stylefn (or (with-helm-current-buffer
                        (assoc-default major-mode helm-semantic-display-style))
                      #'semantic-format-tag-summarize)))
-    (cl-dolist (tag tags)
+    (dolist (tag tags)
       (when (listp tag)
         (cl-case (setq cur-type (semantic-tag-class tag))
           ((function variable type)

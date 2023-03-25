@@ -1,6 +1,6 @@
 ;;; helm-info.el --- Browse info index with helm -*- lexical-binding: t -*-
 
-;; Copyright (C) 2012 ~ 2021 Thierry Volpiatto 
+;; Copyright (C) 2012 ~ 2023 Thierry Volpiatto 
 
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -31,6 +31,11 @@
 (declare-function ring-ref "ring")
 (defvar Info-history)
 (defvar Info-directory-list)
+;; `Info-minibuf-history' is not declared in Emacs, see emacs bug/58786.
+(when (and (> emacs-major-version 28)
+           (not (boundp 'Info-minibuf-history)))
+  (defvar Info-minibuf-history nil))
+
 
 ;;; Customize
 
@@ -64,7 +69,7 @@ found in each node, otherwise scan only the current info buffer."
       (let ((tobuf (helm-candidate-buffer 'global))
             Info-history)
         (helm-aif (Info-index-nodes)
-            (cl-dolist (node it)
+            (dolist (node it)
               (Info-goto-node node)
               (helm-info-scan-current-buffer tobuf))
           (helm-info-scan-current-buffer tobuf))

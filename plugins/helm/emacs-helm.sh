@@ -1,7 +1,7 @@
 #!/usr/bin/env sh
 
 
-## Copyright (C) 2012 ~ 2021 Thierry Volpiatto 
+## Copyright (C) 2012 ~ 2023 Thierry Volpiatto 
 ##
 ## This program is free software; you can redistribute it and/or modify
 ## it under the terms of the GNU General Public License as published by
@@ -242,7 +242,7 @@ cat > $CONF_FILE <<EOF
                                (menu-bar-lines . 0)
                                (fullscreen . nil))))
 (blink-cursor-mode -1)
-(require 'helm-config)
+(load "helm-autoloads" nil t)
 (helm-mode 1)
 (with-eval-after-load 'tramp-cache (setq tramp-cache-read-persistent-data t))
 (with-eval-after-load 'auth-source (setq auth-source-save-behavior nil))
