@@ -20,6 +20,8 @@
 ;; (global-set-key [(control \8)] 'delete-window)
 (global-set-key [(control \8)] 'keyboard-escape-quit) ;当前窗口最大化
 (global-set-key [remap dabbrev-expand] 'hippie-expand) ;;替换默认自动补全为hippie-expand
+(global-set-key [remap save-buffer] '(lambda () (interactive) (save-some-buffers t)))
+
 ;; 重构时，关闭的快捷键
 ;; (global-set-key [(del)] 'delete-char) ;向后删除字符 Del
 ;; (global-set-key [(meta g)] 'goto-line)
