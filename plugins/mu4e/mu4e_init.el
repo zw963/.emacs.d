@@ -55,6 +55,9 @@
 (require 'mu4e)
 (require 'mu4e-contrib)                 ; Need by mu4e-html2text-command
 
+(setq mu4e-read-option-use-builtin nil
+      mu4e-completing-read-function 'completing-read)
+
 ;; 以上所有分类，均不含标记为 Spam 的邮件, 需要单独进这个分类查找。
 ;; (add-github-watch '("maildir:/trash" "Spam email" ?s))
 
