@@ -59,6 +59,7 @@
 ;; ============================== 编程相关 ==============================
 
 (require 'prog-mode_init)
+(require 'snap-indent_init)
 (require 'dumb-jump_init)
 (require 'apheleia_init)
 (require 'git_init)

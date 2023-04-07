@@ -13,7 +13,7 @@
         (("*prettier errors*") :select t :size 0.3 :align 'below :autoclose t)
                 ;; (("\\*RuboCop ") :regexp t :size 0.3 :align 'below :autoclose t)
         ((compilation-mode rustic-compilation-mode rustic-cargo-clippy-mode rustic-cargo-outdated-mode rustic-cargo-test-mode cargo-process-mode) :select t :size 0.3 :align 'below :autoclose t)
-        ("*quickrun*" :select t :size 15 :align 'below :autoclose t)
+        ("*quickrun*" :select t :size 0.6 :align 'right :autoclose t)
         ("*Backtrace*" :select t :size 15 :align 'below :autoclose t)
         (("*Help*" "*Apropos*" "*Occur*") :select t :size 0.3 :align 'below :autoclose t)
         (helpful-mode :select t :size 0.5 :popup t :align 'below :autoclose t)
