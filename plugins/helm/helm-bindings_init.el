@@ -9,20 +9,6 @@
 (define-key global-map [remap execute-extended-command] 'helm-M-x)
 (define-key minibuffer-local-map [(control /)] 'helm-undo-yank-text-at-point)
 
-(defun helm-quit-and-do-git-grep-on-project ()
-  "Drop into `helm-grep-do-git-grep' on entire project from `helm'."
-  (interactive)
-  (with-helm-alive-p
-    (helm-run-after-exit #'helm-grep-do-git-grep t)))
-
-(global-set-key (kbd "M-r") 'helm-grep-do-git-grep)
-(define-key helm-grep-map (kbd "M-r") 'helm-quit-and-do-git-grep-on-project)
-(define-key helm-find-files-map (kbd "M-r") 'helm-ff-run-git-grep)
-
-;; If you want grep base on multi-files, use M-SPC mark files, then C-s
-(define-key helm-find-files-map (kbd "C-s") 'helm-ff-run-grep-ag)
-(define-key helm-map (kbd "M-SPC") 'helm-toggle-visible-mark-forward)
-
 ;; (define-key helm-find-files-map (kbd "C-m") 'helm-toggle-visible-mark-forward)
 
 ;; 不懂干嘛的.

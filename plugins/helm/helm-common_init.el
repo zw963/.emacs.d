@@ -62,49 +62,5 @@
 (custom-set-variables '(helm-imenu-fuzzy-match t))
 (add-to-list 'helm-imenu-all-buffer-assoc  '(enh-ruby-mode . js2-mode))
 
-(add-hook 'helm-grep-mode-hook 'wgrep-change-to-wgrep-mode 100)
-
-;; hack for helm-grep support wgrep
-;; (defun helm-grep-save-results-1 ()
-;;   "Save Helm grep result in a `helm-grep-mode' buffer."
-;;   (let* ((buf "*hgrep*")
-;;          new-buf
-;;          (pattern (with-helm-buffer helm-input-local))
-;;          (src (helm-get-current-source))
-;;          (src-name (assoc-default 'name src)))
-;;     (with-current-buffer (get-buffer-create buf)
-;;       (setq default-directory (or helm-ff-default-directory
-;;                                   (helm-default-directory)
-;;                                   default-directory))
-;;       (setq-local helm-grep-mode-use-pcre (helm-get-attr 'pcre src))
-;;       (setq buffer-read-only t)
-;;       (let ((inhibit-read-only t)
-;;             (map (make-sparse-keymap)))
-;;         (erase-buffer)
-;;         (insert "-*- mode: helm-grep -*-\n\n"
-;;                 (format "%s Results for `%s':\n\n" src-name pattern))
-;;         (save-excursion
-;;           (insert (with-current-buffer helm-buffer
-;;                     (goto-char (point-min)) (forward-line 1)
-;;                     (buffer-substring (point) (point-max)))))
-;;         (save-excursion
-;;           (while (not (eobp))
-;;             (add-text-properties (point-at-bol) (point-at-eol)
-;;                                  `(keymap ,map
-;;                                           help-echo ,(concat
-;;                                                       (get-text-property
-;;                                                        (point) 'helm-grep-fname)
-;;                                                       "\nmouse-1: set point\nmouse-2: jump to selection")
-;;                                           mouse-face highlight))
-;;             (define-key map [mouse-1] 'mouse-set-point)
-;;             (define-key map [mouse-2] 'helm-grep-mode-mouse-jump)
-;;             (define-key map [mouse-3] 'ignore)
-;;             (forward-line 1))))
-;;       (helm-grep-mode)
-;;       (if (fboundp 'wgrep-change-to-wgrep-mode)
-;;           (wgrep-change-to-wgrep-mode)))
-;;     (pop-to-buffer buf)
-;;     (message "Helm %s Results saved in `%s' buffer" src-name buf)))
-
 (provide 'helm-common_init)
 ;;; helm-common_init.el ends here
