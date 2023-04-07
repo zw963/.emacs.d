@@ -18,7 +18,6 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
-import functools
 from typing import Optional
 from urllib.parse import urlparse
 
@@ -29,8 +28,8 @@ import platform
 import sys
 import subprocess
 import queue
-import traceback
 import os
+import json
 
 from epc.client import EPCClient
 from threading import Thread
@@ -86,8 +85,78 @@ def handle_arg_types(arg):
 
     return sexpdata.Quoted(arg)
 
+running_in_server = False
+def set_running_in_server():
+    global running_in_server
+
+    running_in_server = True
+
+def is_running_in_server():
+    global running_in_server
+
+    return running_in_server
+
+lsp_file_host = ""
+def set_lsp_file_host(host):
+    global lsp_file_host
+    lsp_file_host = host
+
+def get_lsp_file_host():
+    global lsp_file_host
+    return lsp_file_host
+
+remote_file_server = None
+def set_remote_file_server(server):
+    global remote_file_server
+
+    remote_file_server = server
+
+def get_buffer_content(filename, buffer_name):
+    global remote_file_server, lsp_file_host
+
+    if lsp_file_host != "":
+        return remote_file_server.file_dict[filename]
+    else:
+        return get_emacs_func_result('get-buffer-content', buffer_name)
+
+remote_eval_socket = None
+def set_remote_eval_socket(socket):
+    global remote_eval_socket
+
+    remote_eval_socket = socket
+
+remote_rpc_socket = None
+remote_rpc_host = None
+def set_remote_rpc_socket(socket, host):
+    global remote_rpc_socket
+    global remote_rpc_host
+
+    remote_rpc_socket = socket
+    remote_rpc_host = host
+
+def get_remote_rpc_socket():
+    global remote_rpc_socket
+    return remote_rpc_socket
+
+def call_remote_rpc(message):
+    global remote_rpc_socket, remote_rpc_host
+
+    if remote_rpc_socket is not None:
+        message["host"] = remote_rpc_host
+        data = json.dumps(message)
+        remote_rpc_socket.send(f"{data}\n".encode("utf-8"))
+
+        socket_file = remote_rpc_socket.makefile("r")
+        result = socket_file.readline().strip()
+        socket_file.close()
+
+        return result
+    else:
+        return None
 
 def eval_in_emacs(method_name, *args):
+    global remote_eval_socket
+
     if test_interceptor:  # for test purpose, record all eval_in_emacs calls
         test_interceptor(method_name, args)
 
@@ -95,9 +164,17 @@ def eval_in_emacs(method_name, *args):
     sexp = sexpdata.dumps(args)
 
     logger.debug("Eval in Emacs: %s", sexp)
-    # Call eval-in-emacs elisp function.
-    epc_client.call("eval-in-emacs", [sexp])    # type: ignore
 
+    # Call eval-in-emacs elisp function.
+    if remote_eval_socket:
+        message = {
+            "command": "eval-in-emacs",
+            "sexp": [sexp]
+        }
+        data = json.dumps(message)
+        remote_eval_socket.send(f"{data}\n".encode("utf-8"))
+    else:
+        epc_client.call("eval-in-emacs", [sexp])    # type: ignore
 
 def message_emacs(message: str):
     """Message to Emacs with prefix."""
@@ -145,21 +222,33 @@ def convert_emacs_bool(symbol_value, symbol_is_boolean):
 
 
 def get_emacs_vars(args):
-    return list(map(lambda result: convert_emacs_bool(result[0], result[1]) if result != [] else False,
-                    epc_client.call_sync("get-emacs-vars", args)))    # type: ignore
+    global remote_rpc_socket
 
-
-def get_emacs_var(var_name):
-    symbol_value, symbol_is_boolean = epc_client.call_sync("get-emacs-var", [var_name])    # type: ignore
-
-    return convert_emacs_bool(symbol_value, symbol_is_boolean)
-
+    if remote_rpc_socket:
+        results = call_remote_rpc({
+            "command": "get_emacs_vars",
+            "args": args
+        })
+        results = json.loads(results)
+        return results
+    else:
+        results = epc_client.call_sync("get-emacs-vars", args)
+        return list(map(lambda result: convert_emacs_bool(result[0], result[1]) if result != [] else False, results))
 
 def get_emacs_func_result(method_name, *args):
     """Call eval-in-emacs elisp function synchronously and return the result."""
-    result = epc_client.call_sync(method_name, args)    # type: ignore
-    return result
+    global remote_rpc_socket
 
+    if remote_rpc_socket:
+        result = call_remote_rpc({
+            "command": "get_emacs_func_result",
+            "method": method_name,
+            "args": args
+        })
+        return json.loads(result)
+    else:
+        result = epc_client.call_sync(method_name, args)    # type: ignore
+        return result
 
 def get_command_result(command_string, cwd):
     import subprocess
@@ -274,11 +363,6 @@ def log_time(message):
     import datetime
     logger.info("\n--- [{}] {}".format(datetime.datetime.now().time(), message))
 
-@functools.lru_cache(maxsize=None)
-def get_emacs_version():
-    return get_emacs_func_result("get-emacs-version")
-
-
 def get_os_name():
     return platform.system().lower()
 
@@ -299,6 +383,56 @@ def cmp(x, y):
         return 1
     else:
         return 0
+
+def is_valid_ip_path(string):
+    import re
+    pattern = re.compile(r'^(\w+@)?([\w\.\:]+):([0-9]+)?(/.*)$')
+    return pattern.match(string)
+
+def eval_sexp_in_emacs(sexp):
+    epc_client.call("eval-in-emacs", [sexp])
+
+def string_to_base64(text):
+    import base64
+
+    base64_bytes = base64.b64encode(text.encode("utf-8"))
+    base64_string = base64_bytes.decode("utf-8")
+
+    return base64_string
+
+def get_position(content, line, character):
+    lines = content.split('\n')
+    position = sum(len(lines[i]) + 1 for i in range(line)) + character
+    return position
+
+def replace_template(arg):
+    if "%USER_EMACS_DIRECTORY%" in arg:
+        if get_os_name() == "windows":
+            user_emacs_dir = get_emacs_func_result("get-user-emacs-directory").replace("/", "\\")
+        else:
+            user_emacs_dir = get_emacs_func_result("get-user-emacs-directory")
+        return arg.replace("%USER_EMACS_DIRECTORY%", user_emacs_dir)
+    elif "$HOME" in arg:
+            return os.path.expandvars(arg)
+    elif "%FILEHASH%" in arg:
+        # pyright use `--cancellationReceive` option enable "background analyze" to improve completion performance.
+        return arg.replace("%FILEHASH%", os.urandom(21).hex())
+    elif "%USERPROFILE%" in arg:
+        return arg.replace("%USERPROFILE%", windows_get_env_value("USERPROFILE"))
+    else:
+        return arg
+
+def touch(path):
+    import os
+
+    if not os.path.exists(path):
+        basedir = os.path.dirname(path)
+
+        if not os.path.exists(basedir):
+            os.makedirs(basedir)
+
+        with open(path, 'a'):
+            os.utime(path)
 
 class MessageSender(Thread):
     

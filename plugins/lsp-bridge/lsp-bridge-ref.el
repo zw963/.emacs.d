@@ -587,7 +587,7 @@ user more freedom to use rg with special arguments."
         (setq start (point))
         (setq filename (buffer-substring-no-properties start end))
         (end-of-line)
-        (push (lsp-bridge-ref-file-extension filename) file-extensions)))
+        (cl-pushnew (lsp-bridge-ref-file-extension filename) file-extensions :test 'string-equal)))
     (if (< (length file-extensions) 2)
         (message (format "[LSP-Bridge] Has one type files now."))
       (setq filter-extension (ido-completing-read (if match-files
@@ -753,7 +753,9 @@ user more freedom to use rg with special arguments."
 (defun lsp-bridge-ref-jump-prev-file ()
   (interactive)
   (let ((prev-match-pos
-         (if (save-excursion (search-backward-regexp lsp-bridge-ref-regexp-file nil t))
+         (if (save-excursion
+               (and (search-backward-regexp lsp-bridge-ref-regexp-file nil t)
+                    (search-backward-regexp lsp-bridge-ref-regexp-split-line nil t)))
              (let* ((first-search-line
                      (save-excursion
                        (search-backward-regexp lsp-bridge-ref-regexp-file nil t)

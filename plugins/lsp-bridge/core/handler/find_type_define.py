@@ -2,9 +2,9 @@ from core.handler import Handler
 from core.utils import *
 
 
-class FindImplementation(Handler):
-    name = "find_implementation"
-    method = "textDocument/implementation"
+class FindTypeDefine(Handler):
+    name = "find_type_define"
+    method = "textDocument/typeDefinition"
     cancel_on_change = True
 
     def process_request(self, position) -> dict:
@@ -12,7 +12,7 @@ class FindImplementation(Handler):
 
     def process_response(self, response: dict) -> None:
         if not response:
-            message_emacs("No implementation found.")
+            message_emacs("No type define found.")
             return
 
         file_info = response[0]

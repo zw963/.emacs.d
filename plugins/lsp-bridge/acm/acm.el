@@ -181,6 +181,15 @@
   :type 'string
   :group 'acm)
 
+(defcustom acm-completion-backend-merge-order '("mode-first-part-candidates"
+                                                "template-first-part-candidates"
+                                                "tabnine-candidates"
+                                                "template-second-part-candidates"
+                                                "mode-second-part-candidates")
+  "The merge order for completion backend."
+  :type 'list
+  :group 'acm)
+
 (cl-defmacro acm-run-idle-func (timer idle func)
   `(unless ,timer
      (setq ,timer
@@ -429,11 +438,15 @@ Only calculate template candidate when type last character."
           (setq mode-second-part-candidates nil))
 
         ;; Build all backend candidates.
-        (setq candidates (append mode-first-part-candidates
-                                 template-first-part-candidates
-                                 tabnine-candidates
-                                 template-second-part-candidates
-                                 mode-second-part-candidates)
+        (setq candidates (apply #'append (mapcar (lambda (backend-name)
+                                                   (pcase backend-name
+                                                     ("mode-first-part-candidates" mode-first-part-candidates)
+                                                     ("template-first-part-candidates" template-first-part-candidates)
+                                                     ("tabnine-candidates" tabnine-candidates)
+                                                     ("template-second-part-candidates" template-second-part-candidates)
+                                                     ("mode-second-part-candidates" mode-second-part-candidates)
+                                                     ))
+                                                 acm-completion-backend-merge-order))
               )))
 
     ;; Return candidates.
@@ -897,10 +910,15 @@ The key of candidate will change between two LSP results."
   (let ((prev-char (char-before)))
     (if prev-char (char-to-string prev-char) "")))
 
+(defvar-local acm-is-elisp-mode-in-org nil)
 (defun acm-is-elisp-mode-p ()
   (or (derived-mode-p 'emacs-lisp-mode)
       (derived-mode-p 'inferior-emacs-lisp-mode)
-      (derived-mode-p 'lisp-interaction-mode)))
+      (derived-mode-p 'lisp-interaction-mode)
+      (and (eq major-mode 'org-mode)
+           acm-is-elisp-mode-in-org)
+      (and (minibufferp)
+           (where-is-internal #'completion-at-point (list (current-local-map))))))
 
 (defun acm-select-first ()
   "Select first candidate."
