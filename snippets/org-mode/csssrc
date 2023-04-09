@@ -1,0 +1,9 @@
+# -*- mode: snippet -*-
+# name: css source
+# key: csssrc
+# contributor: Billy.Zheng vil963@gmail.com
+# --
+#+begin_src css
+  $0
+#+end_src
+[[elisp:org-copy-src-block-link][click to copy]]
