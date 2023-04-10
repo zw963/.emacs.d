@@ -1,6 +1,8 @@
 (require 'lsp-mode)
 (require 'lsp-completion)
 
+(add-to-list 'lsp-language-id-configuration '("\\.erb$" . "html"))
+
 ;; 如果退出最后一个 lsp buffer, 自动 kill 掉 lsp-server，否则 Emacs 会很慢。
 ;; (setq lsp-keep-workspace-alive nil)
 
@@ -125,6 +127,8 @@
 
 (with-eval-after-load 'which-key
   (add-hook 'lsp-after-open-hook 'lsp-enable-which-key-integration))
+
+(require 'lsp-tailwindcss)
 
 (provide 'lsp-mode_init)
 
