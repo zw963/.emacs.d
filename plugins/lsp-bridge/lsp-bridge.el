@@ -349,6 +349,7 @@ Then LSP-Bridge will start by gdb, please send new issue with `*lsp-bridge*' buf
     (("wxml") . "wxml-language-server")
     (("html") . "vscode-html-language-server")
     (("astro") . "astro-ls")
+    (("typ") . "typst-lsp")
     )
   "The lang server rule for file extension."
   :type 'cons)
@@ -496,6 +497,7 @@ Then LSP-Bridge will start by gdb, please send new issue with `*lsp-bridge*' buf
     markdown-mode-hook
     kotlin-mode-hook
     vhdl-mode-hook
+    typst-mode-hook
 
     c-ts-mode-hook
     c++-ts-mode-hook
@@ -586,9 +588,13 @@ you can customize `lsp-bridge-get-workspace-folder' to return workspace folder p
     (sh-mode . "\$\{")
     (bash-mode . "\$\{")
     (bash-ts-mode . "\$\{")
+    (typst--base-mode . "\$\{")
+    (typst--code-mode . "\$\{")
+    (typst--math-mode . "\$\{")
+    (typst--markup-mode . "\$\{")
+    ;; For #{}
     (elixir-mode . "\#\{")
     (elixir-ts-mode . "\#\{")
-    ;; For #{}
     (ruby-mode . "\#\{")
     ;; For {{}}
     (yaml-mode . "\{\{"))
@@ -907,7 +913,12 @@ So we build this macro to restore postion after code format."
 (defvar-local lsp-bridge-last-cursor-position 0)
 (defvar-local lsp-bridge-prohibit-completion nil)
 
+(defvar-local lsp-bridge-cursor-before-command 0)
+(defvar-local lsp-bridge-cursor-after-command 0)
+
 (defun lsp-bridge-monitor-pre-command ()
+  (setq-local lsp-bridge-cursor-before-command (point))
+
   (when acm-filter-overlay
     (let ((this-command-string (format "%s" this-command)))
       (cond ((member this-command-string '("self-insert-command" "org-self-insert-command"))
@@ -919,6 +930,8 @@ So we build this macro to restore postion after code format."
             ))))
 
 (defun lsp-bridge-monitor-post-command ()
+  (setq-local lsp-bridge-cursor-after-command (point))
+
   (let ((this-command-string (format "%s" this-command)))
     (when (and lsp-bridge-mode
                (member this-command-string '("self-insert-command" "org-self-insert-command")))
@@ -1101,7 +1114,8 @@ So we build this macro to restore postion after code format."
 (defun lsp-bridge-is-meow-state ()
   "If `meow' mode is enable, only show completion when meow is in insert mode."
   (or (not (featurep 'meow))
-      meow-insert-mode))
+      meow-insert-mode
+      (minibufferp)))
 
 (defun lsp-bridge-not-in-multiple-cursors ()
   "If `multiple-cursors' mode is enable, hide completion menu."
@@ -1442,10 +1456,8 @@ So we build this macro to restore postion after code format."
 
 (defun lsp-bridge-signature-help-fetch ()
   (interactive)
-  (if lsp-bridge-code-action-notify
-      (setq-local lsp-bridge-code-action-notify nil)
-    (unless (eq last-command 'mwheel-scroll)
-      (lsp-bridge-call-file-api "signature_help" (lsp-bridge--position)))))
+  (unless (equal lsp-bridge-cursor-before-command lsp-bridge-cursor-after-command)
+    (lsp-bridge-call-file-api "signature_help" (lsp-bridge--position))))
 
 (defun lsp-bridge-pick-file-path (filename)
   ;; Remove `file://' and `:file://' prefix.
