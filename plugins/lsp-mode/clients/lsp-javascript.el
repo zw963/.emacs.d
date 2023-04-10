@@ -148,6 +148,12 @@ See https://github.com/typescript-language-server/typescript-language-server#ini
   :group 'lsp-typescript
   :type 'plist)
 
+(defcustom lsp-clients-typescript-tsserver nil
+  "Options related to the tsserver process. See below for more info.
+See https://github.com/typescript-language-server/typescript-language-server#initializationoptions for the list of tsserver available in the latest version of TypeScript."
+  :group 'lsp-typescript
+  :type 'plist)
+
 (defcustom lsp-typescript-tsdk nil
   "Specifies the folder path containing tsserver and lib*.d.ts files to use."
   :type '(repeat string)
@@ -832,7 +838,7 @@ name (e.g. `data' variable passed as `data' parameter)."
 (defun lsp-javascript--update-inlay-hints (start end)
   (if (lsp-javascript-initialized?)
       (lsp-request-async
-       "typescript/inlayHints"
+       "textDocument/inlayHint"
        (lsp-make-javascript-inlay-hints-params
         :text-document (lsp--text-document-identifier)
         :range (lsp-make-range :start
@@ -841,24 +847,18 @@ name (e.g. `data' variable passed as `data' parameter)."
                                (lsp-point-to-position end)))
        (lambda (res)
          (lsp--remove-overlays 'lsp-javascript-inlay-hint)
-         (let ((hints (lsp-get res :inlayHints)))
-           (unless (seq-empty-p hints)
-             (overlay-recenter
-              (-let* (([hint] hints)
-                      ((&javascript:InlayHint :position) hint))
-                (lsp--position-to-point position))))
-           (-each hints
-             (lambda (hint)
-                 (-let* (((&javascript:InlayHint :text :position :kind :whitespace-before? :whitespace-after?) hint)
-                         (pos (lsp--position-to-point position))
-                         (overlay (make-overlay pos pos nil 'front-advance 'end-advance)))
-                   (overlay-put overlay 'lsp-javascript-inlay-hint t)
-                   (overlay-put overlay 'before-string
-                                (format "%s%s%s"
-                                        (if (and whitespace-before? (not (string= kind lsp/javascript-inlay-hint-kind-type-hint))) " " "")
-                                        (propertize (lsp-javascript-format-inlay text kind)
-                                                    'font-lock-face (lsp-javascript-face-for-inlay kind))
-                                        (if whitespace-after? " " ""))))))))
+         (dolist (hint res)
+           (-let* (((&javascript:InlayHint :label :position :kind :padding-left? :padding-right?) hint)
+                   (pos (lsp--position-to-point position))
+                   (overlay (make-overlay pos pos nil 'front-advance 'end-advance)))
+              (when (stringp label)
+                (overlay-put overlay 'lsp-javascript-inlay-hint t)
+                (overlay-put overlay 'before-string
+                             (format "%s%s%s"
+                                     (if padding-left? " " "")
+                                     (propertize (lsp-javascript-format-inlay label kind)
+                                                 'font-lock-face (lsp-javascript-face-for-inlay kind))
+                                     (if padding-right? " " "")))))))
        :mode 'tick)))
 
 (defun lsp-javascript-column-at-pos (pos)
@@ -932,7 +932,9 @@ name (e.g. `data' variable passed as `data' parameter)."
                                              (when lsp-clients-typescript-plugins
                                                (list :plugins lsp-clients-typescript-plugins))
                                              (when lsp-clients-typescript-preferences
-                                               (list :preferences lsp-clients-typescript-preferences))))
+                                               (list :preferences lsp-clients-typescript-preferences))
+                                             (when lsp-clients-typescript-tsserver
+                                               (list :tsserver lsp-clients-typescript-tsserver))))
                   :initialized-fn (lambda (workspace)
                                     (with-lsp-workspace workspace
                                       (lsp--set-configuration

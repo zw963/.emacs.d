@@ -495,6 +495,12 @@ The command should include `--message=format=json` or similar option."
   :group 'lsp-rust-analyzer
   :package-version '(lsp-mode . "6.2.2"))
 
+(defcustom lsp-rust-analyzer-check-all-targets t
+  "Enables --all-targets for `cargo check`."
+  :type 'boolean
+  :group 'lsp-rust-analyzer
+  :package-version '(lsp-mode . "8.0.2"))
+
 (defcustom lsp-rust-analyzer-checkonsave-features []
   "List of features to activate.
 Set this to `\"all\"` to pass `--all-features` to cargo."
@@ -747,6 +753,7 @@ or JSON objects in `rust-project.json` format."
     :checkOnSave (:enable ,(lsp-json-bool lsp-rust-analyzer-cargo-watch-enable)
                   :command ,lsp-rust-analyzer-cargo-watch-command
                   :extraArgs ,lsp-rust-analyzer-cargo-watch-args
+                  :allTargets ,(lsp-json-bool lsp-rust-analyzer-check-all-targets)
                   :features ,lsp-rust-analyzer-checkonsave-features
                   :overrideCommand ,lsp-rust-analyzer-cargo-override-command)
     :files (:exclude ,lsp-rust-analyzer-exclude-globs
@@ -1245,7 +1252,8 @@ tokens legend."
   :notification-handlers (ht<-alist lsp-rust-notification-handlers)
   :action-handlers (ht ("rust-analyzer.runSingle" #'lsp-rust--analyzer-run-single)
                        ("rust-analyzer.debugSingle" #'lsp-rust--analyzer-debug-lens)
-                       ("rust-analyzer.showReferences" #'lsp-rust--analyzer-show-references))
+                       ("rust-analyzer.showReferences" #'lsp-rust--analyzer-show-references)
+                       ("rust-analyzer.triggerParameterHints" #'lsp--action-trigger-parameter-hints))
   :library-folders-fn (lambda (_workspace) lsp-rust-analyzer-library-directories)
   :after-open-fn (lambda ()
                    (when lsp-rust-analyzer-server-display-inlay-hints
@@ -1323,6 +1331,8 @@ meaning."
   :group 'lsp-rust-analyzer
   :package-version '(lsp-mode . "8.0.0"))
 
+(defvar lsp-rust-analyzer-already-warned-about-inlay-hint-type nil)
+
 (defun lsp-rust-analyzer-update-inlay-hints (buffer)
   (if (and (lsp-rust-analyzer-initialized?)
            (eq buffer (current-buffer)))
@@ -1339,12 +1349,27 @@ meaning."
            (-let* (((&rust-analyzer:InlayHint :position :label :kind :padding-left :padding-right) hint)
                    (pos (lsp--position-to-point position))
                    (overlay (make-overlay pos pos nil 'front-advance 'end-advance)))
-             (when (stringp label)
+             (let ((concat-label
+                    (cl-typecase label
+                      (vector
+                       (string-join
+                        (mapcar
+                         (lambda (label)
+                           (when (lsp-structure-p label)
+                             (lsp-get label :value)))
+                         label)))
+                      (string
+                       label)
+                      (t
+                       (unless lsp-rust-analyzer-already-warned-about-inlay-hint-type
+                         (message "Unexpected type for inlay hint: %s" (type-of label))
+                         (setq lsp-rust-analyzer-already-warned-about-inlay-hint-type t))
+                       ""))))
                (overlay-put overlay 'lsp-rust-analyzer-inlay-hint t)
                (overlay-put overlay 'before-string
                             (format "%s%s%s"
                                     (if padding-left " " "")
-                                    (propertize (lsp-rust-analyzer-format-inlay label kind)
+                                    (propertize (lsp-rust-analyzer-format-inlay concat-label kind)
                                                 'font-lock-face (lsp-rust-analyzer-face-for-inlay kind))
                                     (if padding-right " " "")))))))
        :mode 'tick))
