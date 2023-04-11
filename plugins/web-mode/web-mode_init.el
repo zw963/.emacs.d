@@ -1,6 +1,26 @@
 (require 'web-mode)
 (require 'auto-rename-tag)
 
+(require 'lsp-mode_init)
+(setq lsp-tailwindcss-add-on-mode t)
+(require 'lsp-tailwindcss)
+;; (add-to-list 'lsp-tailwindcss-major-modes 'crystal-mode)
+
+(defun zw/web-mode-common-hooks ()
+  (local-set-key [(control c) (return)] 'save-buffer-and-browse-url)
+  (local-set-key [(control c) (?\r)] 'save-buffer-and-browse-url)
+  (local-set-key [(control c)(control c)] 'web-mode-buffer-indent)
+  (local-set-key [(control meta f)] 'rhtml-mode-forward-sexp)
+  (local-set-key [(control meta b)] 'rhtml-mode-backward-sexp)
+  (local-set-key [(control meta ?\s)] 'rhtml-mark-sexp-tag)
+  (local-set-key [(control tab)] 'web-mode-element-children-fold-or-unfold)
+  (local-set-key [(meta return)] 'html-mode-newline-and-indent)
+  (auto-rename-tag-mode)
+
+  (setq-local company-minimum-prefix-length 1)
+  (lsp-deferred)
+  )
+
 (setq
  web-mode-markup-indent-offset 2
  web-mode-css-indent-offset 2
@@ -31,18 +51,7 @@
       )
 (set-syntax-table web-mode-syntax-table)
 
-(add-hook 'web-mode-hook
-          (lambda ()
-            (local-set-key [(control c) (return)] 'save-buffer-and-browse-url)
-            (local-set-key [(control c) (?\r)] 'save-buffer-and-browse-url)
-            (local-set-key [(control c)(control c)] 'web-mode-buffer-indent)
-            (local-set-key [(control meta f)] 'rhtml-mode-forward-sexp)
-            (local-set-key [(control meta b)] 'rhtml-mode-backward-sexp)
-            (local-set-key [(control meta ?\s)] 'rhtml-mark-sexp-tag)
-            (local-set-key [(control tab)] 'web-mode-element-children-fold-or-unfold)
-            (local-set-key [(meta return)] 'html-mode-newline-and-indent)
-            (auto-rename-tag-mode)
-            ))
+(add-hook 'web-mode-hook 'zw/web-mode-common-hooks)
 
 (defun save-buffer-and-browse-url ()
   "Save buffer and browse url."

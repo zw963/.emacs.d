@@ -5,7 +5,7 @@
 (require 'ruby-test-mode_init)
 (require 'ruby-mode_keyword_highlight_init)
 (require 'yard-mode_init)
-;; (require 'lsp-ruby_init)
+(require 'lsp-ruby_init)
 (require 'robe-mode_init)
 
 (autoload 'rbs-mode "rbs-mode" nil t)
