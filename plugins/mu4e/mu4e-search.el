@@ -105,13 +105,20 @@ one of: `:date', `:subject', `:size', `:prio', `:from', `:to.',
 Note that when threading is enabled (through
 `mu4e-search-threads'), the headers are exclusively sorted
 chronologically (`:date') by the newest message in the thread."
-  :type 'symbol
+  :type '(radio (const :date)
+                (const :subject)
+                (const :size)
+                (const :prio)
+                (const :from)
+                (const :to)
+                (const :list))
   :group 'mu4e-search)
 
 (defcustom mu4e-search-sort-direction 'descending
   "Direction to sort by; a symbol either `descending' (sorting
   Z->A) or `ascending' (sorting A->Z)."
-  :type 'symbol
+  :type '(radio (const ascending)
+                (const descending))
   :group 'mu4e-search)
 
 ;; mu4e-query-rewrite-function lives in mu4e-query-items.el
@@ -203,6 +210,7 @@ the search."
          (or expr
              (mu4e-ask-bookmark
               (if edit "Select bookmark: " "Bookmark: "))))
+         (expr (if (functionp expr) (funcall expr) expr))
          (fav (mu4e--bookmark-query (mu4e-bookmark-favorite))))
     ;; reset baseline when searching for the favorite bookmark query
     (when (and fav (string= fav expr))

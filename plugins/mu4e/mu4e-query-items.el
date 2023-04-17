@@ -46,7 +46,7 @@ searching, and allows users to modify the query.
 For instance, we could change any instance of \"workmail\" into
 \"maildir:/long-path-to-work-related-emails\", by setting the function
 
-(setq mu4e-query-rewrite-function
+\\=(setq mu4e-query-rewrite-function
   (lambda(expr)
      (replace-regexp-in-string \"workmail\"
                    \"maildir:/long-path-to-work-related-emails\" expr)))
@@ -67,6 +67,7 @@ This is used as the baseline to track updates by comparing it to
 the latest query-items.")
 (defvar mu4e--query-items-baseline-tstamp nil
   "Timestamp for when the query-items baseline was updated.")
+(defvar mu4e--last-delta-unread 0 "Last notified number.")
 
 (defun mu4e--bookmark-query (bm)
   "Get the query string for some bookmark BM."
@@ -122,7 +123,8 @@ With RESET-BASELINE, reset the baseline first."
     (setq mu4e--query-items-baseline nil
           mu4e--query-items-baseline-tstamp nil
           mu4e--bookmark-items-cached nil
-          mu4e--maildir-items-cached nil))
+          mu4e--maildir-items-cached nil
+          mu4e--last-delta-unread 0))
   (mu4e--server-queries
    ;; note: we must apply the rewrite function here, since the query does not go
    ;; through mu4e-search.
@@ -175,6 +177,7 @@ bookmark or maildir."
             (query (if (equal type 'maildirs)
                        (format "maildir:\"%s\"" maildir)
                      (plist-get item :query)))
+            (query (if (functionp query) (funcall query) query))
             (name (plist-get item :name))
             ;; it is possible that the user has a rewrite function
             (effective-query (funcall mu4e-query-rewrite-function query))
