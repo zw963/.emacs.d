@@ -309,6 +309,16 @@ This doesn't include the margins and the scroll bar."
   :type 'boolean
   :package-version '(company . "0.8.1"))
 
+(defcustom company-tooltip-annotation-padding nil
+  "Non-nil to specify the padding before annotation.
+
+Depending on the value of `company-tooltip-align-annotations', the default
+padding is either 0 or 1 space.  This variable allows to override that
+value to increase the padding.  When annotations are right-aligned, it sets
+the minimum padding, and otherwise just the constant one."
+  :type 'number
+  :package-version '(company "0.9.14"))
+
 (defvar company-safe-backends
   '((company-abbrev . "Abbrev")
     (company-bbdb . "BBDB")
@@ -1448,7 +1458,9 @@ update if FORCE-UPDATE."
   (and candidates
        (not (cdr candidates))
        (eq t (compare-strings (car candidates) nil nil
-                              prefix nil nil ignore-case))))
+                              prefix nil nil ignore-case))
+       (not (eq (company-call-backend 'kind (car candidates))
+                'snippet))))
 
 (defun company--fetch-candidates (prefix)
   (let* ((non-essential (not (company-explicit-action-p)))
@@ -3083,21 +3095,23 @@ If SHOW-VERSION is non-nil, show the version in the echo area."
          (_ (setq value (company-reformat (company--pre-render value))
                   annotation (and annotation (company--pre-render annotation t))))
          (ann-ralign company-tooltip-align-annotations)
+         (ann-padding (or company-tooltip-annotation-padding 0))
          (ann-truncate (< width
                           (+ (length value) (length annotation)
-                             (if ann-ralign 1 0))))
+                             ann-padding)))
          (ann-start (+ margin
                        (if ann-ralign
                            (if ann-truncate
-                               (1+ (length value))
+                               (+ (length value) ann-padding)
                              (- width (length annotation)))
-                         (length value))))
+                         (+ (length value) ann-padding))))
          (ann-end (min (+ ann-start (length annotation)) (+ margin width)))
          (line (concat left
                        (if (or ann-truncate (not ann-ralign))
                            (company-safe-substring
                             (concat value
-                                    (when (and annotation ann-ralign) " ")
+                                    (when annotation
+                                      (company-space-string ann-padding))
                                     annotation)
                             0 width)
                          (concat
@@ -3325,6 +3339,9 @@ but adjust the expected values appropriately."
 (defun company--create-lines (selection limit)
   (let ((len company-candidates-length)
         (window-width (company--window-width))
+        (company-tooltip-annotation-padding
+         (or company-tooltip-annotation-padding
+             (if company-tooltip-align-annotations 1 0)))
         left-margins
         left-margin-size
         lines
@@ -3397,8 +3414,9 @@ but adjust the expected values appropriately."
             (setq annotation (string-trim-left annotation))))
         (push (list value annotation left) items)
         (setq width (max (+ (length value)
-                            (if (and annotation company-tooltip-align-annotations)
-                                (1+ (length annotation))
+                            (if annotation
+                                (+ (length annotation)
+                                   company-tooltip-annotation-padding)
                               (length annotation)))
                          width))))
 
@@ -3741,6 +3759,10 @@ Delay is determined by `company-tooltip-idle-delay'."
                          (company-strip-prefix completion)
                        completion))
 
+    (when (string-prefix-p "\n" completion)
+      (setq completion (concat (propertize " " 'face 'company-preview) "\n"
+                               (substring completion 1))))
+
     (and (equal pos (point))
          (not (equal completion ""))
          (add-text-properties 0 1 '(cursor 1) completion))
@@ -3840,13 +3862,18 @@ Delay is determined by `company-tooltip-idle-delay'."
   :package-version '(company . "0.9.3"))
 
 (defun company-echo-show (&optional getter)
-  (when getter
-    (setq company-echo-last-msg (funcall getter)))
-  (let ((message-log-max nil)
+  (let ((last-msg company-echo-last-msg)
+        (message-log-max nil)
         (message-truncate-lines company-echo-truncate-lines))
-    (if company-echo-last-msg
+    (when getter
+      (setq company-echo-last-msg (funcall getter)))
+    ;; Avoid modifying the echo area if we don't have anything to say, and we
+    ;; didn't put the previous message there (thus there's nothing to clear),
+    ;; https://debbugs.gnu.org/cgi/bugreport.cgi?bug=62816#20
+    (if (not (member company-echo-last-msg '(nil "")))
         (message "%s" company-echo-last-msg)
-      (message ""))))
+      (unless (member last-msg '(nil ""))
+        (message "")))))
 
 (defun company-echo-show-soon (&optional getter delay)
   (company-echo-cancel)

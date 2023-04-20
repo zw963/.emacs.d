@@ -1,52 +1,13 @@
+See the homepage for [installation and usage instructions](http://company-mode.github.io/).
 
-# company-box
-[![MELPA](http://melpa.org/packages/company-box-badge.svg)](http://melpa.org/#/company-box)
+File a bug report in [Issues](https://github.com/company-mode/company-mode/issues).
 
-A company front-end with icons.  
+Ask a question or suggest a feature in [Discussions](https://github.com/company-mode/company-mode/discussions/).
 
-![company-box](company-box.png)
+See [Contributing](https://github.com/company-mode/company-mode/blob/master/CONTRIBUTING.md) on other ways to help out.
 
-Differences with the built-in front-end:  
-- Differents colors for differents backends.
-- Icons associated to functions/variables/.. and their backends
-- Display candidate's documentation (support `quickhelp-string`)
-- Not limited by the current window size, buffer's text properties, .. (it's better than you might think)
-
-This package requires emacs 26.  
-Also, not compatible with emacs in a tty.  
-
-### Installation
-``` el
-;; With use-package:
-(use-package company-box
-  :hook (company-mode . company-box-mode))
-
-;; Or:
-(require 'company-box)
-(add-hook 'company-mode-hook 'company-box-mode)
-```
-
-To customize:  
-`M-x customize-group [RET] company-box [RET]`   
-
-### Backends colors
-
-See the docstring of the variable `company-box-backends-colors`:  
-`C-h v company-box-backends-colors`
-
-### Themes
-
-You can select different themes with `company-box-icons-alist`
-
-### Icons
-
-See the variable `company-box-icons-functions`  
-
-For now, there are customs icons for 4 backends only: `company-lsp`, `company-elisp`, `company-yasnippet` and `company-php`.  
-You can customize their icons with the variables:  
-`company-box-icons-lsp`, `company-box-icons-elisp`, `company-box-icons-yasnippet` and `company-box-icons-acphp`.
-
-Notes:  
-By default, images are used to display icons.  
-You can also use [font icons](https://github.com/sebastiencs/company-box/wiki/icons)  
-With images, you can't change icons colors
+[![Build Status](https://github.com/company-mode/company-mode/actions/workflows/ci.yml/badge.svg)](https://github.com/company-mode/company-mode/actions/workflows/ci.yml)
+[![GNU Emacs](https://img.shields.io/static/v1?logo=gnuemacs&logoColor=fafafa&label=Made%20for&message=GNU%20Emacs&color=7F5AB6&style=flat)](https://www.gnu.org/software/emacs/)
+[![MELPA](https://melpa.org/packages/company-badge.svg)](https://melpa.org/#/company)
+[![GNU ELPA](https://elpa.gnu.org/packages/company.svg)](https://elpa.gnu.org/packages/company.html)
+[![GNU-devel ELPA](https://elpa.gnu.org/devel/company.svg)](https://elpa.gnu.org/devel/company.html)
