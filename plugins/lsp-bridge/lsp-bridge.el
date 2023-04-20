@@ -130,6 +130,8 @@
                                                     lsp-bridge-is-evil-state
                                                     lsp-bridge-is-meow-state
 
+                                                    lsp-brige-not-in-chatgpt-response
+
                                                     lsp-bridge-not-complete-manually
                                                     )
   "A list of predicate functions with no argument to enable popup completion in callback."
@@ -319,7 +321,13 @@ Setting this to nil or 0 will turn off the indicator."
   "Name of LSP-Bridge buffer."
   :type 'string)
 
-(defcustom lsp-bridge-python-command (if (memq system-type '(cygwin windows-nt ms-dos)) "python.exe" "python3")
+(defcustom lsp-bridge-python-command (cond ((memq system-type '(cygwin windows-nt ms-dos))
+                                            (if (executable-find "pypy3.exe")
+                                                "pypy3.exe"
+                                              "python3.exe"))
+                                           (t (if (executable-find "pypy3")
+                                                  "pypy3"
+                                                "python3")))
   "The Python interpreter used to run lsp_bridge.py."
   :type 'string)
 
@@ -396,43 +404,44 @@ Then LSP-Bridge will start by gdb, please send new issue with `*lsp-bridge*' buf
 
 (defcustom lsp-bridge-single-lang-server-mode-list
   '(
-    ((c-mode c-ts-mode c++-mode c++-ts-mode objc-mode) . lsp-bridge-c-lsp-server)
-    ((cmake-mode cmake-ts-mode) . "cmake-language-server")
-    ((java-mode java-ts-mode) . "jdtls")
-    ((julia-mode) . "julials")
-    ((python-mode python-ts-mode) . lsp-bridge-python-lsp-server)
-    (ruby-mode . "solargraph")
-    ((rust-mode rustic-mode rust-ts-mode) . "rust-analyzer")
-    ((elixir-mode elixir-ts-mode heex-ts-mode) . "elixirLS")
-    ((go-mode go-ts-mode) . "gopls")
-    (groovy-mode . "groovy-language-server")
-    (haskell-mode . "hls")
-    (lua-mode . "sumneko")
-    (dart-mode . "dart-analysis-server")
-    (scala-mode . "metals")
-    ((js2-mode js-mode js-ts-mode rjsx-mode) . "javascript")
-    ((typescript-tsx-mode tsx-ts-mode) . "typescriptreact")
-    ((typescript-mode typescript-ts-mode) . "typescript")
-    (tuareg-mode . "ocamllsp")
-    (erlang-mode . "erlang-ls")
+    ((c-mode c-ts-mode c++-mode c++-ts-mode objc-mode) .                         lsp-bridge-c-lsp-server)
+    ((cmake-mode cmake-ts-mode) .                                                "cmake-language-server")
+    ((java-mode java-ts-mode) .                                                  "jdtls")
+    ((julia-mode) .                                                              "julials")
+    ((python-mode python-ts-mode) .                                              lsp-bridge-python-lsp-server)
+    (ruby-mode .                                                                 "solargraph")
+    ((rust-mode rustic-mode rust-ts-mode) .                                      "rust-analyzer")
+    ((elixir-mode elixir-ts-mode heex-ts-mode) .                                 "elixirLS")
+    ((go-mode go-ts-mode) .                                                      "gopls")
+    (groovy-mode .                                                               "groovy-language-server")
+    (haskell-mode .                                                              "hls")
+    (lua-mode .                                                                  "sumneko")
+    (dart-mode .                                                                 "dart-analysis-server")
+    (scala-mode .                                                                "metals")
+    ((js2-mode js-mode js-ts-mode rjsx-mode) .                                   "javascript")
+    ((typescript-tsx-mode tsx-ts-mode) .                                         "typescriptreact")
+    ((typescript-mode typescript-ts-mode) .                                      "typescript")
+    (tuareg-mode .                                                               "ocamllsp")
+    (erlang-mode .                                                               "erlang-ls")
     ((latex-mode Tex-latex-mode texmode context-mode texinfo-mode bibtex-mode) . lsp-bridge-tex-lsp-server)
-    ((clojure-mode clojurec-mode clojurescript-mode clojurex-mode) . "clojure-lsp")
-    ((sh-mode bash-mode bash-ts-mode) . "bash-language-server")
-    ((css-mode css-ts-mode) . "vscode-css-language-server")
-    (elm-mode . "elm-language-server")
-    (php-mode . lsp-bridge-php-lsp-server)
-    ((yaml-mode yaml-ts-mode) . "yaml-language-server")
-    (zig-mode . "zls")
-    (dockerfile-mode . "docker-langserver")
-    (d-mode . "serve-d")
-    ((fortran-mode f90-mode) . "fortls")
-    (nix-mode . "rnix-lsp")
-    (ess-r-mode . "rlanguageserver")
-    (graphql-mode . "graphql-lsp")
-    (swift-mode . "swift-sourcekit")
-    (csharp-mode . lsp-bridge-csharp-lsp-server)
-    (kotlin-mode . "kotlin-language-server")
-    (vhdl-mode . "vhdl-tool")
+    ((clojure-mode clojurec-mode clojurescript-mode clojurex-mode) .             "clojure-lsp")
+    ((sh-mode bash-mode bash-ts-mode) .                                          "bash-language-server")
+    ((css-mode css-ts-mode) .                                                    "vscode-css-language-server")
+    (elm-mode   .                                                                "elm-language-server")
+    (php-mode .                                                                  lsp-bridge-php-lsp-server)
+    ((yaml-mode yaml-ts-mode) .                                                  "yaml-language-server")
+    (zig-mode .                                                                  "zls")
+    (dockerfile-mode .                                                           "docker-langserver")
+    (d-mode .                                                                    "serve-d")
+    ((fortran-mode f90-mode) .                                                   "fortls")
+    (nix-mode .                                                                  "rnix-lsp")
+    (ess-r-mode .                                                                "rlanguageserver")
+    (graphql-mode .                                                              "graphql-lsp")
+    (swift-mode .                                                                "swift-sourcekit")
+    (csharp-mode .                                                               lsp-bridge-csharp-lsp-server)
+    (kotlin-mode .                                                               "kotlin-language-server")
+    (verilog-mode .                                                              "verible")
+    (vhdl-mode .                                                                 "vhdl-tool")
     )
   "The lang server rule for file mode."
   :type 'cons)
@@ -498,7 +507,6 @@ Then LSP-Bridge will start by gdb, please send new issue with `*lsp-bridge*' buf
     kotlin-mode-hook
     vhdl-mode-hook
     typst-mode-hook
-
     c-ts-mode-hook
     c++-ts-mode-hook
     cmake-ts-mode-hook
@@ -570,34 +578,35 @@ you can customize `lsp-bridge-get-workspace-folder' to return workspace folder p
     (yaml-mode                  . yaml-indent-offset) ; YAML
     (hack-mode                  . hack-indent-offset) ; Hack
     (kotlin-mode                . c-basic-offset)     ; Kotlin
+    (verilog-mode               . vhdl-indent-level)  ; Verilog
     (vhdl-mode                  . vhdl-basic-offset)  ; VHDL
     (default                    . standard-indent)) ; default fallback
   "A mapping from `major-mode' to its indent variable.")
 
 (defcustom lsp-bridge-string-interpolation-open-chars-alist
   '(;; For {}
-    (python-mode . "[^\$]\{")
-    (python-ts-mode . "[^\$]\{")
+    (python-mode .        "[^\$]\{")
+    (python-ts-mode .     "[^\$]\{")
     ;; For ${}
-    (js-mode . "\$\{")
-    (js-ts-mode . "\$\{")
-    (js2-mode . "\$\{")
-    (js3-mode . "\$\{")
-    (typescript-mode . "\$\{")
+    (js-mode .            "\$\{")
+    (js-ts-mode .         "\$\{")
+    (js2-mode .           "\$\{")
+    (js3-mode .           "\$\{")
+    (typescript-mode .    "\$\{")
     (typescript-ts-mode . "\$\{")
-    (sh-mode . "\$\{")
-    (bash-mode . "\$\{")
-    (bash-ts-mode . "\$\{")
-    (typst--base-mode . "\$\{")
-    (typst--code-mode . "\$\{")
-    (typst--math-mode . "\$\{")
+    (sh-mode .            "\$\{")
+    (bash-mode .          "\$\{")
+    (bash-ts-mode .       "\$\{")
+    (typst--base-mode .   "\$\{")
+    (typst--code-mode .   "\$\{")
+    (typst--math-mode .   "\$\{")
     (typst--markup-mode . "\$\{")
     ;; For #{}
-    (elixir-mode . "\#\{")
-    (elixir-ts-mode . "\#\{")
-    (ruby-mode . "\#\{")
+    (elixir-mode .        "\#\{")
+    (elixir-ts-mode .     "\#\{")
+    (ruby-mode .          "\#\{")
     ;; For {{}}
-    (yaml-mode . "\{\{"))
+    (yaml-mode .          "\{\{"))
   "Open characters for string interpolation. The elements are cons cell (major-mode . open-char-regexp)"
   :type 'cons)
 
@@ -1122,6 +1131,11 @@ So we build this macro to restore postion after code format."
   (not (and (featurep 'multiple-cursors)
             multiple-cursors-mode)))
 
+(defun lsp-brige-not-in-chatgpt-response ()
+  "Don't popup completion menu if ChatGPT is responsing."
+  (not (and (boundp 'mind-wave-is-response-p)
+            mind-wave-is-response-p)))
+
 (defun lsp-bridge-not-complete-manually ()
   "If `lsp-bridge-complete-manually' is non-nil, hide completion menu."
   (or
@@ -1392,7 +1406,9 @@ So we build this macro to restore postion after code format."
                  (buffer-name buffer))))
     (goto-char position)
     (unless (equal buffer this-buffer)
-      (switch-to-buffer buffer))))
+      (switch-to-buffer buffer))
+    (recenter)
+    ))
 
 (defun lsp-bridge-find-type-def ()
   (interactive)
@@ -2051,13 +2067,12 @@ SymbolKind (defined in the LSP)."
 (defvar-local lsp-bridge-remote-file-host nil)
 (defvar-local lsp-bridge-remote-file-path nil)
 
-(when (version< emacs-version "30")
-  (defun file-name-concat (&rest parts)
-    (cl-reduce (lambda (a b) (expand-file-name b a)) parts)))
-
 (defun lsp-bridge-open-remote-file ()
   (interactive)
-  (let* ((ip-file (file-name-concat (lsp-bridge--user-emacs-directory) "lsp-bridge" "remote_file" "ip.txt"))
+  (let* ((ip-file (concat (lsp-bridge--user-emacs-directory)
+                          (file-name-as-directory "lsp-bridge")
+                          (file-name-as-directory "remote_file")
+                          "ip.txt"))
          (path (completing-read "Open remote file (ip:path): "
                                 (with-temp-buffer
                                   (insert-file-contents ip-file)
