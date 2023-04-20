@@ -99,7 +99,7 @@ not-exist-after-field-delimiter：delimiter 有时候可能是只有前面有，
       (insert
        (concat
         (or field-seperator (_yas-field-seperator))
-        (_yas-expandfunc before-field-delimiter nil before-field-delimiter-function)
+        (_yas-expand-func before-field-delimiter nil before-field-delimiter-function)
         (yas-stripped-selected-text "" "" "")
         (unless not-exist-after-field-delimiter
           (_yas-expand-func after-field-delimiter nil after-field-delimiter-function))
