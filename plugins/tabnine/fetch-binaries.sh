@@ -12,21 +12,17 @@ version="$(curl -sS https://update.tabnine.com/bundles/version)"
 #     x86_64-unknown-linux-musl'
 
 targets='x86_64-unknown-linux-gnu'
-
-rm -rf ./binaries
+folder=~/.TabNine
 
 echo "$targets" | while read target
 do
-    mkdir -p binaries/$version/$target
     path=$version/$target
+    url=https://update.tabnine.com/bundles/$path/TabNine.zip
+    mkdir -p $folder/$path
     echo "downloading $path"
-    echo "https://update.tabnine.com/bundles/$path/TabNine.zip"
-    curl -sS https://update.tabnine.com/bundles/$path/TabNine.zip > binaries/$path/TabNine.zip
-    unzip -o binaries/$path/TabNine.zip -d binaries/$path
-    rm binaries/$path/TabNine.zip
-    chmod +x binaries/$path/*
+    echo "$url"
+    curl -sS $url > $folder/$path/TabNine.zip
+    unzip -o $folder/$path/TabNine.zip -d $folder/$path
+    rm $folder/$path/TabNine.zip
+    chmod +x $folder/$path/*
 done
-
-rm -rf ~/.TabNine/*
-mv ./binaries/* ~/.TabNine/
-rm -rf ./binaries
