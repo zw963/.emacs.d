@@ -87,7 +87,7 @@
 (require 'go-mode_init)
 ;; (require 'rust_init)
 ;; (require 'lsp-bridge_init)
-;; (require 'tabnine_init) ;; lsp-bridge 默认会开启 tabnine
+(require 'tabnine_init) ;; lsp-bridge 默认会开启 tabnine
 ;; (require 'haskell-mode_init)
 ;; (require 'js2-mode_init)
 ;; (require 'lua-mode_init)
