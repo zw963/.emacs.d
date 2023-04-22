@@ -1,0 +1,5 @@
+# -*- mode: snippet -*-
+# name: require_if
+# key: require_if
+# --
+{% require "$1" if env("$2") %}
