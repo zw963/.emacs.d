@@ -1,5 +1,7 @@
 (require 'helm-grep)
 
+(setq helm-grep-file-path-style 'relative)
+
 (defun helm-quit-and-do-git-grep-on-project ()
   "Drop into `helm-grep-do-git-grep' on entire project from `helm'."
   (interactive)
