@@ -1,5 +1,0 @@
-# -*- mode: snippet -*-
-# name: <link stylesheet="..." />
-# key: style
-# --
-<link`(string-field "1" "stylesheet" " rel=")``(field "2" "style" " href=\"" ".css\"")` />

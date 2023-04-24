@@ -1,5 +1,5 @@
 # -*- mode: snippet -*-
-# name: <script type="text/javascript" src="..."></script>
+# name: <script src="..."></script>
 # key: js
 # --
-<script`(string-field "1" "text/javascript" " type=")``(field "2" "javascript" " src=\"" ".js\"")`>`(yas-stripped-selected-text)`$0</script>
+<script `(field "1" "javascript" " src=\"" ".js\"")`>`(yas-stripped-selected-text)`$0</script>
