@@ -61,7 +61,10 @@
                             (subword-mode)           ; 不要全局开启 subword-mode，对 ido 有影响。
                             (goto-address-prog-mode)
                             (display-fill-column-indicator-mode) ;; 全局开启会造成 helm 也显示.
-                            (setq-local indent-tabs-mode nil)      ;禁止 insert \t 字符.
+
+                            (unless (member major-mode '(makefile-gmake-mode))
+                              (setq-local indent-tabs-mode nil)      ;禁止 insert \t 字符.
+                              )
                             ;; (context-menu-mode t)
 
                             ;; 注意最后一个参数 t, 这确保了当前 before-save-hook 是 local 的。
