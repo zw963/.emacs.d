@@ -190,22 +190,26 @@
  )
 
 (require 'whitespace)
-(setq
- whitespace-line-column nil
- show-trailing-whitespace t                ;显示行尾多余空格, 这个没有生效?
- whitespace-style '
- (face
-  empty            ; empty lines at beginning/end of buffer
-  ;; lines-tail       ; lines go beyond `fill-column'
-  space-before-tab ; spaces before tab
-  ;; tabs             ; tabs (show by face)
-  trailing         ; trailing blanks
-  ;; tab-mark         ; tabs (show by symbol)
-  ;; lines space-after-tab
-  ;; empty indentation
-  ;; newline newline-mark
-  ))
-(setq whitespace-global-modes '(not makefile-mode))
+(setq whitespace-line-column nil)
+(setq whitespace-style
+      '(face
+       spaces
+       empty            ; empty lines at beginning/end of buffer
+       ;; lines-tail       ; lines go beyond `fill-column'
+       ;; space-before-tab ; spaces before tab
+       tabs             ; tabs (show by face)
+       ;; tab-mark
+       trailing       ; trailing blanks
+       git  ;; tab-mark         ; tabs (show by symbol)
+       ;; space-mark
+       ;; tab-mark
+       ;; lines space-after-tab
+       ;; empty indentation
+       ;; newline newline-mark
+       ))
+
+
+;; (setq whitespace-global-modes '(not makefile-mode))
 (global-whitespace-mode 1)
 
 (setq lpr-command "new_lpr")

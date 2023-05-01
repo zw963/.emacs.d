@@ -13,6 +13,7 @@
 (require 'treemacs_init)
 (require 'dimmer_init)
 ;; (require 'sort-tab_init)
+(require 'awesome-tab_init)
 
 (require 'fancy-narrow_init)
 (require 'zoom-frm_init)
