@@ -1,5 +1,7 @@
 (require 'ligature)
 
+(setq ligature-ignored-major-modes '(makefile-mode makefile-gmake-mode))
+
 (ligature-set-ligatures '(html-mode nxml-mode web-mode) '("<!--" "-->" "</>" "</" "/>" "://"))
 
 (ligature-set-ligatures 'markdown-mode '(("=" (rx (+ "=") (? (| ">" "<"))))

@@ -1,10 +1,13 @@
 (require 'smartparens-config)
 
 (sp-local-pair 'web-mode "<#" "#>")
-(sp-pair "\\`" "\\'" :when '(sp-in-comment-p))
+(sp-pair "`" "'" :when '(sp-in-comment-p))
 
 (sp-local-pair 'sh-mode "'" "'" :unless nil)
 (sp-local-pair 'org-mode "=" nil :actions nil)
+(sp-local-pair 'org-mode "`" "`" :actions nil)
+(sp-local-pair 'org-mode "'" "'" :actions nil)
+(sp-local-pair 'org-mode "`" "'") ;; 这个不生效？
 
 (let ((pairs '(("{" nil) ("[" nil) ("(" nil))))
   (mapc
