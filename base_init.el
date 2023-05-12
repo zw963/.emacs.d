@@ -193,9 +193,9 @@
 (setq whitespace-line-column nil)
 (setq whitespace-style
       '(face
-       spaces
        empty            ; empty lines at beginning/end of buffer
        tab-mark
+       indentation
        trailing       ; trailing blanks
        ))
 

@@ -18,7 +18,7 @@
   (auto-rename-tag-mode)
 
   (setq-local company-minimum-prefix-length 1)
-  (lsp-deferred)
+  ;; (lsp-deferred)
   )
 
 (setq
