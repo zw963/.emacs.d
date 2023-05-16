@@ -283,7 +283,7 @@
 ;; (setq coding-system-for-write 'utf-8)
 
 ;; ============================== 开启的模式 ==============================
-(global-prettify-symbols-mode t)
+;; (global-prettify-symbols-mode t) ;; 这个鬼东西让 web-mode 显示 -> 异常
 (global-so-long-mode t)
 (global-hl-line-mode t)                 ; 光标行高亮
 
