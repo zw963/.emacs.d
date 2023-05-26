@@ -162,8 +162,10 @@ yas-field 的依赖函数"
 
 ;; ---------------------------
 (defun def (&optional def-begin def-end single-line-end-seperator)
-  "这个 def 解决的根据选区的不同，同时支持单行/多行定义的问题。
-这个模式尤其对于 web 模式有效，例如，你希望 wrap 一个 div 想这样
+  "这个 def 用来定义一个 tag 的结束部分是否添加换行，根据选区的不同，
+同时支持单行/多行定义的问题。这个模式尤其对于 web 模式有效，
+例如，你希望 wrap 一个 div 像这样
+
 <div>some text</div>
 
 但是对于多行内容, 你希望以换行的方式 wrap.

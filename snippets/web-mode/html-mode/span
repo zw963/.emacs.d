@@ -1,5 +1,7 @@
 # -*- mode: snippet -*-
 # name: <span>...</span>
 # key: span
+# binding: s
+# condition: (yas-use-region-p)
 # --
-<span>$0</span>
+<span`(string-field "1" "class" " class=")``(string-field "2" "id" " id=")`>`(yas-stripped-selected-text)`</span>

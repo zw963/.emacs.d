@@ -4,4 +4,4 @@
 # binding: d
 # condition: (yas-use-region-p)
 # --
-<div`(string-field "1" "class" " class=")`>`(def "" "</div>")`
+<div`(string-field "1" "class" " class=")``(string-field "2" "id" " id=")`>`(def "" "</div>")`
