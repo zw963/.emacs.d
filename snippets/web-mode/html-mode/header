@@ -2,4 +2,6 @@
 # name: <header>...</header>
 # key: header
 # --
-<header>$0</header>
+<header>
+  $0
+</header>

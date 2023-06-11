@@ -2,4 +2,4 @@
 # name: <td>...</td>
 # key: td
 # --
-<td>$0</td>
+<td`(string-field "1" "class" " class=")`>`(def "" "</td>")`

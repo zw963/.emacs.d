@@ -1,0 +1,5 @@
+# -*- mode: snippet -*-
+# name: flash object
+# key: object
+# --
+<object>$0<object/>

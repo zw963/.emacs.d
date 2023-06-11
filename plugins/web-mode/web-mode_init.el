@@ -1,5 +1,6 @@
 (require 'web-mode)
-(require 'auto-rename-tag)
+;; (require 'auto-rename-tag)
+(require 'instant-rename-tag)
 
 (require 'lsp-mode_init)
 (setq lsp-tailwindcss-add-on-mode t)
@@ -15,6 +16,7 @@
   (local-set-key [(control meta ?\s)] 'rhtml-mark-sexp-tag)
   (local-set-key [(control tab)] 'web-mode-element-children-fold-or-unfold)
   (local-set-key [(meta return)] 'html-mode-newline-and-indent)
+  (local-set-key [(control \;)] 'instant-rename-tag)
   (auto-rename-tag-mode)
 
   (setq-local company-minimum-prefix-length 1)
