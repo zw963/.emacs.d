@@ -18,7 +18,7 @@
   (local-set-key [(meta return)] 'html-mode-newline-and-indent)
   (local-set-key [(control \;)] 'instant-rename-tag)
   (auto-rename-tag-mode)
-
+  (setq-local fill-column 120)
   (setq-local company-minimum-prefix-length 1)
   ;; (lsp-deferred)
   )

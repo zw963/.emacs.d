@@ -10,7 +10,8 @@
 (setq apheleia-mode-alist
       (delete '(js3-mode . prettier-javascript)
               (delete '(js-mode . prettier-javascript)
-                      apheleia-mode-alist)))
+                      (delete '(web-mode . prettier)
+                              apheleia-mode-alist))))
 
 (setq apheleia-log-only-errors nil)
 
