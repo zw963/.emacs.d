@@ -2,4 +2,4 @@
 # name: <video>...</video>
 # key: video
 # --
-<video`(field "1" "controls" " " " ")``(field "2" "autoplay" " " " ")``(string-field "3" "loop")``(string-field "4" "images/poster.png" "poster=")``(string-field "5" "video/video.mp4" "src=")>`(def "" "</video>")`
+<video`(field "1" "controls" " " " ")``(field "2" "autoplay" " " " ")``(field "3" "loop" " " " ")``(string-field "4" "images/poster.png" " poster=")``(string-field "5" "video/video.mp4" " src=")`>`(def "" "</video>")`

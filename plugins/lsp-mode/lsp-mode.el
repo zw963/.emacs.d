@@ -175,7 +175,7 @@ As defined by the Language Server Protocol 3.16."
 
 (defcustom lsp-client-packages
   '( ccls lsp-actionscript lsp-ada lsp-angular lsp-ansible lsp-astro lsp-bash
-     lsp-beancount lsp-clangd lsp-clojure lsp-cmake lsp-crystal lsp-csharp lsp-css
+     lsp-beancount lsp-clangd lsp-clojure lsp-cmake lsp-credo lsp-crystal lsp-csharp lsp-css
      lsp-d lsp-dart lsp-dhall lsp-docker lsp-dockerfile lsp-elm lsp-elixir lsp-emmet
      lsp-erlang lsp-eslint lsp-fortran lsp-fsharp lsp-gdscript lsp-go lsp-gleam
      lsp-glsl lsp-graphql lsp-hack lsp-grammarly lsp-groovy lsp-haskell lsp-haxe
@@ -183,7 +183,7 @@ As defined by the Language Server Protocol 3.16."
      lsp-lua lsp-markdown lsp-marksman lsp-mint lsp-nginx lsp-nim lsp-nix lsp-magik
      lsp-metals lsp-mssql lsp-ocaml lsp-openscad lsp-pascal lsp-perl lsp-perlnavigator
      lsp-pls lsp-php lsp-pwsh lsp-pyls lsp-pylsp lsp-pyright lsp-python-ms lsp-purescript
-     lsp-r lsp-racket lsp-remark lsp-ruff-lsp lsp-rf lsp-rust lsp-shader lsp-solargraph
+     lsp-r lsp-racket lsp-remark lsp-ruff-lsp lsp-rf lsp-rust lsp-semgrep lsp-shader lsp-solargraph
      lsp-sorbet lsp-sourcekit lsp-sonarlint lsp-tailwindcss lsp-tex lsp-terraform
      lsp-toml lsp-ttcn3 lsp-typeprof lsp-v lsp-vala lsp-verilog lsp-vetur lsp-volar
      lsp-vhdl lsp-vimscript lsp-xml lsp-yaml lsp-ruby-lsp lsp-ruby-syntax-tree
@@ -400,6 +400,8 @@ the server has requested that."
     "[/\\\\]_build\\'"
     ;; Elixir
     "[/\\\\]\\.elixir_ls\\'"
+    ;; Elixir Credo
+    "[/\\\\]\\.elixir-tools\\'"
     ;; terraform and terragrunt
     "[/\\\\]\\.terraform\\'"
     "[/\\\\]\\.terragrunt-cache\\'"
@@ -849,6 +851,7 @@ Changes take effect only when a new session is started."
     (js-ts-mode . "javascript")
     (typescript-mode . "typescript")
     (typescript-ts-mode . "typescript")
+    (tsx-ts-mode . "typescriptreact")
     (fsharp-mode . "fsharp")
     (reason-mode . "reason")
     (caml-mode . "ocaml")
@@ -1991,45 +1994,10 @@ regex in IGNORED-FILES."
 
 
 
-(defvar lsp-downstream-deps
-  '(;; external packages
-    ccls consult-lsp dap-mode helm-lsp lsp-dart lsp-docker lsp-focus lsp-grammarly
-    lsp-haskell lsp-ivy lsp-java lsp-javacomp lsp-jedi lsp-julia lsp-latex lsp-ltex
-    lsp-metals lsp-mssql lsp-origami lsp-p4 lsp-pascal lsp-pyre lsp-pyright
-    lsp-python-ms lsp-rescript lsp-shader lsp-sonarlint lsp-sourcekit lsp-tailwindcss
-    lsp-treemacs lsp-ui swift-helpful
-    ;; clients
-    lsp-actionscript lsp-ada lsp-angular lsp-astro lsp-bash lsp-beancount lsp-clangd
-    lsp-clojure lsp-cmake lsp-crystal lsp-csharp lsp-css lsp-d lsp-dhall
-    lsp-dockerfile lsp-elixir lsp-elm lsp-erlang lsp-eslint lsp-fortran lsp-fsharp
-    lsp-gdscript lsp-go lsp-gleam lsp-glsl lsp-graphql lsp-groovy lsp-hack
-    lsp-haxe lsp-html lsp-idris lsp-javascript lsp-json lsp-kotlin lsp-lua
-    lsp-markdown lsp-marksman lsp-nginx lsp-nim lsp-nix lsp-ocaml lsp-perl
-    lsp-perlnavigator lsp-pls lsp-php lsp-prolog lsp-purescript lsp-pwsh lsp-pyls
-    lsp-pylsp lsp-racket lsp-r lsp-rf lsp-rust lsp-solargraph lsp-sorbet lsp-sqls
-    lsp-steep lsp-svelte lsp-terraform lsp-tex lsp-toml lsp-ttcn3 lsp-typeprof
-    lsp-v lsp-vala lsp-verilog lsp-vetur lsp-volar lsp-vhdl lsp-vimscript lsp-xml
-    lsp-yaml lsp-zig)
-  "List of downstream deps.")
-
 (defmacro lsp-consistency-check (package)
   `(defconst ,(intern (concat (symbol-name package)
                               "-plist-value-when-compiled"))
      (eval-when-compile lsp-use-plists)))
-
-;; (mapc
-;;  (lambda (package)
-;;    (with-eval-after-load package
-;;      (let ((symbol-name (intern
-;;                          (concat (symbol-name package)
-;;                                  "-plist-value-when-compiled"))))
-;;        (cond
-;;         ((not (boundp symbol-name))
-;;          (warn "We have detected that you are using version of %s that is not compatible with current version of lsp-mode.el, please update it." (propertize (symbol-name package)
-;;                                                                                                                                                              'face 'bold)))
-;;         ((not (eq (symbol-value symbol-name) lsp-use-plists))
-;;          (warn "Package %s is inconsistent with lsp-mode.el. This is indication of race during installation. In order to solve that please delete all packages related to lsp-mode, restar Emacs and install them again." (propertize (symbol-name package) 'face 'bold)))))))
-;;  lsp-downstream-deps)
 
 
 ;; loading code-workspace files
@@ -2179,13 +2147,11 @@ PARAMS - the data sent from WORKSPACE."
                                                                 (value &as &WorkDoneProgress :kind)))
   "PARAMS contains the progress data.
 WORKSPACE is the workspace that contains the progress token."
-  (lsp-workspace-status (lsp--progress-status) workspace)
+  (add-to-list 'global-mode-string '(t (:eval (lsp--progress-status))))
   (pcase kind
     ("begin" (lsp-workspace-set-work-done-token token value workspace))
     ("report" (lsp-workspace-set-work-done-token token value workspace))
-    ("end"
-     (lsp-workspace-rem-work-done-token token workspace)
-     (lsp-workspace-status nil workspace)))
+    ("end" (lsp-workspace-rem-work-done-token token workspace)))
   (force-mode-line-update))
 
 (lsp-defun lsp-on-progress-legacy (workspace (&ProgressParams :token :value
@@ -6370,16 +6336,23 @@ to check if server wants to apply any workspaceEdits after renamed."
 
 (advice-add 'rename-file :around #'lsp--on-rename-file)
 
+(defcustom lsp-xref-force-references nil
+  "If non-nil threat everything as references(e. g. jump if only one item.)"
+  :group 'lsp-mode
+  :type 'boolean)
+
 (defun lsp-show-xrefs (xrefs display-action references?)
   (unless (region-active-p) (push-mark nil t))
   (if (boundp 'xref-show-definitions-function)
       (with-no-warnings
         (xref-push-marker-stack)
-        (funcall (if references? xref-show-xrefs-function xref-show-definitions-function)
+        (funcall (if (and references? (not lsp-xref-force-references))
+                     xref-show-xrefs-function
+                   xref-show-definitions-function)
                  (-const xrefs)
                  `((window . ,(selected-window))
                    (display-action . ,display-action)
-                   ,(if references?
+                   ,(if (and references? (not lsp-xref-force-references))
                         `(auto-jump . ,xref-auto-jump-to-first-xref)
                       `(auto-jump . ,xref-auto-jump-to-first-definition)))))
     (xref--show-xrefs xrefs display-action)))

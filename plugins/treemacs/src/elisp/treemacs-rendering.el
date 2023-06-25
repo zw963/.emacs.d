@@ -1,6 +1,6 @@
 ;;; treemacs.el --- A tree style file viewer package -*- lexical-binding: t -*-
 
-;; Copyright (C) 2022 Alexander Miller
+;; Copyright (C) 2023 Alexander Miller
 
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -125,6 +125,18 @@ the height of treemacs' icons must be taken into account."
   (inline-letevals (f1 f2)
     (inline-quote (string-lessp ,f2 ,f1))))
 
+(define-inline treemacs--sort-alphabetic-numeric-asc (f1 f2)
+  "Sort F1 and F2 alphabetically and numerically ascending."
+  (declare (pure t) (side-effect-free t))
+  (inline-letevals (f1 f2)
+    (inline-quote (string-version-lessp ,f1 ,f2))))
+
+(define-inline treemacs--sort-alphabetic-numeric-desc (f1 f2)
+  "Sort F1 and F2 alphabetically and numerically descending."
+  (declare (pure t) (side-effect-free t))
+  (inline-letevals (f1 f2)
+    (inline-quote (string-version-lessp ,f2 ,f1))))
+
 (define-inline treemacs--sort-alphabetic-case-insensitive-asc (f1 f2)
   "Sort F1 and F2 case insensitive alphabetically ascending."
   (declare (pure t) (side-effect-free t))
@@ -136,6 +148,18 @@ the height of treemacs' icons must be taken into account."
   (declare (pure t) (side-effect-free t))
   (inline-letevals (f1 f2)
     (inline-quote (string-lessp (downcase ,f2) (downcase ,f1)))))
+
+(define-inline treemacs--sort-alphabetic-numeric-case-insensitive-asc (f1 f2)
+  "Sort F1 and F2 case insensitive alphabetically and numerically ascending."
+  (declare (pure t) (side-effect-free t))
+  (inline-letevals (f1 f2)
+    (inline-quote (string-version-lessp (downcase ,f1) (downcase ,f2)))))
+
+(define-inline treemacs--sort-alphabetic-numeric-case-insensitive-desc (f1 f2)
+  "Sort F1 and F2 case insensitive alphabetically and numerically descending."
+  (declare (pure t) (side-effect-free t))
+  (inline-letevals (f1 f2)
+    (inline-quote (string-version-lessp (downcase ,f2) (downcase ,f1)))))
 
 (define-inline treemacs--sort-size-asc (f1 f2)
   "Sort F1 and F2 by size ascending."
@@ -176,8 +200,12 @@ the height of treemacs' icons must be taken into account."
    (pcase treemacs-sorting
      ('alphabetic-asc #'treemacs--sort-alphabetic-asc)
      ('alphabetic-desc #'treemacs--sort-alphabetic-desc)
+     ('alphabetic-numeric-asc #'treemacs--sort-alphabetic-numeric-asc)
+     ('alphabetic-numeric-desc #'treemacs--sort-alphabetic-numeric-desc)
      ('alphabetic-case-insensitive-asc  #'treemacs--sort-alphabetic-case-insensitive-asc)
      ('alphabetic-case-insensitive-desc #'treemacs--sort-alphabetic-case-insensitive-desc)
+     ('alphabetic-numeric-case-insensitive-asc  #'treemacs--sort-alphabetic-numeric-case-insensitive-asc)
+     ('alphabetic-numeric-case-insensitive-desc #'treemacs--sort-alphabetic-numeric-case-insensitive-desc)
      ('size-asc #'treemacs--sort-size-asc)
      ('size-desc #'treemacs--sort-size-desc)
      ('mod-time-asc #'treemacs--sort-mod-time-asc)
@@ -205,20 +233,22 @@ DEPTH indicates how deep in the filetree the current button is."
   ;; for directories the icon is included in the prefix since it's always known
   (inline-letevals (path prefix parent depth)
     (inline-quote
-     (list
-      ,prefix
-      (propertize (->> ,path file-name-nondirectory (funcall treemacs-directory-name-transformer))
-                  'button '(t)
-                  'category 'default-button
-                  'help-echo nil
-                  'keymap nil
-                  :default-face 'treemacs-directory-face
-                  :state 'dir-node-closed
-                  :path ,path
-                  :key ,path
-                  :symlink (file-symlink-p ,path)
-                  :parent ,parent
-                  :depth ,depth)))))
+     (let ((path (file-name-nondirectory ,path)))
+       (list
+        ,prefix
+        (treemacs-icon-for-dir path 'closed)
+        (propertize (->> path (funcall treemacs-directory-name-transformer))
+                    'button '(t)
+                    'category 'default-button
+                    'help-echo nil
+                    'keymap nil
+                    :default-face 'treemacs-directory-face
+                    :state 'dir-node-closed
+                    :path ,path
+                    :key ,path
+                    :symlink (file-symlink-p ,path)
+                    :parent ,parent
+                    :depth ,depth))))))
 
 (define-inline treemacs--create-file-button-strings (path prefix parent depth)
   "Return the text to insert for a file button for PATH.
@@ -390,10 +420,9 @@ set to PARENT."
          (setq dir-strings
                (treemacs--create-buttons
                 :nodes dirs
-                :extra-vars ((dir-prefix (concat prefix treemacs-icon-dir-closed)))
                 :depth ,depth
                 :node-name node
-                :node-action (treemacs--create-dir-button-strings node dir-prefix ,parent ,depth)))
+                :node-action (treemacs--create-dir-button-strings node prefix ,parent ,depth)))
          (setq file-strings
                (treemacs--create-buttons
                 :nodes files
@@ -446,13 +475,14 @@ set to PARENT."
                (-let [result nil]
                  (while dir-strings
                    (let* ((prefix (car dir-strings))
-                          (dirname (cadr dir-strings))
+                          (icon (cadr dir-strings))
+                          (dirname (caddr dir-strings))
                           (dirpath (concat ,root "/" dirname)))
                      (unless (--any? (funcall it dirpath git-info) treemacs-pre-file-insert-predicates)
-                       (setq result (cons dirname (cons prefix result)))
+                       (setq result (cons dirname (cons icon (cons prefix result))))
                        (push (treemacs-dom-node->create! :parent parent-node :key dirpath)
                              dir-dom-nodes)))
-                   (setq dir-strings (cddr dir-strings)))
+                   (setq dir-strings (cdddr dir-strings)))
                  (setq dir-strings (nreverse result))))
            (setf
             file-dom-nodes
@@ -467,24 +497,25 @@ set to PARENT."
          (dolist (it (treemacs-dom-node->children parent-node))
            (treemacs-dom-node->insert-into-dom! it))
 
-         (treemacs--inplace-map-when-unrolled dir-strings 2
-           (-if-let* ((ann (treemacs-get-annotation (concat ,root "/" it)))
-                      (face (treemacs-annotation->face-value ann)))
-               (progn
-                 (put-text-property
-                  0
-                  (length it)
-                  'face
-                  face
-                  it)
-                 (concat it (treemacs-annotation->suffix-value ann)))
-             (put-text-property
-              0
-              (length it)
-              'face
-              'treemacs-directory-face
-              it)
-             it))
+         (setf dir-strings
+               (treemacs--inplace-map-when-unrolled dir-strings 3
+                 (-if-let* ((ann (treemacs-get-annotation (concat ,root "/" it)))
+                            (face (treemacs-annotation->face-value ann)))
+                     (progn
+                       (put-text-property
+                        0
+                        (length it)
+                        'face
+                        face
+                        it)
+                       (concat it (treemacs-annotation->suffix-value ann)))
+                   (put-text-property
+                    0
+                    (length it)
+                    'face
+                    'treemacs-directory-face
+                    it)
+                   it)))
          (insert (apply #'concat dir-strings))
 
          (end-of-line)
@@ -614,12 +645,13 @@ RECURSIVE: Bool"
                              (treemacs--git-status-process (file-truename path) project)
                            (or git-future (treemacs--git-status-process path project))))
              (collapse-future (treemacs--collapsed-dirs-process path project))
-             (recursive (treemacs--prefix-arg-to-recurse-depth recursive)))
+             (recursive (treemacs--prefix-arg-to-recurse-depth recursive))
+             (dir-name (treemacs--filename path)))
         (treemacs--button-open
          :immediate-insert nil
          :button btn
          :new-state 'dir-node-open
-         :new-icon treemacs-icon-dir-open
+         :new-icon (treemacs-icon-for-dir dir-name 'open)
          :open-action
          (progn
            ;; do on-expand first so buttons that need collapsing can quickly find their parent
@@ -640,14 +672,15 @@ RECURSIVE: Bool"
 (defun treemacs--collapse-dir-node (btn &optional recursive)
   "Close node given by BTN.
 Remove all open dir and tag entries under BTN when RECURSIVE."
-  (treemacs--button-close
-   :button btn
-   :new-state 'dir-node-closed
-   :new-icon treemacs-icon-dir-closed
-   :post-close-action
-   (-let [path (treemacs-button-get btn :path)]
-     (treemacs--stop-watching path)
-     (treemacs-on-collapse path recursive))))
+  (-let [path (treemacs-button-get btn :path)]
+    (treemacs--button-close
+     :button btn
+     :new-state 'dir-node-closed
+     :new-icon (treemacs-icon-for-dir (treemacs--filename path) 'closed)
+     :post-close-action
+     (progn
+       (treemacs--stop-watching path)
+       (treemacs-on-collapse path recursive)))))
 
 (defun treemacs--root-face (project)
   "Get the face to be used for PROJECT."
@@ -1168,7 +1201,7 @@ GIT-INFO is passed through from the previous branch build."
     ('file-node-closed (treemacs--expand-file-node btn))
     ('tag-node-closed  (treemacs--expand-tag-node btn))
     ('root-node-closed (treemacs--expand-root-node btn))
-    (other             (funcall (alist-get other treemacs-TAB-actions-config) btn))))
+    (other             (funcall (alist-get other treemacs-TAB-actions-config)))))
 
 (defun treemacs--show-single-project (path name)
   "Show only a project for the given PATH and NAME in the current workspace."

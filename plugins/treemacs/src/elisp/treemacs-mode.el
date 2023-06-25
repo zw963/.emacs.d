@@ -1,6 +1,6 @@
 ;;; treemacs-mode.el --- A tree style file viewer package -*- lexical-binding: t -*-
 
-;; Copyright (C) 2022 Alexander Miller
+;; Copyright (C) 2023 Alexander Miller
 
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -141,6 +141,7 @@ Will be set by `treemacs--post-command'.")
     (define-key map (kbd "r")        'treemacs-copy-relative-path-at-point)
     (define-key map (kbd "p")        'treemacs-copy-project-path-at-point)
     (define-key map (kbd "f")        'treemacs-copy-file)
+    (define-key map (kbd "v")        'treemacs-paste-dir-at-point-to-minibuffer)
     map)
   "Keymap for copy commands in `treemacs-mode'.")
 
@@ -363,10 +364,9 @@ Will simply return `treemacs--eldoc-msg'."
   ;; alongside other window layout chaning commands that might delete it again
   (set-window-parameter (selected-window) 'no-delete-other-windows treemacs-no-delete-other-windows)
 
-  (when treemacs-window-background-color
-    (face-remap-add-relative 'default :background (car treemacs-window-background-color))
-    (face-remap-add-relative 'fringe  :background (car treemacs-window-background-color))
-    (face-remap-add-relative 'hl-line :background (cdr treemacs-window-background-color)))
+  (face-remap-add-relative 'default 'treemacs-window-background-face)
+  (face-remap-add-relative 'fringe  'treemacs-window-background-face)
+  (face-remap-add-relative 'hl-line 'treemacs-hl-line-face)
 
   (when treemacs-text-scale
     (text-scale-increase treemacs-text-scale))

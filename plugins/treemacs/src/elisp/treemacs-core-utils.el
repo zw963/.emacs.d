@@ -1,6 +1,6 @@
 ;;; treemacs.el --- A tree style file viewer package -*- lexical-binding: t -*-
 
-;; Copyright (C) 2022 Alexander Miller
+;; Copyright (C) 2023 Alexander Miller
 
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -1108,8 +1108,12 @@ Returns a cons cell of a descriptive string name and the sorting symbol."
   (declare (side-effect-free t))
   (let* ((sort-names '(("Sort Alphabetically Ascending" . alphabetic-asc)
                        ("Sort Alphabetically Descending" . alphabetic-desc)
+                       ("Sort Alphabetically and Numerically Ascending" . alphabetic-numeric-asc)
+                       ("Sort Alphabetically and Numerically Descending" . alphabetic-numeric-desc)
                        ("Sort Case Insensitive Alphabetically Ascending" . alphabetic-case-insensitive-asc)
                        ("Sort Case Insensitive Alphabetically Descending" . alphabetic-case-insensitive-desc)
+                       ("Sort Case Insensitive Alphabetically and Numerically Ascending" . alphabetic-numeric-case-insensitive-asc)
+                       ("Sort Case Insensitive Alphabetically and Numerically Descending" . alphabetic-numeric-case-insensitive-desc)
                        ("Sort by Size Ascending" . size-asc)
                        ("Sort by Size Descending" . size-desc)
                        ("Sort by Modification Date Ascending" . mod-time-asc)

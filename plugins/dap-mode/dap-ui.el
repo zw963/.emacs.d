@@ -38,6 +38,7 @@
 (require 'gdb-mi)
 (require 'lsp-treemacs)
 (require 'posframe)
+(require 'f)
 
 (defvar posframe-mouse-banish)
 
@@ -54,6 +55,16 @@ number - expand N levels."
   :type '(choice (const :tag "Do not expand" nil)
                  (const :tag "Expand recursively" t)
                  (number :tag "Expand level"))
+  :group 'dap-ui)
+
+(defcustom dap-ui-controls-screen-position #'posframe-poshandler-frame-top-center
+  "On-screen position of controls when they are visible."
+  :type '(choice (const :tag "Top center" posframe-poshandler-frame-top-center)
+                 (const :tag "Top left" posframe-poshandler-frame-top-left-corner)
+                 (const :tag "Top right" posframe-poshandler-frame-top-right-corner)
+                 (const :tag "Bottom center" posframe-poshandler-frame-bottom-center)
+                 (const :tag "Bottom left" posframe-poshandler-frame-bottom-left-corner)
+                 (const :tag "Bottom right" posframe-poshandler-frame-bottom-right-corner))
   :group 'dap-ui)
 
 (define-obsolete-variable-alias
@@ -575,7 +586,7 @@ DEBUG-SESSION is the debug session triggering the event."
               (select-frame (frame-parent pos-frame)))
             (posframe-show dap-ui--control-buffer
                            :string content
-                           :poshandler #'posframe-poshandler-frame-top-center
+                           :poshandler dap-ui-controls-screen-position
                            :internal-border-width 8))
         (posframe-hide dap-ui--control-buffer)))))
 
@@ -821,7 +832,7 @@ array variables."
    (dap--resp-handler)
    session))
 
-(defun dap-ui-render-variables (debug-session variables-reference indexed-variables _node)
+(defun dap-ui-render-variables (debug-session variables-reference &optional indexed-variables named-variables _node)
   "Render hierarchical variables for treemacs.
 Usable as the `treemacs' :children argument, when DEBUG-SESSION
 and VARIABLES-REFERENCE are applied partially.
@@ -834,14 +845,20 @@ adapter for acquiring nested variables and must not be 0."
   (when (dap--session-running debug-session)
     (->> (apply #'dap-request debug-session "variables"
                 :variablesReference  variables-reference
-                (when (and indexed-variables
-                           (< 0 indexed-variables))
-                  (list :start 0
-                        :count dap-ui-default-fetch-count)))
+                (append (when (and indexed-variables (< 0 indexed-variables))
+                          (list :start 0
+                                :filter "indexed"
+                                :count (1- (min indexed-variables dap-ui-default-fetch-count))))
+                        (when (and named-variables (< 0 named-variables))
+                          (list :start 0
+                                :filter "named"
+                                :count (1- (min named-variables dap-ui-default-fetch-count))))))
          (gethash "variables")
-         (-map (-lambda ((&hash "value" "name"
+         (-map (-lambda ((&hash "value"
+                                "name"
                                 "variablesReference" variables-reference
-                                "indexedVariables" indexed-variables))
+                                "indexedVariables" indexed-variables
+                                "namedVariables" named-variables))
                  `(:label ,(concat (propertize (format "%s" name)
                                                'face 'font-lock-variable-name-face)
                                    ": "
@@ -858,7 +875,7 @@ adapter for acquiring nested variables and must not be 0."
                           ,@(unless (zerop variables-reference)
                               (list :children
                                     (-partial #'dap-ui-render-variables debug-session
-                                              variables-reference indexed-variables)))))))))
+                                              variables-reference indexed-variables named-variables)))))))))
 
 (defun dap-ui-render-value
     (debug-session expression value variables-reference)
@@ -875,7 +892,9 @@ request."
                (list :children
                      (-partial #'dap-ui-render-variables
                                debug-session
-                               variables-reference)))))
+                               variables-reference
+                               nil
+                               nil)))))
    "" nil (buffer-name)))
 
 (defun dap-ui-eval-in-buffer (expression)
@@ -924,7 +943,8 @@ request."
                       :children (-partial #'dap-ui-render-variables
                                           (dap--cur-session)
                                           variables-reference
-                                          0)))))
+                                          nil
+                                          nil)))))
       '((:label "Nothing to display..."
                 :key "foo"
                 :icon :empty))))
@@ -1292,6 +1312,13 @@ request."
   :type 'string
   :group 'dap-ui)
 
+(defcustom dap-ui-repl-history-dir user-emacs-directory
+  "Directory path for DAP REPL input history files.
+Each dap `type' has its own input history file, e.g.
+~/.emacs.d/dap-ui-repl-python-history."
+  :type 'directory
+  :group 'dap-ui)
+
 (defvar dap-ui-repl-welcome
   (propertize "*** Welcome to Dap-Ui ***\n"
               'font-lock-face 'font-lock-comment-face)
@@ -1317,13 +1344,22 @@ buffer.")
   (with-no-warnings
     (setq-local company-backends '(dap-ui-repl-company)))
   (unless (comint-check-proc (current-buffer))
+    (setq comint-input-ring-file-name
+          (f-join dap-ui-repl-history-dir
+                  ;; concat unique history file for each dap type
+                  (concat
+                   "dap-ui-repl-"
+                   ;; :type is required so this should always exist
+                   (plist-get (dap--debug-session-launch-args (dap--cur-session)) :type)
+                   "-history")))
     (insert dap-ui-repl-welcome)
     (start-process "dap-ui-repl" (current-buffer) nil)
     (set-process-query-on-exit-flag (dap-ui-repl-process) nil)
     (goto-char (point-max))
     (set (make-local-variable 'comint-inhibit-carriage-motion) t)
     (comint-output-filter (dap-ui-repl-process) dap-ui-repl-prompt)
-    (set-process-filter (dap-ui-repl-process) 'comint-output-filter)))
+    (set-process-filter (dap-ui-repl-process) 'comint-output-filter)
+    (comint-read-input-ring 'silent)))
 
 (defun dap-ui-input-sender (_ input)
   "REPL comint handler.
@@ -1345,7 +1381,9 @@ INPUT is the current input."
                                              "\n"
                                              dap-ui-repl-prompt)))))
          debug-session)
-      (error "There is no stopped debug session"))))
+      (error "There is no stopped debug session")))
+  ;; save the input ring at the end so it doesn't interfere with anything
+  (comint-write-input-ring))
 
 ;;;###autoload
 (defun dap-ui-repl ()

@@ -1,6 +1,6 @@
 ;;; treemacs.el --- A tree style file viewer package -*- lexical-binding: t -*-
 
-;; Copyright (C) 2022 Alexander Miller
+;; Copyright (C) 2023 Alexander Miller
 
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -34,6 +34,16 @@ This is the face used for the collapsed part of nodes, so if the node is
 
 Using this face is incompatible with `treemacs-git-mode' (exept for the simple
 variant), so it will only be used if git-mode is disabled or set to simple."
+  :group 'treemacs-faces)
+
+(defface treemacs-window-background-face
+  '((t :inherit default))
+  "Face used for the background of the treemacs window."
+  :group 'treemacs-faces)
+
+(defface treemacs-hl-line-face
+  '((t :inherit hl-line))
+  "Face used for the hl-line selection in the treemacs window."
   :group 'treemacs-faces)
 
 (defface treemacs-file-face

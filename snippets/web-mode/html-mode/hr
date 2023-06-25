@@ -2,4 +2,4 @@
 # name: <hr />
 # key: hr
 # --
-<hr />
+<hr`(string-field "1" "class" " class=")`>

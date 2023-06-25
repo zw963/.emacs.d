@@ -1,6 +1,6 @@
 ;;; treemacs.el --- A tree style file viewer package -*- lexical-binding: t -*-
 
-;; Copyright (C) 2022 Alexander Miller
+;; Copyright (C) 2023 Alexander Miller
 
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -298,8 +298,12 @@ Files will still always be shown after directories.
 Valid values are:
  * `alphabetic-asc',
  * `alphabetic-desc',
+ * `alphabetic-numeric-asc',
+ * `alphabetic-numeric-desc',
  * `alphabetic-case-insensitive-asc',
  * `alphabetic-case-insensitive-desc',
+ * `alphabetic-numeric-case-insensitive-asc',
+ * `alphabetic-numeric-case-insensitive-desc',
  * `size-asc',
  * `size-desc',
  * `mod-time-asc',
@@ -329,8 +333,12 @@ to no effect on your usage of treemacs until you begin frequently refreshing
 treemacs views containing hundreds or even thousands of nodes."
   :type '(choice (const alphabetic-asc)
                  (const alphabetic-desc)
+                 (const alphabetic-numeric-asc)
+                 (const alphabetic-numeric-desc)
                  (const alphabetic-case-insensitive-asc)
                  (const alphabetic-case-insensitive-desc)
+                 (const alphabetic-numeric-case-insensitive-asc)
+                 (const alphabetic-numeric-case-insensitive-desc)
                  (const size-asc)
                  (const size-desc)
                  (const mod-time-asc)
@@ -779,12 +787,15 @@ A locked width means that changes it is only possible with the commands
   :group 'treemacs-window)
 
 (defcustom treemacs-window-background-color nil
-  "Custom background colours for the treemacs window.
-Value must be a cons cell consisting of two colours: first the background of the
-treemacs window proper, then a second colour for treemacs' `hl-line' overlay
-marking the selected line."
+  "This variable is obsolete and no longer in use.
+Instead you can modify `treemacs-window-background-face' and
+`treemacs-hl-line-face'."
   :type '(cons color color)
   :group 'treemacs-window)
+(make-obsolete-variable
+ 'treemacs-window-background-color
+ "`treemacs-window-background-face' & `treemacs-hl-line-face'"
+ "v3.2" 'set)
 
 (defcustom treemacs-width 35
   "Width of the treemacs window."

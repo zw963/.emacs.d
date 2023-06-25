@@ -1,6 +1,6 @@
 ;;; treemacs-icons-dired.el --- Treemacs icons for dired -*- lexical-binding: t -*-
 
-;; Copyright (C) 2022 Alexander Miller
+;; Copyright (C) 2023 Alexander Miller
 
 ;; Author: Alexander Miller <alexanderm@web.de>
 ;; Package-Requires: ((treemacs "0.0") (emacs "26.1"))
@@ -65,7 +65,7 @@
           (if (dired-move-to-filename nil)
               (let* ((file (dired-get-filename nil t))
                      (icon (if (file-directory-p file)
-                               treemacs-icon-dir-closed
+                               (treemacs-icon-for-dir file 'closed)
                              (treemacs-icon-for-file file))))
                 (insert icon))
             (treemacs-return nil))
@@ -130,7 +130,7 @@ This will make sure the icons' background colours will align with hl-line mode."
   "Add an icon for a new single FILE added by Dired."
   (let (buffer-read-only)
     (insert (if (file-directory-p file)
-                treemacs-icon-dir-closed
+                (treemacs-icon-for-dir file 'closed)
               (treemacs-icon-for-file file)))))
 
 (defun treemacs-icons-dired--set-tab-width ()
