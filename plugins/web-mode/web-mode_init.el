@@ -3,9 +3,6 @@
 (require 'instant-rename-tag)
 
 (require 'lsp-mode_init)
-(setq lsp-tailwindcss-add-on-mode t)
-(require 'lsp-tailwindcss)
-;; (add-to-list 'lsp-tailwindcss-major-modes 'crystal-mode)
 
 (defun zw/web-mode-common-hooks ()
   (local-set-key [(control c) (return)] 'save-buffer-and-browse-url)
@@ -20,7 +17,7 @@
   (auto-rename-tag-mode)
   (setq-local fill-column 120)
   (setq-local company-minimum-prefix-length 1)
-  ;; (lsp-deferred)
+  (lsp-deferred)
   )
 
 (setq

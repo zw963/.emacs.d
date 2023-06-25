@@ -182,7 +182,7 @@
  display-buffer-reuse-frames t                  ;切换到已有的frame
  dabbrev-case-fold-search nil                   ;自动完成大小写敏感.
  ;; initial-major-mode 'org-mode                ;初始的 scratch 使用 org-mode.
- truncate-lines t                               ;关闭自动折行.
+ ;; truncate-lines t
  load-prefer-newer t                            ;总首选较新的那个。(即使 el 比elc 新)
  package-enable-at-startup nil                  ; 性能好一点？
  native-comp-async-report-warnings-errors nil   ; 抑制 native-comp 的警告
