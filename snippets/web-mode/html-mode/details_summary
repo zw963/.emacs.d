@@ -1,0 +1,11 @@
+# -*- mode: snippet -*-
+# name: details summary
+# key: details
+# contributor: Billy.Zheng vil963@gmail.com
+# --
+<details>
+  <summary>$1</summary>
+
+  $0
+
+</details>

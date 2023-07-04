@@ -1,0 +1,5 @@
+# -*- mode: snippet -*-
+# name: <audio>...</audio>
+# key: audio
+# --
+<audio`(field "1" "controls" " " " ")``(field "2" "autoplay" " " " ")``(field "3" "loop" " " " ")``(string-field "4" "auto" "  preload=")``(string-field "5" "audio/audio.mp3" " src=")`>`(def "" "</audio>")`

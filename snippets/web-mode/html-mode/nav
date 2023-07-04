@@ -3,5 +3,5 @@
 # key: nav
 # --
 <nav>
-  $0
+  <a href="$0">
 </nav>

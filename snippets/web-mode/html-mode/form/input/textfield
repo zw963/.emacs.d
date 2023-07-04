@@ -1,5 +1,0 @@
-# -*- mode: snippet -*-
-# name: <input type="text" ... /> <文本框>
-# key: input
-# --
-<input type="text"`(string-field "1" "name" " name=")``(string-field "4" "80" " maxlength=")``(string-field "5" "placeholder" " placeholder=")` />

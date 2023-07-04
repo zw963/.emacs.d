@@ -1,0 +1,5 @@
+# -*- mode: snippet -*-
+# name: <input type="number" ... /> <数字框>
+# key: input
+# --
+<input type="number"`(string-field "1" "0" " min=")``(string-field "2" "20" " max=")` />

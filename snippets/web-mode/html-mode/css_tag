@@ -2,4 +2,4 @@
 # name: <link stylesheet="..." />
 # key: css
 # --
-<link rel="stylesheet" href="$0" />
+<link rel="stylesheet"`(string-field "1" "(min-width: 900px)" " media=")` href="$0" />
