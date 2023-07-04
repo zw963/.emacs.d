@@ -179,22 +179,24 @@ yas-field 的依赖函数"
  "
   (insert
    (concat
-    (_def-begin def-begin)
+    (_def-begin def-begin "")
     "`(yas-stripped-selected-text)`$0"
-    (_def-end def-end single-line-end-seperator)
+    (_def-end def-end single-line-end-seperator "")
     )))
 
 ;; 为了做到关注点分离, 有时候, 存在公共的重复逻辑是不可避免的.
 ;; 例如: yas-def-begin 与 def-begin 中有关 yas-selected-text 的判断.
-(defun _def-begin (&optional def-begin)
+(defun _def-begin (&optional def-begin def-space)
   "解决一个语言在定义方法时，如果使用单行定义，加空格，多行定义加换行的问题。
 这个函数使用 _yas-def-begin 来确定方法定义的分隔符。
 "
-  (let ((begin (or def-begin (_yas-def-begin))))
+  (let ((begin (or def-begin (_yas-def-begin)))
+        (space (or def-space " "))
+        )
     (if yas-selected-text
         (if (string-match "\n" yas-selected-text)
             begin
-          (concat begin " "))
+          (concat begin space))
       (concat begin "\n"))))
 
 (defun _yas-def-begin ()
@@ -214,15 +216,17 @@ js 以 { 开头, function(done) { ... }
    ((member major-mode '(js2-mode cc-mode rust-mode)) " {"))
   )
 
-(defun _def-end (&optional def-end single-line-end-seperator)
+(defun _def-end (&optional def-end single-line-end-seperator def-space)
   "当定义一个方法时，结尾的字符"
-  (let ((end (or def-end (_yas-def-end))))
+  (let ((end (or def-end (_yas-def-end)))
+        (space (or def-space " "))
+        )
     (if yas-selected-text
         (if (string-match "\n" yas-selected-text)
             (if (string-match "\n\\'" yas-selected-text)
                 (concat end "\n")
               end)
-          (concat single-line-end-seperator " " end))
+          (concat single-line-end-seperator space end))
       (concat "\n" end))))
 
 (defun _yas-def-end ()
