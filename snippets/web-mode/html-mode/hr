@@ -1,5 +1,5 @@
 # -*- mode: snippet -*-
-# name: <hr />
+# name: <hr>
 # key: hr
 # --
 <hr`(string-field "1" "class" " class=")`>

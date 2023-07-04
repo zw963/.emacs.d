@@ -1,5 +1,5 @@
 # -*- mode: snippet -*-
-# name: <source />
+# name: <source>
 # key: source
 # --
-<source src="videos/video.ogv" type='video/ogg; codecs="theora, vorbis"' />
+<source src="videos/video.ogv" type='video/ogg; codecs="theora, vorbis"'>

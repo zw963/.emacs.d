@@ -1,5 +1,5 @@
 # -*- mode: snippet -*-
-# name: <link stylesheet="..." />
+# name: <link stylesheet="...">
 # key: css
 # --
-<link rel="stylesheet"`(string-field "1" "(min-width: 900px)" " media=")` href="$0" />
+<link rel="stylesheet"`(string-field "1" "(min-width: 900px)" " media=")` href="$0">

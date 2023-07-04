@@ -1,5 +1,5 @@
 # -*- mode: snippet -*-
-# name: <meta name="..." />
+# name: <meta name="...">
 # key: meta
 # --
-<meta name="${1:$$(yas-choose-value '("name" "description" "keywords" "generator" "revised" "others"))}" content="${2:}" />
+<meta name="${1:$$(yas-choose-value '("name" "description" "keywords" "generator" "revised" "others"))}" content="${2:}">

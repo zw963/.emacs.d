@@ -1,5 +1,5 @@
 # -*- mode: snippet -*-
-# name: <img ... />
+# name: <img ...>
 # key: img
 # --
-<img`(string-field "1" "url" " src=")``(string-field "2" "height" " height=")``(string-field "3" "width" " width=")``(string-field "4" "description" " alt=")`/>
+<img`(string-field "1" "url" " src=")``(string-field "2" "height" " height=")``(string-field "3" "width" " width=")``(string-field "4" "description" " alt=")`>

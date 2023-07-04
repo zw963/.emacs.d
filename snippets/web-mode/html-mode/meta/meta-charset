@@ -1,5 +1,5 @@
 # -*- mode: snippet -*-
-# name: <meta charset="..." />
+# name: <meta charset="...">
 # key: meta
 # --
-<meta charset="${1:utf-8}" />
+<meta charset="${1:utf-8}">

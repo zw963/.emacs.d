@@ -1,5 +1,5 @@
 # -*- mode: snippet -*-
-# name: <textarea type="text_area" ... /> <多行文本框>
+# name: <textarea> ... </textarea>
 # key: textarea
 # --
 <textarea name="${1:name}"`(string-field "2" "10" " rows=")``(string-field "3" "48" " cols=")`>$0</textarea>
