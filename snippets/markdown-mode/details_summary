@@ -1,6 +1,6 @@
 # -*- mode: snippet -*-
-# name: collapse
-# key: collapse
+# name: details summary
+# key: details
 # contributor: Billy.Zheng vil963@gmail.com
 # --
 <details>

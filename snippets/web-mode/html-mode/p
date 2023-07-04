@@ -1,5 +1,7 @@
 # -*- mode: snippet -*-
 # name: <p>...</p>
 # key: p
+# binding: p
+# condition: (yas-use-region-p)
 # --
-<p>$0</p>
+<p`(string-field "1" "class" " class=")`>`(def "" "</p>")`

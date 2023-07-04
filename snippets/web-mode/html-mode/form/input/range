@@ -1,0 +1,5 @@
+# -*- mode: snippet -*-
+# name: <input type="range" ...>
+# key: input
+# --
+<input type="range" name="${1:name}" `(string-field "2" "0" " min=")``(string-field "3" "20" " max=")``(string-field "4" "5" " step=")`>

@@ -2,5 +2,6 @@
 # name: <select> ... </select>
 # key: select
 # --
-<select name="${1:name}"`(string-field "2" "multiple" " multiple=")`>$0
+<select name="${1:name}"`(string-field "2" "multiple" " multiple=")`>
+  $0
 </select>

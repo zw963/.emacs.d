@@ -1,0 +1,8 @@
+# -*- mode: snippet -*-
+# name: media
+# key: media
+# contributor: Billy.Zheng vil963@gmail.com
+# --
+@media screen and (min-width: 30rem) {
+  $0
+}

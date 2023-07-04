@@ -1,5 +1,5 @@
 # -*- mode: snippet -*-
-# name: <input type="file" ... /> <文件选择框>
+# name: <input type="file" ...>
 # key: input
 # --
-<input type="file"`(string-field "1" "name" " name=")` />
+<input type="file" name="${1:name}">

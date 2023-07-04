@@ -1,0 +1,5 @@
+# -*- mode: snippet -*-
+# name: <input type="date" ...>
+# key: input
+# --
+<input type="date" name="${1:name}">

@@ -1,0 +1,5 @@
+# -*- mode: snippet -*-
+# name: <input type="url" ...>
+# key: input
+# --
+<input type="url" name="${1:name}">

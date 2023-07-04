@@ -1,0 +1,5 @@
+# -*- mode: snippet -*-
+# name: <input type="tel" ...>
+# key: input
+# --
+<input type="tel" name="${1:name}">
