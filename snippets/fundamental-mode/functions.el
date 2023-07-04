@@ -145,7 +145,7 @@ yas-field 的依赖函数"
   "add a quote-mark, when press `:' or `,', erased automatic."
   (or
    ;; (when ruby-string-array-literal "")
-   (when (string-match "^[{\s:'\"$A-Z]" (or yas-text yas-selected-text)) "")
+   (when (string-match "^[{\s:'\"$]" (or yas-text yas-selected-text)) "")
    (_yas-quotation-mark)))
 
 (defun _yas-quotation-mark ()
