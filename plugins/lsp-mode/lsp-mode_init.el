@@ -133,7 +133,7 @@
 (setq lsp-disabled-clients '(html-ls emmet-ls ruby-ls))
 (setq lsp-tailwindcss-add-on-mode t)
 (require 'lsp-tailwindcss)
-;; (add-hook 'before-save-hook 'lsp-tailwindcss-rustywind-before-save)
+(add-hook 'before-save-hook 'lsp-tailwindcss-rustywind-before-save)
 ;; (add-to-list 'lsp-tailwindcss-major-modes 'crystal-mode)
 
 (provide 'lsp-mode_init)
