@@ -2,6 +2,6 @@
 # name: <form method="..." action="..."></form>
 # key: form
 # --
-<form`(string-field "1" "/some/path" " action=")``(string-field "2" "post" " method=")``(string-field "3" "multipart/form-data" " enctype=")`>
+<form`(string-field "1" "/some/path" " action=")``(string-field "2" "post" " method=")`>
   $0
 </form>

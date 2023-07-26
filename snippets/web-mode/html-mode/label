@@ -1,5 +1,7 @@
 # -*- mode: snippet -*-
 # name: HTML label
 # key: label
+# binding: l
+# condition: (yas-use-region-p)
 # --
 <label`(string-field "1" "id" " for=")`>${2:${1:$(yas-camelize)}}</label>

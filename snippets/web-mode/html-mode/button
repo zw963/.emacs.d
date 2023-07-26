@@ -2,4 +2,4 @@
 # name: <button>...</button>
 # key: button
 # --
-<button type="button">$0</button>
+<button>$0</button>

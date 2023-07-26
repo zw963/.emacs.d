@@ -1,0 +1,10 @@
+# -*- mode: snippet -*-
+# name: upload form
+# key: upload
+# --
+<form action="/upload" enctype="multipart/form-data" method="post">
+  <label for="file">Upload Your File</label>
+  <input id="file" type="file" accept="image/jpeg,image/gif,image/png,application/pdf,image/x-eps" name="fileToUpload" />
+
+  <button name="submit" type="submit"> Upload File </button>
+</form>
