@@ -609,7 +609,7 @@ from elisp.
     (goto-char (point-min))
     (while (re-search-forward " +[0-9]+)" nil t)
       (replace-match ")" nil nil)))
-  (toggle-read-only t)
+  (read-only-mode t)
   (goto-char (point-min))
   (set (make-local-variable 'line-move-visual) nil))
 
@@ -622,7 +622,7 @@ from elisp.
     (normal-mode)
     (use-local-map mo-git-blame-content-mode-map)
     (font-lock-fontify-buffer)
-    (toggle-read-only t)
+    (read-only-mode t)
     (set-buffer-modified-p nil)
     (setq truncate-lines t)
     (set (make-local-variable 'mo-git-blame-vars) vars)
@@ -702,7 +702,7 @@ blamed."
     (select-window blame-window)
     (dolist (the-buffer (list blame-buffer content-buffer))
       (with-current-buffer the-buffer
-        (toggle-read-only 0)
+        (read-only-mode 0)
         (kill-all-local-variables)
         (buffer-disable-undo)
         (erase-buffer)
