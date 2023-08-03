@@ -4,4 +4,4 @@
 # binding: s
 # condition: (yas-use-region-p)
 # --
-<span`(string-field "1" "class" " class=")``(string-field "2" "id" " id=")`>`(yas-stripped-selected-text)`</span>
+<span`(string-field "1" "class" " class=")`>`(yas-stripped-selected-text)`$0</span>

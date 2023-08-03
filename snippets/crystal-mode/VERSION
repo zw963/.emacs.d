@@ -1,0 +1,5 @@
+# -*- mode: snippet -*-
+# name: VERSION
+# key: VERSION
+# --
+VERSION = {{ `shards version "#{__DIR__}"`.chomp.stringify }}
