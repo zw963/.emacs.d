@@ -56,6 +56,7 @@
 (require 'color-rg_init)
 (require 'markdown-mode_init)
 (require 'easy-kill_init)
+(require 'burly_init)
 
 ;; ============================== 编程相关 ==============================
 
