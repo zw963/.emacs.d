@@ -11,9 +11,9 @@
 ;;                         Thierry Volpiatto
 
 ;; Author: Thierry Volpiatto <thievol@posteo.net>
-;; Version: 3.9.0
+;; Version: 3.9.5
 ;; URL: https://emacs-helm.github.io/helm/
-;; Package-Requires: ((helm-core "3.9.0") (popup "0.5.3"))
+;; Package-Requires: ((helm-core "3.9.4") (wfnames "1.1") (popup "0.5.3"))
 
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -37,6 +37,15 @@
 
 (require 'helm-core)
 (require 'helm-global-bindings)
+
+;; Build info sources and commands once called (bug #2608). We need to autoload
+;; only these commands which are bound in helm-global-bindings, if we add more
+;; helm-info* commands to helm-global-bindings we will have to autoload them
+;; here. Requiring helm-info here instead will make recursive require to helm so
+;; don't do that.
+(autoload 'helm-info-emacs "helm-info" nil t)
+(autoload 'helm-info-gnus "helm-info" nil t)
+(autoload 'helm-info-at-point "helm-info" nil t)
 
 (provide 'helm)
 

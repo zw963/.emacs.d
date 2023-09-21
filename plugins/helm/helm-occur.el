@@ -42,7 +42,7 @@ Don't set it to any value, it will have no effect.")
 (defvar helm-occur--buffer-list nil)
 (defvar helm-occur--buffer-tick nil)
 (defvar helm-occur-history nil)
-(defvar helm-occur--search-buffer-regexp "\\`\\([0-9]*\\)\\s-\\{1\\}\\(.*\\)\\'"
+(defvar helm-occur--search-buffer-regexp "\\`\\([0-9]*\\)\\s-\\(.*\\)\\'"
   "The regexp matching candidates in helm-occur candidate buffer.")
 (defvar helm-occur-mode--last-pattern nil)
 (defvar helm-occur--initial-pos 0)
@@ -179,7 +179,7 @@ This happen only in `helm-source-occur' which is always related to
                     end (point-max))
             (helm-awhile (helm-get-next-header-pos)
               (when (string= name (buffer-substring-no-properties
-                                   (point-at-bol) (point-at-eol)))
+                                   (pos-bol) (pos-eol)))
                 (forward-line 1)
                 (setq beg (point)
                       end (or (helm-get-next-header-pos) (point-max)))
@@ -348,7 +348,7 @@ When GSHORTHANDS is nil use PATTERN unmodified."
                 :diacritics helm-occur-ignore-diacritics
                 :search (lambda (pattern)
                           (when (string-match "\\`\\^\\([^ ]*\\)" pattern)
-                            (setq pattern (concat "^[0-9]* \\{1\\}" (match-string 1 pattern))))
+                            (setq pattern (concat "^[0-9]*\\s-" (match-string 1 pattern))))
                           (condition-case _err
                               (re-search-forward pattern nil t)
                             (invalid-regexp nil)))
@@ -388,9 +388,17 @@ When GSHORTHANDS is nil use PATTERN unmodified."
               sources)))
     (nreverse sources)))
 
-(defun helm-multi-occur-1 (buffers &optional input)
+(defun helm-multi-occur-1 (buffers &optional input default)
   "Run `helm-occur' on a list of buffers.
-Each buffer's result is displayed in a separated source."
+Each buffer's result is displayed in a separated source.
+Arg INPUT if specified will be inserted as initial input in minibuffer.
+Arg DEFAULT if specified will be inserted in minibuffer with M-n.
+Arg INPUT takes precedence on DEFAULT if both are specified.
+If `helm-source-moccur' is member of `helm-sources-using-default-as-input'
+helm-occur will start immediately with DEFAULT as INPUT.
+Always prefer using DEFAULT instead of INPUT, they have the same effect but
+DEFAULT keep the minibuffer empty, allowing the user to write immediately
+without having to delete its contents before."
   (let* ((curbuf (current-buffer))
          (bufs (if helm-occur-always-search-in-current
                    (cons curbuf (remove curbuf buffers))
@@ -425,8 +433,9 @@ Each buffer's result is displayed in a separated source."
         (helm :sources sources
               :buffer "*helm moccur*"
               :history 'helm-occur-history
-              :default (helm-aif (thing-at-point 'symbol)
-                           (regexp-quote it))
+              :default (or default
+                           (helm-aif (thing-at-point 'symbol)
+                               (regexp-quote it)))
               :input input
               :truncate-lines helm-occur-truncate-lines)
       (remove-hook 'helm-after-update-hook 'helm-occur--select-closest-candidate))))
@@ -455,8 +464,8 @@ METHOD can be one of buffer, buffer-other-window, buffer-other-frame."
                when (save-excursion
                       (condition-case _err
                           (if helm-migemo-mode
-                              (helm-mm-migemo-forward reg (point-at-eol) t)
-                            (re-search-forward reg (point-at-eol) t))
+                              (helm-mm-migemo-forward reg (pos-eol) t)
+                            (re-search-forward reg (pos-eol) t))
                         (invalid-regexp nil)))
                collect (match-beginning 0) into pos-ls
                finally (when pos-ls (goto-char (apply #'min pos-ls)))))))
@@ -597,8 +606,8 @@ persistent action."
           (forward-line -2)
           (while (not (eobp))
             (if (helm-pos-header-line-p)
-                (let ((beg (point-at-bol))
-                      (end (point-at-eol)))
+                (let ((beg (pos-bol))
+                      (end (pos-eol)))
                   (set-text-properties beg (1+ end) nil)
                   (delete-region (1- beg) end))
               (helm-aif (setq buf-name (assoc-default
@@ -609,10 +618,10 @@ persistent action."
                                         'face 'helm-moccur-buffer
                                         'helm-realvalue (get-text-property (point) 'helm-realvalue)))
                     (add-text-properties
-                     (point-at-bol) (point-at-eol)
+                     (pos-bol) (pos-eol)
                      `(buffer-name ,buf-name))
                     (add-text-properties
-                     (point-at-bol) (point-at-eol)
+                     (pos-bol) (pos-eol)
                      `(keymap ,map
                               help-echo ,(concat
                                           (buffer-file-name
@@ -698,7 +707,7 @@ numbered.  The property \\='buffer-name is added to the whole string."
                                 ;; `helm-mm-search' puts point at eol.
                                 (forward-line 0)
                                 (re-search-forward "^\\([0-9]*\\)\\s-\\{1\\}\\(.*\\)$"
-                                                   (point-at-eol) t))
+                                                   (pos-eol) t))
                           (setq linum (string-to-number (match-string 1))
                                 mpart (match-string 2)))
                      ;; Match part after line number.

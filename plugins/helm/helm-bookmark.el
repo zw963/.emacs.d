@@ -32,6 +32,9 @@
 (declare-function all-the-icons-fileicon     "ext:all-the-icons.el")
 (declare-function all-the-icons-icon-for-file"ext:all-the-icons.el")
 (declare-function all-the-icons-octicon      "ext:all-the-icons.el")
+(declare-function all-the-icons-match-to-alist "ext:all-the-icons.el")
+
+(defvar all-the-icons-dir-icon-alist)
 
 
 (defgroup helm-bookmark nil
@@ -58,8 +61,13 @@
   :type '(repeat (choice symbol)))
 
 (defcustom helm-bookmark-use-icon nil
-  "Display candidates with an icon with `all-the-icons' when non nil."
-  :type 'boolean)
+  "Display candidates with an icon with `all-the-icons' when non nil.
+Don't use `setq' to set this."
+  :type 'boolean
+  :set (lambda (var val)
+         (if (featurep 'all-the-icons)
+             (set var val)
+           (set var nil))))
 
 (defcustom helm-bookmark-default-sort-method 'adaptive
   "Sort method for `helm-filtered-bookmarks'.
@@ -603,7 +611,14 @@ If `browse-url-browser-function' is set to something else than
                         i)
           for icon = (when helm-bookmark-use-icon
                        (cond ((and isfile hff)
-                              (all-the-icons-octicon "file-directory"))
+                              (helm-aif (or (all-the-icons-match-to-alist
+                                             (helm-basename (helm-basedir isfile t))
+                                             all-the-icons-dir-icon-alist)
+                                            (all-the-icons-match-to-alist
+                                             (helm-basename isfile)
+                                             all-the-icons-dir-icon-alist))
+                                  (apply (car it) (cdr it))
+                                (all-the-icons-octicon "file-directory")))
                              ((and isfile isinfo) (all-the-icons-octicon "info"))
                              (isfile (all-the-icons-icon-for-file isfile))
                              ((or iswoman isman)
@@ -810,8 +825,6 @@ E.g. prepended with *."
 Optional source `helm-source-bookmark-addressbook' is loaded only
 if external addressbook-bookmark package is installed."
   (interactive)
-  (when helm-bookmark-use-icon
-    (require 'all-the-icons))
   (helm :sources helm-bookmark-default-filtered-sources
         :prompt "Search Bookmark: "
         :buffer "*helm filtered bookmarks*"

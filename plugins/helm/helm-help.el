@@ -44,7 +44,6 @@
                                  helm-buffers-ido-virtual-help-message
                                  helm-moccur-help-message
                                  helm-top-help-message
-                                 helm-el-package-help-message
                                  helm-M-x-help-message
                                  helm-imenu-help-message
                                  helm-colors-help-message
@@ -447,8 +446,12 @@ toggle the thumbnail view with \\<helm-find-files-map>`\\[helm-ff-toggle-thumbna
 
 **** Launch a slideshow from marked files
 
-Helm provides an action from `helm-find-files' that allows running a slideshow on marked files.
-Just mark image files and launch slideshow from action menu, bindings are self documented.
+Helm provides an action from `helm-find-files' that allows
+running a slideshow on marked files.  Just mark image files and
+launch slideshow from action menu, bindings are self documented
+in mode-line.  NOTE: When hitting any other keys than the ones
+mentionned in mode-line, slideshow will come in pause, to restart
+it you will have to press twice SPACE.
 
 *** Open files externally
 
@@ -495,7 +498,7 @@ Simply write the path in the prompt and press `RET', e.g.
 
 *** To create a new file, enter a filename not ending with \"/\"
 
-Note that when you enter a new name, this one is prefixed with [?].
+Note that when you enter a new name, this one is prefixed with [+].
 
 *** Recursive search from Helm-find-files
 
@@ -1365,7 +1368,7 @@ a directory \(e.g `list-directory').
 
 *** Exiting minibuffer with empty string
 
-You can exit minibuffer with empty string with \\<helm-read-file--map>\\[helm-cr-empty-string].
+You can exit minibuffer with empty string with \\<helm-read-file-map>\\[helm-cr-empty-string].
 It is useful when some commands are prompting continuously until you enter an empty prompt.
 
 ** Commands
@@ -2257,66 +2260,6 @@ See [[Moving in `helm-buffer'][Moving in `helm-buffer']].
 |\\[helm-top-run-sort-by-user]|Sort alphabetically by user.
 |\\[helm-top-run-sort-by-mem]|Sort by memory.")
 
-;;; Helm Elisp package
-;;
-;;
-(defvar helm-el-package-help-message
-  "* Helm Elisp package
-
-** Tips
-
-*** Compile all your packages asynchronously
-
-If you use async (if you have installed Helm from MELPA you do), only \"helm\",
-\"helm-core\", and \"magit\" are compiled asynchronously.  If you want all your
-packages compiled asynchronously, add this to your init file:
-
-     (setq async-bytecomp-allowed-packages '(all))
-
-*** Upgrade Elisp packages
-
-On initialization (when Emacs is fetching packages on remote), if Helm finds
-packages to upgrade, it will start in the upgradable packages view showing the packages
-available for upgrade.
-
-On subsequent runs, you will have to refresh the list with `C-c \\[universal-argument]'.  If Helm
-finds upgrades you can switch to upgrade view (see below) to see what packages
-are available for upgrade or simply hit `C-c U' to upgrade them all.
-
-To see upgradable packages hit `M-U'.
-
-Then you can install all upgradable packages with the \"upgrade all\" action
-\(`C-c \\[universal-argument]'), or upgrade only specific packages by marking them and running the
-\"upgrade\" action (visible only when there are upgradable packages).  Of course
-you can upgrade a single package by just running the \"upgrade\" action without
-marking it (`C-c u' or `RET') .
-
-\*Warning:* You are strongly advised to \*restart* Emacs after \*upgrading* packages.
-
-*** Meaning of flags prefixing packages
-
-\(Emacs ≥25)
-
-- The flag \"S\" that prefixes package names means that the packages belong to `package-selected-packages'.
-
-- The flag \"U\" that prefix package names mean that this package is no more needed.
-
-** Commands
-\\<helm-el-package-map>
-|Keys|Description
-|-----------+----------|
-|\\[helm-el-package-show-all]|Show all packages.
-|\\[helm-el-package-show-installed]|Show installed packages only.
-|\\[helm-el-package-show-uninstalled]|Show non-installed packages only.
-|\\[helm-el-package-show-upgrade]|Show upgradable packages only.
-|\\[helm-el-package-show-built-in]|Show built-in packages only.
-|\\[helm-el-run-package-install]|Install package(s).
-|\\[helm-el-run-package-reinstall]|Reinstall package(s).
-|\\[helm-el-run-package-uninstall]|Uninstall package(s).
-|\\[helm-el-run-package-upgrade]|Upgrade package(s).
-|\\[helm-el-run-package-upgrade-all]|Upgrade all packages.
-|\\[helm-el-run-visit-homepage]|Visit package homepage.")
-
 ;;; Helm M-x
 ;;
 ;;
@@ -2434,11 +2377,14 @@ command you want to execute before specifying prefix arg.
 - End the kmacro recording with `f4'.
 - Run `helm-execute-kmacro' to list all your kmacros.
 
-Use persistent action to run your kmacro as many times as needed.
-You can browse the kmacros with `helm-next-line' and `helm-previous-line'.
+When you press RET, your macro goes on top of ring and become the
+current macro, hit `f4' for further executions.
+Use `helm-execute-kmacro' again to change eventually your macro to execute.
 
 Note: You can't record keys running Helm commands except `helm-M-x', under the
 condition that you don't choose a command using Helm completion.
+
+See [[info:emacs#Keyboard Macros][Keyboard Macros]] for further infos on macros.
 
 ** Commands
 \\<helm-kmacro-map>")

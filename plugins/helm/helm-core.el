@@ -1,10 +1,10 @@
-;;; helm-core.el --- Development files for Helm  -*- lexical-binding: t; -*-
+;;; helm-core.el --- Development files for Helm  -*- lexical-binding: t -*-
 
 ;; Copyright (C) 2022 ~ 2023  Thierry Volpiatto
 
 ;; Author: Thierry Volpiatto <thievol@posteo.net>
 ;; URL: https://emacs-helm.github.io/helm/
-;; Version: 3.9.0
+;; Version: 3.9.5
 ;; Package-Requires: ((emacs "25.1") (async "1.9.7"))
 
 ;; This program is free software; you can redistribute it and/or modify
@@ -46,8 +46,11 @@
 (declare-function helm-comp-read "helm-mode.el")
 (declare-function custom-unlispify-tag-name "cus-edit.el")
 (declare-function helm-quit-and-find-file "helm-utils.el")
+(declare-function linum-mode "linum.el")
 
 (defvar helm-marked-buffer-name)
+(defvar display-buffer-function)
+(defvar minibuffer-follows-selected-frame)
 
 
 ;;; Internal Variables
@@ -268,7 +271,18 @@ and second call within 1s runs `helm-swap-windows'."
 
 (defun helm-command-with-subkeys (map subkey command
                                   &optional other-subkeys prompt exit-fn delay)
-  "Return an anonymous interactive command to use with `helm-define-key-with-subkeys'."
+  "Build a command that run COMMAND when SUBKEY is read.
+
+The command runs a loop reading keys and exit when user stops typing after DELAY
+seconds.  After this DELAY EXIT-FN run if specified.
+
+Arg OTHER-SUBKEYS should be an alist composed of (command . short-key) where
+command is another command than COMMAND bound to short-key.
+
+A PROMPT can be used to describe bindings of COMMAND and OTHER-SUBKEYS.
+ 
+Return an anonymous interactive command to use with
+`helm-define-key-with-subkeys'."
   (lambda ()
     (interactive)
     (let (timer)
@@ -421,6 +435,10 @@ i.e. the loop is not entered after running COMMAND."
     (define-key map (kbd "C-M-e")      #'helm-display-all-sources)
     (define-key map (kbd "C-s")        #'undefined)
     (define-key map (kbd "M-s")        #'undefined)
+    (define-key map (kbd "C-r")        #'undefined)
+    (define-key map (kbd "C-M-r")      #'undefined)
+    (define-key map (kbd "C-M-s")      #'undefined)
+    (define-key map (kbd "C-z")        #'undefined)
     (define-key map (kbd "C-}")        #'helm-narrow-window)
     (define-key map (kbd "C-{")        #'helm-enlarge-window)
     (define-key map (kbd "C-c -")      #'helm-swap-windows)
@@ -435,6 +453,8 @@ i.e. the loop is not entered after running COMMAND."
     (define-key map (kbd "C-c l")      #'helm-display-line-numbers-mode)
     (define-key map (kbd "M-p")        #'previous-history-element)
     (define-key map (kbd "M-n")        #'next-history-element)
+    ;; Unbind `previous-matching-history-element' which is non sense for helm.
+    (define-key map (kbd "M-r")        #'undefined)
     (define-key map (kbd "C-!")        #'helm-toggle-suspend-update)
     (define-key map (kbd "C-x b")      #'helm-resume-previous-session-after-quit)
     (define-key map (kbd "C-x C-b")    #'helm-resume-list-buffers-after-quit)
@@ -446,6 +466,7 @@ i.e. the loop is not entered after running COMMAND."
     ;; Debugging command
     (define-key map (kbd "C-h C-d")    #'helm-enable-or-switch-to-debug)
     (define-key map (kbd "C-h c")      #'helm-customize-group)
+    (define-key map (kbd "C-h d")      #'helm-debug-output)
     ;; Allow to eval keymap without errors.
     (define-key map [f1] nil)
     (define-key map (kbd "C-h C-h")    #'undefined)
@@ -1213,7 +1234,9 @@ Set this to an empty string if you don't want prefix in margin when marking."
 (defface helm-header-line-left-margin
   `((t ,@(and (>= emacs-major-version 27) '(:extend t))
        :foreground "black" :background "yellow"))
-  "Face used to highlight helm-header sign in left-margin."
+  "Face used to highlight helm-header sign in left-margin.
+This face is used only when using `helm-echo-input-in-header-line' and pattern
+is wider then screen."
   :group 'helm-faces)
 
 (defface helm-minibuffer-prompt
@@ -1316,10 +1339,10 @@ with no args that should returns a boolean value or \\='current-source.")
   "When non-nil, quit if there are no candidates.
 This variable accepts a function.")
 
-(defvar helm-debug-variables nil
-  "A list of Helm variables that `helm-debug-output' displays.
-If nil, `helm-debug-output' includes only variables with `helm-'
-prefixes.")
+(defvar helm-debug-function #'helm-default-debug-function
+  "A Function that returns a list of values to print in `helm-debug-output' buffer.")
+
+(defvar helm-debug-output-buffer "*Helm Debug*")
 
 (defvar helm-debug-buffer "*Debug Helm Log*")
 
@@ -2578,7 +2601,7 @@ was deleted and the candidates list not updated."
     (with-helm-window
       (or (helm-empty-buffer-p)
           (and (helm-end-of-source-p)
-               (eq (point-at-bol) (point-at-eol))
+               (eq (pos-bol) (pos-eol))
                (or
                 (save-excursion
                   (forward-line -1)
@@ -2675,7 +2698,7 @@ of current source only."
                                   (or (helm-pos-header-line-p) (eobp))
                                 (eobp)))
                    ;; Don't count empty lines maybe added by popup (bug#1370).
-                   unless (or (eq (point-at-bol) (point-at-eol))
+                   unless (or (eq (pos-bol) (pos-eol))
                               (helm-pos-header-line-p))
                    do (cl-incf ln)
                    do (forward-line 1) finally return ln))))))
@@ -3493,8 +3516,8 @@ version < emacs-28."
                  (tool-bar-lines . 0)
                  (left . ,(- (car pos)
                              (* (frame-char-width)
-                                (if (< (- (point) (point-at-bol)) prmt-size)
-                                    (- (point) (point-at-bol))
+                                (if (< (- (point) (pos-bol)) prmt-size)
+                                    (- (point) (pos-bol))
                                   prmt-size))))
                  ;; Try to put frame at the best possible place.
                  ;; Frame should be below point if enough
@@ -3732,6 +3755,10 @@ Argument SAVE-OR-RESTORE is either save or restore."
 (defun helm--run-init-hooks (hook sources)
   "Run after and before init hooks local to source.
 See :after-init-hook and :before-init-hook in `helm-source'."
+  ;; We handle here incorrect values of hooks to not break packages using such
+  ;; values i.e. lambda's or lists not bound to a symbol.  In the future we may
+  ;; use `helm-log-run-hook' directly which allow using add-hook, remove-hook
+  ;; etc...
   (cl-loop for s in sources
            for hv = (assoc-default hook s)
            when hv
@@ -3987,7 +4014,7 @@ Update is reenabled when idle 1s."
   (with-helm-alive-p
     (unless helm--suspend-update-interactive-flag
       (helm-suspend-update 1))
-    (backward-delete-char arg)
+    (delete-char (- arg))
     (run-with-idle-timer
      1 nil
      (lambda ()
@@ -4423,7 +4450,7 @@ This function is used with sources built with `helm-source-sync'."
           ;; the position of line and go ahead,
           ;; letting `helm-search-match-part' checking if
           ;; pattern match against this line.
-          (prog1 (list (point-at-bol) (point-at-eol))
+          (prog1 (list (pos-bol) (pos-eol))
             (forward-line 1))
         ;; We could use here directly `re-search-forward'
         ;; on the regexp produced by `helm--mapconcat-pattern',
@@ -4436,8 +4463,8 @@ This function is used with sources built with `helm-source-sync'."
         ;; then search the corresponding line with the whole regexp,
         ;; which increase dramatically the speed of the search.
         (cl-loop while (re-search-forward partial-regexp nil t)
-                 for bol = (point-at-bol)
-                 for eol = (point-at-eol)
+                 for bol = (pos-bol)
+                 for eol = (pos-eol)
                  if (progn (goto-char bol)
                            (re-search-forward regexp eol t))
                  do (goto-char eol) and return t
@@ -4448,7 +4475,7 @@ This function is used with sources built with `helm-source-sync'."
 (defun helm-score-candidate-for-pattern (candidate pattern)
   "Assign score to CANDIDATE according to PATTERN."
   ;; Unknown candidates always go on top.
-  (if (equal (get-text-property 0 'display candidate) "[?]")
+  (if (helm-candidate-prefixed-p candidate)
       200.00
     (funcall helm-fuzzy-default-score-fn candidate pattern)))
 
@@ -4613,57 +4640,61 @@ useful when the order of the candidates is meaningful, e.g. with
                                     (or host (and (stringp real) real) display)))))
          (count   0)
          beg-str end-str)
-    (when host (setq pattern (cadr (split-string pattern ":"))))
-    ;; Extract all parts of display keeping original properties.
-    (when (and mp (ignore-errors
-                    ;; Avoid error when candidate is a huge line.
-                    (string-match (regexp-quote mp) display)))
-      (setq beg-str (substring display 0 (match-beginning 0))
-            end-str (substring display (match-end 0) (length display))
-            mp (substring display (match-beginning 0) (match-end 0))))
-    (with-temp-buffer
-      ;; Insert the whole display part and remove non--match-part
-      ;; to keep their original face properties.
-      (insert (propertize (or mp display) 'read-only nil)) ; Fix (bug#1176)
-      (goto-char (point-min))
-      (condition-case nil
-          (progn
-            ;; Try first matching against whole pattern.
-            (unless (string= pattern "")
-              (while (re-search-forward regex nil t)
-                (cl-incf count)
-                (helm-add-face-text-properties
-                 (match-beginning 0) (match-end 0) 'helm-match)))
-            ;; If no matches start matching against multiples or fuzzy matches.
-            (when (zerop count)
-              (cl-loop with multi-match = (string-match-p " " pattern)
-                       with patterns = (if multi-match
-                                           (cl-loop for pat in (helm-mm-split-pattern
-                                                                pattern)
-                                                    collect
-                                                    (helm--maybe-get-migemo-pattern
-                                                     pat diacritics))
-                                         (split-string pattern "" t))
-                       for p in patterns
-                       ;; Multi matches (regexps patterns).
-                       if multi-match do
-                       (progn
-                         (while (re-search-forward p nil t)
+    ;; Happens when matching empty lines (^$), in this case there is nothing to
+    ;; highlight. 
+    (if (string= mpart "")
+        candidate
+      (when host (setq pattern (cadr (split-string pattern ":"))))
+      ;; Extract all parts of display keeping original properties.
+      (when (and mp (ignore-errors
+                      ;; Avoid error when candidate is a huge line.
+                      (string-match (regexp-quote mp) display)))
+        (setq beg-str (substring display 0 (match-beginning 0))
+              end-str (substring display (match-end 0) (length display))
+              mp (substring display (match-beginning 0) (match-end 0))))
+      (with-temp-buffer
+        ;; Insert the whole display part and remove non--match-part
+        ;; to keep their original face properties.
+        (insert (propertize (or mp display) 'read-only nil)) ; Fix (bug#1176)
+        (goto-char (point-min))
+        (condition-case nil
+            (progn
+              ;; Try first matching against whole pattern.
+              (unless (string= pattern "")
+                (while (re-search-forward regex nil t)
+                  (cl-incf count)
+                  (helm-add-face-text-properties
+                   (match-beginning 0) (match-end 0) 'helm-match)))
+              ;; If no matches start matching against multiples or fuzzy matches.
+              (when (zerop count)
+                (cl-loop with multi-match = (string-match-p " " pattern)
+                         with patterns = (if multi-match
+                                             (cl-loop for pat in (helm-mm-split-pattern
+                                                                  pattern)
+                                                      collect
+                                                      (helm--maybe-get-migemo-pattern
+                                                       pat diacritics))
+                                           (split-string pattern "" t))
+                         for p in patterns
+                         ;; Multi matches (regexps patterns).
+                         if multi-match do
+                         (progn
+                           (while (re-search-forward p nil t)
+                             (helm-add-face-text-properties
+                              (match-beginning 0) (match-end 0)
+                              'helm-match))
+                           (goto-char (point-min)))
+                         ;; Fuzzy matches (literal patterns).
+                         else do
+                         (when (search-forward p nil t)
                            (helm-add-face-text-properties
                             (match-beginning 0) (match-end 0)
-                            'helm-match))
-                         (goto-char (point-min)))
-                       ;; Fuzzy matches (literal patterns).
-                       else do
-                       (when (search-forward p nil t)
-                         (helm-add-face-text-properties
-                          (match-beginning 0) (match-end 0)
-                          'helm-match)))))
-        (invalid-regexp nil))
-      ;; Now replace the original match-part with the part
-      ;; with face properties added.
-      (setq display (if mp (concat beg-str (buffer-string) end-str) (buffer-string))))
-    (if real (cons display real) display)))
+                            'helm-match)))))
+          (invalid-regexp nil))
+        ;; Now replace the original match-part with the part
+        ;; with face properties added.
+        (setq display (if mp (concat beg-str (buffer-string) end-str) (buffer-string))))
+      (if real (cons display real) display))))
 
 (cl-defun helm-fuzzy-default-highlight-match (candidate
                                               &optional (pattern helm-pattern) diacritics file-comp)
@@ -4686,8 +4717,7 @@ See `helm-fuzzy-default-highlight-match'."
   (cl-loop with diac = (helm-get-attr 'diacritics source)
            with file-comp-p = (and (not (helm-action-window))
                                    (or minibuffer-completing-file-name
-                                       (helm-get-attr 'completing-file-name source)
-                                       (helm-guess-filename-at-point)))
+                                       (helm-get-attr 'completing-file-name source)))
            ;; helm-pattern may have been modified (fuzzy) so ensure to
            ;; use helm-input which is the raw pattern.
            with pattern = (if file-comp-p
@@ -5181,7 +5211,7 @@ If MATCH is a cons cell then insert the car as display with the
 cdr stored as real value in a `helm-realvalue' text property.
 Args NUM and SOURCE are also stored as text property when
 specified as respectively `helm-cand-num' and `helm-cur-source'."
-  (let ((start     (point-at-bol (point)))
+  (let ((start     (pos-bol (point)))
         (dispvalue (helm-candidate-get-display match))
         (realvalue (cdr-safe match))
         (map       (when helm-allow-mouse (make-sparse-keymap)))
@@ -5190,7 +5220,7 @@ specified as respectively `helm-cand-num' and `helm-cur-source'."
     (when (and (stringp dispvalue)
                (not (zerop (length dispvalue))))
       (funcall insert-function dispvalue)
-      (setq end (point-at-eol))
+      (setq end (pos-eol))
       ;; Some strings may handle another keymap prop.
       (remove-text-properties start end '(keymap nil))
       (put-text-property start end 'read-only nil)
@@ -5288,10 +5318,10 @@ additional info after the source name by overlay."
       (put-text-property start (point) 'helm-header-separator t)))
   (let ((start (point)))
     (insert name)
-    (put-text-property (point-at-bol)
-                       (point-at-eol) 'helm-header t)
+    (put-text-property (pos-bol)
+                       (pos-eol) 'helm-header t)
     (when display-string
-      (overlay-put (make-overlay (point-at-bol) (point-at-eol))
+      (overlay-put (make-overlay (pos-bol) (pos-eol))
                    'display display-string))
     (insert "\n")
     (add-text-properties start (point) '(face helm-source-header
@@ -5302,8 +5332,8 @@ additional info after the source name by overlay."
 (defun helm-insert-candidate-separator ()
   "Insert separator of candidates into the Helm buffer."
   (insert (propertize helm-candidate-separator 'face 'helm-separator))
-  (put-text-property (point-at-bol)
-                     (point-at-eol) 'helm-candidate-separator t)
+  (put-text-property (pos-bol)
+                     (pos-eol) 'helm-candidate-separator t)
   (insert "\n"))
 
 (defun helm-init-relative-display-line-numbers ()
@@ -5659,7 +5689,7 @@ DIRECTION is either \\='next or \\='previous."
                 (or (helm-pos-header-line-p)
                     (helm-pos-candidate-separator-p)))
       (forward-line (if (and (eq direction 'previous)
-                             (not (eq (point-at-bol) (point-min))))
+                             (not (eq (pos-bol) (point-min))))
                         -1 1)))))
 
 (defun helm-display-mode-line (source &optional force)
@@ -6163,7 +6193,7 @@ marking candidates."
     (when resumep
       (goto-char helm-selection-point))
     (move-overlay
-     helm-selection-overlay (point-at-bol)
+     helm-selection-overlay (pos-bol)
      (if (helm-pos-multiline-p)
          (let ((header-pos (helm-get-next-header-pos))
                (separator-pos (helm-get-next-candidate-separator-pos)))
@@ -6173,7 +6203,7 @@ marking candidates."
                     separator-pos)
                header-pos
                (point-max)))
-       (1+ (point-at-eol))))
+       (1+ (pos-eol))))
     (setq helm-selection-point (overlay-start helm-selection-overlay))
     (when (and helm-allow-mouse (null nomouse))
       (helm--bind-mouse-for-selection helm-selection-point))))
@@ -6210,14 +6240,14 @@ message \\='no match'."
                (minibuffer-message " [confirm]"))
               ;; When require-match is strict (i.e. `t'), buffer
               ;; should be either empty or in read-file-name have an
-              ;; unknown candidate ([?] prefix), if it's not the case
+              ;; unknown candidate ([+] prefix), if it's not the case
               ;; fix it in helm-mode but not here.
               ((and (or empty-buffer-p unknown)
                     (eq minibuffer-completion-confirm t))
                (minibuffer-message " [No match]"))
               (empty-buffer-p
                ;; This is used when helm-buffer is totally empty,
-               ;; i.e. the [?] have not been added because must-match
+               ;; i.e. the [+] have not been added because must-match
                ;; is used from outside helm-comp-read i.e. from a helm
                ;; source built with :must-match.
                (setq helm-saved-selection helm-pattern
@@ -6324,35 +6354,42 @@ If action buffer is displayed, kill it."
 
 (defun helm-pos-header-line-p ()
   "Return t if the current line is a header line."
-  (or (get-text-property (point-at-bol) 'helm-header)
-      (get-text-property (point-at-bol) 'helm-header-separator)))
+  (or (get-text-property (pos-bol) 'helm-header)
+      (get-text-property (pos-bol) 'helm-header-separator)))
 
 (defun helm-pos-candidate-separator-p ()
   "Return t if the current line is a candidate separator."
-  (get-text-property (point-at-bol) 'helm-candidate-separator))
+  (get-text-property (pos-bol) 'helm-candidate-separator))
 
 
 ;;; Debugging
 ;;
 ;;
 (defun helm-debug-output ()
-  "Show all Helm-related variables at this time."
+  "Show all Helm locals variables and output of `helm-debug-function'."
   (interactive)
   (with-helm-alive-p
-    (helm-help-internal " *Helm Debug*" 'helm-debug-output-function)))
+    (helm-help-internal helm-debug-output-buffer 'helm-debug-output-function)))
 (put 'helm-debug-output 'helm-only t)
 
-(defun helm-debug-output-function (&optional vars)
-  (message "Calculating all helm-related values...")
-  (insert "If you debug some variables or forms, set `helm-debug-variables'
-to a list of forms.\n\n")
-  (dolist (v (or vars
-                    helm-debug-variables
-                    (apropos-internal "^helm-" 'boundp)))
-    (insert "** "
-            (pp-to-string v) "\n"
-            (pp-to-string (with-current-buffer helm-buffer (eval v))) "\n"))
-  (message "Calculating all helm-related values...Done"))
+(defun helm-default-debug-function ()
+  "Collect sources of helm current session without their keymap.
+This is the default function for `helm-debug-function'."
+  (cl-loop for source in (with-helm-buffer helm-sources)
+           collect (remove (assq 'keymap source) source)))
+
+(defun helm-debug-output-function ()
+  (let ((local-vars (buffer-local-variables (get-buffer helm-buffer)))
+        (count 1))
+    (insert (format "* Helm debug from `%s' buffer\n\n" helm-buffer))
+    (insert "** Local variables\n\n#+begin_src elisp\n"
+            (pp-to-string (remove (assq 'helm-sources local-vars) local-vars))
+            "\n#+end_src\n")
+    (dolist-with-progress-reporter (v (helm-interpret-value helm-debug-function))
+        "Calculating all helm-related values..."
+      (insert (format "** Value%s\n" count)
+              "#+begin_src elisp\n" (pp-to-string v) "\n#+end_src\n")
+      (cl-incf count))))
 
 (defun helm-enable-or-switch-to-debug ()
   "First hit enable helm debugging, second hit switch to debug buffer."
@@ -6415,17 +6452,17 @@ Optional argument SOURCE is a Helm source object."
   (with-helm-window
     (cond ((helm-pos-multiline-p)
            (helm-aif (helm-get-next-candidate-separator-pos)
-               (delete-region (point-at-bol)
-                              (1+ (progn (goto-char it) (point-at-eol))))
+               (delete-region (pos-bol)
+                              (1+ (progn (goto-char it) (pos-eol))))
              ;; last candidate
              (goto-char (helm-get-previous-candidate-separator-pos))
-             (delete-region (point-at-bol) (point-max)))
+             (delete-region (pos-bol) (point-max)))
            (when (helm-end-of-source-p)
              (goto-char (or (helm-get-previous-candidate-separator-pos)
                             (point-min)))
              (forward-line 1)))
           (t
-           (delete-region (point-at-bol) (1+ (point-at-eol)))
+           (delete-region (pos-bol) (1+ (pos-eol)))
            (when (helm-end-of-source-p t)
              (let ((headp (save-excursion
                             (forward-line -1)
@@ -6439,7 +6476,7 @@ Optional argument SOURCE is a Helm source object."
     (if (and (helm-pos-multiline-p) (null at-point))
         (null (helm-get-next-candidate-separator-pos))
       (forward-line (if at-point 0 n))
-      (or (eq (point-at-bol) (point-at-eol))
+      (or (eq (pos-bol) (pos-eol))
           (helm-pos-header-line-p)
           (if (< n 0) (bobp) (eobp))))))
 
@@ -6459,7 +6496,7 @@ Optional argument SOURCE is a Helm source object."
       (funcall func)
       (forward-line 0)
       (and realvalue
-           (put-text-property (point) (point-at-eol)
+           (put-text-property (point) (pos-eol)
                               'helm-realvalue realvalue))
       (and multiline
            (put-text-property (point)
@@ -6640,7 +6677,7 @@ To customize `helm-candidates-in-buffer' behaviour, use `search',
                          for cand = (apply get-line-fn
                                            (if (and pos-lst (listp pos-lst))
                                                pos-lst
-                                             (list (point-at-bol) (point-at-eol))))
+                                             (list (pos-bol) (pos-eol))))
                          when (and match-part-fn
                                    (not (get-text-property 0 'match-part cand)))
                          do (setq cand
@@ -6696,7 +6733,7 @@ computed by match-part-fn and stored in the match-part property."
 (defun helm-initial-candidates-from-candidate-buffer (get-line-fn limit)
   (cl-loop repeat limit
            until (eobp)
-           for line = (funcall get-line-fn (point-at-bol) (point-at-eol))
+           for line = (funcall get-line-fn (pos-bol) (pos-eol))
            when line collect line
            do (forward-line 1)))
 
@@ -6828,9 +6865,18 @@ before running again the init function."
 It is a local variable set from `helm-init-candidates-in-buffer' in
 `helm-candidate-buffer'.
 Allow getting the longest length of initial candidates in transformers
-without looping again through the whole list.")
+without looping again through the whole list.
+It is useful to align extra informations after candidates in `helm-buffer'.")
 
-(defun helm-init-candidates-in-buffer (buffer-spec data)
+(defsubst helm-in-buffer-get-longest-candidate ()
+  "Return the longest candidate recorded in `helm-candidate-buffer'."
+  (helm-aif (helm-candidate-buffer)
+      (buffer-local-value
+       'helm-candidate-buffer-longest-len
+       (get-buffer it))
+    0))
+
+(defun helm-init-candidates-in-buffer (buffer-spec data &optional force-longest)
   "Register BUFFER-SPEC with DATA for a helm candidates-in-buffer session.
 
 Arg BUFFER-SPEC can be a `buffer-name' (stringp), a buffer-spec
@@ -6844,7 +6890,13 @@ Returns the resulting buffer.
 Use this in your init function to register a buffer for a
 `helm-source-in-buffer' session and feed it with DATA.  You
 probably don't want to bother with this and use the :data slot
-when initializing a source with `helm-source-in-buffer' class."
+when initializing a source with `helm-source-in-buffer' class.
+
+When inserting DATA in `helm-candidate-buffer', if DATA is a list the longest
+candidate will be recorded in `helm-candidate-buffer-longest-len' local
+variable. If DATA is a string, it is inserted directly in
+`helm-candidate-buffer' and `helm-candidate-buffer-longest-len' is not computed
+unless FORCE-LONGEST is non nil."
   (declare (indent 1))
   (let ((caching (and (or (stringp buffer-spec)
                           (bufferp buffer-spec))
@@ -6857,14 +6909,34 @@ when initializing a source with `helm-source-in-buffer' class."
                (insert (mapconcat (lambda (i)
                                     (let ((cand (cond ((symbolp i) (symbol-name i))
                                                       ((numberp i) (number-to-string i))
+                                                      ((consp i) (propertize
+                                                                  (car i)
+                                                                  'helm-realvalue (cdr i)))
                                                       (t i))))
                                       (setq-local helm-candidate-buffer-longest-len
                                                   (max helm-candidate-buffer-longest-len
                                                        (length cand)))
                                       cand))
                                   data "\n")))
-              ((stringp data) (insert data))))
+              ((stringp data)
+               (insert data)
+               (when force-longest
+                 (setq-local helm-candidate-buffer-longest-len
+                             (helm--get-longest-len-in-buffer))))))
       buf)))
+
+(defun helm--get-longest-len-in-buffer ()
+  "Return length of the longest line in buffer." 
+  (save-excursion
+    (goto-char (point-min))
+    (let ((max 0)
+          len)
+      (while (not (eobp))
+        (setq len (- (pos-eol) (pos-bol)))
+        (when (> len max)
+          (setq max len))
+        (forward-line 1))
+      max)))
 
 
 ;;; Resplit helm window
@@ -7261,8 +7333,8 @@ Meaning of prefix ARG is the same as in `reposition-window'."
                                 (helm-get-next-header-pos)
                                 (point-max))
                           ;; Not multiline
-                          (1+ (point-at-eol))))
-         (o (make-overlay (point-at-bol) selection-end)))
+                          (1+ (pos-eol))))
+         (o (make-overlay (pos-bol) selection-end)))
     (overlay-put o 'priority 0)
     (overlay-put o 'face   'helm-visible-mark)
     (overlay-put o 'source source)
@@ -7384,7 +7456,8 @@ starting it is not needed."
                      (maxpoint  (or end (point-max))))
                 (while (< (point) maxpoint)
                   (helm-mark-current-line)
-                  (let* ((prefix (get-text-property (point-at-bol) 'display))
+                  (let* ((prefix (or (get-text-property (pos-bol) 'helm-new-file)
+                                     (get-text-property (pos-bol) 'unknown)))
                          (cand   (helm-get-selection
                                   nil (helm-get-attr 'marked-with-props src)
                                   src))
@@ -7397,7 +7470,7 @@ starting it is not needed."
                             ;; RFN. Display may be an image. See
                             ;; https://github.com/yyoncho/helm-treemacs-icons/issues/5
                             ;; and also Bug#2296.
-                            (equal prefix "[?]")
+                            prefix
                             (and filecomp-p
                                  (or
                                   ;; autosave files
@@ -7527,7 +7600,7 @@ sources."
           (goto-char (point-min))
           (search-forward ov-src-name nil t)
           (while (and (search-forward ov-ml-str nil t)
-                      (cl-loop for ov in (overlays-at (point-at-bol 0))
+                      (cl-loop for ov in (overlays-at (pos-bol 0))
                                never (overlay-get ov 'visible-mark))
                       (helm-current-source-name= ov-src-name))
             (setq beg (match-beginning 0)
@@ -7535,7 +7608,7 @@ sources."
                           (match-end 0) (1+ (match-end 0))))
             ;; Calculate real value of candidate.
             ;; It can be nil if candidate have only a display value.
-            (let ((real (get-text-property (point-at-bol 0) 'helm-realvalue)))
+            (let ((real (get-text-property (pos-bol 0) 'helm-realvalue)))
               (if real
                   ;; Check if real value of current candidate is the same
                   ;; than the one stored in overlay.
@@ -7727,8 +7800,12 @@ source or `helm-follow-input-idle-delay' or
                  helm-follow-input-idle-delay
                  (or (and helm-input-idle-delay
                           (max helm-input-idle-delay 0.01))
-                     0.01))))
-    (when (and (not (get-buffer-window helm-action-buffer 'visible))
+                     0.01)))
+         (suspend (and helm--in-update
+                       ;; Specific to helm-find-files.
+                       (assoc-default 'suspend-follow-in-update src))))
+    (when (and (not suspend)
+               (not (get-buffer-window helm-action-buffer 'visible))
                (not (helm-pos-header-line-p))
                (or (helm-follow-mode-p src)
                    (and helm-follow-mode-persistent

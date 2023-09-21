@@ -1,6 +1,6 @@
 ;;; helm-utils.el --- Utilities Functions for helm. -*- lexical-binding: t -*-
 
-;; Copyright (C) 2012 ~ 2023 Thierry Volpiatto 
+;; Copyright (C) 2012 ~ 2023 Thierry Volpiatto
 
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -28,6 +28,7 @@
 (declare-function outline-show-subtree "outline")
 (declare-function org-reveal "org")
 (declare-function hs-show-block "hideshow.el")
+(declare-function hs-show-all "hideshow.el")
 (declare-function tab-bar-tabs "tab-bar")
 (declare-function tab-bar-select-tab "tab-bar")
 (declare-function dired-goto-file "dired")
@@ -244,6 +245,8 @@ See https://www.freeformatter.com/html-entities.html")
 
 (defvar helm-find-many-files-after-hook nil
   "Hook that runs at end of `helm-find-many-files'.")
+
+(defvar helm-marked-buffer-name "*helm marked*")
 
 ;;; Faces.
 ;;
@@ -282,11 +285,13 @@ behavior is the same as with a nil value."
            (const :tag "Split window horizontally" nil)
            (symbol :tag "Guess how to split window" 'decide)))
 
-(defcustom helm-window-show-buffers-function #'helm-window-default-split-fn
+(defcustom helm-window-show-buffers-function #'helm-window-decide-split-fn
   "The default function to use when opening several buffers at once.
 It is typically used to rearrange windows."
   :group 'helm-utils
   :type '(choice
+          (function :tag "Decide how to split according to number of candidates"
+                    helm-window-decide-split-fn)
           (function :tag "Split windows vertically or horizontally"
                     helm-window-default-split-fn)
           (function :tag "Split in alternate windows"
@@ -318,7 +323,8 @@ If a prefix arg is given split windows vertically."
 (defun helm-buffers-switch-to-buffer-or-tab (buffer)
   "Switch to BUFFER in its tab if some."
   (if (and (fboundp 'tab-bar-mode)
-           helm-buffers-maybe-switch-to-tab)
+           helm-buffers-maybe-switch-to-tab
+           tab-bar-mode)
       (let* ((tab-bar-tab-name-function #'tab-bar-tab-name-all)
              (tabs (tab-bar-tabs))
              (tab-names (mapcar (lambda (tab)
@@ -345,6 +351,15 @@ If a prefix arg is given split windows vertically."
            ;; Buf names are separated with "," in TAB-NAMES
            ;; e.g. '("tab-bar.el" "*scratch*, helm-buffers.el").
            thereis (member buffer-name (split-string name ", " t))))
+
+(defun helm-window-decide-split-fn (candidates &optional other-window-fn)
+  "Try to find the best split window fn according to the number of CANDIDATES."
+  (let ((fn (cond ((> (length candidates) 3)
+                   #'helm-window-mosaic-fn)
+                  ((> (length candidates) 2)
+                   #'helm-window-alternate-split-fn)
+                  (t #'helm-window-default-split-fn))))
+    (funcall fn candidates other-window-fn)))
 
 (defun helm-window-default-split-fn (candidates &optional other-window-fn)
   "Split windows in one direction and balance them.
@@ -495,7 +510,7 @@ Default is `helm-current-buffer'."
                    #'outline-show-subtree)
                   ((and (boundp 'hs-minor-mode)
                     hs-minor-mode)
-                   #'hs-show-block)
+                   #'hs-show-all)
                   ((and (boundp 'markdown-mode-map)
                         (derived-mode-p 'markdown-mode))
                    #'markdown-show-entry)))
@@ -516,7 +531,7 @@ Animation is used unless NOANIM is non--nil."
     (with-helm-current-buffer
       (unless helm-yank-point (setq helm-yank-point (point)))))
   (goto-char (point-min))
-  (helm-goto-char (point-at-bol lineno))
+  (helm-goto-char (pos-bol lineno))
   (unless noanim
     (helm-highlight-current-line)))
 
@@ -542,7 +557,7 @@ To use this add it to `helm-goto-line-before-hook'."
     (cl-loop with pos
           while (setq pos (next-single-property-change (point) 'helm-header))
           do (goto-char pos)
-          collect (buffer-substring-no-properties (point-at-bol)(point-at-eol))
+          collect (buffer-substring-no-properties (pos-bol)(pos-eol))
           do (forward-line 1))))
 
 (defun helm-handle-winner-boring-buffers ()
@@ -673,7 +688,9 @@ readable format,see `helm-file-human-size'."
                              directory
                              :path 'full
                              :directories t)
-                          (directory-files directory t))
+                          (directory-files
+                           directory t
+                           directory-files-no-dot-files-regexp))
            for file in files
            sum (nth 7 (file-attributes file)) into total
            finally return (if human
@@ -876,12 +893,12 @@ Optional arguments START, END and FACE are only here for debugging purpose."
                    (save-excursion
                      (forward-line
                       (- (car helm-highlight-matches-around-point-max-lines)))
-                     (point-at-bol))
+                     (pos-bol))
                    end-match
                    (save-excursion
                      (forward-line
                       (cdr helm-highlight-matches-around-point-max-lines))
-                     (point-at-bol))))
+                     (pos-bol))))
             ((or (null helm-highlight-matches-around-point-max-lines)
                  (zerop helm-highlight-matches-around-point-max-lines))
              (setq start-match start
@@ -891,7 +908,7 @@ Optional arguments START, END and FACE are only here for debugging purpose."
                    (save-excursion
                      (forward-line
                       helm-highlight-matches-around-point-max-lines)
-                     (point-at-bol))
+                     (pos-bol))
                    end-match start))
             ((> helm-highlight-matches-around-point-max-lines 0)
              (setq start-match start
@@ -899,7 +916,7 @@ Optional arguments START, END and FACE are only here for debugging purpose."
                    (save-excursion
                      (forward-line
                       helm-highlight-matches-around-point-max-lines)
-                     (point-at-bol)))))
+                     (pos-bol)))))
       (catch 'empty-line
         (let* ((regex-list (helm-remove-if-match
                             "\\`!" (helm-mm-split-pattern
@@ -1021,7 +1038,7 @@ Assume regexp is a pcre based regexp."
            (lambda ()
              (save-selected-window
                (with-helm-window
-                 (helm-aif (get-text-property (point-at-bol) 'help-echo)
+                 (helm-aif (get-text-property (pos-bol) 'help-echo)
                      (popup-tip (concat " " (abbreviate-file-name
                                              (replace-regexp-in-string "\n.*" "" it)))
                                 :around nil

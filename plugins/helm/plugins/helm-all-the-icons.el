@@ -28,53 +28,67 @@
 (require 'helm)
 (require 'all-the-icons)
 
-(defvar helm-all-the-icons-alist '((all-the-icons-data/alltheicons-alist . all-the-icons-alltheicon)
-                                   (all-the-icons-data/fa-icon-alist . all-the-icons-faicon)
-                                   (all-the-icons-data/file-icon-alist . all-the-icons-fileicon)
-                                   (all-the-icons-data/octicons-alist . all-the-icons-octicon)
-                                   (all-the-icons-data/material-icons-alist . all-the-icons-material)
-                                   (all-the-icons-data/weather-icons-alist . all-the-icons-wicon)))
+(defvar helm-all-the-icons-alist (mapcar (lambda (family)
+                                           `(,family
+                                             ,(intern-soft (format "all-the-icons-%s-data" family))
+                                             ,(intern-soft (format "all-the-icons-%s" family))))
+                                         all-the-icons-font-families))
 
-(defun helm-all-the-icons-build-source (data fn)
-  (let ((max-len (cl-loop for (s . _i) in (symbol-value data)
-                          maximize (length s))))
-    (helm-build-sync-source (replace-regexp-in-string
-                             "-alist\\'" ""
-                             (cadr (split-string (symbol-name data) "/")))
-      :candidates (lambda ()
-                    (cl-loop for (name . icon) in (symbol-value data)
-                             for fmt-icon = (funcall fn name)
-                             collect (cons (concat name
-                                                   (make-string
-                                                    (1+ (- max-len (length name))) ? )
-                                                   (format "%s" fmt-icon))
-                                           (cons name icon))))
+(defvar helm-all-the-icons--cache (make-hash-table))
+(defun helm-all-the-icons-build-source (family dfn ifn &optional reporter)
+  "Build source for FAMILY using data fn DFN and insert fn IFN.
+DFN is all-the-icons-<FAMILY>-data and IFN is all-the-icons-<FAMILY>
+function."
+  (let* ((data    (funcall dfn))
+         (max-len (cl-loop for (s . _i) in data
+                           maximize (length s))))
+    (helm-build-sync-source (symbol-name family)
+      :init (lambda ()
+              (unless (gethash family helm-all-the-icons--cache)
+                (puthash family
+                         (cl-loop for (name . icon) in data
+                                  for fmt-icon = (funcall ifn name)
+                                  when reporter do (progress-reporter-update reporter)
+                                  collect (cons (concat (substring-no-properties name)
+                                                        (make-string
+                                                         (1+ (- max-len (length name))) ? )
+                                                        (format "%s" fmt-icon))
+                                                (cons name icon)))
+                         helm-all-the-icons--cache)))
+      :candidates (lambda () (gethash family helm-all-the-icons--cache))
       :action `(("insert icon" . (lambda (candidate)
-                                   (let ((fmt-icon (funcall ',fn (car candidate))))
+                                   (let ((fmt-icon (funcall ',ifn (car candidate))))
                                      (insert (format "%s" fmt-icon)))))
                 ("insert code for icon" . (lambda (candidate)
-                                            (insert (format "(%s \"%s\")" ',fn (car candidate)))))
+                                            (insert (format "(%s \"%s\")" ',ifn (car candidate)))))
                 ("insert name" . (lambda (candidate)
                                    (insert (car candidate))))
                 ("insert raw icon" . (lambda (candidate)
                                        (insert (cdr candidate))))
                 ;; FIXME: yank is inserting the raw icon, not the display.
                 ("kill icon" . (lambda (candidate)
-                                 (let ((fmt-icon (funcall ',fn (car candidate))))
+                                 (let ((fmt-icon (funcall ',ifn (car candidate))))
                                    (kill-new (format "%s" fmt-icon)))))))))
 
+(defmacro helm-all-the-icons-with-progress (&rest body)
+  `(let ((reporter (make-progress-reporter "Updating icons cache...")))
+     (progn
+       ,@body)))
+
 (defun helm-all-the-icons-sources ()
-  (cl-loop for (db . fn) in helm-all-the-icons-alist
-           collect (helm-all-the-icons-build-source db fn)))
+  (cl-declare (special reporter))
+  (helm-all-the-icons-with-progress
+   (cl-loop for (family dfn fn) in helm-all-the-icons-alist
+            collect (helm-all-the-icons-build-source family dfn fn reporter))))
 
 ;;;###autoload
-(defun helm-all-the-icons ()
-  (interactive)
+(defun helm-all-the-icons (&optional refresh)
+  (interactive "P")
   (require 'all-the-icons)
+  (when refresh (clrhash helm-all-the-icons--cache))
   (helm :sources (helm-all-the-icons-sources)
-        :buffer "*helm all the icons*"
-        :candidate-number-limit nil))
+        :buffer "*helm all the icons*"))
 
 (provide 'helm-all-the-icons)
 
-;;; helm-all-the-icons ends here
+;;; helm-all-the-icons.el ends here

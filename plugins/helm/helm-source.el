@@ -39,20 +39,20 @@
 (declare-function helm-init-candidates-in-buffer "helm-core.el")
 (declare-function helm-interpret-value "helm-core.el")
 (declare-function helm-fuzzy-highlight-matches "helm-core.el")
+(declare-function helm-marked-candidates "helm-core.el")
 
 ;;; Advice Emacs fn
-;;  Make Classes's docstrings more readable by removing al the
-;;  unnecessary crap.
+;;  Make Classes's docstrings more readable by removing the attempts to align
+;;  unuseful stuff and add newline for separating slot documentation, as well
+;;  slots are in bold characters.
 
 (defun helm-source--cl--print-table (&rest args)
   "Advice for `cl--print-table' to make readable class slots docstrings."
-  (cl-flet ((print-rows (rows)
-              (let ((format "%s\n\n  Initform=%s\n\n%s"))
-                (dolist (row rows)
-                  (setcar row (propertize (car row) 'face 'bold))
-                  (setcdr row (nthcdr 1 (cdr row)))
-                  (insert "\n* " (apply #'format format row) "\n")))))
-    (print-rows (cadr args))))
+  (let ((format "%s\n\n  Initform=%s\n\n%s"))
+    (dolist (row (cadr args))
+      (setcar row (propertize (car row) 'face 'bold))
+      (setcdr row (nthcdr 1 (cdr row)))
+      (insert "\n* " (apply #'format format row) "\n"))))
 
 (cl-defgeneric helm--setup-source (source)
   "Prepare slots and handle slot errors before creating a helm source.")
@@ -134,7 +134,7 @@
     :initform nil
     :custom function
     :documentation
-    "  Function called with no parameters at before \"init\" function
+    "  Function called with no parameters before :init function
   when `helm-force-update' is called.")
 
    (cleanup
@@ -929,7 +929,7 @@ See `helm-candidates-in-buffer' for more infos.")
                          (when (helm-get-attr 'linum)
                            (while (not (eobp))
                              (add-text-properties
-                              (point-at-bol) (point-at-eol)
+                              (pos-bol) (pos-eol)
                               `(helm-linum ,count))
                              (cl-incf count)
                              (forward-line 1)))))))
@@ -974,7 +974,7 @@ Where OBJECT is an instance of an eieio class."
   "Build a `helm' source named NAME with ARGS for CLASS.
 Argument NAME is a string which define the source name, so no need to use
 the keyword :name in your source, NAME will be used instead.
-Argument CLASS is an eieio class object.
+Argument CLASS is a symbol defining an eieio class object.
 Arguments ARGS are keyword value pairs as defined in CLASS."
   (declare (indent 2))
   (let ((source (apply #'make-instance class name args)))
@@ -1168,15 +1168,18 @@ The header line is based on one of `persistent-action-if',
                      (symbol-value it)
                    it)))
         (setf (slot-value source 'requires-pattern) val)))
+  ;; Warn when hooks are defined as something else as a symbol i.e. a lambda or
+  ;; a list, if a function an error will raise later anyway when this function
+  ;; is called with `run-hooks'.
   (let ((sname (slot-value source 'name)))
-    (pcase (slot-value source 'before-init-hook)
-      ((or (and val (pred (functionp)) (guard (not (symbolp val))))
-           (pred (consp)))
-       (warn "Helm source `%s': before-init-hook Should be defined as a symbol" sname)))
-    (pcase (slot-value source 'after-init-hook)
-      ((or (and val (pred (functionp)) (guard (not (symbolp val))))
-           (pred (consp)))
-       (warn "Helm source `%s': after-init-hook Should be defined as a symbol" sname)))))
+    (helm-aif (slot-value source 'before-init-hook)
+        (when (or (and (functionp it) (not (symbolp it)))
+                  (consp it))
+          (warn "Helm source `%s': before-init-hook Should be defined as a symbol" sname)))
+    (helm-aif (slot-value source 'after-init-hook)
+        (when (or (and (functionp it) (not (symbolp it)))
+                  (consp it))
+          (warn "Helm source `%s': after-init-hook Should be defined as a symbol" sname)))))
 
 (cl-defmethod helm-setup-user-source ((_source helm-source)))
 

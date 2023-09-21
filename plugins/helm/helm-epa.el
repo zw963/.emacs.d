@@ -86,14 +86,18 @@
                                   uid 'face 'font-lock-warning-face))
                          key)))
 
-(defun helm-epa--select-keys (prompt keys)
+(cl-defun helm-epa--select-keys (prompt keys)
   "A helm replacement for `epa--select-keys'."
   (let ((result (helm :sources (helm-make-source "Epa select keys" 'helm-epa
                                  :candidates (lambda ()
-                                               (helm-epa-get-key-list keys)))
+                                               (helm-epa-get-key-list keys))
+                                 :action (lambda (_candidate)
+                                           (helm-marked-candidates)))
                       :prompt (and prompt (helm-epa--format-prompt prompt))
                       :buffer "*helm epa*")))
-    (unless (equal result "")
+    (if (or (equal result "") (null result))
+        (cl-return-from helm-epa--select-keys
+          (error "No keys selected, aborting"))
       result)))
 
 (defun helm-epa--format-prompt (prompt)
@@ -145,7 +149,7 @@
       (progn
         (advice-add 'epa--select-keys :override #'helm-epa--select-keys)
         (advice-add 'epa--read-signature-type :override #'helm-epa--read-signature-type))
-    (advice-remove 'epa-select-keys #'helm-epa--select-keys)
+    (advice-remove 'epa--select-keys #'helm-epa--select-keys)
     (advice-remove 'epa--read-signature-type #'helm-epa--read-signature-type)))
 
 (defun helm-epa-action-transformer (actions _candidate)

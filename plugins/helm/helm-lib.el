@@ -38,8 +38,12 @@
 (declare-function helm-get-sources "helm-core.el")
 (declare-function helm-interpret-value "helm-core.el")
 (declare-function helm-log-run-hook "helm-core.el")
+(declare-function helm-next-line "helm-core.el")
+(declare-function helm-get-next-header-pos "helm-core.el")
+(declare-function helm-mark-current-line "helm-core.el")
 (declare-function helm-marked-candidates "helm-core.el")
 (declare-function helm-set-case-fold-search "helm-core.el")
+(declare-function helm-get-previous-header-pos "helm-core.el")
 (declare-function helm-source--cl--print-table "helm-source.el")
 (declare-function helm-update "helm-core.el")
 (declare-function org-content "org.el")
@@ -61,12 +65,13 @@
 (defvar helm-completion-style)
 (defvar helm-completion-styles-alist)
 (defvar helm-persistent-action-window-buffer)
+(defvar helm-help-buffer-name)
 (defvar completion-flex-nospace)
 (defvar find-function-source-path)
 (defvar ffap-machine-p-unknown)
 (defvar ffap-machine-p-local)
 (defvar ffap-machine-p-known)
-
+(defvar helm-debug-output-buffer)
 
 ;;; User vars.
 ;;
@@ -256,7 +261,7 @@ such as `?d' for a directory, or `?l' for a symbolic link and will override
 the leading `-' char."
     (string
      (or filetype
-         (pcase (lsh mode -12)
+         (pcase (ash mode -12)
            ;; POSIX specifies that the file type is included in st_mode
            ;; and provides names for the file types but values only for
            ;; the permissions (e.g., S_IWOTH=2).
@@ -285,6 +290,112 @@ the leading `-' char."
      (if (zerop (logand 512 mode))
          (if (zerop (logand   1 mode)) ?- ?x)
        (if (zerop (logand   1 mode)) ?T ?t)))))
+
+(unless (and (fboundp 'pos-bol) (fboundp 'pos-eol))
+  (defalias 'pos-bol 'line-beginning-position)
+  (defalias 'pos-eol 'line-end-position))
+
+;;; Compatibility with < Emacs-29
+;;  Needed by helm-packages.el and affixations functions for helm-mode (27)
+;;  waiting package.el moves on Elpa.  Slightly modified to fit with
+;;  Emacs-27/28.
+(when (eval-when-compile (< emacs-major-version 29)) ; Avoid warnings.
+  (progn
+    (require 'package)
+    (eval-and-compile
+      (defun package--archives-initialize ()
+        "Make sure the list of installed and remote packages are initialized."
+        (unless package--initialized
+          (package-initialize t))
+        (unless package-archive-contents
+          (package-refresh-contents)))
+
+      (defun package-get-descriptor (pkg-name)
+        "Return the `package-desc' of PKG-NAME."
+        (unless package--initialized (package-initialize 'no-activate))
+        (or (cadr (assq pkg-name package-alist))
+            (cadr (assq pkg-name package-archive-contents))))
+  
+      (defun package--upgradeable-packages ()
+        ;; Initialize the package system to get the list of package
+        ;; symbols for completion.
+        (package--archives-initialize)
+        (mapcar
+         #'car
+         (seq-filter
+          (lambda (elt)
+            (or (let ((available
+                       (assq (car elt) package-archive-contents)))
+                  (and available
+                       (version-list-<
+                        (package-desc-version (cadr elt))
+                        (package-desc-version (cadr available)))))))
+          package-alist)))
+
+      (defun package-upgrade (name)
+        "Upgrade package NAME if a newer version exists."
+        (let* ((package (if (symbolp name)
+                            name
+                          (intern name)))
+               (pkg-desc (cadr (assq package package-alist))))
+          ;; `pkg-desc' will be nil when the package is an "active built-in".
+          (when pkg-desc
+            (package-delete pkg-desc 'force 'dont-unselect))
+          (package-install package
+                           ;; An active built-in has never been "selected"
+                           ;; before.  Mark it as installed explicitly.
+                           (and pkg-desc 'dont-select))))
+
+      (defun package-recompile (pkg)
+        "Byte-compile package PKG again.
+PKG should be either a symbol, the package name, or a `package-desc'
+object."
+        (let ((pkg-desc (if (package-desc-p pkg)
+                            pkg
+                          (cadr (assq pkg package-alist)))))
+          ;; Delete the old .elc files to ensure that we don't inadvertently
+          ;; load them (in case they contain byte code/macros that are now
+          ;; invalid).
+          (dolist (elc (directory-files-recursively
+                        (package-desc-dir pkg-desc) "\\.elc\\'"))
+            (delete-file elc))
+          (package--compile pkg-desc)))
+
+      (defun package--dependencies (pkg)
+        "Return a list of all dependencies PKG has.
+This is done recursively."
+        ;; Can we have circular dependencies?  Assume "nope".
+        (when-let* ((desc (cadr (assq pkg package-archive-contents)))
+                    (deps (mapcar #'car (package-desc-reqs desc))))
+          (delete-dups (apply #'nconc deps (mapcar #'package--dependencies deps))))))))
+
+;;; Provide `help--symbol-class' not available in emacs-27
+;;
+(unless (fboundp 'help--symbol-class)
+  (defun help--symbol-class (s)
+    "Return symbol class characters for symbol S."
+    (when (stringp s)
+      (setq s (intern-soft s)))
+    (concat
+     (when (fboundp s)
+       (concat
+        (cond
+          ((commandp s) "c")
+          ((eq (car-safe (symbol-function s)) 'macro) "m")
+          (t "f"))
+        (and (let ((flist (indirect-function s)))
+               (advice--p (if (eq 'macro (car-safe flist)) (cdr flist) flist)))
+             "!")
+        (and (get s 'byte-obsolete-info) "-")))
+     (when (boundp s)
+       (concat
+        (if (custom-variable-p s) "u" "v")
+        (and (local-variable-if-set-p s) "'")
+        (and (ignore-errors (not (equal (symbol-value s) (default-value s)))) "*")
+        (and (get s 'byte-obsolete-variable) "-")))
+     (and (facep s) "a")
+     (and (fboundp 'cl-find-class) (cl-find-class s) "t"))))
+
 
 ;;; Macros helper.
 ;;
@@ -623,7 +734,8 @@ displayed in BUFNAME."
 
 (defun helm-help-quit ()
   "Quit `helm-help'."
-  (if (get-buffer-window helm-help-buffer-name 'visible)
+  (if (or (get-buffer-window helm-help-buffer-name 'visible)
+          (get-buffer-window helm-debug-output-buffer 'visible))
       (throw 'helm-help-quit nil)
     (quit-window)))
 
@@ -930,7 +1042,7 @@ Example:
 
     (setq B \\='(1 2 3 4 5 6 7 8 9))
 
-    (helm-group-candidates-by B #'cl-oddp 2 \\='separate)
+    (helm-group-candidates-by B #\\='cl-oddp 2 \\='separate)
     => ((2 4 6 8) (1 3 5 7 9))
 
 SELECTION specify where to start in CANDIDATES.
@@ -984,7 +1096,7 @@ Handle multibyte characters by moving by columns."
     (save-excursion
       (insert str))
     (move-to-column width)
-    (buffer-substring (point-at-bol) (point))))
+    (buffer-substring (pos-bol) (point))))
 
 (defun helm-substring-by-width (str width &optional endstr)
   "Truncate string STR to end at column WIDTH.
@@ -1035,7 +1147,7 @@ than WIDTH."
 
 (defun helm-current-line-contents ()
   "Current line string without properties."
-  (buffer-substring-no-properties (point-at-bol) (point-at-eol)))
+  (buffer-substring-no-properties (pos-bol) (pos-eol)))
 
 (defun helm--replace-regexp-in-buffer-string (regexp rep str &optional fixedcase literal subexp start)
   "Replace REGEXP by REP in string STR.
@@ -1181,8 +1293,10 @@ differently depending of answer:
   "Display documentation of Eieio CLASS, a symbol or a string."
   (advice-add 'cl--print-table :override #'helm-source--cl--print-table '((depth . 100)))
   (unwind-protect
-       (let ((helm-describe-function-function 'describe-function))
-         (helm-describe-function class))
+       (if (fboundp 'cl-describe-type)
+           (cl-describe-type (helm-symbolify class))
+         (let ((helm-describe-function-function 'describe-function))
+           (helm-describe-function (helm-symbolify class))))
     (advice-remove 'cl--print-table #'helm-source--cl--print-table)))
 
 (defun helm-describe-function (func)
@@ -1277,10 +1391,16 @@ TYPE when nil specify function, for other values see
                        ((defvar defface)
                         (or (symbol-file sym it)
                             (help-C-file-name sym 'var)))
+                       ;; Sometimes e.g. with prefix key symbols
+                       ;; `find-function-library' returns a list of only one
+                       ;; element, the symbol itself i.e. no library.
                        (t (cdr (find-function-library sym)))))
-         (library (find-library-name
-                   (helm-basename symbol-lib t))))
-    (find-function-search-for-symbol sym type library)))
+         (library (and symbol-lib
+                       (find-library-name
+                        (helm-basename symbol-lib t)))))
+    (if library
+        (find-function-search-for-symbol sym type library)
+      (error "Don't know where `%s' is defined" sym))))
 
 (defun helm-find-function (func)
   "Try to jump to FUNC definition.
@@ -1289,8 +1409,13 @@ using LOAD-PATH."
   (if (not helm-current-prefix-arg)
       (find-function (helm-symbolify func))
     (let ((place (helm-find-function-noselect func)))
-      (when place
-        (switch-to-buffer (car place)) (goto-char (cdr place))))))
+      (if (cdr place)
+          (progn
+            (switch-to-buffer (car place)) (goto-char (cdr place)))
+        (helm-aif (car place)
+            (message "Couldn't find Function `%s' in `%s'"
+                     func (buffer-name it))
+          (message "Couldn't find Function `%s'" func))))))
 
 (defun helm-find-variable (var)
   "Try to jump to VAR definition.
@@ -1316,6 +1441,12 @@ using LOAD-PATH."
   "CANDIDATE is symbol or string.
 See `kill-new' for argument REPLACE."
   (kill-new (helm-stringify candidate) replace))
+
+(defun helm-group-p (symbol)
+  "Return non nil when SYMBOL is a group."
+  (or (and (get symbol 'custom-loads)
+           (not (get symbol 'custom-autoload)))
+      (get symbol 'custom-group)))
 
 
 ;;; Modes
@@ -1634,6 +1765,16 @@ I.e. when using `helm-next-line' and friends in BODY."
              (lambda (&optional _) nil)))
     (let (helm-follow-mode-persistent)
       (progn ,@body))))
+
+(defun helm-candidate-prefixed-p (candidate)
+  "Return non nil when CANDIDATE is prefixed.
+
+Candidates files are prefixed with [+] or a specific icon when candidate is a
+non existing file, in other places candidates may be prefixed with an unknown
+symbol [?], these candidate have the text property <helm-new-file> or <unknown>
+property."
+  (or (get-text-property 0 'helm-new-file candidate)
+      (get-text-property 0 'unknown candidate)))
 
 ;; Completion styles related functions
 ;;

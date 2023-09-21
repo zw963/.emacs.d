@@ -223,7 +223,7 @@ If `helm-turn-on-show-completion' is nil do nothing."
                     (or
                      (and (eq (char-before) ?\ )
                           (save-excursion
-                            (skip-syntax-backward " " (point-at-bol))
+                            (skip-syntax-backward " " (pos-bol))
                             (memq (symbol-at-point)
                                   helm-lisp-unquoted-function-list)))
                      (and (eq (char-before) ?\')
@@ -241,7 +241,7 @@ If `helm-turn-on-show-completion' is nil do nothing."
                     (and (eq (char-before) ?\')
                          (save-excursion
                            (forward-char (if (funcall fn-sym-p) -2 -1))
-                           (skip-syntax-backward " " (point-at-bol))
+                           (skip-syntax-backward " " (pos-bol))
                            (memq (symbol-at-point)
                                  helm-lisp-quoted-function-list)))
                     (eq (char-before) ?\())) ; no paren before str.
@@ -263,7 +263,7 @@ of symbol before point."
   (save-excursion
     (let (beg
           (end (point))
-          (boundary (field-beginning nil nil (point-at-bol))))
+          (boundary (field-beginning nil nil (pos-bol))))
       (if (re-search-backward (or regexp "\\_<") boundary t)
           (setq beg (match-end 0))
         (setq beg boundary))
@@ -416,6 +416,7 @@ Argument NAME allows specifiying what function to use to display
 documentation when SYM name is the same for function and variable."
   (let ((doc (condition-case _err
                  (pcase sym
+                   ((pred class-p) (cl--class-docstring (cl--find-class sym)))
                    ((and (pred fboundp) (pred boundp))
                     (pcase name
                       ("describe-function"
@@ -423,6 +424,10 @@ documentation when SYM name is the same for function and variable."
                       ("describe-variable"
                        (documentation-property sym 'variable-documentation t))
                       (_ (documentation sym t))))
+                   ((pred custom-theme-p)
+                    (documentation-property sym 'theme-documentation t))
+                   ((pred helm-group-p) (documentation-property
+                                         sym 'group-documentation t))
                    ((pred fboundp)  (documentation sym t))
                    ((pred boundp)   (documentation-property
                                      sym 'variable-documentation t))
@@ -436,7 +441,12 @@ documentation when SYM name is the same for function and variable."
         (truncate-string-to-width
          (substitute-command-keys (car (split-string doc "\n")))
          end-column nil nil t)
-      "Not documented")))
+      (if (or (symbol-function sym) (boundp sym) (facep sym) (helm-group-p sym))
+          "Not documented"
+        ;; Symbol exist but has no definition yet e.g.
+        ;; (advice-add 'foo-test :override (lambda () (message "invalid
+        ;; function"))) and foo-test is not already defined.
+        "Not already defined or loaded"))))
 
 ;;; File completion.
 ;;
@@ -453,7 +463,7 @@ documentation when SYM name is the same for function and variable."
                     (or force
                         (save-excursion
                           (end-of-line)
-                          (search-backward tap (point-at-bol) t)
+                          (search-backward tap (pos-bol) t)
                           (setq beg (point))
                           (looking-back "[^'`( ]" (1- (point)))))
                     (expand-file-name
@@ -489,7 +499,7 @@ double quote."
   (let* ((tap (thing-at-point 'filename)))
     (if (and tap (save-excursion
                    (end-of-line)
-                   (search-backward tap (point-at-bol) t)
+                   (search-backward tap (pos-bol) t)
                    (looking-back "[^'`( ]" (1- (point)))))
         (helm-complete-file-name-at-point)
       (helm-lisp-completion-at-point))))
@@ -533,8 +543,7 @@ is only used to test DEFAULT."
 
 (defun helm-apropos-short-doc-transformer (candidates _source)
   (if helm-apropos-show-short-doc
-      (cl-loop with max-len = (buffer-local-value 'helm-candidate-buffer-longest-len
-                                                  (get-buffer (helm-candidate-buffer)))
+      (cl-loop with max-len = (helm-in-buffer-get-longest-candidate)
                for cand in candidates
                for doc = (helm-get-first-line-documentation (intern-soft cand))
                collect (cons (format "%s%s%s"
@@ -615,7 +624,9 @@ is only used to test DEFAULT."
   (helm-build-in-buffer-source "Variables"
     :init (lambda ()
             (helm-apropos-init
-             (lambda (x) (and (boundp x) (not (keywordp x)))) default))
+             (lambda (x)
+               (and (boundp x) (not (keywordp x)) (not (class-p x))))
+             default))
     :fuzzy-match helm-apropos-fuzzy-match
     :filtered-candidate-transformer
     (delq nil (list (and (null helm-apropos-fuzzy-match)
@@ -721,7 +732,7 @@ is only used to test DEFAULT."
     :persistent-help "Toggle describe class"
     :keymap helm-apropos-map
     :action '(("Describe Class" . helm-describe-class)
-              ("Find Class" . helm-find-function)
+              ("Find Class (C-u for source)" . helm-find-function)
               ("Info lookup" . helm-info-lookup-symbol))))
 
 (defun helm-def-source--eieio-generic (&optional default)
@@ -743,7 +754,7 @@ is only used to test DEFAULT."
     :persistent-help "Toggle describe generic function"
     :keymap helm-apropos-map
     :action '(("Describe function" . helm-describe-function)
-              ("Find function" . helm-find-function)
+              ("Find function (C-u for source)" . helm-find-function)
               ("Info lookup" . helm-info-lookup-symbol))))
 
 (defun helm-info-lookup-fallback-source (candidate)
@@ -926,18 +937,108 @@ a string, i.e. the `symbol-name' of any existing symbol."
                    :action (helm-actions-from-type-file))
         :ff-transformer-show-only-basename nil
         :buffer "*helm locate library*"))
-
+
+;;; Modify variables from Helm
+;;
+;;
 (defun helm-set-variable (var)
   "Set VAR value interactively."
-  (let* ((sym (helm-symbolify var))
-         (val (default-value sym)))
-    (set-default sym (eval-minibuffer
-                      (format "Set `%s': " var)
-                      (if (or (stringp val)
-                              (memq val '(nil t))
-                              (numberp val))
-                          (prin1-to-string val)
-                        (format "'%s" (prin1-to-string val)))))))
+  (let* ((sym  (helm-symbolify var))
+         (val  (default-value sym))
+         (strv (prin1-to-string val)))
+    (if (> (length strv) 25)
+        (helm-edit-variable var)
+      (set-default sym (eval-minibuffer
+                        (format "Set `%s': " var)
+                        (if (or (arrayp val)
+                                (memq val '(nil t))
+                                (numberp val))
+                            strv
+                          (format "'%s" strv)))))))
+
+(defvar helm-edit-variable-mode-map
+  (let ((map (make-sparse-keymap)))
+    (define-key map (kbd "C-c C-c") 'helm-set-variable-from-pp-buffer)
+    (define-key map (kbd "C-c C-k") 'helm-edit-variable-quit)
+    (define-key map (kbd "C-c =")   'helm-edit-variable-toggle-diff)
+    map))
+
+(define-derived-mode helm-edit-variable-mode
+    emacs-lisp-mode "helm-edit-variable"
+    "A mode to edit variables values.
+
+Special commands:
+\\{helm-edit-variable-mode-map}")
+
+(defvar helm-pretty-print-temp-file-name
+  (expand-file-name "helm-edit-variable.el" temporary-file-directory))
+(defvar helm-pretty-print-buffer-name "*pretty print output*")
+(defvar helm-pretty-print-current-symbol nil)
+(defun helm-edit-variable (var)
+  (let* ((sym (intern-soft var))
+         (val (symbol-value sym))
+         (pp  (pp-to-string val))
+         start)
+    (with-current-buffer (get-buffer-create helm-pretty-print-buffer-name)
+      (erase-buffer)
+      (helm-edit-variable-mode)
+      (setq start (point))
+      ;; Any number of lines starting with ";;;" + one empty line.
+      (insert (format ";;; Edit variable `%s' and hit C-c C-c when done\n" sym)
+              ";;; Abort with C-c C-k\n\n")
+      (add-text-properties start (1- (point)) '(read-only t))
+      (add-text-properties (1- (point)) (point) '(read-only t rear-nonsticky t))
+      (set (make-local-variable 'helm-pretty-print-current-symbol) sym)
+      (add-hook 'kill-buffer-hook
+                (lambda ()
+                  (when (file-exists-p helm-pretty-print-temp-file-name)
+                    (delete-file helm-pretty-print-temp-file-name)))
+                nil t)
+      (save-excursion (insert pp))
+      (write-region
+       (point-min) (point-max) helm-pretty-print-temp-file-name nil 1)
+      (setq buffer-file-name helm-pretty-print-temp-file-name))
+    (display-buffer helm-pretty-print-buffer-name)))
+
+(defun helm-edit-variable-toggle-diff ()
+  "Show diff in edit variable buffer."
+  (interactive)
+  (if (get-buffer-window "*Diff*" 'visible)
+      (kill-buffer "*Diff*")
+    (diff-buffer-with-file)))
+
+(defun helm-set-variable-from-pp-buffer ()
+  "Set variable associated with buffer to buffer contents.
+
+The associated variable is the local variable
+`helm-pretty-print-current-symbol'."
+  (interactive)
+  (with-current-buffer helm-pretty-print-buffer-name
+    (goto-char (point-min))
+    (when (re-search-forward "^$" nil t)
+      (forward-line 1))
+    (let ((val (symbol-value helm-pretty-print-current-symbol)))
+      (save-excursion
+        (if (or (arrayp val)
+                (memq val '(nil t))
+                (numberp val)
+                (looking-at "[`']"))
+            (set-default helm-pretty-print-current-symbol
+                         (read (current-buffer)))
+          (set-default helm-pretty-print-current-symbol
+                       `(,@(read (current-buffer))))))
+      (if (equal val (symbol-value helm-pretty-print-current-symbol))
+          (message "No changes done")
+        (message "`%s' value modified" helm-pretty-print-current-symbol))
+      (helm-edit-variable-quit))))
+
+(defun helm-edit-variable-quit ()
+  "Quit edit variable buffer."
+  (interactive)
+  (set-buffer-modified-p nil)
+  (quit-window t)
+  (helm-aif (get-buffer-window "*Diff*" 'visible)
+      (quit-window t it)))
 
 
 ;;; Elisp Timers.

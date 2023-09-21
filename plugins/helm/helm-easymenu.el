@@ -48,8 +48,7 @@
     ["Gnus Manual index" helm-info-gnus t]
     ["Helm documentation" helm-documentation t])
    ("Elpa"
-    ["Elisp packages" helm-list-elisp-packages t]
-    ["Elisp packages no fetch" helm-list-elisp-packages-no-fetch t])
+    ["Elisp packages" helm-packages t])
    ("Tools"
     ["Occur" helm-occur t]
     ["Grep current directory with AG" helm-do-grep-ag t]

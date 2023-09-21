@@ -135,8 +135,7 @@ fuzzy matching is running its own sort function with a different
 algorithm."
   (with-helm-current-buffer
     (cl-loop with max-len = (when helm-M-x-show-short-doc
-                              (buffer-local-value 'helm-candidate-buffer-longest-len
-                                                  (get-buffer (helm-candidate-buffer))))
+                              (helm-in-buffer-get-longest-candidate))
              with local-map = (helm-M-x-current-mode-map-alist)
              for cand in candidates
              for local-key  = (car (rassq cand local-map))
@@ -153,25 +152,28 @@ algorithm."
              unless (and (null ignore-props) (or (get sym 'helm-only) (get sym 'no-helm-mx)))
              collect
              (cons (cond ((and (string-match "^M-x" key) local-key)
-                          (format "%s%s%s %s"
-                                  disp
-                                  (if doc (make-string (+ 1 (- max-len (length cand))) ? ) "")
-                                  (if doc (propertize doc 'face 'helm-M-x-short-doc) "")
-                                  (propertize
-                                   " " 'display
-                                   (propertize local-key 'face 'helm-M-x-key))))
+                          (propertize (format "%s%s%s %s"
+                                              disp
+                                              (if doc (make-string (+ 1 (- max-len (length cand))) ? ) "")
+                                              (if doc (propertize doc 'face 'helm-M-x-short-doc) "")
+                                              (propertize
+                                               " " 'display
+                                               (propertize local-key 'face 'helm-M-x-key)))
+                                      'match-part disp))
                          ((string-match "^M-x" key)
-                          (format "%s%s%s"
-                                  disp
-                                  (if doc (make-string (+ 1 (- max-len (length cand))) ? ) "")
-                                  (if doc (propertize doc 'face 'helm-M-x-short-doc) "")))
-                         (t (format "%s%s%s %s"
-                                    disp
-                                    (if doc (make-string (+ 1 (- max-len (length cand))) ? ) "")
-                                    (if doc (propertize doc 'face 'helm-M-x-short-doc) "")
-                                    (propertize
-                                     " " 'display
-                                     (propertize key 'face 'helm-M-x-key)))))
+                          (propertize (format "%s%s%s"
+                                              disp
+                                              (if doc (make-string (+ 1 (- max-len (length cand))) ? ) "")
+                                              (if doc (propertize doc 'face 'helm-M-x-short-doc) ""))
+                                      'match-part disp))
+                         (t (propertize (format "%s%s%s %s"
+                                                disp
+                                                (if doc (make-string (+ 1 (- max-len (length cand))) ? ) "")
+                                                (if doc (propertize doc 'face 'helm-M-x-short-doc) "")
+                                                (propertize
+                                                 " " 'display
+                                                 (propertize key 'face 'helm-M-x-key)))
+                                        'match-part disp)))
                    cand)
              into ls
              finally return
@@ -200,7 +202,7 @@ algorithm."
   (save-excursion
     (beginning-of-defun)
     (cadr (split-string (buffer-substring-no-properties
-                         (point-at-bol) (point-at-eol))))))
+                         (pos-bol) (pos-eol))))))
 
 (defun helm-cmd--get-preconfigured-commands (&optional dir)
   (let* ((helm-dir (or dir (helm-basedir (locate-library "helm"))))
