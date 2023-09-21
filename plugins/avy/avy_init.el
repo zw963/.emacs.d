@@ -124,8 +124,9 @@ Otherwise, forward to `goto-line' with ARG."
  :foreground "lawn green")
 
 ;; 这个和 treemacs rightclick menu 冲突.
-(require 'ace-popup-menu)
-(ace-popup-menu-mode 1)
+;; 在某些情况下，这个无法方便的像 helm 一样过滤，不够方便
+;; (require 'ace-popup-menu)
+;; (ace-popup-menu-mode 1)
 
 (with-eval-after-load 'yasnippet
   ;; 当设定为 yas-x-prompt 时, 会使用 ace-popup-menu
