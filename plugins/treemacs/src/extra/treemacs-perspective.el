@@ -51,7 +51,7 @@ Returns the symbol `none' if no perspective is active."
 Will return \"No Perspective\" if no perspective is active."
   (if (eq 'none perspective)
       "No Perspective"
-    (format "Perspective %s" (persp-name perspective))))
+    (treemacs-perspective--format-workspace-name (persp-name perspective))))
 
 (defun treemacs-perspective--on-scope-kill ()
   "Cleanup hook to run when a perspective is killed."
@@ -60,19 +60,29 @@ Will return \"No Perspective\" if no perspective is active."
 (cl-defmethod treemacs-scope->setup ((_ (subclass treemacs-perspective-scope)))
   "Perspective-scope setup."
   (add-hook 'persp-switch-hook #'treemacs-perspective--on-perspective-switch)
+  (add-hook 'persp-after-rename-hook #'treemacs-perspective--on-perspective-rename)
   (add-hook 'persp-killed-hook #'treemacs-perspective--on-scope-kill)
   (treemacs-perspective--ensure-workspace-exists))
 
 (cl-defmethod treemacs-scope->cleanup ((_ (subclass treemacs-perspective-scope)))
   "Perspective-scope tear-down."
   (remove-hook 'persp-switch-hook #'treemacs-perspective--on-perspective-switch)
+  (remove-hook 'persp-after-rename-hook #'treemacs-perspective--on-perspective-rename)
   (remove-hook 'persp-killed-hook #'treemacs-perspective--on-scope-kill))
+
+(defun treemacs-perspective--on-perspective-rename ()
+  "Hook running after the perspective was renamed.
+Will rename the current workspace to the current perspective's name."
+  (treemacs-do-rename-workspace
+   ;; Current workspace's name
+   (treemacs-current-workspace)
+   (treemacs-perspective--format-workspace-name (persp-current-name))))
 
 (defun treemacs-perspective--on-perspective-switch (&rest _)
   "Hook running after the perspective was switched.
 Will select a workspace for the now active perspective, creating it if
 necessary."
-  ;; runnig with a timer ensures that any other post-processing is finished after a perspective
+  ;; running with a timer ensures that any other post-processing is finished after a perspective
   ;; was run since commands like `spacemacs/helm-persp-switch-project' first create a perspective
   ;; and only afterwards select the file to display
   (run-with-timer
@@ -114,7 +124,7 @@ does not return anything the projects of the fallback workspace will be copied."
                       :path root-path
                       :path-status (treemacs--get-path-status root-path))))
        (-let [fallback-workspace (car treemacs--workspaces)]
-         ;; copy the projects instead of reusing them so we don't accidentially rename
+         ;; copy the projects instead of reusing them so we don't accidentally rename
          ;; a project in 2 workspaces
          (dolist (project (treemacs-workspace->projects fallback-workspace))
            (push (treemacs-project->create!
@@ -124,6 +134,10 @@ does not return anything the projects of the fallback workspace will be copied."
                  project-list))))
      (setf (treemacs-workspace->projects ws) (nreverse project-list))
      (treemacs-return ws))))
+
+(defun treemacs-perspective--format-workspace-name (perspective-name)
+  "Format of the workspace name used for a perspective named PERSPECTIVE-NAME."
+  (format "Perspective %s" perspective-name))
 
 (provide 'treemacs-perspective)
 

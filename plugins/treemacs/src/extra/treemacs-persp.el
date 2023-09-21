@@ -55,19 +55,28 @@ Will return \"No Perspective\" if no perspective is active."
 (cl-defmethod treemacs-scope->setup ((_ (subclass treemacs-persp-scope)))
   "Persp-scope setup."
   (add-hook 'persp-activated-functions #'treemacs-persp--on-perspective-switch)
+  (add-hook 'persp-renamed-functions #'treemacs-persp--on-perspective-rename)
   (add-hook 'persp-before-kill-functions #'treemacs--on-scope-kill)
   (treemacs-persp--ensure-workspace-exists))
 
 (cl-defmethod treemacs-scope->cleanup ((_ (subclass treemacs-persp-scope)))
   "Persp-scope tear-down."
   (remove-hook 'persp-activated-functions #'treemacs-persp--on-perspective-switch)
+  (remove-hook 'persp-renamed-functions #'treemacs-persp--on-perspective-rename)
   (remove-hook 'persp-before-kill-functions #'treemacs--on-scope-kill))
+
+(defun treemacs-persp--on-perspective-rename (_perspective old-name new-name)
+  "Hook running after perspective was renamed.
+Will rename treemacs perspective workspace OLD-NAME to use NEW-NAME."
+  (treemacs-do-rename-workspace
+   (treemacs--find-workspace-by-name (treemacs-persp--format-workspace-name old-name))
+   (treemacs-persp--format-workspace-name new-name)))
 
 (defun treemacs-persp--on-perspective-switch (&rest _)
   "Hook running after the perspective was switched.
 Will select a workspace for the now active perspective, creating it if
 necessary."
-  ;; runnig with a timer ensures that any other post-processing is finished after a perspective
+  ;; running with a timer ensures that any other post-processing is finished after a perspective
   ;; was run since commands like `spacemacs/helm-persp-switch-project' first create a perspective
   ;; and only afterwards select the file to display
   (run-with-timer
@@ -109,7 +118,7 @@ does not return anything the projects of the fallback workspace will be copied."
                       :path root-path
                       :path-status (treemacs--get-path-status root-path))))
        (-let [fallback-workspace (car treemacs--workspaces)]
-         ;; copy the projects instead of reusing them so we don't accidentially rename
+         ;; copy the projects instead of reusing them so we don't accidentally rename
          ;; a project in 2 workspaces
          (dolist (project (treemacs-workspace->projects fallback-workspace))
            (push (treemacs-project->create!
@@ -119,6 +128,10 @@ does not return anything the projects of the fallback workspace will be copied."
                  project-list))))
      (setf (treemacs-workspace->projects ws) (nreverse project-list))
      (treemacs-return ws))))
+
+(defun treemacs-persp--format-workspace-name (perspective-name)
+  "Format of the workspace name used for a perspective named PERSPECTIVE-NAME."
+  (format "Perspective %s" perspective-name))
 
 (provide 'treemacs-persp)
 

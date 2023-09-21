@@ -24,7 +24,7 @@
 ;;; Closing the gaps for filewatch- and git-modes in conjunction with magit.
 ;;; Specifically this package will hook into magit so as to artificially
 ;;; produce filewatch events for changes that treemacs would otherwise
-;;; not catch, nameley the committing and (un)staging of files.
+;;; not catch, namely the committing and (un)staging of files.
 
 ;;; Code:
 
@@ -181,7 +181,7 @@ Relevant for integrating with `treemacs-git-commit-diff-mode'.")
             :directory path
             :on-success
             (-let [out (-> (pfuture-callback-output)
-                           (string-trim-right)
+                           (treemacs-string-trim-right)
                            (read))]
               (treemacs-run-in-every-buffer
                (-when-let* ((project (treemacs--find-project-for-path path))
