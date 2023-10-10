@@ -84,12 +84,12 @@
 
 (treemacs-import-functions-from "treemacs-visuals"
   treemacs-pulse-on-success
-  treemacs--tear-down-icon-highlight
-  treemacs--forget-previously-follow-tag-btn
-  treemacs--forget-last-highlight)
+  treemacs--forget-previously-follow-tag-btn)
 
 (treemacs-import-functions-from "treemacs-async"
   treemacs--git-status-process
+  treemacs--non-simple-git-mode-enabled
+  treemacs-update-single-file-git-state
   treemacs--collapsed-dirs-process)
 
 (treemacs-import-functions-from "treemacs-dom"
@@ -475,7 +475,10 @@ being edited to trigger."
        ;; filewatch mode needs the node's information to be in the dom
        (unless (with-no-warnings treemacs-filewatch-mode)
          (treemacs-run-in-every-buffer
-          (treemacs-on-collapse ,path t)))))))
+          (treemacs-on-collapse ,path t)))
+       (when (treemacs--non-simple-git-mode-enabled)
+         (treemacs-run-in-every-buffer
+          (treemacs-update-single-file-git-state (treemacs--parent-dir ,path))))))))
 
 (define-inline treemacs--refresh-dir (path &optional project)
   "Local refresh for button at PATH and PROJECT.
@@ -1079,7 +1082,6 @@ Will be added to `treemacs-ignored-file-predicates' on Macs."
         (treemacs--popup-window)
         (with-current-buffer lv-buffer (setf window-size-fixed t)))
     (treemacs--popup-window))
-  (treemacs--forget-last-highlight)
   (setq-local treemacs--in-this-buffer t))
 
 (define-inline treemacs--parent (path)
