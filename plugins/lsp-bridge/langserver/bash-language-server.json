@@ -1,9 +1,0 @@
-{
-  "name": "bash-language-server",
-  "languageId": "bash",
-  "command": [
-    "bash-language-server",
-    "start"
-  ],
-  "settings": {}
-}

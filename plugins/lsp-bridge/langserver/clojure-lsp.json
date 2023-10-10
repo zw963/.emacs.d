@@ -1,7 +1,0 @@
-{
-  "name": "clojure-lsp",
-  "languageId": "clojure",
-  "command": ["clojure-lsp"],
-  "settings": {},
-  "support-single-file": false
-}

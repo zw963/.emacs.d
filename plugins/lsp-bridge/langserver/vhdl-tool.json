@@ -1,9 +1,0 @@
-{
-  "name": "vhdl-tool",
-  "languageId": "vhdl",
-  "command": [
-    "vhdl-tool",
-    "lsp"
-  ],
-  "settings": {}
-}

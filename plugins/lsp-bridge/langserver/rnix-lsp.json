@@ -1,6 +1,0 @@
-{
-  "name": "rnix-lsp",
-  "languageId": "nix",
-  "command": ["rnix-lsp"],
-  "settings": {}
-}

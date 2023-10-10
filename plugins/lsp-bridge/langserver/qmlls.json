@@ -1,5 +1,0 @@
-{
-  "name": "qmlls",
-  "languageId": "qml",
-  "command": ["qmlls"]
-}

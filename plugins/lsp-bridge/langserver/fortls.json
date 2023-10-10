@@ -1,6 +1,0 @@
-{
-  "name": "fortls",
-  "languageId": "fortran",
-  "command": ["fortls"],
-  "settings": {}
-}

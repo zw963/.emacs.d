@@ -1,6 +1,0 @@
-{
-  "name": "ocamllsp",
-  "languageId": "ocaml",
-  "command": ["ocamllsp"],
-  "settings": {}
-}

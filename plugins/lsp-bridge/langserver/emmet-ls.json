@@ -1,9 +1,0 @@
-{
-  "name": "emmet-ls",
-  "languageId": "html",
-  "command": [
-    "emmet-ls",
-    "--stdio"
-  ],
-  "settings": {}
-}

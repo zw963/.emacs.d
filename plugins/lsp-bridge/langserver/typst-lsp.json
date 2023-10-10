@@ -1,6 +1,0 @@
-{
-  "name": "typst-lsp",
-  "languageId": "typst",
-  "command": ["typst-lsp"],
-  "settings": {}
-}

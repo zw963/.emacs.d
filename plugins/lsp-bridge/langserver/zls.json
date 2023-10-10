@@ -1,6 +1,0 @@
-{
-  "name": "zls",
-  "languageId": "zig",
-  "command": ["zls"],
-  "settings": {}
-}

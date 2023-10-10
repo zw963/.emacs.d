@@ -1,9 +1,0 @@
-{
-  "name": "phpactor",
-  "languageId": "php",
-  "command": [
-    "phpactor",
-    "language-server"
-  ],
-  "settings": {}
-}

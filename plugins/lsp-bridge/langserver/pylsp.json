@@ -1,7 +1,0 @@
-{
-  "name": "pylsp",
-  "languageId": "python",
-  "command": ["pylsp"],
-  "incomplete-fuzzy-match": true,
-  "settings": {}
-}
