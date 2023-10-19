@@ -108,9 +108,16 @@ Otherwise, forward to `goto-line' with ARG."
 ;; (setq aw-keys '(?a ?s ?d ?f ?g ?h ?j ?k ?l))
 (setq aw-scope 'visible)
 (setq aw-dispatch-always t)
+
 ;; ace-window 激活后，有一个有用的快捷键 m, 用来交换当前 window 和指定的 window.
 ;; 或者直接 C-u C-x o, 直接就是 swap window, C-u C-u C-x 0, 删除指定的 window.
-(global-set-key [remap other-window] 'ace-window)
+;; (global-set-key [remap other-window] 'ace-window)
+(global-set-key [remap other-window] (lambda ()
+                                       (interactive)
+                                       (progn
+                                         (setq unread-command-events (listify-key-sequence (kbd "?"))) ;; Queue "?" key command to be sent
+                                         (ace-window nil))
+                                       ))
 
 (set-face-attribute
  'aw-leading-char-face nil
