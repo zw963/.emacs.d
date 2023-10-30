@@ -1,8 +1,6 @@
+(require 'dap-mode_init)
 (require 'lsp-mode)
 (require 'lsp-completion)
-
-(add-to-list 'lsp-language-id-configuration '("\\.erb$" . "html"))
-(add-to-list 'lsp-language-id-configuration '("\\.ecr$" . "html"))
 
 ;; 如果退出最后一个 lsp buffer, 自动 kill 掉 lsp-server，否则 Emacs 会很慢。
 ;; (setq lsp-keep-workspace-alive nil)
@@ -130,11 +128,8 @@
   (add-hook 'lsp-after-open-hook 'lsp-enable-which-key-integration))
 
 ;; 关闭 html-ls 和 emmet-ls 来使得 lsp-tailwindcss 生效
-(setq lsp-disabled-clients '(html-ls emmet-ls ruby-ls))
+(setq lsp-disabled-clients '(html-ls emmet-ls eslint rubocop-ls semgrep-ls))
 (setq lsp-tailwindcss-add-on-mode t)
-(require 'lsp-tailwindcss)
-(add-hook 'before-save-hook 'lsp-tailwindcss-rustywind-before-save)
-;; (add-to-list 'lsp-tailwindcss-major-modes 'crystal-mode)
 
 (provide 'lsp-mode_init)
 
