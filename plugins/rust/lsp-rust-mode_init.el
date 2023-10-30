@@ -1,5 +1,4 @@
 (require 'lsp-mode_init)
-(require 'dap-mode_init)
 (require 'lsp-rust)
 
 (setq lsp-rust-analyzer-display-chaining-hints t)

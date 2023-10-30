@@ -66,7 +66,6 @@
 (add-hook 'ruby-mode-hook 'zw/lsp-ruby-common-hooks)
 (add-hook 'enh-ruby-mode-hook 'zw/lsp-ruby-common-hooks)
 
-;; (require 'dap-mode_init)
 ;; (require 'dap-ruby)
 ;; (dap-ruby-setup)
 
