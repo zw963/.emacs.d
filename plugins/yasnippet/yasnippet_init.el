@@ -186,6 +186,9 @@
 ;; (require 'yasnippet-multiple-key)
 ;; (yasnippet-multiple-key-compile-directory (expand-file-name "snippets"))
 
+(require 'helm-c-yasnippet)
+(setq helm-yas-space-match-any-greedy t)
+
 (yas-recompile-all)
 (yas-global-mode t)
 
