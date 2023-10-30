@@ -44,13 +44,13 @@
 (defgroup lsp-rust-analyzer nil
   "LSP support for Rust, using rust-analyzer."
   :group 'lsp-mode
-  :link '(url-link "https://github.com/rust-analyzer/rust-analyzer")
+  :link '(url-link "https://github.com/rust-lang/rust-analyzer")
   :package-version '(lsp-mode . "8.0.0"))
 
 (defgroup lsp-rust-analyzer-semantic-tokens nil
   "LSP semantic tokens support for rust-analyzer."
   :group 'lsp-rust-analyzer
-  :link '(url-link "https://github.com/rust-analyzer/rust-analyzer")
+  :link '(url-link "https://github.com/rust-lang/rust-analyzer")
   :package-version '(lsp-mode . "8.0.1"))
 
 (defcustom lsp-rust-server 'rust-analyzer
@@ -157,7 +157,7 @@ the latest build duration."
   :group 'lsp-rust-rls
   :package-version '(lsp-mode . "6.1"))
 
-(defcustom lsp-rust-crate-blacklist  [
+(defcustom lsp-rust-crate-blocklist  [
                                       "cocoa"
                                       "gleam"
                                       "glium"
@@ -172,7 +172,7 @@ the latest build duration."
                                       "unicode_segmentation"
                                       "winapi"
                                       ]
-  "A list of Cargo crates to blacklist."
+  "A list of Cargo crates to blocklist."
   :type 'lsp-string-vector
   :group 'lsp-rust-rls
   :package-version '(lsp-mode . "6.1"))
@@ -298,7 +298,7 @@ is often the type local variable declaration."
    ("rust.all_features" lsp-rust-all-features t)
    ("rust.features" lsp-rust-features)
    ("rust.build_on_save" lsp-rust-build-on-save t)
-   ("rust.crate_blacklist" lsp-rust-crate-blacklist)
+   ("rust.crate_blocklist" lsp-rust-crate-blocklist)
    ("rust.show_warnings" lsp-rust-show-warnings t)
    ("rust.wait_to_build" lsp-rust-wait-to-build)
    ("rust.unstable_features" lsp-rust-unstable-features t)
@@ -904,7 +904,7 @@ or JSON objects in `rust-project.json` format."
   (lsp-send-request (lsp-make-request "rust-analyzer/reloadWorkspace")))
 
 (defcustom lsp-rust-analyzer-download-url
-  (format "https://github.com/rust-analyzer/rust-analyzer/releases/latest/download/%s"
+  (format "https://github.com/rust-lang/rust-analyzer/releases/latest/download/%s"
           (pcase system-type
             ('gnu/linux "rust-analyzer-x86_64-unknown-linux-gnu.gz")
             ('darwin (if (string-match "^aarch64-.*" system-configuration)
@@ -1549,7 +1549,7 @@ and run a compilation"
   "Open the closest Cargo.toml from the current file.
 
 Rust-Analyzer LSP protocol documented here and added in November 2020
-https://github.com/rust-analyzer/rust-analyzer/blob/master/docs/dev/lsp-extensions.md#open-cargotoml
+https://github.com/rust-lang/rust-analyzer/blob/master/docs/dev/lsp-extensions.md#open-cargotoml
 
 If NEW-WINDOW (interactively the prefix argument) is non-nil,
 open in a new window."
@@ -1570,7 +1570,7 @@ open in a new window."
   "Open a URL for documentation related to the current TextDocumentPosition.
 
 Rust-Analyzer LSP protocol documented here
-https://github.com/rust-analyzer/rust-analyzer/blob/master/docs/dev/lsp-extensions.md#open-external-documentation"
+https://github.com/rust-lang/rust-analyzer/blob/master/docs/dev/lsp-extensions.md#open-external-documentation"
   (interactive)
   (-if-let* ((params (lsp-make-rust-analyzer-open-external-docs-params
                       :text-document (lsp--text-document-identifier)
@@ -1607,7 +1607,7 @@ the `lsp-rust-analyzer--last-runnable' variable."
   "Execute a RUNNABLE test related to the current document position.
 
 Rust-Analyzer LSP protocol extension
-https://github.com/rust-analyzer/rust-analyzer/blob/master/docs/dev/lsp-extensions.md#related-tests"
+https://github.com/rust-lang/rust-analyzer/blob/master/docs/dev/lsp-extensions.md#related-tests"
   (interactive (list (lsp-rust-analyzer--select-related-test)))
   (if runnable
       (lsp-rust-analyzer--common-runner runnable)

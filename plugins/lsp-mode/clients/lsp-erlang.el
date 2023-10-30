@@ -92,6 +92,13 @@ It can use erlang-ls or erlang-language-platform (ELP)."
 
 ;; erlang-language-platform
 
+(lsp-defcustom lsp-erlang-elp-types-on-hover t
+  "Show eqWAlizer types on hover."
+  :type 'boolean
+  :group 'lsp-erlang-elp
+  :package-version '(lsp-mode . "8.0.1")
+  :lsp-path "elp.typesOnHover.enable")
+
 (defcustom lsp-erlang-elp-server-command '("elp" "server")
   "Command to start erlang-language-platform."
   :type '(repeat string)
@@ -101,8 +108,11 @@ It can use erlang-ls or erlang-language-platform (ELP)."
 (defcustom lsp-erlang-elp-download-url
   (format "https://github.com/WhatsApp/erlang-language-platform/releases/latest/download/%s"
           (pcase system-type
-            ('gnu/linux "elp-linux-otp-26.tar.gz")
-            ('darwin "elp-macos-otp-25.3.tar.gz")))
+            ('gnu/linux "elp-linux-x86_64-unknown-linux-gnu-otp-26.tar.gz")
+            ('darwin
+             (if (string-match "^aarch64-.*" system-configuration)
+                 "elp-macos-aarch64-apple-darwin-otp-25.3.tar.gz"
+               "elp-macos-x86_64-apple-darwin-otp-25.3.tar.gz"))))
   "Automatic download url for erlang-language-platform."
   :type 'string
   :group 'lsp-erlang-elp
