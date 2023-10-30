@@ -163,21 +163,42 @@
   (run-ruby-mode-hook '(ac-add-yas-source))
   )
 
-;; (defun yas/popup-isearch-prompt (prompt choices &optional display-fn)
-;;   (when (featurep 'popup)
-;;     (popup-menu*
-;;      (mapcar
-;;       (lambda (choice)
-;;         (popup-make-item
-;;          (or (and display-fn (funcall display-fn choice))
-;;              choice)
-;;          :value choice))
-;;       choices)
-;;      :prompt prompt
-;;      ;; start isearch mode immediately
-;;      :isearch t
-;;      )))
-;; (setq yas-prompt-functions '(yas/popup-isearch-prompt yas/no-prompt))
+(defun shk-yas/helm-prompt (prompt choices &optional display-fn)
+  "Use helm to select a snippet. Put this into `yas-prompt-functions.'"
+  (interactive)
+  (if (require 'helm-config nil t)
+      (let ((result (helm-other-buffer
+                     (list `((name . ,prompt)
+                             (candidates . ,(if display-fn (mapcar display-fn choices)
+                                              choices))
+                             (action . (("Expand" . identity)))))
+                     "*helm-select-yasnippet")))
+        (cond ((null result)
+               (signal 'quit "user quit!"))
+              (display-fn
+               (catch 'result
+                 (dolist (choice choices)
+                   (when (equal (funcall display-fn choice) result)
+                     (throw 'result choice)))))
+              (t result)))
+    nil))
+
+(defun yas/popup-isearch-prompt (prompt choices &optional display-fn)
+  (when (featurep 'popup)
+    (popup-menu*
+     (mapcar
+      (lambda (choice)
+        (popup-make-item
+         (or (and display-fn (funcall display-fn choice))
+             choice)
+         :value choice))
+      choices)
+     :prompt prompt
+     ;; start isearch mode immediately
+     :isearch t
+     )))
+
+(setq yas-prompt-functions '(shk-yas/helm-prompt yas/popup-isearch-prompt yas/no-prompt))
 
 ;; (require 'dropdown-list)
 ;; (setq yas-prompt-functions '(yas-x-prompt yas-dropdown-prompt))
