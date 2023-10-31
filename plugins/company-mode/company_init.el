@@ -8,6 +8,13 @@
 ;; (setq company-dabbrev-code-ignore-case nil)
 ;; (setq company-dabbrev-code-everywhere t)
 
+;; Enable downcase only when completing the completion.
+(defun jcs--company-complete-selection--advice-around (fn)
+  "Advice execute around `company-complete-selection' command."
+  (let ((company-dabbrev-downcase t))
+    (call-interactively fn)))
+(advice-add 'company-complete-selection :around #'jcs--company-complete-selection--advice-around)
+
 ;; FIXME: 测试一下啥效果
 ;; (setq company-tooltip-limit 5)                      ; bigger popup window
 (setq company-tooltip-width-grow-only t) ; 如果 candidates 变宽，tooltip 也跟着变宽，但是不会重新变窄。
@@ -21,7 +28,7 @@
                               (delete 'c-electric-slash
                                       company-begin-commands)))))
 
-;; (setq company-tooltip-align-annotations t) ;; candidate 的注释在 tooltip 右边靠齐
+(setq company-tooltip-align-annotations t) ;; candidate 的注释在 tooltip 右边靠齐
 ;; (global-set-key (kbd "C-c /") 'company-files)
 
 ;; 注意： 默认 TAB 的行为是 company-complete-common, 他会自动完成当前 candidates 的

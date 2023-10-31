@@ -1,9 +1,13 @@
 (require 'web-mode)
-(require 'instant-rename-tag)
-(require 'lsp-web-mode_init)
+;; (require 'lsp-web-mode_init)
 
 ;; (require 'auto-rename-tag)
 ;; (add-hook 'web-mode-hook 'auto-rename-tag-mode)
+
+(require 'instant-rename-tag)
+(add-hook 'web-mode-hook '(lambda ()
+                            (local-set-key [(f7)] 'instant-rename-tag)
+                            ))
 
 (defun zw/web-mode-common-hooks ()
   (local-set-key [(control c) (return)] 'save-buffer-and-browse-url)
@@ -14,8 +18,6 @@
   (local-set-key [(control meta ?\s)] 'rhtml-mark-sexp-tag)
   (local-set-key [(control tab)] 'web-mode-element-children-fold-or-unfold)
   (local-set-key [(meta return)] 'html-mode-newline-and-indent)
-  ;; (local-set-key [(f7)] 'instant-rename-tag)
-  ;; (auto-rename-tag-mode)
   (setq-local fill-column 120)
   (setq-local company-minimum-prefix-length 1)
   )
