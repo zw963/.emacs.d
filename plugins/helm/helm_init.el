@@ -19,5 +19,10 @@
 ;; (require 'helm-fasd)
 ;; (require 'helm-rg)
 
+(require 'helm-flx)
+(setq helm-flx-for-helm-find-files t ;; t by default
+      helm-flx-for-helm-locate t) ;; nil by default
+(helm-flx-mode 1)
+
 (provide 'helm_init)
 ;;; helm_init.el ends here
