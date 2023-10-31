@@ -107,6 +107,9 @@
 (add-hook 'feature-mode-hook 'display-line-numbers-mode)
 (add-hook 'yaml-mode-hook 'display-line-numbers-mode)
 (add-hook 'markdown-mode-hook 'display-line-numbers-mode)
+
+;; emacs 29 support
+(pixel-scroll-precision-mode 1)
 ;; (setq display-line-numbers 'relative)
 
 
