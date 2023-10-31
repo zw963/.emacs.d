@@ -1,10 +1,7 @@
 (require 'ido-other-window)
 (require 'ido)
-(require 'flx-ido)
-(with-eval-after-load 'ido
-  (add-list-to-list 'ido-ignore-buffers boring-buffer-regexp-list))
-(with-eval-after-load 'ido
-  (add-list-to-list 'ido-ignore-files boring-file-regexp-list))
+(add-list-to-list 'ido-ignore-buffers boring-buffer-regexp-list)
+(add-list-to-list 'ido-ignore-files boring-file-regexp-list)
 (ido-mode t)
 
 ;; ido-everywhere 和 helm 冲突, 不要开启.
@@ -14,7 +11,6 @@
 ;; (require 'icomplete)
 ;; (icomplete-mode t)
 
-(flx-ido-mode t)
 (setq ido-enable-flex-matching t)     ; 打开高级匹配。例如: foo 将会匹配 froo
 (setq ido-use-faces nil)              ; 关闭 ido 默认的高亮, 使用 flx-ido 高亮
 (setq flx-ido-threshold 6000)         ; 默认值 6000, 是一个比较保守的阈值.

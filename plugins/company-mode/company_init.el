@@ -197,9 +197,6 @@ ac-auto-show-menu 为 nil 的情形, 这种模式比较适合在 yasnippet 正�
 ;; (require 'company-tng)
 ;; (add-hook 'after-init-hook 'company-tng-mode)
 
-;; (require 'company-fuzzy)
-;; (global-company-fuzzy-mode 1)
-
 (with-eval-after-load 'web-mode
   (require 'company-web-html)
   (add-hook 'web-mode-hook
