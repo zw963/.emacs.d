@@ -6,7 +6,7 @@
 ;; Maintainer: Le Wang
 ;; Description: fuzzy matching with good sorting
 ;; Created: Wed Apr 17 01:01:41 2013 (+0800)
-;; Version: 0.6.1
+;; Version: 0.6.2
 ;; Package-Requires: ((cl-lib "0.3"))
 ;; URL: https://github.com/lewang/flx
 
@@ -14,20 +14,18 @@
 
 ;;; License
 
-;; This program is free software; you can redistribute it and/or
-;; modify it under the terms of the GNU General Public License as
-;; published by the Free Software Foundation; either version 3, or
+;; This program is free software; you can redistribute it and/or modify
+;; it under the terms of the GNU General Public License as published by
+;; the Free Software Foundation, either version 3 of the License, or
 ;; (at your option) any later version.
 ;;
 ;; This program is distributed in the hope that it will be useful,
 ;; but WITHOUT ANY WARRANTY; without even the implied warranty of
-;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-;; General Public License for more details.
+;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+;; GNU General Public License for more details.
 ;;
 ;; You should have received a copy of the GNU General Public License
-;; along with this program; see the file COPYING.  If not, write to
-;; the Free Software Foundation, Inc., 51 Franklin Street, Fifth
-;; Floor, Boston, MA 02110-1301, USA.
+;; along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 ;;; Commentary:
 
@@ -159,7 +157,7 @@ See documentation for logic."
                       (if (zerop group-word-count) nil last-char)))
                  (when (flx-boundary-p effective-last-char char)
                    (setcdr (cdar groups-alist)
-			   (cons index (cl-cddar groups-alist))))
+                           (cons index (cl-cddar groups-alist))))
                  (when (and (not (flx-word-p last-char))
                             (flx-word-p char))
                    (cl-incf group-word-count)))
@@ -362,7 +360,6 @@ For other parameters, see `flx-score'"
 
          ;; Raise recursion limit
          (max-lisp-eval-depth 5000)
-         (max-specpdl-size 10000)
 
          ;; Dynamic Programming table for memoizing flx-find-best-match
          (match-cache (make-hash-table :test 'eql :size 10))
@@ -403,11 +400,11 @@ SCORE of nil means to clear the properties."
         (when (and last-char
                    (not (= (1+ last-char) char)))
           (put-text-property block-started  (1+ last-char)
-			     'face 'flx-highlight-face str)
+                             'face 'flx-highlight-face str)
           (setq block-started char))
         (setq last-char char))
       (put-text-property block-started  (1+ last-char)
-			 'face 'flx-highlight-face str)
+                         'face 'flx-highlight-face str)
       (when add-score
         (setq str (format "%s [%s]" str (car score)))))
     (if (consp obj)
@@ -431,4 +428,7 @@ SCORE of nil means to clear the properties."
 
 (provide 'flx)
 
+;; Local Variables:
+;; indent-tabs-mode: nil
+;; End:
 ;;; flx.el ends here
