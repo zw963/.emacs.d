@@ -5,7 +5,7 @@
 ;; Author: Sebastien Chapuis <sebastien@chapu.is>
 ;; URL: https://github.com/sebastiencs/company-box
 ;; Keywords: company, completion, front-end, convenience
-;; Package-Requires: ((emacs "26.0.91") (dash "2.13") (dash-functional "1.2.0") (company "0.9.6") (frame-local "0.0.1"))
+;; Package-Requires: ((emacs "26.0.91") (dash "2.19.0") (company "0.9.6") (frame-local "0.0.1"))
 ;; Version: 0.0.1
 
 ;;; License
@@ -62,7 +62,7 @@
 
 (require 'subr-x)
 (require 'dash)
-(require 'dash-functional)
+(require 'dash)
 (require 'company)
 (require 'company-box-icons)
 (require 'company-box-doc)
@@ -73,11 +73,6 @@
   :prefix "company-box-"
   :group 'company)
 
-(define-obsolete-face-alias 'company-box-annotation 'company-tooltip-annotation nil)
-(define-obsolete-face-alias 'company-box-selection 'company-tooltip-selection nil)
-(define-obsolete-face-alias 'company-box-background 'company-tooltip nil)
-(define-obsolete-face-alias 'company-box-candidate 'company-tooltip nil)
-(define-obsolete-face-alias 'company-box-numbers 'company-tooltip nil)
 (make-obsolete-variable 'company-box-max-candidates nil "")
 (make-obsolete-variable 'company-box-tooltip-minimum-width 'company-tooltip-minimum-width nil "")
 (make-obsolete-variable 'company-box-tooltip-maximum-width 'company-tooltip-maximum-width nil "")
@@ -112,8 +107,14 @@ Only the 'background' color is used in this face."
 
 (defface company-box-numbers
   '((t :inherit company-box-candidate))
-  "Face used for numbers when `company-show-numbers' is used."
+  "Face used for numbers when `company-show-quick-access' is used."
   :group 'company-box)
+
+(define-obsolete-face-alias 'company-box-annotation 'company-tooltip-annotation nil)
+(define-obsolete-face-alias 'company-box-selection 'company-tooltip-selection nil)
+(define-obsolete-face-alias 'company-box-background 'company-tooltip nil)
+(define-obsolete-face-alias 'company-box-candidate 'company-tooltip nil)
+(define-obsolete-face-alias 'company-box-numbers 'company-tooltip nil)
 
 (defcustom company-box-color-icon t
   "Whether or not to color icons.
@@ -182,16 +183,16 @@ If all functions returns nil, `company-box-icons-unknown' is used.
 - 'left or 'right puts default scrollbars to the left or right
 - nil means draw no scrollbar."
   :type '(choice (const :tag "Custom scrollbar" t)
-                 (const :tag "Inherit scrollbar" 'inherit)
-                 (const :tag "Default scrollbar on left" 'left)
-                 (const :tag "Default scrollbar on right" 'right)
+                 (const :tag "Inherit scrollbar" inherit)
+                 (const :tag "Default scrollbar on left" left)
+                 (const :tag "Default scrollbar on right" right)
                  (const :tag "No scrollbar" nil))
   :group 'company-box)
 
 (defcustom company-box-frame-behavior 'default
   "Change frame position behavior."
-  :type '(choice (const :tag "Default" 'default)
-                 (const :tag "Follow point as you type" 'point))
+  :type '(choice (const :tag "Default" default)
+                 (const :tag "Follow point as you type" point))
   :group 'company-box)
 
 (defcustom company-box-icon-right-margin 0
@@ -268,6 +269,7 @@ Examples:
     (drag-internal-border . t)
     (left-fringe . 0)
     (right-fringe . 0)
+    (tab-bar-lines . 0)
     (no-special-glyphs . t))
   "Frame parameters used to create the frame.")
 
@@ -290,7 +292,7 @@ Examples:
     (dotimes (index 20)
       (aset vec index
             (concat
-             (string-trim (funcall company-show-numbers-function (mod (1+ index) 10)))
+             (string-trim (funcall company-quick-access-hint-function (mod index 10)))
              (and (> index 10) " "))))
     vec))
 
@@ -305,7 +307,8 @@ Examples:
 
 (defun company-box--get-frame (&optional frame)
   "Return the company-box child frame on FRAME."
-  (frame-local-getq company-box-frame frame))
+  (let ((frame (frame-local-getq company-box-frame frame)))
+    (and (frame-live-p frame) frame)))
 
 (defsubst company-box--set-frame (frame)
   "Set the frame symbol ‘company-box-frame’ to FRAME."
@@ -386,7 +389,7 @@ It doesn't nothing if a font icon is used."
 (defvar-local company-box--numbers-pos nil)
 
 (defun company-box--remove-numbers (&optional side)
-  (let ((side (or side (if (eq company-show-numbers 'left) 'left-margin 'right-margin)))
+  (let ((side (or side (if (eq company-show-quick-access 'left) 'left-margin 'right-margin)))
         (max (point-max)))
     (--each company-box--numbers-pos
       (and (< it max)
@@ -395,8 +398,8 @@ It doesn't nothing if a font icon is used."
     (setq company-box--numbers-pos nil)))
 
 (defun company-box--update-numbers (start)
-  (let ((side (if (eq company-show-numbers 'left) 'left-margin 'right-margin))
-        (offset (if (eq company-show-numbers 'left) 0 10))
+  (let ((side (if (eq company-show-quick-access 'left) 'left-margin 'right-margin))
+        (offset (if (eq company-show-quick-access 'left) 0 10))
         (inhibit-redisplay t)
         (inhibit-modification-hooks t))
     (company-box--remove-numbers side)
@@ -411,7 +414,7 @@ It doesn't nothing if a font icon is used."
         (put-text-property (1- it) it 'display `((margin ,side) ,(aref company-box--numbers (+ index offset))))))))
 
 (defun company-box--maybe-move-number (start)
-  (when company-show-numbers
+  (when company-show-quick-access
     (company-box--update-numbers start)))
 
 (defvar-local company-box--last-scroll 0)
@@ -433,8 +436,11 @@ It doesn't nothing if a font icon is used."
   (move-overlay (company-box--get-ov-common) 1 1))
 
 (defun company-box--end-of-common (start eol)
-  (while (and (memq 'company-tooltip-common (get-text-property start 'face))
-              (not (eq start eol)))
+  (while (let ((face (get-text-property start 'face)))
+           (and (or (eq face 'company-tooltip-common)
+                    (and (listp face)
+                         (memq 'company-tooltip-common face)))
+                (not (eq start eol))))
     (setq start (next-single-property-change start 'face nil eol)))
   start)
 
@@ -503,7 +509,7 @@ It doesn't nothing if a font icon is used."
   (let ((buffer (current-buffer))
         (inhibit-modification-hooks t)
         (candidates-length company-candidates-length)
-        (show-numbers company-show-numbers)
+        (show-numbers company-show-quick-access)
         (with-icons-p company-box--with-icons-p)
         (window-configuration-change-hook nil)
         (buffer-list-update-hook nil))
@@ -513,7 +519,7 @@ It doesn't nothing if a font icon is used."
       (put-text-property (point-min) (point-max) 'company-box--rendered nil)
       (setq company-box--first-render t
             company-candidates-length candidates-length
-            company-show-numbers show-numbers
+            company-show-quick-access show-numbers
             company-box--with-icons-p with-icons-p)
       (unless on-update
         (setq mode-line-format nil
@@ -580,7 +586,7 @@ It doesn't nothing if a font icon is used."
           (char-height (frame-char-height frame))
           (char-width (frame-char-width frame))
           (height (* (min company-candidates-length company-tooltip-limit) char-height))
-          (space-numbers (if (eq company-show-numbers 'left) char-width 0))
+          (space-numbers (if (eq company-show-quick-access 'left) char-width 0))
           (frame-resize-pixelwise t)
           (mode-line-y (company-box--point-bottom))
           ((p-x . p-y) (company-box--prefix-pos))
@@ -599,7 +605,7 @@ It doesn't nothing if a font icon is used."
           (x (if (eq company-box-frame-behavior 'point)
                  p-x
                (if company-box--with-icons-p
-                   (- p-x (* char-width (if (= company-box--space 2) 2 3)) space-numbers scrollbar-width)
+                   (- p-x (* char-width (+ company-box-icon-right-margin (if (= company-box--space 2) 2 3))) space-numbers scrollbar-width)
                  (- p-x (if (= company-box--space 0) 0 char-width) space-numbers scrollbar-width)))))
     (setq company-box--x (max (+ x left) 0)
           company-box--top (+ y top)
@@ -623,7 +629,7 @@ It doesn't nothing if a font icon is used."
      `((width . (text-pixels . ,width))
        (height . (text-pixels . ,company-box--height))
        (user-size . t)
-       (left . (+ ,(or new-x company-box--x)))
+       (left . (+ ,(round (or new-x company-box--x))))
        (top . (+ ,company-box--top))
        (user-position . t)
        (right-fringe . 0)
@@ -723,7 +729,7 @@ It doesn't nothing if a font icon is used."
     string))
 
 (defun company-box--make-number-prop nil
-  (let ((side (if (eq company-show-numbers 'left) 'left-margin 'right-margin)))
+  (let ((side (if (eq company-show-quick-access 'left) 'left-margin 'right-margin)))
     (propertize " " 'company-box--number-pos t 'display `((margin ,side) "  "))))
 
 (defun company-box--make-line (candidate)
@@ -741,7 +747,7 @@ It doesn't nothing if a font icon is used."
           (line (concat (unless (or (and (= space 2) icon-p) (= space 0))
                           (propertize " " 'display `(space :width ,(if (or (= space 1) (not icon-p)) 1 0.75))))
                         (company-box--apply-color icon-string i-color)
-                        (when company-show-numbers
+                        (when company-show-quick-access
                           (company-box--make-number-prop))
                         (company-box--apply-color candidate-string c-color)
                         align-string
@@ -815,7 +821,7 @@ It doesn't nothing if a font icon is used."
             (when (> len max)
               (setq max len)))
           (forward-line))))
-    (* (+ max (if company-box--with-icons-p 6 2) (if company-show-numbers 2 0))
+    (* (+ max (if company-box--with-icons-p 6 2) (if company-show-quick-access 2 0))
        char-width)))
 
 (defun company-box--get-start-end-for-width (win win-start)
@@ -836,13 +842,19 @@ It doesn't nothing if a font icon is used."
           (frame (company-box--get-frame (frame-parent)))
           (window (frame-local-getq company-box-window (frame-parent)))
           (char-width (frame-char-width frame))
+          (current-width (frame-inner-width frame))
           ((start . end) (company-box--get-start-end-for-width window win-start))
           (width (+ (company-box--calc-len (window-buffer window) start end char-width)
                     (if (and (eq company-box-scrollbar t) (company-box--scrollbar-p frame)) (* 2 char-width) 0)
                     char-width))
           (width (max (min width
                            (* company-tooltip-maximum-width char-width))
-                      (* company-tooltip-minimum-width char-width)))
+                      (* company-tooltip-minimum-width char-width)
+                      (if (and company-tooltip-width-grow-only
+                               ;; Will only be true when updating
+                               (frame-visible-p frame))
+                          current-width
+                        0)))
           (diff (abs (- (frame-pixel-width frame) width)))
           (frame-width (frame-pixel-width (frame-parent)))
           (new-x (and (> (+ width company-box--x) frame-width)
@@ -855,7 +867,7 @@ It doesn't nothing if a font icon is used."
              (modify-frame-parameters
               frame
               `((width . (text-pixels . ,width))
-                (left . (+ ,(or new-x company-box--x)))))))))
+                (left . (+ ,(round (or new-x company-box--x))))))))))
 
 (defun company-box--percent (a b)
   (/ (float a) (float b)))
@@ -984,14 +996,14 @@ It doesn't nothing if a font icon is used."
              (set-window-start nil it))))
     (unless first-render
       (company-box--update-scrollbar (company-box--get-frame) first-render))
-    (run-with-idle-timer 0 nil (lambda nil (run-hook-with-args 'company-box-selection-hook selection
+    (run-with-timer 0 nil (lambda nil (run-hook-with-args 'company-box-selection-hook selection
                                                                (or (frame-parent) (selected-frame)))))))
 
 (defun company-box--prevent-changes (&rest _)
   (set-window-margins
    nil
-   (if (eq company-show-numbers 'left) 1 0)
-   (if (eq company-show-numbers 't) 2 0)))
+   (if (eq company-show-quick-access 'left) 1 0)
+   (if (eq company-show-quick-access 't) 2 0)))
 
 (defun company-box--handle-window-changes (&optional on-idle)
   (-when-let* ((frame (company-box--get-frame)))
@@ -1041,6 +1053,18 @@ It doesn't nothing if a font icon is used."
     (company-box--on-start-change)
     (setq company-box--parent-start new-start)))
 
+(defvar company-mouse-event)
+(defun company-box--select-mouse ()
+  "Select the candidate from `company-mouse-event'."
+  (let ((posn (event-end company-mouse-event)))
+    (when (eq (company-box--get-buffer) (window-buffer (posn-window posn)))
+      (setq company-selection
+            (with-current-buffer (company-box--get-buffer)
+              (1- (line-number-at-pos (posn-point posn)))))
+      (company-box--move-selection)
+      ;; success
+      t)))
+
 (defun company-box-frontend (command)
   "`company-mode' frontend using child-frame.
 COMMAND: See `company-frontends'."
@@ -1062,6 +1086,8 @@ COMMAND: See `company-frontends'."
     (company-box-show))
    ((eq command 'update)
     (company-box--update))
+   ((eq command 'select-mouse)
+    (company-box--select-mouse))
    ;; ((eq command 'post-command)
    ;;  (company-box--post-command))
    ))
@@ -1090,6 +1116,13 @@ COMMAND: See `company-frontends'."
       (company-box--ensure-full-window-is-rendered)
       (company-box--update-frame-position frame))))
 
+(defun company-box--delete-frame ()
+  "Delete the child frame if it exists."
+  (-when-let (frame (company-box--get-frame))
+    (and (frame-live-p frame)
+         (delete-frame frame))
+    (company-box--set-frame nil)))
+
 (defun company-box--kill-delay (buffer)
   (run-with-idle-timer
    0 nil (lambda nil
@@ -1110,6 +1143,12 @@ COMMAND: See `company-frontends'."
 (defun company-box--dimmer-hide (&rest _)
   (frame-local-setq company-box--dimmer-parent nil))
 
+(defun company-box--handle-theme-change (&rest _)
+  ;; Deleting frames will force to rebuild them from scratch
+  ;; and use the correct new colors
+  (company-box-doc--delete-frame)
+  (company-box--delete-frame))
+
 (defun company-box--tweak-external-packages nil
   (with-eval-after-load 'dimmer
     (when (boundp 'dimmer-prevent-dimming-predicates)
@@ -1120,6 +1159,7 @@ COMMAND: See `company-frontends'."
       (add-to-list
        'dimmer-buffer-exclusion-predicates
        'company-box--is-box-buffer))
+    (advice-add 'load-theme :before 'company-box--handle-theme-change)
     (advice-add 'company-box-show :before 'company-box--dimmer-show)
     (advice-add 'company-box-hide :before 'company-box--dimmer-hide))
   (with-eval-after-load 'golden-ratio

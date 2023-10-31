@@ -49,6 +49,11 @@
   :type 'number
   :group 'company-box-doc)
 
+(defcustom company-box-doc-no-wrap nil
+  "Specify whether or not to wrap the documentation box at the edge of the Emacs frame."
+  :type 'boolean
+  :group 'company-box-doc)
+
 (defvar company-box-doc-frame-parameters
   '((internal-border-width . 10))
   "Frame parameters to use on the doc frame.
@@ -66,7 +71,7 @@
 (defvar-local company-box-doc--timer nil)
 
 (defun company-box-doc--fetch-doc-buffer (candidate)
-  (let ((inhibit-message t))
+  (let ((inhibit-message t) (message-log-max nil))
     (--> (while-no-input
            (-some-> (company-call-backend 'doc-buffer candidate)
              (get-buffer)))
@@ -77,7 +82,16 @@
           (box-width (frame-pixel-width (company-box--get-frame)))
           (window (frame-root-window frame))
           (frame-resize-pixelwise t)
-          ((width . height) (window-text-pixel-size window nil nil 10000 10000))
+          ((width . height)
+           (if company-box-doc-no-wrap
+               (window-text-pixel-size window nil nil 10000 10000)
+             (window-text-pixel-size
+              window nil nil
+              ;; Use the widest space available (left or right of the box frame)
+              (let ((space-right (- (frame-native-width) (+ 40 (car box-position) box-width)))
+                    (space-left (- (car box-position) 40)))
+                (if (< space-right space-left) space-left space-right))
+              (- (frame-native-height) 40))))
           (bottom (+ company-box--bottom (window-pixel-top) (frame-border-width)))
           (x (+ (car box-position) box-width (/ (frame-char-width) 2)))
           (y (cdr box-position))
@@ -92,7 +106,7 @@
                         (> space-left (+ width border (/ (frame-char-width) 2)))
                         (- (car box-position) width border (/ (frame-char-width) 2))))
                  x)))
-    (set-frame-position frame (max x 0) (max y 0))
+    (set-frame-position frame (max x 0) (max y 10))
     (set-frame-size frame width height t)))
 
 (defun company-box-doc--make-buffer (object)
@@ -108,6 +122,7 @@
               display-line-numbers nil
               header-line-format nil
               show-trailing-whitespace nil
+              truncate-lines nil
               cursor-in-non-selected-windows nil)
         (current-buffer)))))
 
@@ -149,8 +164,7 @@ just grab the first candidate and press forward."
 
 (defun company-box-doc (selection frame)
   (when company-box-doc-enable
-    (-some-> (frame-local-getq company-box-doc-frame frame)
-      (make-frame-invisible))
+    (company-box-doc--hide frame)
     (when (timerp company-box-doc--timer)
       (cancel-timer company-box-doc--timer))
     (setq company-box-doc--timer
@@ -161,8 +175,16 @@ just grab the first candidate and press forward."
              (company-ensure-emulation-alist))))))
 
 (defun company-box-doc--hide (frame)
-  (-some-> (frame-local-getq company-box-doc-frame frame)
-    (make-frame-invisible)))
+  (let ((frame (frame-local-getq company-box-doc-frame frame)))
+    (and (frame-live-p frame)
+         (make-frame-invisible frame))))
+
+(defun company-box-doc--delete-frame ()
+  "Delete the child frame if it exists."
+  (-when-let (frame (frame-local-getq company-box-doc-frame))
+    (and (frame-live-p frame)
+         (delete-frame frame))
+    (frame-local-setq company-box-doc-frame nil)))
 
 (defun company-box-doc-manually ()
   (interactive)

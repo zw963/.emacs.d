@@ -200,14 +200,6 @@ ac-auto-show-menu 为 nil 的情形, 这种模式比较适合在 yasnippet 正�
 ;; (require 'company-fuzzy)
 ;; (global-company-fuzzy-mode 1)
 
-;; (require 'company-posframe)
-;; (with-eval-after-load 'company-posframe
-;;   (company-posframe-mode 1)
-;;   (require 'desktop) ;this line is needed.
-;;   (push '(company-posframe-mode . nil)
-;;         desktop-minor-mode-table)
-;;   )
-
 (with-eval-after-load 'web-mode
   (require 'company-web-html)
   (add-hook 'web-mode-hook
