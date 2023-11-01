@@ -1,4 +1,4 @@
-(require 'helm-config)
+(require 'helm-autoloads)
 (require 'helm-files)
 (require 'helm-buffers)
 (require 'helm-fd)
