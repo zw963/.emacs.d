@@ -23,13 +23,16 @@
 ;;                                       (setq-local sis--for-buffer nil)
 ;;                                       ))
 
-(setq rime-posframe-properties
-      (list :background-color "#333333"
-            :foreground-color "#dcdccc"
-            :font "yaheiInconsolata-14"
-            :internal-border-width 10))
+;; (setq rime-posframe-properties
+;;       (list :background-color "#333333"
+;;             :foreground-color "#dcdccc"
+;;             :font "yaheiInconsolata-14"
+;;             :internal-border-width 10))
 
 (setq mode-line-mule-info '((:eval (rime-lighter))))
+
+;; 这个用来切换繁简，这个和运行 shell 冲突
+(global-set-key (kbd "C-`") 'rime-send-keybinding)
 
 (provide 'rime_init)
 

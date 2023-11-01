@@ -5,4 +5,4 @@ workspace
 org
 *.bak
 *.elc
-rime/
+/rime/
