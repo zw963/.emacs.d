@@ -39,12 +39,12 @@
 (add-to-list 'auto-mode-alist '("\\.jsx$" . web-mode))
 (add-to-list 'auto-mode-alist '("\\.wxml$" . web-mode))
 
-(autoload 'yaml-mode "yaml-mode_init" nil t)
-(add-to-list 'auto-mode-alist '("\\.\\(e?ya?\\|ra\\)ml\\'" . yaml-mode))
-(add-to-list 'auto-mode-alist '("\\.yml\\.j2" . yaml-mode))
-(add-to-list 'auto-mode-alist '("\\.yml" . yaml-mode))
-(add-to-list 'auto-mode-alist '("Procfile\\|Procfile.dev\\'" . yaml-mode))
-(add-to-list 'auto-mode-alist '("Procfile.options\\|Procfile.dev.options\\'" . yaml-mode))
+(autoload 'yaml-ts-mode "yaml-mode_init" nil t)
+(add-to-list 'auto-mode-alist '("\\.\\(e?ya?\\|ra\\)ml\\'" . yaml-ts-mode))
+(add-to-list 'auto-mode-alist '("\\.yml\\.j2" . yaml-ts-mode))
+(add-to-list 'auto-mode-alist '("\\.yml" . yaml-ts-mode))
+(add-to-list 'auto-mode-alist '("Procfile\\|Procfile.dev\\'" . yaml-ts-mode))
+(add-to-list 'auto-mode-alist '("Procfile.options\\|Procfile.dev.options\\'" . yaml-ts-mode))
 
 (autoload 'toml-mode "toml-mode_init" nil t)
 (add-to-list 'auto-mode-alist '("\\.toml\\'" . toml-mode))
