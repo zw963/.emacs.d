@@ -82,7 +82,7 @@
 (require 'scss-css-mode_init)
 ;; (require 'format-all_init)
 (require 'wakatime-mode_init)
-
+(require 'combobulate_init)
 (require 'dpaste_init)
 (require 'ws-butler_init)
 (require 'yafolding_init)

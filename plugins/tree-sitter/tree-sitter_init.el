@@ -11,11 +11,9 @@
         (sh-mode         . bash-ts-mode)
         (ruby-mode       . ruby-ts-mode)
         (java-mode       . java-ts-mode)
-        (rust-mode       . rust-ts-mode)
         (cmake-mode      . cmake-ts-mode)
         (csharp-mode     . csharp-ts-mode)
         (python-mode     . python-ts-mode)
-        (typescript-mode . typescript-ts-mode)
         ))
 
 (provide 'tree-sitter_init)

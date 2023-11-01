@@ -47,6 +47,7 @@
 (add-to-list 'auto-mode-alist '("\\`\\(rust-toolchain\\)\\'" . toml-ts-mode))
 (add-to-list 'auto-mode-alist '("Dockerfile\\'" . dockerfile-ts-mode))
 (add-to-list 'auto-mode-alist '("\.dockerfile\\'" . dockerfile-ts-mode))
+(add-to-list 'auto-mode-alist '("\\.tsx?\\'" . typescript-ts-mode))
 
 (autoload 'ssh-config-mode "ssh-config-mode" t)
 (add-to-list 'auto-mode-alist '("/\\.ssh/config\\(\\.d/.*\\.conf\\)?\\'" . ssh-config-mode))

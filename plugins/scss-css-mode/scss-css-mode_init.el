@@ -11,7 +11,6 @@
 (add-to-list 'auto-mode-alist '("\\.wxss\\'" . scss-css-mode))
 (add-to-list 'auto-mode-alist '("\\.css\\'" . scss-css-mode))
 (add-to-list 'auto-mode-alist '("\\.sass\\'" . scss-css-mode))
-(add-hook 'scss-css-mode-hook 'turn-on-format-buffer)
 (add-hook 'scss-css-mode-hook 'rainbow-mode)
 
 (with-eval-after-load 'auto-complete
