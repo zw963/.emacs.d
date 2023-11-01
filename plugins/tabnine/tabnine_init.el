@@ -11,7 +11,9 @@
   )
 
 (add-hook 'sh-mode-hook 'add-tabnine-backend)
+(add-hook 'bash-ts-mode-hook 'add-tabnine-backend)
 (add-hook 'makefile-gmake-mode-hook 'add-tabnine-backend)
+(add-hook 'cmake-ts-mode-hook 'add-tabnine-backend)
 
 ;; (with-eval-after-load 'rust-mode (add-hook 'rust-mode-hook 'add-tabnine-backend))
 ;; (with-eval-after-load 'rustic-mode (add-hook 'rustic-mode-hook 'add-tabnine-backend))

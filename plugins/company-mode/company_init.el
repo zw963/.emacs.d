@@ -100,6 +100,7 @@
                 yaml-mode-hook
                 conf-mode-hook
                 sh-mode-hook
+                bash-ts-mode-hook
                 crystal-mode
                 ;; mint-mode
                 ))
