@@ -39,12 +39,15 @@
 (add-to-list 'auto-mode-alist '("\\.jsx$" . web-mode))
 (add-to-list 'auto-mode-alist '("\\.wxml$" . web-mode))
 
-(autoload 'yaml-ts-mode "yaml-mode_init" nil t)
+(add-hook 'yaml-ts-mode-hook 'display-line-numbers-mode)
 (add-to-list 'auto-mode-alist '("\\.\\(e?ya?\\|ra\\)ml\\'" . yaml-ts-mode))
 (add-to-list 'auto-mode-alist '("\\.yml\\.j2" . yaml-ts-mode))
 (add-to-list 'auto-mode-alist '("\\.yml" . yaml-ts-mode))
 (add-to-list 'auto-mode-alist '("Procfile\\|Procfile.dev\\'" . yaml-ts-mode))
 (add-to-list 'auto-mode-alist '("Procfile.options\\|Procfile.dev.options\\'" . yaml-ts-mode))
+
+;; (add-to-list 'auto-mode-alist '("\\.json" . json-ts-mode))
+(add-to-list 'auto-mode-alist '("\\.js" . js-ts-mode))
 
 (autoload 'toml-mode "toml-mode_init" nil t)
 (add-to-list 'auto-mode-alist '("\\.toml\\'" . toml-mode))
@@ -63,9 +66,6 @@
 (autoload 'just-mode "just-mode" nil t)
 (add-to-list 'auto-mode-alist '("/[Jj]ustfile\\'" . just-mode))
 (add-to-list 'auto-mode-alist '("\\.[Jj]ust\\(file\\)?\\'" . just-mode))
-
-(autoload 'json-mode "json-mode_init" nil t)
-(add-to-list 'auto-mode-alist '("\\.json" . json-mode))
 
 (autoload 'mint-mode "mint-mode_init" nil t)
 (add-to-list 'auto-mode-alist '("\\.mint\\'" . mint-mode))

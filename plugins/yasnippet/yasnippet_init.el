@@ -166,7 +166,7 @@
 (defun shk-yas/helm-prompt (prompt choices &optional display-fn)
   "Use helm to select a snippet. Put this into `yas-prompt-functions.'"
   (interactive)
-  (if (require 'helm-config nil t)
+  (if (require 'helm nil t)
       (let ((result (helm-other-buffer
                      (list `((name . ,prompt)
                              (candidates . ,(if display-fn (mapcar display-fn choices)
