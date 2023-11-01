@@ -4,13 +4,13 @@
 ;; Description: Frame and window commands (interactive functions).
 ;; Author: Drew Adams
 ;; Maintainer: Drew Adams (concat "drew.adams" "@" "oracle" ".com")
-;; Copyright (C) 1996-2018, Drew Adams, all rights reserved.
+;; Copyright (C) 1996-2023, Drew Adams, all rights reserved.
 ;; Created: Tue Mar  5 16:30:45 1996
 ;; Version: 0
 ;; Package-Requires: ((frame-fns "0"))
-;; Last-Updated: Sat Sep 22 16:15:43 2018 (-0700)
+;; Last-Updated: Mon Dec 26 08:33:38 2022 (-0800)
 ;;           By: dradams
-;;     Update #: 3138
+;;     Update #: 3189
 ;; URL: https://www.emacswiki.org/emacs/download/frame-cmds.el
 ;; Doc URL: https://emacswiki.org/emacs/FrameModes
 ;; Doc URL: https://www.emacswiki.org/emacs/OneOnOneEmacs
@@ -20,7 +20,8 @@
 ;;
 ;; Features that might be required by this library:
 ;;
-;;   `avoid', `frame-fns', `misc-fns', `strings', `thingatpt',
+;;   `avoid', `backquote', `bytecomp', `cconv', `cl-lib',
+;;   `frame-fns', `macroexp', `misc-fns', `strings', `thingatpt',
 ;;   `thingatpt+'.
 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -35,8 +36,11 @@
 ;;    Load this library from your init file (~/.emacs or _emacs).
 ;;    Add the suggested key bindings (below) to  your init file.
 ;;    Use `M-up|down|left|right' to move frames around incrementally.
-;;    Use `C-S-v', `M-S-v', `C-S-next', `C-S-prior' to move frames to screen edges.
+;;    Use `C-S-v', `M-S-v', `C-S-next', `C-S-prior' to move frames to
+;;        screen edges.
 ;;    Use `C-M-up|down|left|right' to resize frames incrementally.
+;;    Use `C-x {', `C-x }', `C-x ^', and `C-u C-x ^' to resize windows
+;;        incrementally.
 ;;    Use `C-M-z' or `C-x C-z' to iconify/hide all frames.
 ;;    Use `C-M-z' in a lone frame to restore all frames.
 ;;    Use `C-mouse-1' in the minibuffer to restore all frames.
@@ -60,7 +64,7 @@
 ;;    Frame parameter changes, such as background color, can be saved
 ;;    for future use by all frames or all frames of a certain
 ;;    kind.  For that, you must change the frame parameters of the
-;;    correponding frame-alist variable.
+;;    corresponding frame-alist variable.
 ;;
 ;;    There is no single variable for saving changes to parameters of
 ;;    the current frame.  Instead, there are several different
@@ -68,7 +72,7 @@
 ;;    kinds of frames.  These include: `default-frame-alist',
 ;;    `initial-frame-alist', and `special-display-frame-alist'.  The
 ;;    complete list of such frame alist variables is available using
-;;    function `frame-alist-var-names', defined here.
+;;    function `frcmds-frame-alist-var-names', defined here.
 ;;
 ;;    Example: Suppose you change the background color of a frame and
 ;;    want to make that the default background color for new frames in
@@ -91,8 +95,9 @@
 ;;
 ;;  User options defined here:
 ;;
-;;    `available-screen-pixel-bounds', `enlarge-font-tries',
-;;    `frame-config-register', `frame-parameters-to-exclude',
+;;    `available-screen-pixel-bounds', `clone-frame-parameters',
+;;    `enlarge-font-tries', `frame-config-register',
+;;    `frame-parameters-to-exclude',
 ;;    `move-frame-wrap-within-display-flag'
 ;;    `rename-frame-when-iconify-flag', `show-hide-show-function',
 ;;    `window-mgr-title-bar-pixel-height'.
@@ -105,8 +110,9 @@
 ;;    `delete/iconify-window', `delete/iconify-windows-on',
 ;;    `delete-other-frames', `delete-windows-for', `enlarge-font',
 ;;    `enlarge-frame', `enlarge-frame-horizontally',
-;;    `hide-everything', `hide-frame', `iconify-everything',
-;;    `iconify/map-frame', `iconify/show-frame',
+;;    `enlarge/shrink-window', `enlarge/shrink-window-repeat',
+;;    `enlarge-window-repeat', `hide-everything', `hide-frame',
+;;    `iconify-everything', `iconify/map-frame', `iconify/show-frame',
 ;;    `increase-frame-transparency' (Emacs 23+),
 ;;    `jump-to-frame-config-register', `maximize-frame',
 ;;    `maximize-frame-horizontally', `maximize-frame-vertically',
@@ -126,11 +132,12 @@
 ;;    `show-a-frame-on', `show-buffer-menu', `show-frame',
 ;;    `show-hide', `shrink-frame', `shrink-frame-horizontally',
 ;;    `split-frame-horizontally', `split-frame-vertically',
+;;    `shrink-window-horizontally-repeat', `shrink-window-repeat',
 ;;    `tell-customize-var-has-changed', `tile-frames',
 ;;    `tile-frames-horizontally', `tile-frames-side-by-side',
 ;;    `tile-frames-top-to-bottom', `tile-frames-vertically',
 ;;    `toggle-max-frame', `toggle-max-frame-horizontally',
-;;    `toggle-max-frame-vertically'.
+;;    `toggle-max-frame-vertically', `toggle-menu-bar-for-frame'.
 ;;
 ;;  Non-interactive functions defined here:
 ;;
@@ -145,9 +152,9 @@
 ;;    `frcmds-frame-number', `frcmds-new-frame-position',
 ;;    `frcmds-read-args-for-tiling',
 ;;    `frcmds-read-buffer-for-delete-windows',
-;;    `frcmds-set-difference', `frcmds-smart-tool-bar-pixel-height',
-;;    `frcmds-split-frame-1', `frcmds-tile-frames', `nbutlast' (Emacs
-;;    20).
+;;    `frcmds-repeat-command', `frcmds-set-difference',
+;;    `frcmds-smart-tool-bar-pixel-height', `frcmds-split-frame-1',
+;;    `frcmds-tile-frames', `nbutlast' (Emacs 20).
 ;;
 ;;  Error symbols defined here:
 ;;
@@ -183,6 +190,9 @@
 ;;   (global-set-key [(control meta right)]         'enlarge-frame-horizontally)
 ;;   (global-set-key [(control meta up)]            'shrink-frame)
 ;;   (global-set-key [(control meta left)]          'shrink-frame-horizontally)
+;;   (global-set-key [remap enlarge-window-horizontally] 'enlarge-window-horizontally-repeat)
+;;   (global-set-key [remap shrink-window-horizontally]  'shrink-window-horizontally-repeat)
+;;   (global-set-key [remap enlarge-window]         'enlarge/shrink-window-repeat)
 ;;   (global-set-key (kbd "C-M-S-<down>")           'increase-frame-transparency)
 ;;   (global-set-key (kbd "C-M-S-<up>")             'decrease-frame-transparency)
 ;;   (global-set-key [(control ?x) (control ?z)]    'iconify-everything)
@@ -282,6 +292,19 @@
 ;;
 ;;; Change Log:
 ;;
+;; 2020/09/13 dadams
+;;     Added: toggle-menu-bar-for-frame.
+;; 2019/12/13 dadams
+;;     Added: frcmds-repeat-command, (enlarge|shrink)-window(-horizontally)-repeat,
+;;            enlarge/shrink-window(-repeat).
+;; 2019/03/18 dadams
+;;     clone-frame: Use frame-geom-value-numeric.
+;; 2019/03/03 dadams
+;;     Added: clone-frame-parameters.
+;;     clone-frame: Always select new frame.  Augment current params with clone-frame-parameters.
+;; 2019/03/02 dadama
+;;     clone-frame: Bind fit-frame-inhibit-fitting-flag to preserve current frame dimensions.
+;;                  Return the new frame.
 ;; 2018/09/22 dadams
 ;;     Moved to mouse+.el: tear-off-window(-if-not-alone).
 ;; 2018/09/21 dadams
@@ -431,7 +454,7 @@
 ;;     tile-frames, available-screen-pixel-(width|height):
 ;;       Redefined to use available-screen-pixel-bounds.  Thx to Nathaniel Cunningham for input.
 ;; 2008/05/29 dadams
-;;     Fixes for Mac by Nathaniel Cunningham and David Reitter:
+;;     Fixes for macOS by Nathaniel Cunningham and David Reitter:
 ;;       window-mgr-title-bar-pixel-height, tile-frames, smart-tool-bar-pixel-height (added).
 ;; 2007/12/27 dadams
 ;;      tile-frames: Restored border calculation, but using only external border.
@@ -510,7 +533,7 @@
 ;; 2004/12/09 dadams
 ;;     Changed compile-time require of strings to a soft require.
 ;; 2004/10/11 dadams
-;;     args-for-tile-frames: Fixed bug when non-existant frame in name history.
+;;     args-for-tile-frames: Fixed bug when non-existent frame in name history.
 ;;     tile-frames: show-frame at end (for case where use prefix arg)
 ;; 2004/09/11 dadams
 ;;     Moved to doremi-frm.el: frame-config-ring*, frame-config-wo-parameters,
@@ -634,6 +657,22 @@ Don't forget to mention your Emacs and library versions."))
           "https://www.emacswiki.org/emacs/FrameModes")
   :link '(emacs-commentary-link :tag "Commentary" "frame-cmds"))
 
+(defcustom clone-frame-parameters (cons 30 30)
+  "Frame parameter settings that override those of the frame to clone.
+The value can be an alist of frame parameters or a cons of two
+integers, (LEFT-OFFSET . TOP-OFFSET).
+
+The latter case sets parameters `left' and `top' of the new frame to
+the `left' and `top' of the selected frame, offset by adding
+LEFT-OFFSET and TOP-OFFSET to them, respectively."
+  :type '(choice
+          (cons :tag "Offset from current frame location"
+                (integer :tag "Left")
+                (integer :tag "Top"))
+          (alist :tag "Parameters to augment/replace those of current frame"
+                 :key-type (symbol :tag "Parameter")))
+  :group 'Frame-Commands)
+
 (defcustom rename-frame-when-iconify-flag t
   "*Non-nil means frames are renamed when iconified.
 The new name is the name of the current buffer."
@@ -652,7 +691,7 @@ Candidates include `jump-to-frame-config-register' and `show-buffer-menu'."
 
 ;; Use `cond', not `case', for Emacs 20 byte-compiler.
 (defcustom window-mgr-title-bar-pixel-height (cond ((eq window-system 'mac) 22)
-                                                   ;; For older versions of OS X, 40 might be better.
+                                                   ;; For older versions of macOS, 40 might be better.
                                                    ((eq window-system 'ns)  50)
                                                    (t  27))
   "*Height of frame title bar provided by the window manager, in pixels.
@@ -822,6 +861,15 @@ A negative prefix arg deiconifies all iconified frames."
   (when rename-frame-when-iconify-flag (rename-non-minibuffer-frame))
   (iconify-or-deiconify-frame))
 
+;;;###autoload
+(defun toggle-menu-bar-for-frame (&optional frame)
+  "Toggle showing the menu-bar for selected frame.
+When called from Lisp, optional arg FRAME is used instead of the
+selected frame."
+  (interactive)
+  (let ((now  (or (frame-parameter frame 'menu-bar-lines)  0)))
+    (set-frame-parameter frame 'menu-bar-lines (if (zerop now) 1 0))))
+
 
 
 ;; ADVISE ORIGINAL (built-in):
@@ -848,7 +896,7 @@ With a prefix arg, prompt for a buffer and delete all windows, on any
 
 
 
-;; REPLACES ORIGINAL (built-in):
+;; REPLACES ORIGINAL in `window.el' (built-in prior to Emacs 24.5):
 ;;
 ;; 1) Use `read-buffer' in interactive spec.
 ;; 2) Do not raise an error if BUFFER is a string that does not name a buffer.
@@ -898,7 +946,7 @@ Only displayed buffers are completion candidates."
                    nil t nil 'minibuffer-history (buffer-name (current-buffer)) t))
 
 (defsubst frcmds-frame-iconified-p (frame)
-  "Return non-nil if FRAME is `frame-live-p' and `frame-visible-p'."
+  "Return non-nil if FRAME is live and `frame-visible-p' is `icon'."
   (and (frame-live-p frame)  (eq (frame-visible-p frame) 'icon)))
 
 ;; (defun remove-window (&optional window)
@@ -1030,8 +1078,9 @@ Interactively, FRAME is nil, and FRAME-P depends on the prefix arg:
 
 ;;;###autoload
 (defun clone-frame (&optional frame no-clone)
-  "Make a new frame with the same parameters as FRAME.
+  "Make and select a new frame with the same parameters as FRAME.
 With a prefix arg, don't clone - just call `make-frame-command'.
+Return the new frame.
 
 FRAME defaults to the selected frame.  The frame is created on the
 same terminal as FRAME.  If the terminal is a text-only terminal then
@@ -1039,10 +1088,22 @@ also select the new frame."
   (interactive "i\nP")
   (if no-clone
       (make-frame-command)
-    (let* ((default-frame-alist  (frame-parameters frame))
-           (new-fr  (make-frame)))
-      (unless (if (fboundp 'display-graphic-p) (display-graphic-p) window-system)
-        (select-frame new-fr)))))
+    (let* ((fit-frame-inhibit-fitting-flag  t)
+           (clone-frame-parameters          (if (and clone-frame-parameters
+                                                     (not (consp (car clone-frame-parameters))))
+                                                `((left . ,(+ (car clone-frame-parameters)
+                                                              (or (frame-geom-value-numeric
+                                                                   'left (frame-parameter frame 'left))
+                                                                  0)))
+                                                  (top  . ,(+ (cdr clone-frame-parameters)
+                                                              (or (frame-geom-value-numeric
+                                                                   'top (frame-parameter frame 'top))
+                                                                  0))))
+                                              clone-frame-parameters))
+           (default-frame-alist             (append clone-frame-parameters (frame-parameters frame)))
+           (new-fr                          (make-frame)))
+      (select-frame new-fr)
+      new-fr)))
 
 ;;;###autoload
 (defun rename-frame (&optional old-name new-name all-named)
@@ -1187,7 +1248,7 @@ BUFFER may be a buffer or its name (a string)."
   "Delete all frames except FRAME (default: selected frame).
 Interactively, use a prefix arg (`\\[universal-argument]') to be prompted for FRAME."
   (interactive (list (if current-prefix-arg
-                         (get-a-frame (read-frame "Frame to make invisible: "))
+                         (get-a-frame (read-frame "Frame to delete: "))
                        (selected-frame))))
   (when frame
     (dolist (fr  (frame-list))
@@ -1260,17 +1321,21 @@ In Lisp code:
          (top    . ,new-top)
          (height . ,new-height)
          ;; If we actually changed a parameter, record the old one for restoration.
-         ,(and new-left    (/= (frame-geom-value-numeric 'left orig-left)
-                               (frame-geom-value-numeric 'left new-left))
+         ,(and new-left
+               (/= (frame-geom-value-numeric 'left orig-left)
+                   (frame-geom-value-numeric 'left new-left))
                (cons 'restore-left   orig-left))
-         ,(and new-top     (/= (frame-geom-value-numeric 'top orig-top)
-                               (frame-geom-value-numeric 'top new-top))
+         ,(and new-top
+               (/= (frame-geom-value-numeric 'top orig-top)
+                   (frame-geom-value-numeric 'top new-top))
                (cons 'restore-top    orig-top))
-         ,(and new-width   (/= (frame-geom-value-numeric 'width orig-width)
-                               (frame-geom-value-numeric 'width new-width))
+         ,(and new-width
+               (/= (frame-geom-value-numeric 'width orig-width)
+                   (frame-geom-value-numeric 'width new-width))
                (cons 'restore-width  orig-width))
-         ,(and new-height  (/= (frame-geom-value-numeric 'height orig-height)
-                               (frame-geom-value-numeric 'height new-height))
+         ,(and new-height
+               (/= (frame-geom-value-numeric 'height orig-height)
+                   (frame-geom-value-numeric 'height new-height))
                (cons 'restore-height orig-height)))))
     (show-frame frame)
     (incf fr-origin (if (eq direction 'horizontal) fr-pixel-width fr-pixel-height))))
@@ -1528,13 +1593,14 @@ the pixel width and height of the rectangle."
   (- (frame-pixel-height frame) (* (frame-char-height frame) (frame-height frame))))
 
 (defun frcmds-smart-tool-bar-pixel-height (&optional frame)
-  "Pixel height of Mac smart tool bar."
+  "Pixel height of macOS smart tool bar."
   (if (and (boundp 'mac-tool-bar-display-mode)  (> (frame-parameter frame 'tool-bar-lines) 0))
       (if (eq mac-tool-bar-display-mode 'icons) 40 56)
     0))
 
 (defun frcmds-read-args-for-tiling ()
-  "Read arguments for `frcmds-tile-frames'."
+  "Read two frame names and return a list of their frames.
+Return value can be used as second argument for `frcmds-tile-frames'."
   (list
    (list
     ;; Note: `read-frame' puts selected-frame name at front of `frame-name-history'.
@@ -1570,7 +1636,7 @@ the pixel width and height of the rectangle."
   "Returns a value of the same form as option `available-screen-pixel-bounds'.
 This represents the currently available screen area."
   (or available-screen-pixel-bounds     ; Use the option value, if available.
-      (if (fboundp 'mac-display-available-pixel-bounds) ; Mac-OS-specific.
+      (if (fboundp 'mac-display-available-pixel-bounds) ; macOS-specific.
           (mac-display-available-pixel-bounds)
         (if (fboundp 'display-monitor-attributes-list) ; Emacs 24.4+
             (let ((attss  (display-monitor-attributes-list))
@@ -1630,6 +1696,64 @@ space occupied by a standalone minibuffer, if any."
                      (frcmds-available-screen-pixel-bounds)
                    (frcmds-effective-screen-pixel-bounds))))
     (- (cadddr bounds) (cadr bounds)))) ; Y1 - Y0
+
+;; Same as `zz-repeat-command' in `zones.el'.
+;;
+(defun frcmds-repeat-command (command)  ; Emacs 22+
+  "Repeat COMMAND."
+  (require 'repeat)         ; Define its vars before we let-bind them.
+  (let ((repeat-previous-repeated-command  command)
+        (repeat-message-function           #'ignore)
+        (last-repeatable-command           'repeat))
+    (repeat nil)))
+
+;;;###autoload
+(defun enlarge-window-horizontally-repeat () ; Emacs 22+
+  "Enlarge selected window horizontally by one column.
+You can repeat this by hitting the last key again..."
+  (interactive)
+  (require 'repeat)
+  (frcmds-repeat-command 'enlarge-window-horizontally))
+
+;;;###autoload
+(defun shrink-window-horizontally-repeat () ; Emacs 22+
+  "Srhink selected window horizontally by one column.
+You can repeat this by hitting the last key again..."
+  (interactive)
+  (require 'repeat)
+  (frcmds-repeat-command 'shrink-window-horizontally))
+
+;;;###autoload
+(defun enlarge-window-repeat ()         ; Emacs 22+
+  "Enlarge selected window vertically by one line.
+You can repeat this by hitting the last key again..."
+  (interactive)
+  (require 'repeat)
+  (frcmds-repeat-command 'enlarge-window))
+
+;;;###autoload
+(defun shrink-window-repeat ()          ; Emacs 22+
+  "Shrink selected window vertically by one line.
+You can repeat this by hitting the last key again..."
+  (interactive)
+  (require 'repeat)
+  (frcmds-repeat-command 'shrink-window))
+
+;;;###autoload
+(defun enlarge/shrink-window (arg)      ; Emacs 22+
+  "Enlarge selected window vertically by one line.
+With a prefix arg, shrink it."
+  (interactive "P")
+  (if arg (shrink-window 1) (enlarge-window 1)))
+
+;;;###autoload
+(defun enlarge/shrink-window-repeat ()  ; Emacs 22+
+  "Enlarge selected window vertically by one line.
+With a prefix arg, shrink it.
+You can repeat this by hitting the last key again..."
+  (interactive)
+  (require 'repeat)
+  (frcmds-repeat-command 'enlarge/shrink-window))
 
 ;; Inspired by `sk-grow-frame' from Sarir Khamsi [sarir.khamsi@raytheon.com]
 ;;;###autoload
@@ -1969,9 +2093,9 @@ The CAR of each list item is a string variable name.
 The CDR is nil."
   (let ((vars  ()))
     (mapatoms (lambda (sym) (and (boundp sym)
-                                 (setq sym  (symbol-name sym))
-                                 (string-match "frame-alist$" sym)
-                                 (push (list sym) vars))))
+                            (setq sym  (symbol-name sym))
+                            (string-match "frame-alist$" sym)
+                            (push (list sym) vars))))
     vars))
 
 (defun frcmds-frame-parameter-names ()

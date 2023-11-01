@@ -676,7 +676,7 @@ This is found in the Growl Extras: http://growl.info/extras.php."
                         (cdr (assq (plist-get info :severity)
                                    alert-growl-priorities))))
              (args
-              (case system-type
+              (cl-case system-type
                 ('windows-nt (mapcar
                               (lambda (lst) (apply #'concat lst))
                               `(
@@ -691,11 +691,11 @@ This is found in the Growl Extras: http://growl.info/extras.php."
                     "--priority" priority)))))
         (if (and (plist-get info :persistent)
                  (not (plist-get info :never-persist)))
-            (case system-type
+            (cl-case system-type
               ('windows-nt (nconc args (list "/s:true")))
               (t (nconc args (list "--sticky")))))
         (let ((message (alert-encode-string (plist-get info :message))))
-          (case system-type
+          (cl-case system-type
             ('windows-nt (nconc args (list message)))
             (t (nconc args (list "--message" message)))))
         (apply #'call-process alert-growl-command nil nil nil args))
@@ -884,12 +884,12 @@ From https://github.com/julienXX/terminal-notifier."
                        (alert-encode-string (plist-get info :title)))))
   (alert-message-notify info))
 
-(when (fboundp 'mac-do-applescript)
+(when (fboundp 'do-applescript)
   ;; Use built-in AppleScript support when possible.
   (defun alert-osx-notifier-notify (info)
-    (mac-do-applescript (format "display notification %S with title %S"
-                                (alert-encode-string (plist-get info :message))
-                                (alert-encode-string (plist-get info :title))))
+    (do-applescript (format "display notification %S with title %S"
+                            (alert-encode-string (plist-get info :message))
+                            (alert-encode-string (plist-get info :title))))
     (alert-message-notify info)))
 
 (alert-define-style 'osx-notifier :title "Notify using native OSX notification" :notifier #'alert-osx-notifier-notify)

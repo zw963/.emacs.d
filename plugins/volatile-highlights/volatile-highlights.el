@@ -1,4 +1,4 @@
-;;; volatile-highlights.el --- Minor mode for visual feedback on some operations.
+;;; volatile-highlights.el --- Minor mode for visual feedback on some operations. -*- lexical-binding: t; -*-
 
 ;; Copyright (C) 2001, 2010-2016 K-talo Miyazaki, all rights reserved.
 
@@ -6,7 +6,7 @@
 ;; Created: 03 October 2001. (as utility functions in my `.emacs' file.)
 ;;          14 March   2010. (re-written as library `volatile-highlights.el')
 ;; Keywords: emulations convenience wp
-;; Revision: $Id: cb468976642bf1d30cbb2070ee846c4736ee077d $
+;; Revision: $Id: 1a65157904ec58ed515858a20cbebcde528a51db $
 ;; URL: http://www.emacswiki.org/emacs/download/volatile-highlights.el
 ;; GitHub: http://github.com/k-talo/volatile-highlights.el
 ;; Version: 1.15
@@ -54,7 +54,7 @@
 ;; =====
 ;; To toggle volatile highlighting, type `M-x volatile-highlights-mode <RET>'.
 ;;
-;; While this minor mode is on, a string `VHL' will be displayed on the modeline.
+;; While this minor mode is on, a string `VHl' will be displayed on the modeline.
 ;;
 ;; Currently, operations listed below will be highlighted While the minor mode
 ;; `volatile-highlights-mode' is on:
@@ -106,7 +106,7 @@
 ;;
 ;;   (vhl/define-extension 'vip 'vip-yank)
 ;;   (vhl/install-extension 'vip)
-;;   
+;;
 ;; - evil-mode
 ;;
 ;;   (vhl/define-extension 'evil 'evil-paste-after 'evil-paste-before
@@ -195,7 +195,7 @@
 (defconst vhl/version "1.8")
 
 (eval-when-compile
-  (require 'cl)
+  (require 'cl-lib)
   (require 'easy-mmode)
   (require 'advice))
 
@@ -409,7 +409,7 @@ Optional args are the same as `vhl/add-range'."
   (let ((fn-on  (intern (format "vhl/ext/%s/on" sym)))
         (fn-off (intern (format "vhl/ext/%s/off" sym)))
         (cust-name (intern (format "vhl/use-%s-extension-p" sym))))
-    (pushnew sym vhl/.installed-extensions)
+    (cl-pushnew sym vhl/.installed-extensions)
     (eval `(defcustom ,cust-name t
              ,(format "A flag if highlighting support for `%s' is on or not." sym)
              :type 'boolean
@@ -532,34 +532,34 @@ would be listed in english.
 This is included as a private support function for generating
 lists of symbols to be included docstrings of auto-generated
 extensions."
-  (assert (listp items))
+  (cl-assert (listp items))
   (cond ((null items)
          ;; Zero items
          "")
         ((null (cdr items))
          ;; One item
-         (assert (stringp (first items)))
-         (format "%s" (first items)))
+         (cl-assert (stringp (cl-first items)))
+         (format "%s" (cl-first items)))
         ((null (cddr items))
          ;; Two items
-         (assert (stringp (first items)))
-         (assert (stringp (second items)))
+         (cl-assert (stringp (cl-first items)))
+         (cl-assert (stringp (cl-second items)))
          (apply 'format "%s and %s" items))
         ((null (cdddr items))
          ;; Three items
-         (assert (stringp (first items)))
-         (assert (stringp (second items)))
-         (assert (stringp (third items)))
+         (cl-assert (stringp (cl-first items)))
+         (cl-assert (stringp (cl-second items)))
+         (cl-assert (stringp (cl-third items)))
          (apply 'format "%s, %s, and %s" items))
         (t
          ;; 4 or more items
-         (format "%s, %s" (first items) (vhl/.make-list-string (rest items)))))))
+         (format "%s, %s" (cl-first items) (vhl/.make-list-string (cl-rest items)))))))
 
 ;; The following makes it trivial to define simple vhl extensions
 (defmacro vhl/define-extension (name &rest functions)
   "Define a VHL extension called NAME that applies standard VHL
   advice to each of FUNCTIONS."
-  (assert (first functions))
+  (cl-assert (cl-first functions))
   (let* ((name-string (symbol-name (eval name)))
          (function-list-string (vhl/.make-list-string
                                 (mapcar (lambda (f) (format "`%s'" (symbol-name (eval f))))
@@ -671,7 +671,7 @@ extensions."
   "Turn on volatile highlighting for `occur'."
   (interactive)
 
-  (lexical-let ((*occur-str* nil)) ;; Text in current line.
+  (let ((*occur-str* nil)) ;; Text in current line.
     (defun vhl/ext/occur/.pre-hook-fn ()
       (save-excursion
         (let* ((bol (progn (beginning-of-line) (point)))
@@ -826,16 +826,16 @@ extensions."
   (defadvice hs-show-block (around vhl/ext/hideshow/vhl/around-hook (&optional end))
     (let* ((bol (save-excursion (progn (beginning-of-line) (point))))
            (eol (save-excursion (progn (end-of-line) (point))))
-           (ov-folded (car (delq nil 
+           (ov-folded (car (delq nil
                                  (mapcar #'(lambda (ov)
                                              (and (overlay-get ov 'hs)
                                                   ov))
                                          (overlays-in bol (1+ eol))))))
            (boov (and ov-folded (overlay-start ov-folded)))
            (eoov (and ov-folded (overlay-end ov-folded))))
-    
+
       ad-do-it
-    
+
       (when (and boov eoov)
         (vhl/add-range boov eoov))))
   (ad-activate 'hs-show-block))
@@ -843,7 +843,7 @@ extensions."
 (defun vhl/ext/hideshow/on ()
   "Turn on volatile highlighting for `hideshow'."
   (interactive)
-  
+
   (cond
    ((featurep 'hideshow)
     (vhl/ext/hideshow/.activate))
