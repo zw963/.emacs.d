@@ -10,6 +10,7 @@
 
 (dolist (hook '(
                 ruby-mode-hook
+                ruby-ts-mode-hook
                 enh-ruby-mode-hook
                 dart-mode-hook
                 go-mode-hook

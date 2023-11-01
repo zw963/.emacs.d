@@ -37,16 +37,6 @@
 
 ;; (add-to-list 'lsp-solargraph-library-directories '("~/utils/ruby_tools/app/gems"))
 
-;; (dolist (hook (list
-;;                'enh-ruby-mode-hook
-;;                'ruby-mode
-;;                ))
-;;   (add-hook hook (lambda ()
-;;                    ;; (unless (and rvm--current-ruby rvm--current-gemset)
-;;                    ;;   (rvm-activate-corresponding-ruby))
-;;                    (lsp-deferred)
-;;                    )))
-
 (defun zw/lsp-ruby-common-hooks ()
   (add-hook 'before-save-hook #'lsp-format-buffer t t)
   (lsp-deferred)
@@ -63,8 +53,8 @@
   (setq-local lsp-completion-show-kind nil)
   )
 
-(add-hook 'ruby-mode-hook 'zw/lsp-ruby-common-hooks)
-(add-hook 'enh-ruby-mode-hook 'zw/lsp-ruby-common-hooks)
+
+(run-ruby-mode-hook '(zw/lsp-ruby-common-hooks))
 
 ;; (require 'dap-ruby)
 ;; (dap-ruby-setup)

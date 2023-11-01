@@ -110,8 +110,7 @@
 
 (add-hook 'dart-mode-hook 'context-menu-lsp-dart-context-menu)
 (add-hook 'go-mode-hook 'context-menu-lsp-common-context-menu)
-(add-hook 'ruby-mode-hook 'context-menu-lsp-common-context-menu)
-(add-hook 'enh-ruby-mode-hook 'context-menu-lsp-common-context-menu)
+(run-ruby-mode-hook '(context-menu-lsp-common-context-menu))
 (add-hook 'rust-mode-hook 'context-menu-lsp-common-context-menu)
 (add-hook 'rustic-mode-hook 'context-menu-lsp-common-context-menu)
 

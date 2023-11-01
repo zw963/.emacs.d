@@ -8,10 +8,8 @@
 (require 'yard-mode)
 ;; (add-to-list 'yard-tags "hidden")
 ;; (add-to-list 'yard-tag-docstrings "@hidden")
-(add-hook 'ruby-mode-hook 'yard-mode)
-(add-hook 'enh-ruby-mode-hook 'yard-mode)
-(add-hook 'ruby-mode-hook 'eldoc-mode)
-(add-hook 'enh-ruby-mode-hook 'eldoc-mode)
+(run-ruby-mode-hook '(yard-mode))
+(run-ruby-mode-hook '(eldoc-mode))
 
 (provide 'yard-mode_init)
 

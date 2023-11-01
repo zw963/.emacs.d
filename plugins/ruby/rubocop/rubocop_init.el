@@ -6,7 +6,7 @@
 (setq rubocop-autocorrect-command "rubocop-daemon-wrapper -a --format emacs")
 (setq rubocop-format-command "rubocop-daemon-wrapper -x --format emacs")
 
-(add-hook 'ruby-mode-hook #'rubocop-mode)
+(run-ruby-mode-hook '(rubocop-mode))
 
 ;; (run-ruby-mode-hook '(local-set-key [(control c) (control c)] 'rubocop-format-current-file))
 

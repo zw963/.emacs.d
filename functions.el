@@ -1,7 +1,7 @@
 (require 's)
 
 (defun run-ruby-mode-hook (func)
-  (dolist (hook '(ruby-mode-hook enh-ruby-mode-hook))
+  (dolist (hook '(ruby-mode-hook enh-ruby-mode-hook ruby-ts-mode-hook))
     (add-hook hook `(lambda ()
                       ,func
                       ))))

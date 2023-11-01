@@ -15,11 +15,10 @@
 (defun turn-on-ctags-auto-update-mode()
   "turn on `ctags-auto-update-mode'."
   (interactive)
-  (when (member major-mode '(ruby-mode enh-ruby-mode))
+  (when (member major-mode '(ruby-mode enh-ruby-mode ruby-ts-mode))
     (ctags-auto-update-mode 1)))
 
-(add-hook 'ruby-mode-hook 'turn-on-ctags-auto-update-mode)
-(add-hook 'enh-ruby-mode-hook 'turn-on-ctags-auto-update-mode)
+(run-ruby-mode-hook '(turn-on-ctags-auto-update-mode))
 
 ;;;------------------------------ helm etags+ ------------------------------
 ;; 第一次使用之前，激活 rvm.

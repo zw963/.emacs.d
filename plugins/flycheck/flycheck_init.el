@@ -29,12 +29,7 @@ See URL `https://rubocop.org/'."
                    (warning . ruby-reek)
                    (warning . ruby-rubylint)))
 
-(with-eval-after-load 'ruby-mode
-  (add-hook 'ruby-mode-hook
-            (lambda ()
-             (setq-local flycheck-checker 'ruby-rubocop-daemon-wrapper)
-             ))
-  )
+(run-ruby-mode-hook '(setq-local flycheck-checker 'ruby-rubocop-daemon-wrapper))
 
 ;; (setq-default flycheck-disabled-checkers '(yaml-ruby yaml-jsyaml yaml-yamllint))
 ;; (setq-default flycheck-disabled-checkers '(yaml-yamllint))
