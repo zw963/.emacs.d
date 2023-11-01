@@ -596,7 +596,9 @@ from its directory."
 (put 'helm-quit-and-find-file 'helm-only t)
 
 (defun helm--quit-and-find-file-default-file (source)
-  (let ((target-fn (helm-get-attr 'find-file-target)))
+  (let ((target-fn (or (helm-get-attr 'find-file-target source)
+                       (assoc-default (helm-get-attr 'name source)
+                                      helm-mode-find-file-target-alist))))
     ;; target-fn function may return nil, in this case fallback to default.
     (helm-aif (and target-fn (funcall target-fn source))
         it
@@ -635,21 +637,24 @@ that is sorting is done against real value of candidate."
          (str1  (if (consp s1) (cdr s1) s1))
          (str2  (if (consp s2) (cdr s2) s2))
          (score (lambda (str r1 r2 r3 lst)
-                    (+ (if (string-match (concat "\\`" qpattern) str) 1 0)
-                       (cond ((string-match r1 str) 5)
-                             ((and (string-match " " qpattern)
-                                   (string-match
-                                    (concat "\\_<" (regexp-quote (car lst))) str)
-                                   (cl-loop for r in (cdr lst)
-                                            always (string-match r str)))
-                              4)
-                             ((and (string-match " " qpattern)
-                                   (cl-loop for r in lst
-                                            always (string-match r str)))
-                              3)
-                             ((string-match r2 str) 2)
-                             ((string-match r3 str) 1)
-                             (t 0)))))
+                  (condition-case nil
+                      (+ (if (string-match (concat "\\`" qpattern) str) 1 0)
+                         (cond ((string-match r1 str) 5)
+                               ((and (string-match " " qpattern)
+                                     (car lst)
+                                     (string-match
+                                      (concat "\\_<" (regexp-quote (car lst))) str)
+                                     (cl-loop for r in (cdr lst)
+                                              always (string-match r str)))
+                                4)
+                               ((and (string-match " " qpattern)
+                                     (cl-loop for r in lst
+                                              always (string-match r str)))
+                                3)
+                               ((string-match r2 str) 2)
+                               ((string-match r3 str) 1)
+                               (t 0)))
+                    (invalid-regexp 0))))
          (sc1 (get-text-property 0 'completion-score str1))
          (sc2 (get-text-property 0 'completion-score str2))
          (sc3 (if sc1 0 (funcall score str1 reg1 reg2 reg3 split)))
@@ -1068,7 +1073,9 @@ Assume regexp is a pcre based regexp."
                             "xdg-open")
                            ((or (eq system-type 'darwin) ;; Mac OS X
                                 (eq system-type 'macos)) ;; Mac OS 9
-                            "open"))
+                            "open")
+			   ((eq system-type 'cygwin)
+			    "cygstart"))
                      file))))
 
 (defun helm-open-dired (file)
@@ -1107,14 +1114,19 @@ Run `helm-find-many-files-after-hook' at end."
 
 (defun helm-read-repeat-string (prompt &optional count)
   "Prompt as many time PROMPT is not empty.
-If COUNT is non--nil add a number after each prompt."
-  (cl-loop with elm
-        while (not (string= elm ""))
-        for n from 1
-        do (when count
-             (setq prompt (concat prompt (int-to-string n) ": ")))
-        collect (setq elm (helm-read-string prompt)) into lis
-        finally return (remove "" lis)))
+If COUNT is non--nil add a number after each prompt.
+Return the list of strings entered in each prompt."
+  (cl-loop with prt = prompt
+           with elm
+           while (not (string= elm ""))
+           for n from 1
+           do (when count
+                (setq prt (format "%s (%s): "
+                                  (replace-regexp-in-string
+                                   ": " "" prompt)
+                                  (int-to-string n))))
+           collect (setq elm (helm-read-string prt)) into lis
+           finally return (remove "" lis)))
 
 (defun helm-html-bookmarks-to-alist (file url-regexp bmk-regexp)
   "Parse HTML bookmark FILE and return an alist with (title . url) as elements."
