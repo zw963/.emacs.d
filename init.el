@@ -96,7 +96,8 @@
 (require 'rust-ts-mode_init)
 
 ;; (require 'lsp-bridge_init)
-(require 'tabnine_init) ;; lsp-bridge 默认会开启 tabnine
+;; (require 'tabnine_init) ;; lsp-bridge 默认会开启 tabnine
+(require 'codeium_init)
 ;; (require 'haskell-mode_init)
 ;; (require 'js2-mode_init)
 ;; (require 'lua-mode_init)
