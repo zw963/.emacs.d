@@ -621,7 +621,7 @@ May not work for things like ido and ivy."
 
 (cl-defun amx-completing-read-helm (choices &key initial-input predicate def)
   "Amx backend for helm completion."
-  (require 'helm-config)
+  (require 'helm)
   (require 'helm-mode)                  ; Provides `helm-comp-read-map'
   (helm-comp-read (amx-prompt-with-prefix-arg) choices
                   :initial-input initial-input
