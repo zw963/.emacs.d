@@ -45,6 +45,7 @@
 (require 'quickrun_init)
 (require 'amx_init)
 (require 'spatial-navigate_init)
+(require 'rime_init)
 
 (require 'vterm_init)
 (require 'async_init)
