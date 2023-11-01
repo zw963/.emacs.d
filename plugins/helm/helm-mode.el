@@ -30,8 +30,6 @@
 (defvar helm-mode)
 (defvar password-cache)
 (defvar package--builtins)
-(defvar helm--locate-library-doc-cache)
-(defvar helm--locate-library-cache)
 
 ;; No warnings in Emacs built --without-x
 (declare-function x-file-dialog "xfns.c")
@@ -48,7 +46,6 @@
 (declare-function package-get-descriptor "package")
 (declare-function print-coding-system-briefly "mul-diag.el")
 (declare-function color-rgb-to-hex "color.el")
-(declare-function find-library-name "find-func.el")
 
 (defgroup helm-mode nil
   "Enable helm completion."
@@ -255,11 +252,6 @@ This is mainly needed to prevent \"*Completions*\" buffers to popup.")
 Not guaranteed to work with Emacs < 27."
   :type 'boolean
   :group 'helm-mode)
-
-(defvar helm-mode-find-file-target-alist
-  '(("switch-to-buffer" . helm-buffers-quit-and-find-file-fn))
-  "An alist composed of (SOURCE_NAME . FUNCTION) elements.
-Where FUNCTION is a function suitable for `helm-quit-and-find-file'.")
 
 (defface helm-mode-prefix
   `((t ,@(and (>= emacs-major-version 27) '(:extend t))
@@ -289,12 +281,6 @@ Where FUNCTION is a function suitable for `helm-quit-and-find-file'.")
     (define-key map (kbd "M-RET")      'helm-cr-empty-string)
     map)
   "Keymap for `helm-comp-read'.")
-
-(defvar helm-comp-in-region-map
-  (let ((map (make-sparse-keymap)))
-    (set-keymap-parent map helm-comp-read-map)
-    map)
-  "Keymap for completion-at-point and friends.")
 
 (defun helm-mode-delete-char-backward-1 ()
   (interactive)
@@ -373,8 +359,8 @@ NOT `setq'."
   :set (lambda (var val)
          (set var val)
          (if (memq val '(helm helm-fuzzy))
-             (define-key helm-comp-in-region-map (kbd "DEL") 'helm-mode-delete-char-backward-maybe)
-           (define-key helm-comp-in-region-map (kbd "DEL") 'delete-backward-char))))
+             (define-key helm-comp-read-map (kbd "DEL") 'helm-mode-delete-char-backward-maybe)
+           (define-key helm-comp-read-map (kbd "DEL") 'delete-backward-char))))
 
 (defconst helm-completion--all-styles
   (let ((flex (if (assq 'flex completion-styles-alist)
@@ -1027,10 +1013,7 @@ that use `helm-comp-read'.  See `helm-M-x' for example."
                       (category . coding-system)))
     (color . (metadata
               (affixation-function . helm-completion-color-affixation)
-              (category . color)))
-    (library . (metadata
-                (affixation-function . helm-completion-library-affixation)
-                (category . library))))
+              (category . color))))
   "Extra metadata for completing-read.
 
 Alist composed of (CATEGORY . METADATA).
@@ -1065,10 +1048,7 @@ behavior as emacs vanilla.")
     ("trace-function-foreground" . symbol-help)
     ("trace-function-background" . symbol-help)
     ("describe-minor-mode" . symbol-help)
-    ("where-is" . symbol-help)
-    ("execute-extended-command" . symbol-help)
     ("find-library" . library)
-    ("locate-library" . library)
     ("kill-buffer" . buffer)
     ("package-install" . package)
     ("package-vc-install" . package)
@@ -1160,12 +1140,11 @@ is used."
                          (helm-in-buffer-get-longest-candidate)))
            (sep (if (or (null max-len) (zerop max-len))
                     " --"               ; Default separator.
-                  (helm-make-separator comp max-len)))
+                  (make-string (- max-len (length comp)) ? )))
            (doc (ignore-errors
                   (helm-get-first-line-documentation sym)))
            (symbol-class (help--symbol-class sym))
-           (group (helm-group-p sym))
-           (key (helm-completion-get-key sym)))
+           (group (helm-group-p sym)))
       (list
        ;; Symbol (comp).
        (if (or (symbol-function sym) (boundp sym)
@@ -1184,20 +1163,12 @@ is used."
                   (propertize it 'face 'helm-completions-detailed)
                   (propertize
                    ;; (format "%-4s" it) makes spaces inheriting text props.
-                   " " 'display (concat it (make-string (- 5 (length it)) ? ))))
+                   " " 'display (concat it (make-string (- 4 (length it)) ? ))))
        ;; Suffix.
        (if doc
            (helm-aand (propertize doc 'face 'helm-completions-detailed)
-                      (propertize " " 'display (concat sep it key)))
+                      (propertize " " 'display (concat sep it)))
          "")))))
-
-(defun helm-completion-get-key (sym)
-  "Return key description on symbol SYM."
-  (with-helm-current-buffer
-    (let* ((key     (and (commandp sym) (where-is-internal sym nil 'first-only)))
-           (binding (and key (key-description key))))
-      (when binding
-        (propertize (format " (%s)" binding) 'face 'shadow)))))
 
 (defun helm-completion-package-affixation (_completions)
   (lambda (comp)
@@ -1208,7 +1179,9 @@ is used."
            (desc (if built-in
                      (aref (assoc-default sym package--builtins) 2)
                    (and id (package-desc-summary id))))
-           (sep (helm-make-separator comp)))
+           (sep (make-string (1+ (- (helm-in-buffer-get-longest-candidate)
+                                    (length comp)))
+                             ? )))
       (list comp
             (propertize
              (if status
@@ -1223,7 +1196,9 @@ is used."
 (defun helm-completion-theme-affixation (_completions)
   (lambda (comp)
     (let* ((sym (intern-soft comp))
-           (sep (helm-make-separator comp))
+           (sep (make-string (1+ (- (helm-in-buffer-get-longest-candidate)
+                                    (length comp)))
+                             ? ))
            (doc (if (custom-theme-p sym)
                     (helm-get-first-line-documentation sym)
                   (helm--get-theme-doc-1 sym))))
@@ -1268,7 +1243,9 @@ is used."
     (let ((doc (with-output-to-string
                  (with-current-buffer standard-output
                    (print-coding-system-briefly (intern comp) 'tightly))))
-          (sep (helm-make-separator comp)))
+          (sep (make-string (1+ (- (helm-in-buffer-get-longest-candidate)
+                                   (length comp)))
+                            ? )))
       (list comp "" (helm-aand (replace-regexp-in-string "^ *" "" doc)
                                (replace-regexp-in-string "[\n]" "" it)
                                (propertize it 'face 'helm-completions-detailed)
@@ -1276,7 +1253,9 @@ is used."
 
 (defun helm-completion-color-affixation (_comps)
   (lambda (comp)
-    (let ((sep (helm-make-separator comp))
+    (let ((sep (make-string (1+ (- (helm-in-buffer-get-longest-candidate)
+                                   (length comp)))
+                            ? ))
           (rgb (condition-case nil
                    (helm-acase comp
                      ("foreground at point" (with-helm-current-buffer
@@ -1291,27 +1270,6 @@ is used."
             (helm-aand (propertize rgb 'face `(:background ,rgb
                                                :distant-foreground "black"))
                        (propertize " " 'display (concat sep it)))))))
-
-(defun helm-completion-library-affixation (_comps)
-  (require 'helm-elisp)
-  (lambda (comp)
-    ;; Because find-library-include-other-files default to t, we have all the
-    ;; unrelated files and directories coming in ... Even if this modify the
-    ;; behavior of find-library-include-other-files remove them for the benefit
-    ;; of everybody.
-    (unless (string-match "\\(\\.elc\\|/\\)\\'" comp)
-      (let* ((sep (helm-make-separator comp))
-             (path (or (assoc-default comp helm--locate-library-cache)
-                       (let ((p (find-library-name comp)))
-                         (push (cons comp p) helm--locate-library-cache)
-                         p)))
-             (doc (or (gethash comp helm--locate-library-doc-cache)
-                      (puthash comp (helm-locate-lib-get-summary path)
-                               helm--locate-library-doc-cache))))
-        (list comp
-              ""
-              (helm-aand (propertize doc 'face 'font-lock-warning-face)
-                         (propertize " " 'display (concat sep it))))))))
 
 ;;; Generic completing read
 ;;
@@ -2592,7 +2550,6 @@ Can be used for `completion-in-region-function' by advicing it with an
                             :match-dynamic (eq helm-completion-style 'emacs)
                             :fuzzy (eq helm-completion-style 'helm-fuzzy)
                             :exec-when-only-one t
-                            :keymap helm-comp-in-region-map
                             :quit-when-no-cand
                             (lambda ()
                               ;; Delay message to overwrite "Quit".

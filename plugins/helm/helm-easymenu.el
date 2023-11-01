@@ -31,8 +31,7 @@
     ["Recent Files" helm-recentf t]
     ["Locate" helm-locate t]
     ["Search Files with find" helm-find t]
-    ["Bookmarks" helm-filtered-bookmarks t]
-    ["Locate library" helm-locate-library t])
+    ["Bookmarks" helm-filtered-bookmarks t])
    ("Buffers"
     ["Find buffers" helm-buffers-list t])
    ("Projects"

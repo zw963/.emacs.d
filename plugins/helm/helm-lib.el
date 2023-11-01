@@ -396,20 +396,6 @@ This is done recursively."
      (and (facep s) "a")
      (and (fboundp 'cl-find-class) (cl-find-class s) "t"))))
 
-;; Inline `kmacro--to-vector' from E29 to fix compatibility of
-;; `helm-kbd-macro-concat-macros' with E29 and E28.
-(unless (fboundp #'kmacro--to-vector)
-  (defun kmacro--to-vector (object)
-  "Normalize an old-style key sequence to the vector form."
-  (if (not (stringp object))
-      object
-    (let ((vec (string-to-vector object)))
-      (unless (multibyte-string-p object)
-	(dotimes (i (length vec))
-	  (let ((k (aref vec i)))
-	    (when (> k 127)
-	      (setf (aref vec i) (+ k ?\M-\C-@ -128))))))
-      vec))))
 
 ;;; Macros helper.
 ;;
@@ -1305,16 +1291,13 @@ differently depending of answer:
 
 (defun helm-describe-class (class)
   "Display documentation of Eieio CLASS, a symbol or a string."
-  (let ((advicep (advice-member-p #'helm-source--cl--print-table 'cl--print-table)))
-    (unless advicep
-      (advice-add 'cl--print-table :override #'helm-source--cl--print-table '((depth . 100))))
-    (unwind-protect
-         (if (fboundp 'cl-describe-type)
-             (cl-describe-type (helm-symbolify class))
-           (let ((helm-describe-function-function 'describe-function))
-             (helm-describe-function (helm-symbolify class))))
-      (unless advicep
-        (advice-remove 'cl--print-table #'helm-source--cl--print-table)))))
+  (advice-add 'cl--print-table :override #'helm-source--cl--print-table '((depth . 100)))
+  (unwind-protect
+       (if (fboundp 'cl-describe-type)
+           (cl-describe-type (helm-symbolify class))
+         (let ((helm-describe-function-function 'describe-function))
+           (helm-describe-function (helm-symbolify class))))
+    (advice-remove 'cl--print-table #'helm-source--cl--print-table)))
 
 (defun helm-describe-function (func)
   "Display documentation of FUNC, a symbol or string."
@@ -1550,48 +1533,23 @@ candidate as arg."
 (defun helm-basename (fname &optional ext)
   "Print FNAME with any leading directory components removed.
 If specified, also remove filename extension EXT.
-If FNAME is a directory EXT arg is ignored.
-
-Arg EXT can be specified as a string, a number or `t' .
-When specified as a string, this string is stripped from end of FNAME.
-e.g. (helm-basename \"tutorial.el.gz\" \".el.gz\") => tutorial.
-When `t' no checking of `file-name-extension' is done and the first
-extension is removed unconditionally with `file-name-sans-extension'.
-e.g. (helm-basename \"tutorial.el.gz\" t) => tutorial.el.
-When a number, remove that many times extensions from FNAME until FNAME ends
-with its real extension which is by default \".el\".
-e.g. (helm-basename \"tutorial.el.gz\" 2) => tutorial
-To specify the extension where to stop use a cons cell where the cdr is a regexp
-matching extension e.g. (2 . \\\\.py$).
-e.g. (helm-basename \"~/ucs-utils-6.0-delta.py.gz\" \\='(2 . \"\\\\.py\\\\\\='\"))
-=>ucs-utils-6.0-delta."
-  (let ((non-essential t)
-        (ext-regexp (cond ((consp ext) (cdr ext))
-                          ((numberp ext) "\\.el\\'")
-                          (t ext)))
-        result)
-    (cond ((or (null ext) (file-directory-p fname))
-           (file-name-nondirectory (directory-file-name fname)))
-          ((or (numberp ext) (consp ext))
-           (cl-dotimes (_ (if (consp ext) (car ext) ext))
-             (let ((bn (file-name-nondirectory (or result fname))))
-               (helm-aif (file-name-sans-extension bn)
-                   (if (string-match-p ext-regexp bn)
-                       (cl-return (setq result (file-name-sans-extension bn)))
-                     (setq result (file-name-sans-extension bn))))))
-           result)
-          ((eq t ext)
-           (file-name-sans-extension (file-name-nondirectory fname)))
-          ((stringp ext)
-           (replace-regexp-in-string (concat (regexp-quote ext) "\\'") ""
-                                     (file-name-nondirectory fname))))))
+Arg EXT can be specified as a string with or without dot, in this
+case it should match `file-name-extension'.
+It can also be non-nil (t) in this case no checking of
+`file-name-extension' is done and the extension is removed
+unconditionally."
+  (let ((non-essential t))
+    (if (and ext (or (string= (file-name-extension fname) ext)
+                     (string= (file-name-extension fname t) ext)
+                     (eq ext t))
+             (not (file-directory-p fname)))
+        (file-name-sans-extension (file-name-nondirectory fname))
+      (file-name-nondirectory (directory-file-name fname)))))
 
 (defun helm-basedir (fname &optional parent)
-  "Return the base directory of FNAME ending by a slash.
+  "Return the base directory of filename ending by a slash.
 If PARENT is specified and FNAME is a directory return the parent
-directory of FNAME.
-If PARENT is not specified but FNAME doesn't end by a slash, the returned value
-is same as with PARENT."
+directory of FNAME."
   (helm-aif (and fname
                  (or (and (string= fname "~") "~")
                      (file-name-directory
@@ -1747,38 +1705,6 @@ Directories expansion is not supported."
     (format ".*\\.\\(%s\\)$"
             (replace-regexp-in-string
              "," "\\\\|" (match-string 2 wc)))))
-
-(defun helm-locate-lib-get-summary (file)
-  "Extract library description from FILE."
-  (let* ((shell-file-name "sh")
-         (shell-command-switch "-c")
-         (cmd "%s %s | head -n1 | awk 'match($0,\"%s\",a) {print a[2]}'\
- | awk -F ' -*-' '{print $1}'")
-         (regexp "^;;;(.*) ---? (.*)$")
-         (proc (start-process-shell-command
-                "helm-locate-lib-get-summary" "*helm locate lib*"
-                (format cmd
-                        (if (string-match-p "\\.gz\\'" file)
-                            "gzip -c -q -d" "cat")
-                        (shell-quote-argument file)
-                        regexp)))
-         output)
-    (set-process-filter proc nil)
-    (set-process-sentinel
-     proc (lambda (process event)
-            (when (and (string= event "finished\n")
-                       (process-buffer process))
-              (setq output
-                    (with-current-buffer (process-buffer process)
-                      (replace-regexp-in-string
-                       "\n" ""
-                       (buffer-string))))
-              (kill-buffer (process-buffer process)))))
-    (while (and proc (eq (process-status proc) 'run))
-      (accept-process-output proc))
-    (if (string= output "")
-        "Not documented"
-      output)))
 
 ;;; helm internals
 ;;

@@ -634,7 +634,7 @@ This affects `\\<helm-find-files-map>\\[helm-ff-run-switch-to-shell]' keybinding
   :type '(choice
           (const :tag "Use Eshell" eshell-mode)
           (const :tag "Use Shell" shell-mode)
-          (const :tag "Use Term" term-mode)))
+          (const :tag "Use Shell" term-mode)))
 
 (defcustom helm-rsync-no-mode-line-update nil
   "When non nil don't update mode-line when rsync is running.
@@ -4341,7 +4341,7 @@ Arg FILE is the real part of candidate, a filename with no props."
                                                  helm-ff-dotted-symlink-directory))
                                       (file-directory-p file))
                                  (all-the-icons-octicon "file-symlink-directory")
-                               (all-the-icons-icon-for-file (helm-basename file)))))))
+                               (all-the-icons-icon-for-file file))))))
       (when icon (concat icon " ")))))
 
 (defun helm-ff--is-dir-from-disp (disp)
@@ -6458,9 +6458,7 @@ be directories."
                                  (propertize c 'face 'helm-history-deleted))))
            when disp
            collect (cons (if helm-ff-icon-mode
-                             (concat (all-the-icons-icon-for-file
-                                      (helm-basename elm))
-                                     " " disp)
+                             (concat (all-the-icons-icon-for-file c) " " disp)
                            disp)
                          c)))
 
@@ -6654,8 +6652,7 @@ VC handled directories.")
 (defvar helm-browse-project-history nil)
 
 ;;;###autoload
-(defun helm-projects-history (&optional arg)
-  "Jump to project already visisted with `helm-browse-project'."
+(defun helm-projects-history (arg)
   (interactive "P")
   (helm :sources
         (helm-build-sync-source "Project history"

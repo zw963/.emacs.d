@@ -33,8 +33,6 @@
 (declare-function helm-comp-read "helm-mode")
 (declare-function helm-M-x-transformer-no-sort-no-props "helm-command")
 (defvar helm-M-x-show-short-doc)
-(defvar helm-completions-detailed)
-
 
 ;;; Customizable values
 
@@ -208,9 +206,6 @@ If `helm-turn-on-show-completion' is nil do nothing."
                'helm-display-function
                (or helm-show-completion-display-function
                    'helm-default-display-buffer))
-              (with-helm-after-update-hook
-                ;; Show immediately first candidate as soon as helm popup.
-                (helm-show-completion))
               (helm-show-completion-init-overlay ,beg ,end)
               ,@body)
           ,@body)
@@ -858,19 +853,19 @@ a string, i.e. the `symbol-name' of any existing symbol."
     :persistent-help "Toggle describe function / C-u C-j: Toggle advice"))
 
 (defun helm-advice-candidates ()
-  (cl-loop for fname in ad-advised-functions
-           for function = (intern fname)
-           append
-           (cl-loop for class in ad-advice-classes append
-                    (cl-loop for advice in (ad-get-advice-info-field function class)
-                             for enabled = (ad-advice-enabled advice)
-                             collect
-                             (cons (format
-                                    "%s %s %s"
-                                    (if enabled "Enabled " "Disabled")
-                                    (propertize fname 'face 'font-lock-function-name-face)
-                                    (ad-make-single-advice-docstring advice class nil))
-                                   (list function class advice))))))
+  (cl-loop for (fname) in ad-advised-functions
+        for function = (intern fname)
+        append
+        (cl-loop for class in ad-advice-classes append
+              (cl-loop for advice in (ad-get-advice-info-field function class)
+                    for enabled = (ad-advice-enabled advice)
+                    collect
+                    (cons (format
+                           "%s %s %s"
+                           (if enabled "Enabled " "Disabled")
+                           (propertize fname 'face 'font-lock-function-name-face)
+                           (ad-make-single-advice-docstring advice class nil))
+                          (list function class advice))))))
 
 (defun helm-advice-persistent-action (func-class-advice)
   (if current-prefix-arg
@@ -907,70 +902,41 @@ a string, i.e. the `symbol-name' of any existing symbol."
 ;;; Locate elisp library
 ;;
 ;;
-(defvar helm--locate-library-cache nil)
-(defvar helm--locate-library-doc-cache (make-hash-table :test 'equal))
 (defun helm-locate-library-scan-list ()
   (cl-loop for dir in load-path
+           with load-suffixes = '(".el")
            when (file-directory-p dir)
-           nconc (directory-files
-                  dir nil (concat (regexp-opt (find-library-suffixes)) "\\'"))))
+           append (directory-files
+                   dir t (concat (regexp-opt (get-load-suffixes))
+                                 "\\'"))))
 
 ;;;###autoload
-(defun helm-locate-library (&optional arg)
-  "Preconfigured helm to locate elisp libraries.
-
-When `completions-detailed' or `helm-completions-detailed' is non
-nil, a description of libraries is provided. The libraries are
-partially cached in the variables
-`helm--locate-library-doc-cache' and
-`helm--locate-library-cache'.  TIP: You can make these vars
-persistent for faster start with the psession package, using M-x
-psession-make-persistent-variable.  NOTE: The caches affect as
-well `find-libray' and `locate-library' when `helm-mode' is
-enabled and `completions-detailed' is non nil.  There is no need
-to refresh the caches, they will be updated automatically if some
-new libraries are found, however when a library update its
-headers and the description change you can reset the caches with
-a prefix arg."
-  (interactive "P")
-  (let (done)
-    (when arg
-      (setq helm--locate-library-cache nil)
-      (clrhash helm--locate-library-doc-cache))
-    (helm :sources
-          (helm-build-in-buffer-source  "Elisp libraries (Scan)"
-            :data #'helm-locate-library-scan-list
-            :fuzzy-match helm-locate-library-fuzzy-match
-            :keymap helm-generic-files-map
-            :candidate-transformer
-            (lambda (candidates)
-              (cl-loop with reporter = (unless done
-                                         (make-progress-reporter
-                                          "Scanning libraries..." 0 (length candidates)))
-                       with lgst = (helm-in-buffer-get-longest-candidate)
-                       for c in candidates
-                       for count from 0
-                       for bn = (helm-basename c 2)
-                       for sep = (helm-make-separator bn lgst)
-                       for path = (or (assoc-default bn helm--locate-library-cache)
-                                      (let ((p (find-library-name bn)))
-                                        (push (cons bn p) helm--locate-library-cache)
-                                        p))
-                       for doc = (and (or completions-detailed helm-completions-detailed)
-                                      (or (gethash bn helm--locate-library-doc-cache)
-                                          (puthash bn (helm-locate-lib-get-summary path)
-                                                   helm--locate-library-doc-cache)))
-                       for disp = (if (or completions-detailed helm-completions-detailed)
-                                      (helm-aand (propertize doc 'face 'font-lock-warning-face)
-                                                 (propertize " " 'display (concat sep it))
-                                                 (concat bn it))
-                                    bn)
-                       collect (cons disp path)
-                       when reporter do (progress-reporter-update reporter count)
-                       finally do (setq done t)))
-            :action (helm-actions-from-type-file))
-          :buffer "*helm locate library*")))
-
+(defun helm-locate-library ()
+  "Preconfigured helm to locate elisp libraries."
+  (interactive)
+  (helm :sources (helm-build-in-buffer-source  "Elisp libraries (Scan)"
+                   :data #'helm-locate-library-scan-list
+                   :fuzzy-match helm-locate-library-fuzzy-match
+                   :keymap helm-generic-files-map
+                   :search (unless helm-locate-library-fuzzy-match
+                             (lambda (regexp)
+                               (re-search-forward
+                                (if helm-ff-transformer-show-only-basename
+                                    (replace-regexp-in-string
+                                     "\\`\\^" "" regexp)
+                                    regexp)
+                                nil t)))
+                   :match-part (lambda (candidate)
+                                 (with-helm-buffer
+                                   (if helm-ff-transformer-show-only-basename
+                                       (helm-basename candidate) candidate)))
+                   :filter-one-by-one (lambda (c)
+                                        (with-helm-buffer
+                                          (if helm-ff-transformer-show-only-basename
+                                              (cons (helm-basename c) c) c)))
+                   :action (helm-actions-from-type-file))
+        :ff-transformer-show-only-basename nil
+        :buffer "*helm locate library*"))
 
 ;;; Modify variables from Helm
 ;;

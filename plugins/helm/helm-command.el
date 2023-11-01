@@ -160,7 +160,7 @@ algorithm."
                                                " " 'display
                                                (propertize local-key 'face 'helm-M-x-key)))
                                       'match-part disp))
-                         ((and (string-match "^M-x" key) (not (string= key "M-x")))
+                         ((string-match "^M-x" key)
                           (propertize (format "%s%s%s"
                                               disp
                                               (if doc (make-string (+ 1 (- max-len (length cand))) ? ) "")

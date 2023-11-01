@@ -24,7 +24,6 @@
 (require 'helm-elisp)
 
 (declare-function undo-tree-restore-state-from-register "ext:undo-tree.el" (register))
-(declare-function kmacro--keys "kmacro.el")
 
 
 (defgroup helm-ring nil
@@ -404,11 +403,6 @@ yanked string."
                          (prin1-to-string (cdr val))
                          ".")
                  'jump-to-register))
-          ((and (consp val) (eq (car val) 'buffer))
-           (list (concat "buffer:"
-                         (prin1-to-string (cdr val))
-                         ".")
-                 'jump-to-register))
           ((and (consp val) (eq (car val) 'file-query))
            (list (concat "file:a file-query reference: file "
                          (car (cdr val))
@@ -534,23 +528,16 @@ See (info \"(emacs) Keyboard Macros\") for detailed infos."
     (helm :sources
           (helm-build-sync-source "Kmacro"
             :candidates (lambda ()
-                          (delq nil
-                                (helm-fast-remove-dups
-                                 (cons (kmacro-ring-head)
-                                       kmacro-ring)
-                                 :test 'equal)))
-            
+                          (helm-fast-remove-dups
+                           (cons (kmacro-ring-head)
+                                 kmacro-ring)
+                           :test 'equal))
             :multiline t
             :candidate-transformer
             (lambda (candidates)
-              (cl-loop for c in candidates
-                       for keys = (if (functionp c)
-                                      ;; Emacs-29+ (Oclosure).
-                                      (kmacro--keys c)
-                                    ;; Emacs-28 and below (list).
-                                    (car c))
-                       collect (propertize (help-key-description keys nil)
-                                           'helm-realvalue c)))
+              (cl-loop for c in candidates collect
+                       (propertize (help-key-description (car c) nil)
+                                   'helm-realvalue c)))
             :persistent-action 'ignore
             :persistent-help "Do nothing"
             :help-message 'helm-kmacro-help-message
@@ -609,22 +596,22 @@ See (info \"(emacs) Keyboard Macros\") for detailed infos."
     (when (cdr mkd)
       (kmacro-push-ring)
       (setq last-kbd-macro
-            (cl-loop for km in mkd
-                     for keys = (if (functionp km)
-                                    (kmacro--keys km)
-                                  (pcase (car km)
-                                    ((and vec (pred vectorp)) vec)
-                                    ((and str (pred stringp))
-                                     (kmacro--to-vector str))))
-                     vconcat keys)))))
+            (mapconcat 'identity
+                       (cl-loop for km in mkd
+                                if (vectorp km)
+                                append (cl-loop for k across km collect
+                                                (key-description (vector k)))
+                                into result
+                                else collect (car km) into result
+                                finally return result)
+                       "")))))
 
 (defun helm-kbd-macro-delete-macro (_candidate)
-  (let ((mkd  (helm-marked-candidates))
-        (head (kmacro-ring-head)))
+  (let ((mkd (helm-marked-candidates)))
+    (kmacro-push-ring)
     (cl-loop for km in mkd
              do (setq kmacro-ring (delete km kmacro-ring)))
-    (when (member head mkd)
-      (kmacro-delete-ring-head))))
+    (kmacro-pop-ring1)))
 
 (defun helm-kbd-macro-edit-macro (candidate)
   (kmacro-push-ring)

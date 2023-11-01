@@ -61,6 +61,7 @@
 
 ;; ============================== 编程相关 ==============================
 
+(require 'tree-sitter_init)
 (require 'prog-mode_init)
 (require 'snap-indent_init)
 ;; (require 'indentinator_init)

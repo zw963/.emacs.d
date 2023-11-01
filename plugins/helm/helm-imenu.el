@@ -100,7 +100,7 @@ Don't use `setq' to set this."
   :group 'helm-imenu
   :type 'boolean
   :set (lambda (var val)
-         (if (require 'all-the-icons nil t)
+         (if (featurep 'all-the-icons)
              (set var val)
            (set var nil))))
 
@@ -111,7 +111,7 @@ Don't use `setq' to set this."
   :group 'helm-imenu
   :type 'boolean
   :set (lambda (var val)
-         (if (require 'all-the-icons nil t)
+         (if (featurep 'all-the-icons)
              (set var val)
            (set var nil))))
 

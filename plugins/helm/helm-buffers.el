@@ -148,7 +148,7 @@ you want to keep the recentest order when narrowing candidates."
 Don't use `setq' to set this."
   :type 'boolean
   :set (lambda (var val)
-         (if (require 'all-the-icons nil t)
+         (if (featurep 'all-the-icons)
              (set var val)
            (set var nil))))
 
@@ -431,7 +431,7 @@ The list is reordered with `helm-buffer-list-reorder-fn'."
                      (cond ((eq type 'dired)
                             (all-the-icons-octicon "file-directory"))
                            (buf-fname
-                            (all-the-icons-icon-for-file buf-name))
+                            (all-the-icons-icon-for-file buf-fname))
                            (t (all-the-icons-octicon "star" :v-adjust 0.0))))))
            (buf-name (propertize buf-name 'face face1
                                  'help-echo help-echo
@@ -1110,18 +1110,19 @@ Can be used by any source that list buffers."
   (cl-assert (not helm-buffers-in-project-p)
              nil "You are already browsing this project"))
 
-;;;###autoload
 (defun helm-buffers-quit-and-find-file-fn (source)
-  (let* ((sel   (get-buffer (helm-get-selection nil nil source)))
-         (bname (and (bufferp sel) (buffer-name sel))))
-    (when bname
+  (let* ((sel (helm-get-selection nil nil source))
+         (buf (helm-aand (bufferp sel)
+                         (get-buffer sel)
+                         (buffer-name it))))
+    (when buf
       (or (buffer-file-name sel)
-          (car (rassoc bname dired-buffers))
-          (and (with-current-buffer bname
+          (car (rassoc buf dired-buffers))
+          (and (with-current-buffer buf
                  (eq major-mode 'org-agenda-mode))
                org-directory
                (expand-file-name org-directory))
-          (with-current-buffer bname
+          (with-current-buffer buf
             (expand-file-name default-directory))))))
 
 ;;; Candidate Transformers
