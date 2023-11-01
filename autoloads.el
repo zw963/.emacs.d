@@ -10,11 +10,6 @@
 (add-to-list 'auto-mode-alist '("\\.cron\\(tab\\)?\\'" . crontab-mode))
 (add-to-list 'auto-mode-alist '("cron\\(tab\\)?\\."    . crontab-mode))
 
-;; ;; dockerfile-mode
-(autoload 'dockerfile-mode "dockerfile-mode" nil t)
-(add-to-list 'auto-mode-alist '("Dockerfile\\'" . dockerfile-mode))
-(add-to-list 'auto-mode-alist '("\.dockerfile\\'" . dockerfile-mode))
-
 ;; apache-mode
 (autoload 'apache-mode "apache-mode" nil t)
 (add-to-list 'auto-mode-alist '("\\.htaccess\\'"   . apache-mode))
@@ -46,11 +41,12 @@
 (add-to-list 'auto-mode-alist '("Procfile\\|Procfile.dev\\'" . yaml-ts-mode))
 (add-to-list 'auto-mode-alist '("Procfile.options\\|Procfile.dev.options\\'" . yaml-ts-mode))
 
-;; (add-to-list 'auto-mode-alist '("\\.json" . json-ts-mode))
-(add-to-list 'auto-mode-alist '("\\.js" . js-ts-mode))
-
-(autoload 'toml-mode "toml-mode_init" nil t)
-(add-to-list 'auto-mode-alist '("\\.toml\\'" . toml-mode))
+;; 因为性能考虑，json-ts-mode 没有高亮，js-ts-mode 有高亮
+(add-to-list 'auto-mode-alist '("\\.js\\(on\\)?" . js-ts-mode))
+(add-to-list 'auto-mode-alist '("\\.toml\\'" . toml-ts-mode))
+(add-to-list 'auto-mode-alist '("\\`\\(rust-toolchain\\)\\'" . toml-ts-mode))
+(add-to-list 'auto-mode-alist '("Dockerfile\\'" . dockerfile-ts-mode))
+(add-to-list 'auto-mode-alist '("\.dockerfile\\'" . dockerfile-ts-mode))
 
 (autoload 'ssh-config-mode "ssh-config-mode" t)
 (add-to-list 'auto-mode-alist '("/\\.ssh/config\\(\\.d/.*\\.conf\\)?\\'" . ssh-config-mode))

@@ -61,13 +61,13 @@
 
 ;; ============================== 编程相关 ==============================
 
-(require 'tree-sitter_init)
 (require 'prog-mode_init)
+(require 'tree-sitter_init)
 (require 'snap-indent_init)
 ;; (require 'indentinator_init)
 (require 'dumb-jump_init)
 (require 'apheleia_init)
-(require 'git_init)
+;; (require 'git_init)
 (require 'flycheck_init)
 (require 'dart-mode_init)
 (require 'smartparens_init)
@@ -89,8 +89,11 @@
 (require 'ligature_init)
 
 ;; 关闭一些有用，但最近不常用的 mode
-(require 'go-mode_init)
+;; (require 'go-mode_init)
 ;; (require 'rust_init)
+(require 'go-ts-mode_init)
+(require 'rust-ts-mode_init)
+
 ;; (require 'lsp-bridge_init)
 (require 'tabnine_init) ;; lsp-bridge 默认会开启 tabnine
 ;; (require 'haskell-mode_init)
@@ -106,7 +109,6 @@
 (add-hook 'prog-mode-hook 'display-line-numbers-mode)
 (add-hook 'sgml-mode-hook 'display-line-numbers-mode)
 (add-hook 'feature-mode-hook 'display-line-numbers-mode)
-(add-hook 'yaml-mode-hook 'display-line-numbers-mode)
 (add-hook 'markdown-mode-hook 'display-line-numbers-mode)
 
 ;; emacs 29 support
