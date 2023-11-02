@@ -409,6 +409,18 @@ not require any shell-side configuration. See
   :type 'boolean
   :group 'vterm)
 
+(defcustom vterm-copy-mode-remove-fake-newlines nil
+  "When not-nil fake newlines are removed on entering copy mode.
+
+vterm inserts \\='fake\\=' newlines purely for rendering. When using
+vterm-copy-mode these are in conflict with many emacs functions
+like isearch-forward. if this varialbe is not-nil the
+fake-newlines are removed on entering copy-mode and re-inserted
+on leaving copy mode. Also truncate-lines is set to t on entering
+copy-mode and set to nil on leaving."
+  :type 'boolean
+  :group 'vterm)
+
 ;;; Faces
 
 (defface vterm-color-black
@@ -506,6 +518,8 @@ Only background is used."
 (defvar-local vterm--delete-char-function (symbol-function #'delete-char))
 (defvar-local vterm--delete-region-function (symbol-function #'delete-region))
 (defvar-local vterm--undecoded-bytes nil)
+(defvar-local vterm--copy-mode-fake-newlines nil)
+
 
 (defvar vterm-timer-delay 0.1
   "Delay for refreshing the buffer after receiving updates from libvterm.
@@ -563,20 +577,20 @@ Exceptions are defined by `vterm-keymap-exceptions'."
                  for key = (format "<f%i>" number)
                  unless (member key exceptions)
                  collect key))
-  (mapc (lambda (key)
-          (define-key map (kbd key) #'vterm--self-insert))
-        (cl-loop for prefix in '("C-" "M-" "C-S-" )
-                 append (cl-loop for char from ?a to ?z
-                                 for key = (format "%s%c" prefix char)
-                                 unless (member key exceptions)
-                                 collect key)))
-  (mapc (lambda (key)
-          (define-key map (kbd key) 'ignore))
-        (cl-loop for prefix in '("C-M-" "C-M-S-")
-                 append (cl-loop for char from ?a to ?z
-                                 for key = (format "%s%c" prefix char)
-                                 unless (member key exceptions)
-                                 collect key))))
+  (let ((esc-map (lookup-key map "\e"))
+        (i 0)
+        key)
+    (unless esc-map (setq esc-map (make-keymap)))
+    (while (< i 128)
+      (setq key (make-string 1 i))
+      (unless (member (key-description key) exceptions)
+        (define-key map key 'vterm--self-insert))
+      ;; Avoid O and [. They are used in escape sequences for various keys.
+      (unless (or (eq i ?O) (eq i 91))
+        (unless (member (key-description key "\e") exceptions)
+          (define-key esc-map key 'vterm--self-insert-meta)))
+      (setq i (1+ i)))
+    (define-key map "\e" esc-map)))
 
 (defun vterm-xterm-paste (event)
   "Handle xterm paste EVENT in vterm."
@@ -616,7 +630,7 @@ Exceptions are defined by `vterm-keymap-exceptions'."
     (define-key map [up]                        #'vterm--self-insert)
     (define-key map [down]                      #'vterm--self-insert)
     (define-key map [prior]                     #'vterm--self-insert)
-    (define-key map [S-prior]                   #'vterm--self-insert)
+    (define-key map [S-prior]                   #'scroll-down-command)
     (define-key map [next]                      #'vterm--self-insert)
     (define-key map [S-next]                    #'scroll-up-command)
     (define-key map [home]                      #'vterm--self-insert)
@@ -628,6 +642,7 @@ Exceptions are defined by `vterm-keymap-exceptions'."
     (define-key map [remap xterm-paste]         #'vterm-xterm-paste)
     (define-key map [remap yank-pop]            #'vterm-yank-pop)
     (define-key map [remap mouse-yank-primary]  #'vterm-yank-primary)
+    (define-key map [mouse-1]                   #'vterm-mouse-set-point)
     (define-key map (kbd "C-SPC")               #'vterm--self-insert)
     (define-key map (kbd "S-SPC")               #'vterm-send-space)
     (define-key map (kbd "C-_")                 #'vterm--self-insert)
@@ -670,6 +685,11 @@ Exceptions are defined by `vterm-keymap-exceptions'."
        (let ((font-height (expt text-scale-mode-step text-scale-mode-amount)))
          (setq vterm--linenum-remapping
                (face-remap-add-relative 'line-number :height font-height))))
+  (hack-dir-local-variables)
+  (let ((vterm-env (assq 'vterm-environment dir-local-variables-alist)))
+    (when vterm-env
+      (make-local-variable 'vterm-environment)
+      (setq vterm-environment (cdr vterm-env))))
   (let ((process-environment (append vterm-environment
                                      `(,(concat "TERM="
                                                 vterm-term-environment-variable)
@@ -755,6 +775,7 @@ Exceptions are defined by `vterm-keymap-exceptions'."
   (if (ignore-errors (file-remote-p default-directory))
       (with-parsed-tramp-file-name default-directory nil
         (or (cadr (assoc method vterm-tramp-shells))
+            (with-connection-local-variables shell-file-name)
             vterm-shell))
     vterm-shell))
 
@@ -827,6 +848,24 @@ Optional argument RESET clears all the errors."
 
 ;;; Copy Mode
 
+(defun vterm--enter-copy-mode ()
+  (use-local-map nil)
+  (vterm-send-stop)
+  (when vterm-copy-mode-remove-fake-newlines
+    (save-excursion
+      (setq truncate-lines nil)
+      (vterm--remove-fake-newlines t))))
+
+
+(defun vterm--exit-copy-mode ()
+  (when vterm-copy-mode-remove-fake-newlines
+    (save-excursion
+      (setq truncate-lines t)
+      (vterm--reinsert-fake-newlines)))
+  (vterm-reset-cursor-point)
+  (use-local-map vterm-mode-map)
+  (vterm-send-start))
+
 (define-minor-mode vterm-copy-mode
   "Toggle `vterm-copy-mode'.
 
@@ -843,12 +882,8 @@ A conventient way to exit `vterm-copy-mode' is with
   :keymap vterm-copy-mode-map
   (if (equal major-mode 'vterm-mode)
       (if vterm-copy-mode
-          (progn                            ;enable vterm-copy-mode
-            (use-local-map nil)
-            (vterm-send-stop))
-        (vterm-reset-cursor-point)
-        (use-local-map vterm-mode-map)
-        (vterm-send-start))
+          (vterm--enter-copy-mode)
+        (vterm--exit-copy-mode))
     (user-error "You cannot enable vterm-copy-mode outside vterm buffers")))
 
 (defun vterm-copy-mode-done (arg)
@@ -876,6 +911,13 @@ will invert `vterm-copy-exclude-prompt' for that call."
   (vterm-copy-mode -1))
 
 ;;; Commands
+
+(defun vterm--self-insert-meta ()
+  (interactive)
+  (when vterm--term
+    (dolist (key (vterm--translate-event-to-args
+                  last-command-event :meta))
+      (apply #'vterm-send-key key))))
 
 (defun vterm--self-insert ()
   "Send invoking key to libvterm."
@@ -1071,6 +1113,18 @@ Argument ARG is passed to `yank'"
     (cl-letf (((symbol-function 'insert-for-yank) #'vterm-insert))
       (yank-pop arg))))
 
+(defun vterm-mouse-set-point (event &optional promote-to-region)
+  "Move point to the position clicked on with the mouse.
+But when clicking to the unused area below the last prompt,
+move the cursor to the prompt area."
+  (interactive "e\np")
+  (let ((pt (mouse-set-point event promote-to-region)))
+    (if (= (count-words pt (point-max)) 0)
+        (vterm-reset-cursor-point)
+      pt))
+  ;; Otherwise it selects text for every other click
+  (keyboard-quit))
+
 (defun vterm-send-string (string &optional paste-p)
   "Send the string STRING to vterm.
 Optional argument PASTE-P paste-p."
@@ -1194,7 +1248,7 @@ Return count of moved characeters."
   "A wrapper for `delete-char'."
   (funcall vterm--delete-char-function n killflag))
 
-(defun vterm--translate-event-to-args (event)
+(defun vterm--translate-event-to-args (event &optional meta)
   "Translate EVENT as list of args for `vterm-send-key'.
 
 When some input method is enabled, one key may generate
@@ -1202,7 +1256,7 @@ several characters, so the result of this function is a list,
 looks like: ((\"m\" :shift ))"
   (let* ((modifiers (event-modifiers event))
          (shift (memq 'shift modifiers))
-         (meta (memq 'meta modifiers))
+         (meta (or meta (memq 'meta modifiers)))
          (ctrl (memq 'control modifiers))
          (raw-key (event-basic-type event))
          (ev-keys) keys)
@@ -1638,9 +1692,12 @@ in README."
                    (when pt (goto-char (1- pt))))))
     (term-previous-prompt n)))
 
-(defun vterm--get-beginning-of-line ()
-  "Find the start of the line, bypassing line wraps."
+(defun vterm--get-beginning-of-line (&optional pt)
+  "Find the start of the line, bypassing line wraps.
+If PT is specified, find it's beginning of the line instead of the beginning
+of the line at cursor."
   (save-excursion
+    (when pt (goto-char pt))
     (beginning-of-line)
     (while (and (not (bobp))
                 (get-text-property (1- (point)) 'vterm-line-wrap))
@@ -1648,9 +1705,12 @@ in README."
       (beginning-of-line))
     (point)))
 
-(defun vterm--get-end-of-line ()
-  "Find the start of the line, bypassing line wraps."
+(defun vterm--get-end-of-line (&optional pt)
+  "Find the start of the line, bypassing line wraps.
+If PT is specified, find it's end of the line instead of the end
+of the line at cursor."
   (save-excursion
+    (when pt (goto-char pt))
     (end-of-line)
     (while (get-text-property (point) 'vterm-line-wrap)
       (forward-char)
@@ -1695,7 +1755,7 @@ More information see `vterm--prompt-tracking-enabled-p' and
 Move the point to the first character after the shell prompt on this line.
 If the point is already there, move to the beginning of the line.
 Effectively toggle between the two positions."
-  (interactive)
+  (interactive "^")
   (if (vterm--at-prompt-p)
       (goto-char (vterm--get-beginning-of-line))
     (goto-char (max (or (vterm--get-prompt-point) 0)
@@ -1703,7 +1763,7 @@ Effectively toggle between the two positions."
 
 (defun vterm-end-of-line ()
   "Move point to the end of the line, bypassing line wraps."
-  (interactive)
+  (interactive "^")
   (goto-char (vterm--get-end-of-line)))
 
 (defun vterm-reset-cursor-point ()
@@ -1719,26 +1779,58 @@ Effectively toggle between the two positions."
     (save-excursion
       (vterm-reset-cursor-point))))
 
-(defun vterm--remove-fake-newlines ()
+(defun vterm--reinsert-fake-newlines ()
+  "Reinsert fake newline from `vterm--copy-mode-fake-newlines'."
+  (let ((inhibit-read-only t)
+        (inhibit-redisplay t)
+        (fake-newline-text "\n")
+        fake-newline-pos)
+    (add-text-properties 0 1 '(vterm-line-wrap t rear-nonsticky t)
+                         fake-newline-text)
+    (while vterm--copy-mode-fake-newlines
+      (setq fake-newline-pos (car vterm--copy-mode-fake-newlines))
+      (setq vterm--copy-mode-fake-newlines (cdr vterm--copy-mode-fake-newlines))
+      (goto-char fake-newline-pos)
+      (insert fake-newline-text))))
+
+(defun vterm--remove-fake-newlines (&optional remembering-pos-p)
   "Filter out injected newlines were injected when rendering the terminal.
 
 These newlines were tagged with \\='vterm-line-wrap property so we
-can find them and remove them."
-  (goto-char (point-min))
-  (let (fake-newline)
-    (while (setq fake-newline (next-single-property-change (point)
-                                                           'vterm-line-wrap))
-      (goto-char fake-newline)
-      (cl-assert (eq ?\n (char-after)))
-      (let ((inhibit-read-only t))
-        (vterm--delete-char 1)))))
+can find them and remove them.
+If REMEMBERING-POS-P is not nil remembering their positions in a buffer-local
+`vterm--copy-mode-fake-newlines'."
+  (let (fake-newline
+        (inhibit-read-only t)
+        (inhibit-redisplay t))
+    (when remembering-pos-p
+      (setq vterm--copy-mode-fake-newlines nil))
 
+    (goto-char (point-max))
+    (when (and (bolp)
+               (not (bobp))
+               (get-text-property (1- (point)) 'vterm-line-wrap))
+      (forward-char -1)
+      (when remembering-pos-p
+        (setq vterm--copy-mode-fake-newlines
+              (cons (point) vterm--copy-mode-fake-newlines)))
+      (vterm--delete-char 1))
+
+    (while (and (not (bobp))
+                (setq fake-newline (previous-single-property-change
+                                    (point) 'vterm-line-wrap)))
+      (goto-char (1- fake-newline))
+      (cl-assert (eq ?\n (char-after)))
+      (when remembering-pos-p
+        (setq vterm--copy-mode-fake-newlines
+              (cons (point) vterm--copy-mode-fake-newlines)))
+      (vterm--delete-char 1))))
 
 (defun vterm--filter-buffer-substring (content)
   "Filter string CONTENT of fake/injected newlines."
   (with-temp-buffer
     (vterm--insert content)
-    (vterm--remove-fake-newlines)
+    (vterm--remove-fake-newlines nil)
     (buffer-string)))
 
 
