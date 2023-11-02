@@ -1,0 +1,7 @@
+# -*- mode: snippet -*-
+# name: check --release
+# key: release
+# --
+{% if flag?(:release) %}
+  $0
+{% end %}

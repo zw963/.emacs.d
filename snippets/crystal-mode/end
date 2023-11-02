@@ -1,0 +1,5 @@
+# -*- mode: snippet -*-
+# name: crystal macro end
+# key: end
+# --
+{% end %}
