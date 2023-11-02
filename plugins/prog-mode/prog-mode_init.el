@@ -91,22 +91,22 @@
 (defun input-comma-with-space ()
   (interactive)
   (if (or
-       ;; (fourth (syntax-ppss))
-       ;; (member (fourth (syntax-ppss)) (list ?\/))
+       ;; (cl-fourth (syntax-ppss))
+       ;; (member (cl-fourth (syntax-ppss)) (list ?\/))
        (and (member major-mode '(sh-mode
                                  conf-space-mode
                                  conf-unix-mode
                                  emacs-lisp-mode
                                  lisp-interaction-mode
                                  snippet-mode))
-            ;; (fifth (syntax-ppss)) is comment
-            (not (fifth (syntax-ppss)))))
+            ;; (cl-fifth (syntax-ppss)) is comment
+            (not (cl-fifth (syntax-ppss)))))
       (insert ",")
     (insert ", ")))
 
 (defun input-semicolon-with-space ()
   (interactive)
-  (if (fourth (syntax-ppss))
+  (if (cl-fourth (syntax-ppss))
       (insert ";")
     (if (not (looking-back "; " (line-beginning-position)))
         (insert "; ")

@@ -48,7 +48,7 @@
           (forward-word 1)))
      )
     )
-   ;; ((fourth (syntax-ppss)) (er/expand-region arg))
+   ;; ((cl-fourth (syntax-ppss)) (er/expand-region arg))
    (t
     (cond
      ((equal major-mode 'enh-ruby-mode) (enh-ruby-forward-sexp))
