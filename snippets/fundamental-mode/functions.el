@@ -118,8 +118,8 @@ yas-field 的依赖函数"
 (defun _expression-delimiter ()
   "忘记这个干嘛用的了，针对大多数模式，就是一个空字符串。"
   (unless (or
-           (fourth (syntax-ppss))
-           (fifth (syntax-ppss))
+           (cl-fourth (syntax-ppss))
+           (cl-fifth (syntax-ppss))
            (member major-mode '(emacs-lisp-mode snippet-mode rhtml-mode web-mode))
            )
     ""))
@@ -128,7 +128,7 @@ yas-field 的依赖函数"
   (when (if-any)
     (concat
      string
-     (if (and (not (fourth (syntax-ppss))) (string-match "," (or yas-text yas-selected-text)))
+     (if (and (not (cl-fourth (syntax-ppss))) (string-match "," (or yas-text yas-selected-text)))
          "%w["
        (_quo))
      )))
@@ -136,7 +136,7 @@ yas-field 的依赖函数"
 (defun _quo-after (&optional string)
   (when (if-any)
     (concat
-     (if (and (not (fourth (syntax-ppss))) (string-match "," (or yas-text yas-selected-text)))
+     (if (and (not (cl-fourth (syntax-ppss))) (string-match "," (or yas-text yas-selected-text)))
          "]"
        (_quo))
      string)))

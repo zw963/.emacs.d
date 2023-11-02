@@ -25,7 +25,7 @@
 (defun ruby-ffap-is-require-p ()
   "Decide current point is inside a require expression."
   (and
-   (fourth (syntax-ppss))
+   (cl-fourth (syntax-ppss))
    (looking-back "\\b\\(require\\|gem\\)\\b.*")
    ))
 
