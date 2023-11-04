@@ -2,7 +2,6 @@
 ;;
 ;; See git-emacs.el for license and versioning.
 
-(require 'git-emacs)                    ; main module
 (require 'ewoc)                         ; view
 
 ;;-----------------------------------------------------------------------------
@@ -57,8 +56,8 @@
   `(defface ,(intern (concat "git--" (symbol-name name) "-face"))
      '((((class color) (background light)) (:foreground ,fore1 ,@prop1))
        (((class color) (background dark))  (:foreground ,fore2 ,@prop2)))
-    ,(concat "git " (symbol-name name) " face in status buffer mode")
-    :group 'git-emacs-faces))
+     ,(concat "git " (symbol-name name) " face in status buffer mode")
+     :group 'git-emacs-faces))
 
 (git--face mark       "red"    (:bold t) "tomato"  (:bold t))
 (git--face mark-tree  "blue"   (:bold t) "yellow"  (:bold t))
@@ -84,7 +83,7 @@
 ;; M STATUS   PERM   SIZE  FILE
 ;; +-> mark          +-> size
 ;;   +-> stat
-;;                   
+;;
 ;; * Modified 100644 4564 |test.c
 ;; * New      100644 4564  test.c
 
@@ -100,7 +99,7 @@
   (let ((stat (git--fileinfo->stat info)))
     (propertize (capitalize (symbol-name stat))
                 'face
-                (case stat
+                (cl-case stat
                   ('modified 'git--modified-face )
                   ('uptodate 'git--uptodate-face )
                   ('unknown  'git--unknown-face  )
@@ -123,7 +122,7 @@ to ls -sh; e.g. 29152 -> 28K."
       (while (and (< i (length suffixes))
                   (>= size 1000))       ; 1023K would be 5 chars
         (setq size (/ size 1024.0))
-        (incf i))
+        (cl-incf i))
       (format (if (< size 10) "%.1f%c" "%.0f%c")
               size (elt suffixes (- i 1))))))
 
@@ -132,7 +131,7 @@ to ls -sh; e.g. 29152 -> 28K."
   (let ((size (git--fileinfo->size info)))
     (if (not size) ""
       (git--status-human-readable-size size))))
-      
+
 (defsubst git--status-node-name (info)
   "Render status view node name"
   (let ((name (git--fileinfo->name info))
@@ -142,20 +141,20 @@ to ls -sh; e.g. 29152 -> 28K."
     (format
      (if (eq type 'commit) "%s  [submodule>]" "%s")
      (propertize name 'face
-                 (case type
+                 (cl-case type
                    ('tree 'git--mark-tree-face)
                    ('blob 'git--mark-blob-face)
                    ('commit 'git--mark-submodule-face)
                    (t (error "Unknown node type: %S" type)))))))
-                  
+
 (defun git--render-file-status (info)
   "Render status view node, call in order
- mark       : 'git--status-node-mark
- state      : 'git--status-node-stat
- permission : 'git--status-node-perm
- size       : 'git--status-node-size
- name       : 'git--status-node-name"
-  
+ mark       : \'git--status-node-mark
+ state      : \'git--status-node-stat
+ permission : \'git--status-node-perm
+ size       : \'git--status-node-size
+ name       : \'git--status-node-name"
+
   (insert (format git--status-header-format
                   (git--status-node-mark info)
                   (git--status-node-stat info)
@@ -169,7 +168,7 @@ to ls -sh; e.g. 29152 -> 28K."
 
 (defun git-status-mode ()
   "Major mode for viewing and editing the state of a git directory."
-  
+
   (kill-all-local-variables)
   (buffer-disable-undo)
 
@@ -210,7 +209,7 @@ to ls -sh; e.g. 29152 -> 28K."
         (git--status-view-first-line)
       (ewoc-goto-node git--status-view new-current)
       (move-to-column git--status-line-column))))
-      
+
 
 ;; autoloaded entry point
 (defun git-status (dir)
@@ -261,7 +260,7 @@ stop and return the node."
 
 (defun git--status-view-dumb-update-element (fi)
   "Add updated fileinfo FI to `git--status-view'. Slow, right now."
-  
+
   (unless (git--status-map (ewoc-nth git--status-view 0)
                            #'(lambda (node data)
                                (when (git--fileinfo-lessp fi data)
@@ -307,7 +306,7 @@ are very deep (used when repositioning mark on refresh)."
           (setq last-path-expanded (cdr last-path-expanded)))
 
         (setq last-path-expanded components)
-        
+
         ;; Paths inside root or an expanded path are already handled.
         (when paths-to-expand
           (let ((remaining-paths (cdr paths-to-expand)))
@@ -315,7 +314,7 @@ are very deep (used when repositioning mark on refresh)."
             (setq matched-name (git--join components "/"))
             (setcdr paths-to-expand remaining-paths) ; relink last-path-expanded
             (setq paths-to-expand remaining-paths))
-          
+
           (while cont-iteration
             (let ((data (ewoc-data node)) (found-it nil))
               (if (and (git--fileinfo-is-dir data)
@@ -340,24 +339,24 @@ are very deep (used when repositioning mark on refresh)."
               (if found-it
                   ;; Do we need to expand even lower?
                   (if paths-to-expand
-                    (progn
-                      (setq matched-name
-                            (concat matched-name "/"
-                                    (car paths-to-expand)))
-                      (setq paths-to-expand (cdr paths-to-expand))
-                      ;; Continue iteration from next node
-                      (setq node (ewoc-next git--status-view node)))
+                      (progn
+                        (setq matched-name
+                              (concat matched-name "/"
+                                      (car paths-to-expand)))
+                        (setq paths-to-expand (cdr paths-to-expand))
+                        ;; Continue iteration from next node
+                        (setq node (ewoc-next git--status-view node)))
                     (setq cont-iteration nil))   ;; No, stop at this node.
                 (setq node (ewoc-next git--status-view node))) ;; advance
               ))
           ;; This was very useful while debugging. Please leave it in.
           ;; (message "node: %s paths-to-expand %S matched-name %S fi-name %S" (when node (git--fileinfo->name (ewoc-data node))) paths-to-expand matched-name (git--fileinfo->name fi))
           )))))
-                                          
+
 
 (defun git--status-view-update ()
   "Update the state of all changed files."
-  
+
   (let ((fileinfos (sort (git--status-index) #'git--fileinfo-lessp)))
     (git--status-view-update-expand-tree fileinfos)
     (git--status-view-update-state fileinfos)))
@@ -372,7 +371,7 @@ are very deep (used when repositioning mark on refresh)."
   (let ((attrs (file-attributes (git--fileinfo->name fileinfo))))
     (when (and attrs (not (first attrs)))
       (setf (git--fileinfo->size fileinfo) (elt attrs 7)))))
-    
+
 (defun git--status-new ()
   "Create new status-view buffer in current buffer"
 
@@ -409,8 +408,8 @@ are very deep (used when repositioning mark on refresh)."
   (git--status-refresh))
 
 (defsubst git--status-delete (node)
-  
-  (let ((buffer-read-only nil)) 
+
+  (let ((buffer-read-only nil))
     (ewoc-delete git--status-view node)))
 
 (defun git--status-delete-after-regex (node regex)
@@ -484,7 +483,7 @@ are very deep (used when repositioning mark on refresh)."
     ["Next Meaningful Line" git--status-view-next-meaningful-line t]
     ["Previous Meaningful Line" git--status-view-prev-meaningful-line t]
     ["Expand Tree" git--status-view-expand-tree-toggle]
-    "----" 
+    "----"
     ["Add File" git--status-view-add t]
     ["Ignore File" git--status-view-add-ignore t]
     ["Rename File" git--status-view-rename t]
@@ -492,10 +491,10 @@ are very deep (used when repositioning mark on refresh)."
     ["View File" git--status-view-view-file t]
     ("Diff File against"
      ;; We want the short keys to appear here rather than the global keys
-      ["HEAD" git-diff-head :keys "d RET" :active t]
-      ["Index" git-diff-index :keys "d i" :active t]
-      ["Baseline" git-diff-baseline :keys "d b" :active t]
-      ["Other..." git-diff-other :keys "d o" :active t])
+     ["HEAD" git-diff-head :keys "d RET" :active t]
+     ["Index" git-diff-index :keys "d i" :active t]
+     ["Baseline" git-diff-baseline :keys "d b" :active t]
+     ["Other..." git-diff-other :keys "d o" :active t])
     ("Diff Repository against"
      ["HEAD" git-diff-all-head :keys "D RET" :active t]
      ["Index" git-diff-all-index :keys "D i" :active t]
@@ -508,7 +507,7 @@ are very deep (used when repositioning mark on refresh)."
     ["Unmark" git--status-view-unmark-and-next t]
     "----"
     ["Branch Mode" git-branch t]
-    ["Switch to Branch..." git-switch-branch t]      
+    ["Switch to Branch..." git-switch-branch t]
     ("Commit"
      ["All Changes" git-commit-all :keys "c RET" :active t]
      ["Index" git-commit :keys "c i" :active t]
@@ -530,7 +529,7 @@ are very deep (used when repositioning mark on refresh)."
 ;;-----------------------------------------------------------------------------
 
 (defun git--expand-tree (node &optional dont-add-unknown)
-  "Expand 'node' in 'git--status-view'.  node->type should be 'tree. If
+  "Expand \'node\' in \'git--status-view\'.  node->type should be \'tree. If
 DONT-ADD-UNKOWN is true, does not add unknown files (if we're about to merge
 them)."
 
@@ -560,8 +559,8 @@ them)."
                  (unless dont-add-unknown
                    (let ((unknown-files
                           (let ((default-directory
-                                  (concat default-directory "/"
-                                          (file-name-as-directory name))))
+                                 (concat default-directory "/"
+                                         (file-name-as-directory name))))
                             (git--ls-files "-o" "--exclude-standard")))
                          (filtered-unknown '()))
                      (dolist (fi unknown-files)
@@ -579,7 +578,7 @@ them)."
                                         'tree nil nil nil 'unknown))
                               filtered-unknown)))))
                      filtered-unknown)))
-                 #'git--fileinfo-lessp)))
+                #'git--fileinfo-lessp)))
 
     (unless (eq type 'tree) (error "type should be 'tree"))
 
@@ -588,7 +587,7 @@ them)."
       (dolist (fi fileinfos)
         (git--status-add-size fi)
         (setq node (ewoc-enter-after git--status-view node fi)))
-    
+
       (setf (git--fileinfo->expanded data) t))))
 
 (defun git--shrink-tree (node)
@@ -623,7 +622,7 @@ them)."
   "Move forward by N lines in the status view."
 
   (interactive "p")
-  
+
   (let ((dir (/ n (abs n))))
     (forward-line n)
 
@@ -635,14 +634,14 @@ them)."
 
 (defun git--status-view-first-line ()
   "Move to the first item in the status view."
-  
+
   (interactive)
   (goto-char (point-min))
   (git--status-view-forward-line 1))
 
 (defun git--status-view-last-line ()
   "Move to the last item in the status view."
-  
+
   (interactive)
   (goto-char (point-max))
   (git--status-view-forward-line -1))
@@ -800,7 +799,7 @@ them)."
 (defun git--status-view-open-or-expand ()
   "Open or expands the current file / directory / submodule."
   (interactive)
-  (case (git--status-view-select-type)
+  (cl-case (git--status-view-select-type)
     ('tree (git--status-view-expand-tree-toggle))
     ('blob (git--status-view-open-file))
     ('commit (git--status-view-descend-submodule))
@@ -866,7 +865,7 @@ current line. You can think of this as the \"selected files\"."
                                        (length pending-files) pending-warn))))
                  ", "))))
            (status-warning-include (if (> (length status-warning) 0)
-                                      (format " (%s)" status-warning)
+                                       (format " (%s)" status-warning)
                                      ""))
            (msg (if (eq 1 (length files))
                     (format "%s%s" (first files) status-warning-include)
@@ -884,14 +883,14 @@ current line. You can think of this as the \"selected files\"."
             (num-deleted 0))
         (when tracked-files
           (apply #'git--exec-string "rm" "-f" "--" tracked-files))
-        (incf num-deleted (length tracked-files))
+        (cl-incf num-deleted (length tracked-files))
         ;; Remove other files directly
         (unwind-protect
             (dolist (file untracked-files)
               (delete-file file)
               (incf num-deleted))
           (message "Deleted %d files" num-deleted)))))
-                                        
+
   (revert-buffer))
 
 (defun git--status-view-rename ()
@@ -902,7 +901,7 @@ current line. You can think of this as the \"selected files\"."
       (let ((msg (format "%s '%s' to >> " (git--bold-face "Rename") src)))
         (git--mv src (file-relative-name (read-from-minibuffer msg src))))))
   (revert-buffer))
-  
+
 (defun git--status-view-add ()
   "Add the selected file(s) to the index."
   (interactive)

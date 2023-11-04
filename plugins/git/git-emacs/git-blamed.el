@@ -78,9 +78,6 @@
 ;;
 ;;; Code:
 
-(eval-when-compile (require 'cl))			      ; to use `push', `pop'
-
-
 (defun git-blamed-color-scale (&rest elements)
   "Given a list, returns a list of triples formed with each
 elements of the list.
@@ -159,7 +156,7 @@ minor mode.")
 
 (or (assq 'git-blamed-mode minor-mode-alist)
     (setq minor-mode-alist
-	  (cons '(git-blamed-mode git-blamed-mode-line-string) minor-mode-alist)))
+          (cons '(git-blamed-mode git-blamed-mode-line-string) minor-mode-alist)))
 
 ;;;###autoload
 (defun git-blamed-mode (&optional arg)
@@ -184,7 +181,7 @@ See also function `git-blamed-mode'."
   (git-blamed-cleanup)
   (let ((bgmode (cdr (assoc 'background-mode (frame-parameters)))))
     (if (eq bgmode 'dark)
-	(setq git-blamed-colors git-blamed-dark-colors)
+        (setq git-blamed-colors git-blamed-dark-colors)
       (setq git-blamed-colors git-blamed-light-colors)))
   (setq git-blamed-cache (make-hash-table :test 'equal))
   (setq git-blamed-mode t)
@@ -278,8 +275,7 @@ See also function `git-blamed-mode'."
 (defvar in-blame-filter nil)
 
 (defun git-blamed-filter (proc str)
-  (save-excursion
-    (set-buffer (process-buffer proc))
+  (with-current-buffer (process-buffer proc)
     (goto-char (process-mark proc))
     (insert-before-markers str)
     (goto-char 0)
@@ -321,22 +317,21 @@ See also function `git-blamed-mode'."
          nil)))
 
 (defun git-blamed-new-commit (hash src-line res-line num-lines)
-  (save-excursion
-    (set-buffer git-blamed-file)
+  (with-current-buffer git-blamed-file
     (let ((info (gethash hash git-blamed-cache))
-          (inhibit-point-motion-hooks t)
+          (cursor-intangible-mode t)
           (inhibit-modification-hooks t))
       (when (not info)
-	;; Assign a random color to each new commit info
-	;; Take care not to select the same color multiple times
-	(let ((color (if git-blamed-colors
-			 (git-blamed-random-pop git-blamed-colors)
-		       git-blamed-ancient-color)))
+        ;; Assign a random color to each new commit info
+        ;; Take care not to select the same color multiple times
+        (let ((color (if git-blamed-colors
+                         (git-blamed-random-pop git-blamed-colors)
+                       git-blamed-ancient-color)))
           (setq info (list hash src-line res-line num-lines
                            (git-describe-commit hash)
                            (cons 'color color))))
         (puthash hash info git-blamed-cache))
-      (goto-line res-line)
+      (forward-line res-line)
       (while (> num-lines 0)
         (if (get-text-property (point) 'git-blamed)
             (forward-line)
@@ -418,7 +413,7 @@ See also function `git-blamed-mode'."
   (setq git-blamed-idle-timer nil)
   (if git-blamed-update-queue
       (let ((first (pop git-blamed-update-queue))
-            (inhibit-point-motion-hooks t))
+            (cursor-intangible-mode t))
         (git-blamed-update-region (car first) (cdr first)))))
 
 (provide 'git-blamed)

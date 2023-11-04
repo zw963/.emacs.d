@@ -8,8 +8,6 @@
         (tsx-mode        . tsx-ts-mode)
         (css-mode        . css-ts-mode)
         (c++-mode        . c++-ts-mode)
-        (sh-mode         . bash-ts-mode)
-        (ruby-mode       . ruby-ts-mode)
         (java-mode       . java-ts-mode)
         (cmake-mode      . cmake-ts-mode)
         (csharp-mode     . csharp-ts-mode)

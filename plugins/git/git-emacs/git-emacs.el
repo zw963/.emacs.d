@@ -84,8 +84,6 @@
 ;; DONE : remote branch list
 ;; DONE : separate branch-mode & status-view-mode to other files
 
-
-(require 'cl)                           ; common lisp
 (require 'ediff)                        ; we use this a lot
 (require 'vc)                           ; vc
 (require 'vc-git)                       ; vc-git advises
@@ -543,7 +541,7 @@ runs git commit --amend -a, alowing an update of the previous commit."
 ;;-----------------------------------------------------------------------------
 
 ;; ewoc file info structure for each list element
-(defstruct (git--fileinfo
+(cl-defstruct (git--fileinfo
             (:copier nil)
             (:constructor git--create-fileinfo
                           (name type &optional sha1 perm marked
