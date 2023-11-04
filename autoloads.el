@@ -48,6 +48,16 @@
 (add-to-list 'auto-mode-alist '("Dockerfile\\'" . dockerfile-ts-mode))
 (add-to-list 'auto-mode-alist '("\.dockerfile\\'" . dockerfile-ts-mode))
 (add-to-list 'auto-mode-alist '("\\.tsx?\\'" . typescript-ts-mode))
+;; bash-ts-mode
+(add-to-list 'auto-mode-alist '("\\.env\\'" . bash-ts-mode))
+(add-to-list 'auto-mode-alist '("\\.env\\.local\\'" . bash-ts-mode))
+
+;; diff-mode
+(add-to-list 'auto-mode-alist '("COMMIT_EDITMSG$" . diff-mode))
+;; conf-unix-mode
+(add-to-list 'auto-mode-alist '("sudoers\\.tmp\\|\\.cnf\\|hosts\\|keymap\\|exports\\|\\.*rc$" . conf-unix-mode))
+;; emacs-lisp-mode
+(add-to-list 'auto-mode-alist '("abbrev_defs" . emacs-lisp-mode))
 
 (autoload 'ssh-config-mode "ssh-config-mode" t)
 (add-to-list 'auto-mode-alist '("/\\.ssh/config\\(\\.d/.*\\.conf\\)?\\'" . ssh-config-mode))

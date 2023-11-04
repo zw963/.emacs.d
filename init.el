@@ -68,7 +68,7 @@
 ;; (require 'indentinator_init)
 (require 'dumb-jump_init)
 (require 'apheleia_init)
-;; (require 'git_init)
+(require 'git_init)
 (require 'flycheck_init)
 (require 'dart-mode_init)
 (require 'smartparens_init)

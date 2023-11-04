@@ -341,16 +341,6 @@
 ;; (add-to-list 'electric-pair-text-pairs '(?（ . ?）))
 ;; (remove-hook 'sh-mode-hook 'sh-electric-here-document-mode)
 
-;; diff-mode
-(add-to-list 'auto-mode-alist '("COMMIT_EDITMSG$" . diff-mode))
-;; conf-unix-mode
-(add-to-list 'auto-mode-alist '("sudoers\\.tmp\\|\\.cnf\\|hosts\\|keymap\\|exports\\|\\.*rc$" . conf-unix-mode))
-;; emacs-lisp-mode
-(add-to-list 'auto-mode-alist '("abbrev_defs" . emacs-lisp-mode))
-;; sh-mode
-(add-to-list 'auto-mode-alist '("\\.env\\'" . sh-mode))
-(add-to-list 'auto-mode-alist '("\\.env\\.local\\'" . sh-mode))
-
 ;;; ------------------------- test features ------------------------------
 
 (when (fboundp 'set-charset-priority)
