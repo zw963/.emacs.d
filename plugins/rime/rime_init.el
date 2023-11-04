@@ -34,6 +34,16 @@
 ;; 这个用来切换繁简，这个和运行 shell 冲突
 (global-set-key (kbd "C-`") 'rime-send-keybinding)
 
+(setq rime-inline-predicates '(
+                               rime-predicate-space-after-cc-p
+                               rime-predicate-current-uppercase-letter-p
+                               rime-predicate-after-alphabet-char-p
+                               rime-predicate-ace-window-p
+                               ;; rime-predicate-prog-in-code-p
+                               ;; rime-predicate-org-in-src-block-p
+                               ;; rime-predicate-in-code-string-after-ascii-p
+                               ))
+
 (provide 'rime_init)
 
 ;;; rime_init.el ends here
