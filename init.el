@@ -14,7 +14,7 @@
 (require 'dimmer_init)
 ;; (require 'sort-tab_init)
 (require 'awesome-tab_init)
-
+(require 'auto-dim-other-buffers_init)
 (require 'fancy-narrow_init)
 (require 'zoom-frm_init)
 (require 'back-button_init)
