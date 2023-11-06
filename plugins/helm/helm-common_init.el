@@ -3,8 +3,11 @@
 (require 'helm-buffers)
 (require 'helm-fd)
 
-(add-list-to-list 'helm-boring-buffer-regexp-list boring-buffer-regexp-list)
-(add-list-to-list 'helm-boring-file-regexp-list boring-file-regexp-list)
+(if (boundp 'boring-buffer-regexp-list)
+    (add-list-to-list 'helm-boring-buffer-regexp-list boring-buffer-regexp-list))
+
+(if (boundp 'boring-file-regexp-list)
+    (add-list-to-list 'helm-boring-file-regexp-list boring-file-regexp-list))
 
 (setq
  helm-candidate-number-limit 25

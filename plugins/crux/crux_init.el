@@ -7,7 +7,8 @@
 (global-set-key [(control c) (j)] 'imenu)
 
 (global-set-key [(meta D)] (lambda () (interactive) (dired "./"))) ; 打开 dired buffer.
-(global-set-key [(control s)] 'isearch-forward-regexp) ;更改Ctrl-s为正则搜索
+
+(global-set-key [remap isearch-forward] 'isearch-forward-regexp) ;更改Ctrl-s为正则搜索
 
 (define-key indent-rigidly-map [(control b)] 'indent-rigidly-left)
 (define-key indent-rigidly-map [(control f)] 'indent-rigidly-right)
