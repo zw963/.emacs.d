@@ -91,9 +91,9 @@
 
 ;; 关闭一些有用，但最近不常用的 mode
 ;; (require 'go-mode_init)
-;; (require 'rust_init)
+(require 'rust_init)
 (require 'go-ts-mode_init)
-(require 'rust-ts-mode_init)
+;; (require 'rust-ts-mode_init)
 
 ;; (require 'lsp-bridge_init)
 ;; (require 'tabnine_init) ;; lsp-bridge 默认会开启 tabnine
