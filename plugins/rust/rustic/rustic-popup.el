@@ -50,6 +50,9 @@ The first element of each list contains a command's binding."
 (defvar rustic-popup-buffer-name "rustic-popup-buffer"
   "Buffer name for rustic popup buffers.")
 
+(defvar rustic--popup-rust-src-name nil
+  "Rust source code file name from which rustic-popup was invoked.")
+
 (defvar rustic-popup-mode-map
   (let ((map (make-sparse-keymap)))
     (define-key map [remap self-insert-command] 'rustic-popup-invoke-popup-action)
@@ -111,20 +114,22 @@ The first element of each list contains a command's binding."
   "Setup popup.
 If directory is not in a rust project call `read-directory-name'."
   (interactive "P")
-  (let ((func (lambda ()
-                (let ((buf (get-buffer-create rustic-popup-buffer-name))
-                      (win (split-window-below))
-                      (inhibit-read-only t))
-                  (rustic-popup-insert-contents buf)
-                  (set-window-buffer win buf)
-                  (select-window win)
-                  (fit-window-to-buffer)
-                  (set-window-text-height win (+ (window-height) 1))))))
-    (if args
-        (let ((dir (read-directory-name "Rust project:")))
-          (let ((default-directory dir))
-            (funcall func)))
-      (funcall func))))
+  (rustic--inheritenv
+   (setq rustic--popup-rust-src-name buffer-file-name)
+   (let ((func (lambda ()
+                 (let ((buf (get-buffer-create rustic-popup-buffer-name))
+                       (win (split-window-below))
+                       (inhibit-read-only t))
+                   (rustic-popup-insert-contents buf)
+                   (set-window-buffer win buf)
+                   (select-window win)
+                   (fit-window-to-buffer)
+                   (set-window-text-height win (+ (window-height) 1))))))
+     (if args
+         (let ((dir (read-directory-name "Rust project:")))
+           (let ((default-directory dir))
+             (funcall func)))
+       (funcall func)))))
 
 ;;; Interactive
 
@@ -225,14 +230,15 @@ corresponding line."
 
 (defun rustic-popup-setup-help-popup (string)
   "Switch to help buffer."
-  (let ((buf (get-buffer-create rustic-popup-help-buffer-name)))
-    (switch-to-buffer buf)
-    (erase-buffer)
-    (rustic-popup-help-mode)
-    (insert string)
-    (fit-window-to-buffer)
-    (set-window-text-height (selected-window) (+ (window-height) 1))
-    (goto-char (point-min))))
+  (rustic--inheritenv
+   (let ((buf (get-buffer-create rustic-popup-help-buffer-name)))
+     (switch-to-buffer buf)
+     (erase-buffer)
+     (rustic-popup-help-mode)
+     (insert string)
+     (fit-window-to-buffer)
+     (set-window-text-height (selected-window) (+ (window-height) 1))
+     (goto-char (point-min)))))
 
 ;;;###autoload
 (defun rustic-popup-kill-help-buffer ()

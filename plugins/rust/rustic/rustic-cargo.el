@@ -65,6 +65,18 @@ If nil then the project is simply created."
   :type 'boolean
   :group 'rustic-cargo)
 
+(defcustom rustic-cargo-use-last-stored-arguments nil
+  "Always rerun cargo commands with stored arguments.
+
+Example:
+When `rustic-cargo-use-last-stored-arguments' is `nil', then
+rustic-cargo-test will always use `rustic-default-test-arguments'.
+
+If you set it to `t', you can reuse the arguments with `rustic-cargo-test'
+instead of applying the default arguments from `rustic-default-test-arguments'."
+  :type 'boolean
+  :group 'rustic-cargo)
+
 (defcustom rustic-default-test-arguments "--benches --tests --all-features"
   "Default arguments when running 'cargo test'."
   :type 'string
@@ -172,7 +184,7 @@ When calling this function from `rustic-popup-mode', always use the value of
   (rustic-cargo-test-run
    (cond (arg
           (setq rustic-test-arguments (read-from-minibuffer "Cargo test arguments: " rustic-default-test-arguments)))
-         ((eq major-mode 'rustic-popup-mode)
+         (rustic-cargo-use-last-stored-arguments
           (if (> (length rustic-test-arguments) 0)
               rustic-test-arguments
             rustic-default-test-arguments))
@@ -278,12 +290,13 @@ When calling this function from `rustic-popup-mode', always use the value of
   "Major mode for viewing outdated crates in the current workspace."
   (setq truncate-lines t)
   (setq tabulated-list-format
-        `[("Name" 25 nil)
+        `[("Name" 25 t)
           ("Project" 10 nil)
           ("Compat" 10 nil)
           ("Latest" 10 nil)
           ("Kind" 10 nil)
-          ("Platform" 0 nil)])
+          ("Workspace" 15 t)
+          ("Platform" 0 t)])
   (setq tabulated-list-padding 2)
   (tabulated-list-init-header))
 
@@ -292,47 +305,32 @@ When calling this function from `rustic-popup-mode', always use the value of
   "Use 'cargo outdated' to list outdated packages in `tabulated-list-mode'.
 Execute process in PATH."
   (interactive)
-  (let* ((dir (or path (rustic-buffer-crate)))
-         (buf (get-buffer-create rustic-cargo-oudated-buffer-name))
-         (default-directory dir)
-         (inhibit-read-only t))
-    (make-process :name rustic-cargo-outdated-process-name
-                  :buffer buf
-                  :command `(,(rustic-cargo-bin) "outdated" "--depth" "1")
-                  :filter #'rustic-cargo-outdated-filter
-                  :sentinel #'rustic-cargo-outdated-sentinel
-                  :file-handler t)
-    (with-current-buffer buf
-      (setq default-directory dir)
-      (erase-buffer)
-      (rustic-cargo-outdated-mode)
-      (rustic-with-spinner rustic-cargo-outdated-spinner
-        (make-spinner rustic-spinner-type t 10)
-        '(rustic-cargo-outdated-spinner
-          (":Executing " (:eval (spinner-print rustic-cargo-outdated-spinner))))
-        (spinner-start rustic-cargo-outdated-spinner)))
-    (display-buffer buf)))
+  (rustic--inheritenv
+   (let* ((dir (or path (rustic-buffer-crate)))
+          (buf (get-buffer-create rustic-cargo-oudated-buffer-name))
+          (default-directory dir)
+          (inhibit-read-only t))
+     (make-process :name rustic-cargo-outdated-process-name
+                   :buffer buf
+                   :command `(,(rustic-cargo-bin) "outdated" "--depth" "1")
+                   :sentinel #'rustic-cargo-outdated-sentinel
+                   :file-handler t)
+     (with-current-buffer buf
+       (setq default-directory dir)
+       (erase-buffer)
+       (rustic-cargo-outdated-mode)
+       (rustic-with-spinner rustic-cargo-outdated-spinner
+         (make-spinner rustic-spinner-type t 10)
+         '(rustic-cargo-outdated-spinner
+           (":Executing " (:eval (spinner-print rustic-cargo-outdated-spinner))))
+         (spinner-start rustic-cargo-outdated-spinner)))
+     (display-buffer buf))))
 
 ;;;###autoload
 (defun rustic-cargo-reload-outdated ()
   "Update list of outdated packages."
   (interactive)
   (rustic-cargo-outdated default-directory))
-
-(defun rustic-cargo-outdated-filter (proc output)
-  "Filter for rustic-cargo-outdated-process."
-  (let ((inhibit-read-only t))
-    (with-current-buffer (process-buffer proc)
-      (insert output))))
-
-(defun rustic-cargo-outdated--skip-to-packages ()
-  "Move line forward till we reach the package name."
-  (goto-char (point-min))
-  (let ((line (buffer-substring-no-properties (line-beginning-position) (line-end-position))))
-    (while (not (or (eobp) (s-starts-with? "--" line)))
-      (forward-line 1)
-      (setf line (buffer-substring-no-properties (line-beginning-position) (line-end-position))))
-    (when (s-starts-with? "--" line) (forward-line 1))))
 
 (defun rustic-cargo-outdated-sentinel (proc _output)
   "Sentinel for rustic-cargo-outdated-process."
@@ -341,10 +339,13 @@ Execute process in PATH."
         (exit-status (process-exit-status proc)))
     (if (zerop exit-status)
         (with-current-buffer buf
-          (rustic-cargo-outdated--skip-to-packages)
-          (let ((packages (split-string
-                           (buffer-substring (point) (point-max)) "\n" t)))
-            (erase-buffer)
+          (let ((packages
+                 (mapcar
+                  (lambda (arg)
+                    (split-string arg "================" t "[\n\s]"))
+                  (split-string (buffer-string) "\n\n" t))))
+            (if (and (length packages) (= (length (car packages)) 1))
+                (setq packages (list (push "---" (car packages)))))
             (rustic-cargo-outdated-generate-menu packages))
           (pop-to-buffer buf))
       (with-current-buffer buf
@@ -362,13 +363,19 @@ Execute process in PATH."
 
 (defun rustic-cargo-outdated-generate-menu (packages)
   "Re-populate the `tabulated-list-entries' with PACKAGES."
-  (setq tabulated-list-entries
-        (mapcar #'rustic-cargo-outdated-menu-entry packages))
-  (tabulated-list-print t))
+  (let* ((name-with-split-deps
+          (mapcan
+           (lambda (arg0)
+             (nthcdr 2 (mapcar (lambda (arg1) (push (nth 0 arg0) arg1))
+                                (split-string (nth 1 arg0) "\n" t))))
+           packages)))
+    (setq tabulated-list-entries
+           (mapcar #'rustic-cargo-outdated-menu-entry name-with-split-deps))
+     (tabulated-list-print t)))
 
 (defun rustic-cargo-outdated-menu-entry (crate)
   "Return a package entry of CRATE suitable for `tabulated-list-entries'."
-  (let* ((fields (split-string crate "\s\s+" ))
+  (let* ((fields (split-string (cdr crate) "\s+"))
          (name (nth 0 fields))
          (project (nth 1 fields))
          (compat (nth 2 fields)))
@@ -380,6 +387,7 @@ Execute process in PATH."
                     compat)
                  ,(nth 3 fields)
                  ,(nth 4 fields)
+                 ,(car crate)
                  ,(nth 5 fields)])))
 
 ;;;###autoload
@@ -388,7 +396,7 @@ Execute process in PATH."
   (interactive)
   (let* ((crate (tabulated-list-get-entry (point)))
          (v (read-from-minibuffer "Update to version: "
-                                  (substring-no-properties (elt crate 2))))
+                                  (substring-no-properties (elt crate 3))))
          (inhibit-read-only t))
     (when v
       (save-excursion
@@ -489,7 +497,7 @@ The CRATE-LINE is a single line from the `rustic-cargo-oudated-buffer-name'"
   (interactive)
   (let ((crates (rustic-cargo--outdated-get-crates (buffer-string))))
     (if crates
-        (let ((msg (format "Upgrade %s ?" (mapconcat #'(lambda (x) (rustic-crate-name x)) crates " "))))
+        (let ((msg (format "Upgrade `%s`? " (mapconcat #'(lambda (x) (rustic-crate-name x)) crates " "))))
           (when (yes-or-no-p msg)
             (rustic-cargo-upgrade-crates crates)))
       (user-error "No operations specified"))))
@@ -510,7 +518,7 @@ The CRATE-LINE is a single line from the `rustic-cargo-oudated-buffer-name'"
   "Upgrade CRATES."
   (let (upgrade)
     (dolist (crate crates)
-      (setq upgrade (concat upgrade (format "%s@%s " (rustic-crate-name crate) (rustic-crate-version crate)))))
+      (setq upgrade (concat upgrade (format "-p %s@%s " (rustic-crate-name crate) (rustic-crate-version crate)))))
     (let ((output (shell-command-to-string (format "cargo upgrade %s" upgrade))))
       (if (string-match "error: no such subcommand:" output)
           (rustic-cargo-install-crate-p "edit")
@@ -600,10 +608,10 @@ When calling this function from `rustic-popup-mode', always use the value of
   (rustic-cargo-run-command
    (cond (arg
           (setq rustic-run-arguments (read-from-minibuffer "Cargo run arguments: " rustic-run-arguments)))
-         ((eq major-mode 'rustic-popup-mode)
+         (rustic-cargo-use-last-stored-arguments
           rustic-run-arguments)
          ((rustic--get-run-arguments))
-         (t ""))))
+         (t rustic-run-arguments))))
 
 ;;;###autoload
 (defun rustic-cargo-run-rerun ()
@@ -613,21 +621,25 @@ When calling this function from `rustic-popup-mode', always use the value of
 
 (defun rustic--get-run-arguments ()
   "Helper utility for getting arguments related to 'examples' directory."
-  (if (rustic-cargo-run-get-relative-example-name)
-      (concat "--example " (rustic-cargo-run-get-relative-example-name))
-    (car compile-history)))
+  (let ((example-name (rustic-cargo-run-get-relative-example-name)))
+    (when example-name
+      (concat "--example " example-name))))
 
 (defun rustic-cargo-run-get-relative-example-name ()
   "Run 'cargo run --example' if current buffer within a 'examples' directory."
   (let* ((buffer-project-root (rustic-buffer-crate))
+         (current-filename (if buffer-file-name
+                               buffer-file-name
+                             rustic--popup-rust-src-name))
          (relative-filenames
           (if buffer-project-root
-              (split-string (file-relative-name buffer-file-name buffer-project-root) "/") nil)))
+              (split-string (file-relative-name current-filename buffer-project-root) "/") nil)))
     (if (and relative-filenames (string= "examples" (car relative-filenames)))
         (let ((size (length relative-filenames)))
           (cond ((eq size 2) (file-name-sans-extension (nth 1 relative-filenames))) ;; examples/single-example1.rs
                 ((> size 2) (car (nthcdr (- size 2) relative-filenames)))           ;; examples/example2/main.rs
-                (t nil))) nil)))
+                (t nil)))
+      nil)))
 
 ;;;###autoload
 (defun rustic-run-shell-command (&optional arg)
@@ -727,22 +739,17 @@ The documentation is built if necessary."
 (defvar rustic-cargo-dependencies "*cargo-add-dependencies*"
   "Buffer that is used for adding missing dependencies with 'cargo add'.")
 
-(defun rustic-cargo-edit-installed-p ()
-  "Check if cargo-edit is installed. If not, ask the user if he wants to install it."
-  (if (executable-find "cargo-add") t (rustic-cargo-install-crate-p "edit") nil))
-
 ;;;###autoload
 (defun rustic-cargo-add (&optional arg)
   "Add crate to Cargo.toml using 'cargo add'.
 If running with prefix command `C-u', read whole command from minibuffer."
   (interactive "P")
-  (when (rustic-cargo-edit-installed-p)
-    (let* ((command (if arg
-                        (read-from-minibuffer "Cargo add command: "
-                                              (rustic-cargo-bin) " add ")
-                      (concat (rustic-cargo-bin) " add "
-                              (read-from-minibuffer "Crate: ")))))
-      (rustic-run-cargo-command command))))
+  (let* ((command (if arg
+                      (read-from-minibuffer "Cargo add command: "
+                                            (rustic-cargo-bin) " add ")
+                    (concat (rustic-cargo-bin) " add "
+                            (read-from-minibuffer "Crate: ")))))
+    (rustic-run-cargo-command command)))
 
 (defun rustic-cargo-add-missing-dependencies (&optional arg)
   "Lookup and add missing dependencies to Cargo.toml.
@@ -750,15 +757,14 @@ Adds all missing crates by default with latest version using lsp functionality.
 Supports both lsp-mode and egot.
 Use with 'C-u` to open prompt with missing crates."
   (interactive)
-  (when (rustic-cargo-edit-installed-p)
-    (-if-let (deps (rustic-cargo-find-missing-dependencies))
-        (progn
-          (when current-prefix-arg
-            (setq deps (read-from-minibuffer "Add dependencies: " deps)))
-          (rustic-compilation-start
-           (split-string (concat (rustic-cargo-bin) " add " deps))
-           (append (list :buffer rustic-cargo-dependencies))))
-      (message "No missing crates found. Maybe check your lsp server."))))
+  (-if-let (deps (rustic-cargo-find-missing-dependencies))
+      (progn
+        (when current-prefix-arg
+          (setq deps (read-from-minibuffer "Add dependencies: " deps)))
+        (rustic-compilation-start
+         (split-string (concat (rustic-cargo-bin) " add " deps))
+         (append (list :buffer rustic-cargo-dependencies))))
+    (message "No missing crates found. Maybe check your lsp server.")))
 
 (defun rustic-cargo-add-missing-dependencies-hook ()
   "Silently look for missing dependencies in the current buffer and add
@@ -802,25 +808,26 @@ as string."
 
 (defun rustic-cargo-add-missing-dependencies-eglot ()
   "Return missing dependencies by parsing flymake diagnostics buffer."
-  (let* ((buf (flymake--diagnostics-buffer-name))
-         crates)
-    ;; ensure flymake diagnostics buffer exists
-    (unless (buffer-live-p buf)
-      (let* ((name (flymake--diagnostics-buffer-name))
-             (source (current-buffer))
-             (target (or (get-buffer name)
-                         (with-current-buffer (get-buffer-create name)
-                           (flymake-diagnostics-buffer-mode)
-                           (current-buffer)))))
-        (with-current-buffer target
-          (setq flymake--diagnostics-buffer-source source)
-          (revert-buffer))))
-    (with-current-buffer buf
-      (let ((errors (split-string (buffer-substring-no-properties (point-min) (point-max)) "\n")))
-        (dolist (s errors)
-          (if (string-match-p (regexp-quote "unresolved import") s)
-              (push (string-trim (car (reverse (split-string s))) "`" "`" ) crates)))))
-    crates))
+  (rustic--inheritenv
+   (let* ((buf (flymake--diagnostics-buffer-name))
+          crates)
+     ;; ensure flymake diagnostics buffer exists
+     (unless (buffer-live-p buf)
+       (let* ((name (flymake--diagnostics-buffer-name))
+              (source (current-buffer))
+              (target (or (get-buffer name)
+                          (with-current-buffer (get-buffer-create name)
+                            (flymake-diagnostics-buffer-mode)
+                            (current-buffer)))))
+         (with-current-buffer target
+           (setq flymake--diagnostics-buffer-source source)
+           (revert-buffer))))
+     (with-current-buffer buf
+       (let ((errors (split-string (buffer-substring-no-properties (point-min) (point-max)) "\n")))
+         (dolist (s errors)
+           (if (string-match-p (regexp-quote "unresolved import") s)
+               (push (string-trim (car (reverse (split-string s))) "`" "`" ) crates)))))
+     crates)))
 
 (defun rustic-cargo-add-missing-dependencies-flycheck ()
   "Return missing dependencies by parsing flycheck diagnostics buffer."
@@ -839,25 +846,23 @@ as string."
   "Remove crate from Cargo.toml using 'cargo rm'.
 If running with prefix command `C-u', read whole command from minibuffer."
   (interactive "P")
-  (when (rustic-cargo-edit-installed-p)
-    (let* ((command (if arg
-                        (read-from-minibuffer "Cargo rm command: "
-                                              (rustic-cargo-bin) " rm ")
-                      (concat (rustic-cargo-bin) " rm "
-                              (read-from-minibuffer "Crate: ")))))
-      (rustic-run-cargo-command command))))
+  (let* ((command (if arg
+                      (read-from-minibuffer "Cargo rm command: "
+                                            (rustic-cargo-bin) " rm ")
+                    (concat (rustic-cargo-bin) " rm "
+                            (read-from-minibuffer "Crate: ")))))
+    (rustic-run-cargo-command command)))
 
 ;;;###autoload
 (defun rustic-cargo-upgrade (&optional arg)
   "Upgrade dependencies as specified in the local manifest file using 'cargo upgrade'.
 If running with prefix command `C-u', read whole command from minibuffer."
   (interactive "P")
-  (when (rustic-cargo-edit-installed-p)
-    (let* ((command (if arg
-                        (read-from-minibuffer "Cargo upgrade command: "
-                                              (rustic-cargo-bin) " upgrade ")
-                      (concat (rustic-cargo-bin) " upgrade"))))
-      (rustic-run-cargo-command command))))
+  (let* ((command (if arg
+                      (read-from-minibuffer "Cargo upgrade command: "
+                                            (rustic-cargo-bin) " upgrade ")
+                    (concat (rustic-cargo-bin) " upgrade"))))
+    (rustic-run-cargo-command command)))
 
 ;;;###autoload
 (defun rustic-cargo-update (&optional arg)
@@ -922,10 +927,13 @@ stored in this variable.")
 (defun rustic-cargo-install (&optional arg)
   "Install rust binary using 'cargo install'.
 If running with prefix command `C-u', read whole command from minibuffer."
-  (interactive)
+  (interactive "P")
   (let* ((command (if arg
                       (read-from-minibuffer "Cargo install command: "
-                                            (rustic-cargo-bin) " install ")
+                                            (format "%s %s %s"
+                                                    (rustic-cargo-bin)
+                                                    "install"
+                                                    (string-join rustic-cargo-default-install-arguments " ")))
                     (s-join " " (cons (rustic-cargo-bin) (cons "install" rustic-cargo-default-install-arguments)))))
          (c (s-split " " command))
          (buf rustic-install-buffer-name)

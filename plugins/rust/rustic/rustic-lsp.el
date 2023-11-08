@@ -66,7 +66,7 @@ in, e.g. your home directory."
            (if (eq client 'eglot)
                (eglot-ensure)
              (rustic-lsp-mode-setup)
-             (lsp)))
+             (lsp-deferred)))
           (t
            (rustic-install-lsp-client-p client)))))
 
@@ -167,23 +167,17 @@ with `lsp-rust-switch-server'."
 
 ;;;###autoload
 (defun rustic-analyzer-macro-expand (result)
-  "Default method for displaying macro expansion results."
-  (interactive)
-  (let* ((root (lsp-workspace-root default-directory))
-         (buf (get-buffer-create
-               (format "*rust-analyzer macro expansion %s*" root))))
-    (with-current-buffer buf
-      (let ((inhibit-read-only t))
-        (erase-buffer)
-        ;; wrap expanded macro in a main function so we can run rustfmt
-        (insert "fn main() {")
-        ;; rustfmt complains about $s
-        (insert (replace-regexp-in-string "\\$" "" result))
-        (insert "}")
-        (rustic-macro-expansion-mode)
-
-        (rustic-format-macro-buffer)))
-    (display-buffer buf)))
+  "Default method for displaying macro expansion RESULT ."
+  (rustic--inheritenv
+   (let* ((root (lsp-workspace-root default-directory))
+          (buf (get-buffer-create
+                (format "*rust-analyzer macro expansion %s*" root))))
+     (with-current-buffer buf
+       (let ((inhibit-read-only t))
+         (erase-buffer)
+         (insert result)
+         (rustic-macro-expansion-mode)))
+     (display-buffer buf))))
 
 ;;; _
 (provide 'rustic-lsp)
