@@ -18,15 +18,17 @@
                        (concat content "　"))))
       (list newresult))))
 
+;; (global-set-key (kbd "C-SPC") 'toggle-input-method)
+
+;; 通过 xremap 配置，如果当前是 Emacs 窗口的话，单击 Capslock 将会映射为 F8
+;; 因此绑定到 F8，默认是 C-\, 已经在操作系统全局绑定为其他命令了。
+(global-set-key [(f8)] 'toggle-input-method)
+
 (if (fboundp 'rime--posframe-display-content)
     (advice-add 'rime--posframe-display-content
                 :filter-args
                 #'+rime--posframe-display-content-a)
   (error "Function `rime--posframe-display-content' is not available."))
-
-
-;; 默认是 C-\, 这里将 C-SPC 也绑定为同样的命令
-(global-set-key (kbd "C-SPC") 'toggle-input-method)
 
 ;;(defvar sis--for-buffer nil
 ;;  "Saved buffer input source.")
@@ -53,7 +55,7 @@
 (setq rime-inline-predicates '(
                                rime-predicate-space-after-cc-p
                                rime-predicate-current-uppercase-letter-p
-                               rime-predicate-after-alphabet-char-p
+                               rime-predicate-prog-in-code-p
                                rime-predicate-ace-window-p
                                ;; rime-predicate-prog-in-code-p
                                ;; rime-predicate-org-in-src-block-p
