@@ -252,7 +252,7 @@
       vc-handled-backends '(Git)
       )
 
-(setq-default cursor-type '(hbar . 4))
+;; (setq-default cursor-type '(hbar . 4))
 
 (setq-default
  ;; major-mode 'text-mode                  ;设置默认主模式为text-mode
