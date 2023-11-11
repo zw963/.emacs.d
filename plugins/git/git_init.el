@@ -3,7 +3,6 @@
 (require 'diff-hl_init)
 ;; (require 'git-gutter_init)
 (require 'git-messenger_init)
-(require 'gist_init)
 (require 'mo-git-blame_init)
 (require 'git-modes_init)
 (require 'git-link)
