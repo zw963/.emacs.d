@@ -114,7 +114,7 @@ repository. If START-COMMIT is nil, use the current branch, otherwise the
 given commit. Assumes it is being run from a buffer whose
 default-directory is inside the repo."
   (let* ((rel-filenames (mapcar #'file-relative-name files))
-         (log-qualifier (case (length files)
+         (log-qualifier (cl-case (length files)
                                (0 (abbreviate-file-name (git--get-top-dir)))
                                (1 (first rel-filenames))
                                (t (format "%d files" (length files)))))

@@ -239,11 +239,11 @@ a failure message."
     ;; trim front
     (while (and (< begin end)
                 (memq (aref str begin) '(? ?\n)))
-      (incf begin))
+      (cl-incf begin))
     ;; trim rear
     (while (and (<= begin end)
                 (memq (aref str end) '(? ?\n)))
-      (decf end))
+      (cl-decf end))
     (substring str begin (+ end 1))))
 
 (defun git--exec-string (cmd &rest args)
@@ -287,7 +287,7 @@ the standard output there. Returns the git return code."
   (let ((end (- (length str) 1)))
     (while (and (< 0 end)
                 (memq (aref str end) '(? ?\n)))
-      (decf end))
+      (cl-decf end))
     (substring str 0 (+ end 1))))
 
 (defun git--pop-to-buffer(buffer)
@@ -485,7 +485,7 @@ visiting files that no longer exist."
                   ;; A hash table is probably not worth it here.
                   (setq buffers-not-reverted
                         (delq buffer buffers-not-reverted))
-                  (incf num-buffers-refreshed)))
+                  (cl-incf num-buffers-refreshed)))
             ;; Filter buffers by their saved status.
             (dolist (buffer buffers-that-exist)
               (if (buffer-modified-p buffer)
@@ -495,14 +495,14 @@ visiting files that no longer exist."
             ;; Or, on all unsaved buffers.
             (unwind-protect
                 (cl-case git-working-dir-change-behaviour
-                  ('git-ask-for-all-saved
+                  (git-ask-for-all-saved
                    (map-y-or-n-p
                     (lambda(buffer) (format "%s has changed, refresh buffer? "
                                             (buffer-name buffer)))
                     #'buffer-refresh-func
                     buffers-that-exist-saved
                     '("buffer" "buffers" "refresh")))
-                  ('git-refresh-all-saved
+                  (git-refresh-all-saved
                    (mapc #'buffer-refresh-func buffers-that-exist-saved)))
               (when buffers-not-reverted
                 (git--update-all-state-marks (mapcar #'buffer-file-name
@@ -1151,10 +1151,10 @@ pending commit buffer or nil if the buffer wasn't needed."
 
     (if on-git?
       (cl-case (git--status-file filename)
-        ('modified (git-commit-all))    ; modified -> commit
-        ('staged (git-commit-all))      ; staged -> commit
-        ('unknown (git--add filename))  ; unknown  -> add
-        ('unmerged (git--add filename)) ; unmerged -> add
+        (modified (git-commit-all))    ; modified -> commit
+        (staged (git-commit-all))      ; staged -> commit
+        (unknown (git--add filename))  ; unknown  -> add
+        (unmerged (git--add filename)) ; unmerged -> add
         (t (git--add filename)))        ; TODO : add more
       ad-do-it)))
 
@@ -1290,9 +1290,9 @@ buffer TEMPLATE. Returns the buffer."
           (setq conflict-end (match-beginning 0))
 
           (cl-case side
-            ('local (delete-region conflict-sep conflict-end))
-            ('remote (delete-region conflict-begin conflict-sep))
-            (t (error "Side must be one of 'local or 'remote"))))))
+            (local (delete-region conflict-sep conflict-end))
+            (remote (delete-region conflict-begin conflict-sep))
+            (t (error "Side must be one of local or remote"))))))
     buffer))
 
 (defun git--resolve-fill-base()
@@ -2614,7 +2614,7 @@ usual pre / post work: ask for save, ask for refresh."
      ;; iterating visible buffers
      (let ((visible-buffers 
             (mapcar #'(lambda (window) (window-buffer window)) (window-list))))
-       (loop for buffer in visible-buffers do
+       (cl-loop for buffer in visible-buffers do
              (with-current-buffer buffer
                (when (and (not tramp-mode) (buffer-file-name (git--in-vc-mode?)))
                  (let ((top (expand-file-name ".git/index" (git--get-top-dir))))
