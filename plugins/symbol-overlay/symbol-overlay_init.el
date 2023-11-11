@@ -1,6 +1,9 @@
 (require 'symbol-overlay)
 
-;; (global-set-key (kbd "M-i") 'symbol-overlay-put)
+(global-set-key (kbd "C-SPC") 'symbol-overlay-put)
+(global-set-key (kbd "<f7>") 'symbol-overlay-remove-all)
+(define-key symbol-overlay-map (kbd "M-n") 'symbol-overlay-switch-forward)
+(define-key symbol-overlay-map (kbd "M-p") 'symbol-overlay-switch-backward)
 
 ;; 不需要这个, 因为 n, p 就是类似功能, 下面是所有可用快捷键.
 
@@ -28,19 +31,6 @@
 (global-set-key (kbd "<f7>") 'symbol-overlay-put)
 ;; (global-set-key (kbd "C-;") 'symbol-overlay-put)
 (define-key symbol-overlay-map (kbd "C-g") 'symbol-overlay-remove-all)
-
-;; (require 'idle-highlight-mode)
-
-;; (global-idle-highlight-mode)
-;; (setq idle-highlight-idle-time 0.2)
-;; (setq global-idle-highlight-ignore-buffer (lambda (buf) (buffer-local-value 'buffer-read-only buf)))
-
-;; (add-hook 'after-change-major-mode-hook
-;;   (lambda ()
-;;     (when (derived-mode-p 'c-mode)
-;;       (setq-local idle-highlight-exceptions '("unsigned" "signed" "long" "int" "shot" "char")))
-;;     (when (derived-mode-p 'python-mode)
-;;       (setq-local idle-highlight-exceptions '("list" "tuple" "int" "float" "str" "bool")))))
 
 (provide 'symbol-overlay_init)
 
