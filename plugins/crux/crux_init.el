@@ -15,10 +15,21 @@
 (define-key indent-rigidly-map [(meta b)]  'indent-rigidly-left-to-tab-stop)
 (define-key indent-rigidly-map [(meta f)] 'indent-rigidly-right-to-tab-stop)
 
+;; isearch-transient-input-method也好用
+(setq isearch-repeat-on-direction-change t
+      isearch-allow-motion t
+      isearch-lazy-count t
+      lazy-highlight-cleanup nil
+      lazy-highlight-buffer t
+      search-ring-max 200
+      regexp-search-ring-max 200
+      )
+
 (add-hook 'isearch-mode-hook
           (lambda ()
             (define-key isearch-mode-map [(control f)] 'isearch-yank-char)
-            (define-key isearch-mode-map [(control b)] 'isearch-delete-char)
+            ;; (define-key isearch-mode-map [(control b)] 'isearch-delete-char)
+            (define-key isearch-mode-map [(control b)] 'isearch-del-char)
             (define-key isearch-mode-map [(meta f)] 'isearch-yank-word-or-char)
             (define-key isearch-mode-map [(control e)] 'isearch-yank-line)
             (define-key isearch-mode-map [(control j)] 'isearch-yank-until-char)
