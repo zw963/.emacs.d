@@ -252,6 +252,8 @@
       vc-handled-backends '(Git)
       )
 
+(setq-default cursor-type '(hbar . 4))
+
 (setq-default
  ;; major-mode 'text-mode                  ;设置默认主模式为text-mode
  case-fold-search nil      ;搜索和匹配大小写敏感.
@@ -259,7 +261,6 @@
  imenu-auto-rescan t
  fill-column 82             ;设置默认 82 个字符为换行标记.
  left-fringe-width 10
- cursor-type 'bar
  cursor-in-non-selected-windows 'hollow ; 在没有激活的 window 上显示一个空心正方形
  )
 

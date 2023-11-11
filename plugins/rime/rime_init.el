@@ -30,16 +30,31 @@
                 #'+rime--posframe-display-content-a)
   (error "Function `rime--posframe-display-content' is not available."))
 
-;;(defvar sis--for-buffer nil
+;; (defvar sis--for-buffer nil
 ;;  "Saved buffer input source.")
-;;(make-variable-buffer-local 'sis--for-buffer)
+;; (make-variable-buffer-local 'sis--for-buffer)
 
-;;(add-hook input-method-activate-hook (lambda ()
+;; (add-hook input-method-activate-hook (lambda ()
 ;;                                       (setq-local sis--for-buffer t)
 ;;                                       ))
-;;(add-hook input-method-deactivate-hook (lambda ()
+;; (add-hook input-method-deactivate-hook (lambda ()
 ;;                                       (setq-local sis--for-buffer nil)
 ;;                                       ))
+
+(defvar input-method-cursor-color "Orange"
+  "Default cursor color if using an input method.")
+
+(defvar default-cursor-color (frame-parameter nil 'cursor-color)
+  "Default text cursor color.")
+
+(defun change-cursor-color-on-input-method ()
+  "Set cursor color depending on whether an input method is used or not."
+  (interactive)
+  (set-cursor-color (if current-input-method
+                        input-method-cursor-color
+                      default-cursor-color)))
+
+(add-hook 'post-command-hook 'change-cursor-color-on-input-method)
 
 ;; (setq rime-posframe-properties
 ;;       (list :background-color "#333333"
@@ -53,9 +68,9 @@
 (global-set-key (kbd "C-`") 'rime-send-keybinding)
 
 (setq rime-inline-predicates '(
-                               rime-predicate-space-after-cc-p
+                               ;; rime-predicate-space-after-cc-p
                                rime-predicate-current-uppercase-letter-p
-                               rime-predicate-prog-in-code-p
+                               ;; rime-predicate-prog-in-code-p
                                rime-predicate-ace-window-p
                                ;; rime-predicate-prog-in-code-p
                                ;; rime-predicate-org-in-src-block-p
