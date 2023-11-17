@@ -64,6 +64,7 @@
 
 (require 'prog-mode_init)
 (require 'tree-sitter_init)
+;; (require 'combobulate_init)
 (require 'snap-indent_init)
 ;; (require 'indentinator_init)
 (require 'dumb-jump_init)
@@ -83,7 +84,6 @@
 (require 'scss-css-mode_init)
 ;; (require 'format-all_init)
 (require 'wakatime-mode_init)
-(require 'combobulate_init)
 (require 'webpaste_init)
 (require 'ws-butler_init)
 (require 'yafolding_init)
