@@ -21,10 +21,12 @@
     (string-inflection-all-cycle)
     )))
 
-(add-hook 'prog-mode-hook
-          (lambda ()
-            (local-set-key [(meta u)] 'my-string-inflection-cycle-auto)
-            ))
+(dolist (hook '(prog-mode-hook
+                markdown-mode
+                ))
+  (add-hook hook (lambda ()
+                   (local-set-key [(meta u)] 'my-string-inflection-cycle-auto)
+                   )))
 
 (require 'sequential-command)
 (require 'subword)
