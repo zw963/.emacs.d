@@ -3,7 +3,8 @@
 ;; popular themes: https://emacsthemes.com/popular/index.html
 
 (setq custom-theme-directory (expand-file-name "plugins/themes"))
-(load-theme 'vscode-dark-plus t)
+;; (load-theme 'vscode-dark-plus t)
+(load-theme 'flexoki-themes-dark t)
 
 ;; (setq zenburn-use-variable-pitch t)
 ;; (setq zenburn-scale-org-headlines t)
