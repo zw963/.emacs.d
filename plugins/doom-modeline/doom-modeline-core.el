@@ -232,6 +232,11 @@ It respects variable `doom-modeline-icon'."
   :type 'boolean
   :group 'doom-modeline)
 
+(defcustom doom-modeline-highlight-modified-buffer-name t
+  "Whether highlight the modified buffer name."
+  :type 'boolean
+  :group 'doom-modeline)
+
 (defcustom doom-modeline-minor-modes nil
   "Whether display the minor modes in the mode-line."
   :type 'boolean
@@ -455,6 +460,13 @@ It requires `ghub' and `async' packages."
   :type 'boolean
   :group 'doom-modeline)
 
+(defcustom doom-modeline-modal t
+  "Whether display the modal state.
+
+Including `evil', `overwrite', `god', `ryo' and `xah-fly-keys', etc."
+  :type 'boolean
+  :group 'doom-modeline)
+
 (defcustom doom-modeline-modal-icon t
   "Whether display the modal state icon.
 
@@ -518,6 +530,13 @@ It requires `circe' or `erc' package."
   :type 'function
   :group 'doom-modeline)
 
+(defcustom doom-modeline-battery t
+  "Whether display the battery status.
+
+It respects `display-battery-mode'."
+  :type 'boolean
+  :group 'doom-modeline)
+
 (defcustom doom-modeline-time t
   "Whether display the time.
 
@@ -532,6 +551,12 @@ If nil, display only if the mode line is active."
   :type 'boolean
   :group 'doom-modeline)
 
+(defcustom doom-modeline-always-visible-segments nil
+  "A list of segments that should be visible even in
+inactive windows."
+  :type '(repeat symbol)
+  :group 'doom-modeline)
+
 
 ;;
 ;; Faces
@@ -543,13 +568,18 @@ If nil, display only if the mode line is active."
   :group 'faces
   :link '(url-link :tag "Homepage" "https://github.com/seagle0128/doom-modeline"))
 
+(defface doom-modeline
+  '((t ()))
+  "Default face."
+  :group 'doom-modeline-faces)
+
 (defface doom-modeline-emphasis
-  '((t (:inherit mode-line-emphasis)))
+  '((t (:inherit (doom-modeline mode-line-emphasis))))
   "Face used for emphasis."
   :group 'doom-modeline-faces)
 
 (defface doom-modeline-highlight
-  '((t (:inherit mode-line-highlight)))
+  '((t (:inherit (doom-modeline mode-line-highlight))))
   "Face used for highlighting."
   :group 'doom-modeline-faces)
 
@@ -559,12 +589,12 @@ If nil, display only if the mode line is active."
   :group 'doom-modeline-faces)
 
 (defface doom-modeline-buffer-file
-  '((t (:inherit (mode-line-buffer-id bold))))
+  '((t (:inherit (doom-modeline mode-line-buffer-id bold))))
   "Face used for the filename part of the mode-line buffer path."
   :group 'doom-modeline-faces)
 
 (defface doom-modeline-buffer-modified
-  '((t (:inherit (error bold) :background nil)))
+  '((t (:inherit (doom-modeline warning bold) :background unspecified)))
   "Face used for the \\='unsaved\\=' symbol in the mode-line."
   :group 'doom-modeline-faces)
 
@@ -574,17 +604,17 @@ If nil, display only if the mode line is active."
   :group 'doom-modeline-faces)
 
 (defface doom-modeline-buffer-minor-mode
-  '((t (:inherit font-lock-doc-face :slant normal)))
+  '((t (:inherit (doom-modeline font-lock-doc-face) :slant normal)))
   "Face used for the minor-modes segment in the mode-line."
   :group 'doom-modeline-faces)
 
 (defface doom-modeline-project-parent-dir
-  '((t (:inherit (font-lock-comment-face bold))))
+  '((t (:inherit (doom-modeline font-lock-comment-face bold))))
   "Face used for the project parent directory of the mode-line buffer path."
   :group 'doom-modeline-faces)
 
 (defface doom-modeline-project-dir
-  '((t (:inherit (font-lock-string-face bold))))
+  '((t (:inherit (doom-modeline font-lock-string-face bold))))
   "Face used for the project directory of the mode-line buffer path."
   :group 'doom-modeline-faces)
 
@@ -600,7 +630,7 @@ This applies to `anzu', `evil-substitute', `iedit' etc."
   :group 'doom-modeline-faces)
 
 (defface doom-modeline-host
-  '((t (:inherit italic)))
+  '((t (:inherit (doom-modeline italic))))
   "Face for remote hosts in the mode-line."
   :group 'doom-modeline-faces)
 
@@ -610,27 +640,27 @@ This applies to `anzu', `evil-substitute', `iedit' etc."
   :group 'doom-modeline-faces)
 
 (defface doom-modeline-input-method-alt
-  '((t (:inherit (font-lock-doc-face bold) :slant normal)))
+  '((t (:inherit (doom-modeline font-lock-doc-face bold) :slant normal)))
   "Alternative face for input method in the mode-line."
   :group 'doom-modeline-faces)
 
 (defface doom-modeline-debug
-  '((t (:inherit (font-lock-doc-face bold) :slant normal)))
+  '((t (:inherit (doom-modeline font-lock-doc-face bold) :slant normal)))
   "Face for debug-level messages in the mode-line. Used by vcs, checker, etc."
   :group 'doom-modeline-faces)
 
 (defface doom-modeline-info
-  '((t (:inherit (success bold))))
+  '((t (:inherit (doom-modeline success bold))))
   "Face for info-level messages in the mode-line. Used by vcs, checker, etc."
   :group 'doom-modeline-faces)
 
 (defface doom-modeline-warning
-  '((t (:inherit (warning bold))))
+  '((t (:inherit (doom-modeline warning bold))))
   "Face for warnings in the mode-line. Used by vcs, checker, etc."
   :group 'doom-modeline-faces)
 
 (defface doom-modeline-urgent
-  '((t (:inherit (error bold))))
+  '((t (:inherit (doom-modeline error bold))))
   "Face for errors in the mode-line. Used by vcs, checker, etc."
   :group 'doom-modeline-faces)
 
@@ -641,7 +671,7 @@ Also see the face `doom-modeline-unread-number'."
   :group 'doom-modeline-faces)
 
 (defface doom-modeline-unread-number
-  '((t (:slant italic :weight normal)))
+  '((t (:inherit doom-modeline :slant italic :weight normal)))
   "Face for unread number in the mode-line. Used by GitHub, mu4e, etc."
   :group 'doom-modeline-faces)
 
@@ -656,113 +686,158 @@ Also see the face `doom-modeline-unread-number'."
   :group 'doom-modeline-faces)
 
 (defface doom-modeline-debug-visual
-  '((((background light)) :foreground "#D4843E")
-    (((background dark)) :foreground "#915B2D"))
+  '((((background light)) :foreground "#D4843E" :inherit doom-modeline)
+    (((background dark)) :foreground "#915B2D" :inherit doom-modeline))
   "Face to use for the mode-line while debugging."
   :group 'doom-modeline-faces)
 
 (defface doom-modeline-evil-emacs-state
-  '((t (:inherit (font-lock-builtin-face bold))))
-  "Face for the Emacs state tag in evil state indicator."
+  '((t (:inherit (doom-modeline font-lock-builtin-face bold))))
+  "Face for the Emacs state tag in evil indicator."
   :group 'doom-modeline-faces)
 
 (defface doom-modeline-evil-insert-state
-  '((t (:inherit (font-lock-keyword-face bold))))
-  "Face for the insert state tag in evil state indicator."
+  '((t (:inherit (doom-modeline font-lock-keyword-face bold))))
+  "Face for the insert state tag in evil indicator."
   :group 'doom-modeline-faces)
 
 (defface doom-modeline-evil-motion-state
-  '((t :inherit (font-lock-doc-face bold) :slant normal))
-  "Face for the motion state tag in evil state indicator."
+  '((t (:inherit (doom-modeline font-lock-doc-face bold) :slant normal)))
+  "Face for the motion state tag in evil indicator."
   :group 'doom-modeline-faces)
 
 (defface doom-modeline-evil-normal-state
   '((t (:inherit doom-modeline-info)))
-  "Face for the normal state tag in evil state indicator."
+  "Face for the normal state tag in evil indicator."
   :group 'doom-modeline-faces)
 
 (defface doom-modeline-evil-operator-state
   '((t (:inherit doom-modeline-buffer-file)))
-  "Face for the operator state tag in evil state indicator."
+  "Face for the operator state tag in evil indicator."
   :group 'doom-modeline-faces)
 
 (defface doom-modeline-evil-visual-state
   '((t (:inherit doom-modeline-warning)))
-  "Face for the visual state tag in evil state indicator."
+  "Face for the visual state tag in evil indicator."
   :group 'doom-modeline-faces)
 
 (defface doom-modeline-evil-replace-state
   '((t (:inherit doom-modeline-urgent)))
-  "Face for the replace state tag in evil state indicator."
+  "Face for the replace state tag in evil indicator."
+  :group 'doom-modeline-faces)
+
+(defface doom-modeline-overwrite
+  '((t (:inherit doom-modeline-urgent)))
+  "Face for overwrite indicator."
+  :group 'doom-modeline-faces)
+
+(defface doom-modeline-god
+  '((t (:inherit doom-modeline-info)))
+  "Face for god-mode indicator."
+  :group 'doom-modeline-faces)
+
+(defface doom-modeline-ryo
+  '((t (:inherit doom-modeline-info)))
+  "Face for RYO indicator."
+  :group 'doom-modeline-faces)
+
+(defface doom-modeline-fly-insert-state
+  '((t (:inherit (font-lock-keyword-face bold))))
+  "Face for the insert state in xah-fly-keys indicator."
+  :group 'doom-modeline-faces)
+
+(defface doom-modeline-fly-normal-state
+  '((t (:inherit doom-modeline-info)))
+  "Face for the normal state in xah-fly-keys indicator."
+  :group 'doom-modeline-faces)
+
+(defface doom-modeline-boon-command-state
+  '((t (:inherit doom-modeline-info)))
+  "Face for the command state tag in boon indicator."
+  :group 'doom-modeline-faces)
+
+(defface doom-modeline-boon-insert-state
+  '((t (:inherit (doom-modeline font-lock-keyword-face bold))))
+  "Face for the insert state tag in boon indicator."
+  :group 'doom-modeline-faces)
+
+(defface doom-modeline-boon-special-state
+  '((t (:inherit (doom-modeline font-lock-builtin-face bold))))
+  "Face for the special state tag in boon indicator."
+  :group 'doom-modeline-faces)
+
+(defface doom-modeline-boon-off-state
+  '((t (:inherit doom-modeline-buffer-file)))
+  "Face for the off state tag in boon indicator."
   :group 'doom-modeline-faces)
 
 (defface doom-modeline-persp-name
-  '((t (:inherit (font-lock-comment-face italic))))
+  '((t (:inherit (doom-modeline font-lock-comment-face italic))))
   "Face for the persp name."
   :group 'doom-modeline-faces)
 
 (defface doom-modeline-persp-buffer-not-in-persp
-  '((t (:inherit (font-lock-doc-face bold italic))))
+  '((t (:inherit (doom-modeline font-lock-doc-face bold italic))))
   "Face for the buffers which are not in the persp."
   :group 'doom-modeline-faces)
 
 (defface doom-modeline-repl-success
-  '((t (:inherit success :weight normal)))
+  '((t (:inherit doom-modeline-info :weight normal)))
   "Face for REPL success state."
   :group 'doom-modeline-faces)
 
 (defface doom-modeline-repl-warning
-  '((t (:inherit warning :weight normal)))
+  '((t (:inherit doom-modeline-warning :weight normal)))
   "Face for REPL warning state."
   :group 'doom-modeline-faces)
 
 (defface doom-modeline-lsp-success
-  '((t (:inherit success :weight normal)))
+  '((t (:inherit doom-modeline-info :weight normal)))
   "Face for LSP success state."
   :group 'doom-modeline-faces)
 
 (defface doom-modeline-lsp-warning
-  '((t (:inherit warning :weight normal)))
+  '((t (:inherit doom-modeline-warning :weight normal)))
   "Face for LSP warning state."
   :group 'doom-modeline-faces)
 
 (defface doom-modeline-lsp-error
-  '((t (:inherit error :weight normal)))
+  '((t (:inherit doom-modeline-urgent :weight normal)))
   "Face for LSP error state."
   :group 'doom-modeline-faces)
 
 (defface doom-modeline-lsp-running
-  '((t (:inherit compilation-mode-line-run :weight normal :slant normal)))
+  '((t (:inherit (doom-modeline compilation-mode-line-run) :weight normal :slant normal)))
   "Face for LSP running state."
   :group 'doom-modeline-faces)
 
 (defface doom-modeline-battery-charging
-  '((t (:inherit success :weight normal)))
+  '((t (:inherit doom-modeline-info :weight normal)))
   "Face for battery charging status."
   :group 'doom-modeline-faces)
 
 (defface doom-modeline-battery-full
-  '((t (:inherit success :weight normal)))
+  '((t (:inherit doom-modeline-info :weight normal)))
   "Face for battery full status."
   :group 'doom-modeline-faces)
 
 (defface doom-modeline-battery-normal
-  '((t (:inherit mode-line :weight normal)))
+  '((t (:inherit (doom-modeline mode-line) :weight normal)))
   "Face for battery normal status."
   :group 'doom-modeline-faces)
 
 (defface doom-modeline-battery-warning
-  '((t (:inherit warning :weight normal)))
+  '((t (:inherit doom-modeline-warning :weight normal)))
   "Face for battery warning status."
   :group 'doom-modeline-faces)
 
 (defface doom-modeline-battery-critical
-  '((t (:inherit error :weight normal)))
+  '((t (:inherit doom-modeline-urgent :weight normal)))
   "Face for battery critical status."
   :group 'doom-modeline-faces)
 
 (defface doom-modeline-battery-error
-  '((t (:inherit error :weight normal)))
+  '((t (:inherit doom-modeline-urgent :weight normal)))
   "Face for battery error status."
   :group 'doom-modeline-faces)
 
@@ -772,12 +847,12 @@ Also see the face `doom-modeline-unread-number'."
   :group 'doom-modeline-faces)
 
 (defface doom-modeline-time
-  '((t (:inherit (mode-line-buffer-id bold))))
+  '((t (:inherit doom-modeline-buffer-file)))
   "Face for display time."
   :group 'doom-modeline-faces)
 
 (defface doom-modeline-compilation
-  '((t (:inherit warning :slant italic :height 0.9)))
+  '((t (:inherit doom-modeline-warning :weight normal :slant italic :height 0.9)))
   "Face for compilation progress."
   :group 'doom-modeline-faces)
 
@@ -855,22 +930,26 @@ used as an advice to window creation functions."
 (unless (>= emacs-major-version 29)
   (advice-add #'fit-window-to-buffer :before #'doom-modeline-redisplay))
 
+;; For `flychecker-color-mode-line'
+(with-eval-after-load 'flychecker-color-mode-line
+  (setq flycheck-color-mode-line-face-to-color 'doom-modeline))
+
 (defun doom-modeline-icon-displayable-p ()
   "Return non-nil if icons are displayable."
   (and doom-modeline-icon
        (display-graphic-p)
        (featurep 'all-the-icons)))
 
+(defun doom-modeline-mwheel-available-p ()
+  "Whether mouse wheel is available."
+  (and (featurep 'mwheel) (bound-and-true-p mouse-wheel-mode)))
+
 ;; Keep `doom-modeline-current-window' up-to-date
-(defun doom-modeline--get-current-window (&optional frame)
-  "Get the current window but should exclude the child windows.
+(defun doom-modeline--selected-window ()
+  "Get the selected window."
+  (frame-selected-window))
 
-If FRAME is nil, it means the current frame."
-  (if (and (fboundp 'frame-parent) (frame-parent frame))
-      (frame-selected-window (frame-parent frame))
-    (frame-selected-window frame)))
-
-(defvar doom-modeline-current-window (doom-modeline--get-current-window)
+(defvar doom-modeline-current-window (doom-modeline--selected-window)
   "Current window.")
 
 (defun doom-modeline--active ()
@@ -879,11 +958,20 @@ If FRAME is nil, it means the current frame."
                (and (frame-live-p mini-frame-frame)
                     (frame-visible-p mini-frame-frame)))
     (and doom-modeline-current-window
-         (eq (doom-modeline--get-current-window) doom-modeline-current-window))))
+         (eq (doom-modeline--selected-window) doom-modeline-current-window))))
+
+(defvar-local doom-modeline--limited-width-p nil)
+
+(defun doom-modeline--segment-visible (name)
+  "Whether a segment should be displayed"
+  (and
+   (or (doom-modeline--active)
+       (member name doom-modeline-always-visible-segments))
+   (not doom-modeline--limited-width-p)))
 
 (defun doom-modeline-set-selected-window (&rest _)
   "Set `doom-modeline-current-window' appropriately."
-  (let ((win (doom-modeline--get-current-window)))
+  (let ((win (doom-modeline--selected-window)))
     (setq doom-modeline-current-window
           (if (minibuffer-window-active-p win)
               (minibuffer-selected-window)
@@ -898,6 +986,10 @@ If FRAME is nil, it means the current frame."
 ;; Ensure modeline is inactive when Emacs is unfocused
 (defvar doom-modeline--remap-faces '(mode-line
                                      mode-line-active
+                                     mode-line-emphasis
+                                     mode-line-highlight
+                                     mode-line-buffer-id
+                                     doom-modeline
                                      solaire-mode-line-face
                                      solaire-mode-line-active-face
                                      paradox-mode-line-face
@@ -905,12 +997,6 @@ If FRAME is nil, it means the current frame."
                                      flycheck-color-mode-line-warning-face
                                      flycheck-color-mode-line-info-face
                                      flycheck-color-mode-line-success-face))
-(dolist (face (face-list))
-  (let ((f (symbol-name face)))
-    (and
-     (string-match-p "^\\(doom-modeline\\|all-the-icons\\)" f)
-     (not (string-match-p "\\(-inactive\\|-dired\\|-ivy\\|-ibuffer\\)" f))
-     (add-to-list 'doom-modeline--remap-faces face))))
 
 (defvar doom-modeline--remap-face-cookie-alist nil)
 (defun doom-modeline-focus ()
@@ -928,7 +1014,12 @@ If FRAME is nil, it means the current frame."
       (progn
         (defun doom-modeline-focus-change (&rest _)
           (if (frame-focus-state (frame-parent))
-              (doom-modeline-focus)
+              (progn
+                (doom-modeline-focus)
+                ;; HACK: pulse after focusing in the frame to refresh the buffer name.
+                ;; @see https://github.com/seagle0128/doom-modeline/issues/591
+                (when (fboundp 'pulse-momentary-highlight-region)
+                  (pulse-momentary-highlight-region 0 0)))
             (doom-modeline-unfocus)))
         (advice-add #'handle-switch-frame :after #'doom-modeline-focus-change)
         (add-function :after after-focus-change-function #'doom-modeline-focus-change))
@@ -1000,11 +1091,13 @@ Example:
         (list lhs-forms
               (propertize
                " "
+               'face (doom-modeline-face)
                'display `(space
                           :align-to
                           (- (+ right right-fringe right-margin scroll-bar)
                              ,(let ((rhs-str (format-mode-line (cons "" rhs-forms))))
-                                (if (fboundp 'string-pixel-width)
+                                (if (and (>= emacs-major-version 29)
+                                         (fboundp 'string-pixel-width))
                                     (/ (string-pixel-width rhs-str)
                                        (doom-modeline--font-width)
                                        1.0)
@@ -1040,15 +1133,23 @@ If DEFAULT is non-nil, set the default mode-line for all buffers."
 ;; Helpers
 ;;
 
-(defconst doom-modeline-spc " " "Whitespace.")
-(defconst doom-modeline-wspc "  " "Wide whitespace.")
-(defconst doom-modeline-vspc
-  (propertize " " 'display '((space :relative-width 0.5)))
-  "Thin whitespace.")
-
 (defconst doom-modeline-ellipsis
   (if (char-displayable-p ?…) "…" "...")
   "Ellipsis.")
+
+(defsubst doom-modeline-spc ()
+  "Whitespace."
+  (propertize " " 'face (doom-modeline-face)))
+
+(defsubst doom-modeline-wspc ()
+  "Wide Whitespace."
+  (propertize "  " 'face (doom-modeline-face)))
+
+(defsubst doom-modeline-vspc ()
+  "Thin whitespace."
+  (propertize " "
+              'face (doom-modeline-face)
+              'display '((space :relative-width 0.5))))
 
 (defun doom-modeline-face (&optional face inactive-face)
   "Display FACE in active window, and INACTIVE-FACE in inactive window.
@@ -1106,10 +1207,10 @@ See https://github.com/seagle0128/doom-modeline/issues/301."
       (when-let ((props (get-text-property 0 'face icon)))
         (when (listp props)
           (cl-destructuring-bind (&key family height inherit &allow-other-keys) props
-            (propertize icon 'face `(:inherit ,(or face inherit props 'mode-line)
+            (propertize icon 'face `(:inherit (doom-modeline ,(or face inherit props))
                                      :family  ,(or family "")
                                      :height  ,(or height 1.0))))))
-    (propertize icon 'face face)))
+    (propertize icon 'face `(:inherit (doom-modeline ,face)))))
 
 (defun doom-modeline-icon (icon-set icon-name unicode text &rest args)
   "Display icon of ICON-NAME with ARGS in mode-line.
@@ -1118,7 +1219,8 @@ ICON-SET includes `octicon', `faicon', `material', `alltheicons' and `fileicon',
 etc.
 UNICODE is the unicode char fallback. TEXT is the ASCII char fallback.
 ARGS is same as `all-the-icons-octicon' and others."
-  (let ((face (or (plist-get args :face) 'mode-line)))
+  (let ((face `(:inherit (doom-modeline
+                          ,(or (plist-get args :face) 'mode-line)))))
     (cond
      ;; Icon
      ((and (doom-modeline-icon-displayable-p)
@@ -1168,7 +1270,7 @@ Use FACE for the bar, WIDTH and HEIGHT are the image size in pixels."
           (concat (format "P1\n%i %i\n" width height)
                   (make-string (* width height) ?1)
                   "\n")
-          'pbm t :foreground color :ascent 'center))))))
+          'pbm t :scale 1 :foreground color :ascent 'center))))))
 
 (defun doom-modeline--create-hud-image
     (face1 face2 width height top-margin bottom-margin)
@@ -1201,7 +1303,6 @@ respectively."
         'pbm t :foreground color1 :background color2 :ascent 'center)))))
 
 ;; Check whether `window-total-width' is smaller than the limit
-(defvar-local doom-modeline--limited-width-p nil)
 (defun doom-modeline-window-size-change-function (&rest _)
   "Function for `window-size-change-functions'."
   (setq doom-modeline--limited-width-p
@@ -1233,9 +1334,11 @@ Return nil if no project was found."
              ((and (memq doom-modeline-project-detection '(auto project))
                    (fboundp 'project-current))
               (when-let ((project (project-current)))
-                (expand-file-name (if (fboundp 'project-root)
-                                      (project-root project)
-                                    (cdr project)))))))))
+                (expand-file-name
+                 (if (fboundp 'project-root)
+                     (project-root project)
+                   (car (with-no-warnings
+                          (project-roots project)))))))))))
 
 (defun doom-modeline-project-p ()
   "Check if the file is in a project."
