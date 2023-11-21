@@ -299,6 +299,10 @@ This doesn't include the margins and the scroll bar."
   :type '(choice (const :tag "Scrollbar" scrollbar)
                  (const :tag "Two lines" lines)))
 
+(defcustom company-tooltip-scrollbar-width 0.4
+  "Width of the scrollbar thumb, in columns."
+  :type 'number)
+
 (defcustom company-tooltip-align-annotations nil
   "When non-nil, align annotations to the right tooltip border."
   :type 'boolean
@@ -1058,14 +1062,19 @@ means that `company-mode' is always turned on except in `message-mode' buffers."
 (declare-function line-number-display-width "indent.c")
 
 (defun company--posn-col-row (posn)
-  (let ((col (car (posn-col-row posn)))
-        ;; `posn-col-row' doesn't work well with lines of different height.
-        ;; `posn-actual-col-row' doesn't handle multiple-width characters.
-        (row (cdr (or (posn-actual-col-row posn)
-                      ;; When position is non-visible for some reason.
-                      (posn-col-row posn)))))
+  (let* ((col-row (if (>= emacs-major-version 29)
+                      (with-no-warnings  ;with 2 arguments, but accepts only 1
+                        (posn-col-row posn t))
+                    (posn-col-row posn)))
+         (col (car col-row))
+         ;; `posn-col-row' doesn't work well with lines of different height.
+         ;; `posn-actual-col-row' doesn't handle multiple-width characters.
+         (row (cdr (or (posn-actual-col-row posn)
+                       ;; When position is non-visible for some reason.
+                       col-row))))
     ;; posn-col-row return value relative to the left
     (when (eq (current-bidi-paragraph-direction) 'right-to-left)
+      ;; `remap' as 3rd argument to window-body-width is E30+ only :-(
       (let ((ww (window-body-width)))
         (setq col (- ww col))))
     (when (bound-and-true-p display-line-numbers)
@@ -1427,8 +1436,7 @@ can retrieve meta-data for them."
   ;; It's mory efficient to fix it only when they are displayed.
   ;; FIXME: Adopt the current text's capitalization instead?
   (if (eq (company-call-backend 'ignore-case) 'keep-prefix)
-      (let ((prefix (company--clean-string company-prefix)))
-        (concat prefix (substring candidate (length prefix))))
+      (concat company-prefix (substring candidate (length company-prefix)))
     candidate))
 
 (defun company--should-complete ()
@@ -2901,23 +2909,144 @@ from the candidates list.")
       (aref company-space-strings len)
     (make-string len ?\ )))
 
+;; XXX: This is really a hack, but one that we could really get rid of only by
+;; moving to the one-overlay-per-line scheme.
+(defmacro company--with-face-remappings (&rest body)
+  `(let ((fra-local (and (local-variable-p 'face-remapping-alist)
+                         face-remapping-alist))
+         (bufs (list (get-buffer-create " *string-pixel-width*")
+                     (get-buffer-create " *company-sps*"))))
+     (unwind-protect
+         (progn
+           (dolist (buf bufs)
+             (with-current-buffer buf
+               (when (bound-and-true-p display-line-numbers)
+                 ;; Workaround for debbugs#67248.
+                 (setq-local display-line-numbers nil))
+               (when fra-local
+                 (setq-local face-remapping-alist fra-local))))
+           ,@body)
+       (dolist (buf bufs)
+         (and (buffer-live-p buf)
+              (with-current-buffer buf
+                (kill-local-variable 'face-remapping-alist)))))))
+
+(defalias 'company--string-pixel-width
+  (if (fboundp 'string-pixel-width)
+      ;; Emacs 29.1+
+      'string-pixel-width
+    (lambda (string)
+      (if (zerop (length string))
+          0
+        ;; Keeping a work buffer around is more efficient than creating a
+        ;; new temporary buffer.
+        (with-current-buffer (get-buffer-create " *string-pixel-width*")
+          ;; `display-line-numbers-mode' is enabled in internal buffers
+          ;; that breaks width calculation, so need to disable (bug#59311)
+          (when (bound-and-true-p display-line-numbers-mode)
+            (with-no-warnings ;; Emacs 25
+              (display-line-numbers-mode -1)))
+          (delete-region (point-min) (point-max))
+          (insert string)
+          (let ((wb (window-buffer))
+                (dedicated (window-dedicated-p)))
+            (unwind-protect
+                (progn
+                  (when dedicated
+                    (set-window-dedicated-p nil nil))
+                  (set-window-buffer nil (current-buffer))
+                  (car
+                   (window-text-pixel-size nil nil nil 55555)))
+              (set-window-buffer nil wb)
+              (when dedicated
+                (set-window-dedicated-p nil dedicated)))))))))
+
+(defun company--string-width (str)
+  (if (display-graphic-p)
+      (ceiling (/ (company--string-pixel-width str)
+                  (float (default-font-width))))
+    (string-width str)))
+
+;; TODO: Add more tests!
+(defun company-safe-pixel-substring (str from &optional to)
+  (let ((from-chars 0)
+        (to-chars 0)
+        spw-from spw-to
+        spw-to-prev
+        front back
+        (orig-buf (window-buffer))
+        (bis buffer-invisibility-spec)
+        (bdt buffer-display-table)
+        (inhibit-read-only t)
+        (dedicated (window-dedicated-p))
+        window-configuration-change-hook)
+    (with-current-buffer (get-buffer-create " *company-sps*")
+      (unwind-protect
+          (progn
+            (delete-region (point-min) (point-max))
+            (insert str)
+            (setq-local buffer-invisibility-spec bis)
+            (setq-local buffer-display-table bdt)
+            (when dedicated (set-window-dedicated-p nil nil))
+            (set-window-buffer nil (current-buffer) t)
+
+            (vertical-motion (cons (/ from (frame-char-width)) 0))
+            (setq from-chars (point))
+            (setq spw-from
+                  (if (bobp) 0
+                    (car (window-text-pixel-size nil (point-min) (point) 55555))))
+            (while (and (< spw-from from)
+                        (not (eolp)))
+              (forward-char 1)
+              (setq spw-from
+                    (car (window-text-pixel-size nil (point-min) (point) 55555)))
+              (setq from-chars (point)))
+
+            (if (= from-chars (point-max))
+                (if to
+                    (propertize " " 'display `(space . (:width (,(- to from)))))
+                  "")
+              (if (not to)
+                  (setq to-chars (point-max))
+                (vertical-motion (cons (/ to (frame-char-width)) 0))
+                (setq to-chars (point))
+                (setq spw-to
+                      (if (bobp) 0
+                        (car (window-text-pixel-size nil (point-min) (point) 55555))))
+                (while (and (< spw-to to)
+                            (not (eolp)))
+                  (setq spw-to-prev spw-to)
+                  (forward-char 1)
+                  (setq spw-to
+                        (car (window-text-pixel-size nil (point-min) (point) 55555)))
+                  (when (<= spw-to to)
+                    (setq to-chars (point)))))
+
+              (unless spw-to-prev (setq spw-to-prev spw-to))
+
+              (when (> spw-from from)
+                (setq front (propertize " " 'display
+                                        `(space . (:width (,(- spw-from from)))))))
+              (when (and to (/= spw-to to))
+                (setq back (propertize
+                            " " 'display
+                            `(space . (:width (,(- to
+                                                   (if (< spw-to to)
+                                                       spw-to
+                                                     spw-to-prev))))))))
+              (concat front (buffer-substring from-chars to-chars) back)))
+        (set-window-buffer nil orig-buf t)
+        (when dedicated
+          (set-window-dedicated-p nil dedicated))))))
+
 (defun company-safe-substring (str from &optional to)
-  (let ((bis buffer-invisibility-spec))
-    (if (> from (string-width str))
+  (let ((ll (length str)))
+    (if (> from ll)
         ""
-      (with-temp-buffer
-        (setq buffer-invisibility-spec bis)
-        (insert str)
-        (move-to-column from)
-        (let ((beg (point)))
-          (if to
-              (progn
-                (move-to-column to)
-                (concat (buffer-substring beg (point))
-                        (let ((padding (- to (current-column))))
-                          (when (> padding 0)
-                            (company-space-string padding)))))
-            (buffer-substring beg (point-max))))))))
+      (if to
+          (concat (substring str from (min to ll))
+                  (company-space-string (max 0 (- to ll))))
+        (substring str from)))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -3207,10 +3336,13 @@ If SHOW-VERSION is non-nil, show the version in the echo area."
 
 (defun company-fill-propertize (value annotation width selected left right)
   (let* ((margin (length left))
-         (company-common (and company-common (company--clean-string company-common)))
          (common (company--common-or-matches value))
-         (_ (setq value (company-reformat (company--pre-render value))
-                  annotation (and annotation (company--pre-render annotation t))))
+         (_ (setq value
+                  (company--clean-string
+                   (company-reformat (company--pre-render value)))
+                  annotation (and annotation
+                                  (company--clean-string
+                                   (company--pre-render annotation t)))))
          (ann-ralign company-tooltip-align-annotations)
          (ann-padding (or company-tooltip-annotation-padding 0))
          (ann-truncate (< width
@@ -3307,33 +3439,48 @@ If SHOW-VERSION is non-nil, show the version in the echo area."
         str)))
 
 (defun company--clean-string (str)
-  (replace-regexp-in-string
-   "\\([^[:graph:] ]\\)\\|\\(\ufeff\\)\\|[[:multibyte:]]"
-   (lambda (match)
-     (cond
-      ((match-beginning 1)
-       ;; FIXME: Better char for 'non-printable'?
-       ;; We shouldn't get any of these, but sometimes we might.
-       ;; The official "replacement character" is not supported by some fonts.
-       ;;"\ufffd"
-       "?"
-       )
-      ((match-beginning 2)
-       ;; Zero-width non-breakable space.
-       "")
-      ((> (string-width match) 1)
-       (concat
-        (make-string (1- (string-width match)) ?\ufeff)
-        match))
-      (t match)))
-   str))
+  (let* ((add-pixels 0)
+         (add-length 0)
+         (new-str
+          (replace-regexp-in-string
+           "\\([^[:graph:] ]\\)\\|\\(\ufeff\\)\\|[[:multibyte:]]+"
+           (lambda (match)
+             (cond
+              ((match-beginning 1)
+               ;; FIXME: Better char for 'non-printable'?
+               ;; We shouldn't get any of these, but sometimes we might.
+               ;; The official "replacement character" is not supported by some fonts.
+               ;;"\ufffd"
+               "?"
+               )
+              ((match-beginning 2)
+               ;; Zero-width non-breakable space.
+               "")
+              (t
+               ;; FIXME: Maybe move that counting later to a non-replacement loop.
+               (let ((msw (company--string-width match)))
+                 (cl-incf add-pixels
+                          (- (* (default-font-width)
+                                msw)
+                             (company--string-pixel-width match)))
+                 (cl-incf add-length (- msw (length match)))
+                 match
+                 ))
+              ))
+           str)))
+    (if (= 0 add-length)
+        new-str
+      (concat new-str
+              (propertize
+               (make-string add-length ?\ufeff)
+               'display `(space . (:width (,add-pixels))))))))
 
 ;;; replace
 
 (defun company-buffer-lines (beg end)
   (goto-char beg)
   (let (lines lines-moved)
-    (while (and (not (eobp)) ; http://debbugs.gnu.org/19553
+    (while (and (not (eobp))            ; http://debbugs.gnu.org/19553
                 (> (setq lines-moved (vertical-motion 1)) 0)
                 (<= (point) end))
       (let ((bound (min end (point))))
@@ -3355,9 +3502,13 @@ If SHOW-VERSION is non-nil, show the version in the echo area."
     (nreverse lines)))
 
 (defun company-modify-line (old new offset)
-  (concat (company-safe-substring old 0 offset)
-          new
-          (company-safe-substring old (+ offset (length new)))))
+  (if (not new)
+      ;; Avoid modifying OLD, e.g. to avoid "blinking" with half-spaces for
+      ;; double-width (or usually fractional) characters.
+      old
+    (concat (company-safe-pixel-substring old 0 offset)
+            new
+            (company-safe-pixel-substring old (+ offset (company--string-pixel-width new))))))
 
 (defun company--show-numbers (numbered)
   (format " %s" (if (<= numbered 10)
@@ -3374,17 +3525,24 @@ but adjust the expected values appropriately."
       (floor (window-screen-lines))
     (window-body-height)))
 
-(defun company--window-width ()
-  (let ((ww (window-body-width)))
+(defun company--window-width (&optional pixelwise)
+  (let ((ww (window-body-width nil pixelwise)))
     ;; Account for the line continuation column.
     (when (zerop (cadr (window-fringes)))
-      (cl-decf ww))
+      (cl-decf ww (if pixelwise (company--string-pixel-width ">") 1)))
     (when (bound-and-true-p display-line-numbers)
-      (cl-decf ww (+ 2 (line-number-display-width))))
+      (cl-decf ww
+               (if pixelwise
+                   (line-number-display-width t)
+                 (+ 2 (line-number-display-width)))))
     ;; whitespace-mode with newline-mark
     (when (and buffer-display-table
                (aref buffer-display-table ?\n))
-      (cl-decf ww (1- (length (aref buffer-display-table ?\n)))))
+      (cl-decf ww
+               (if pixelwise
+                   (company--string-pixel-width
+                    (aref buffer-display-table ?\n))
+                 (1- (length (aref buffer-display-table ?\n))))))
     ww))
 
 (defun company--face-attribute (face attr)
@@ -3416,24 +3574,23 @@ but adjust the expected values appropriately."
   (when (and align-top company-tooltip-flip-when-above)
     (setq lines (reverse lines)))
 
-  (let ((width (length (car lines)))
-        (remaining-cols (- (+ (company--window-width) (window-hscroll))
-                           column)))
-    (when (> width remaining-cols)
-      (cl-decf column (- width remaining-cols))))
-
-  (let (new)
+  (let* ((px-width (company--string-pixel-width (car lines)))
+         (px-col (* (- column (window-hscroll)) (default-font-width)))
+         (remaining-px (- (company--window-width t) px-col))
+         new)
+    (when (> px-width remaining-px)
+      (cl-decf px-col (- px-width remaining-px)))
     (when align-top
       ;; untouched lines first
       (dotimes (_ (- (length old) (length lines)))
         (push (pop old) new)))
     ;; length into old lines.
     (while old
-      (push (company-modify-line (pop old) (pop lines) column)
+      (push (company-modify-line (pop old) (pop lines) px-col)
             new))
     ;; Append whole new lines.
     (while lines
-      (push (concat (company-space-string column) (pop lines))
+      (push (concat (company-safe-pixel-substring "" 0 px-col) (pop lines))
             new))
 
     ;; XXX: Also see branch 'more-precise-extend'.
@@ -3523,18 +3680,16 @@ but adjust the expected values appropriately."
              (annotation (company-call-backend 'annotation value))
              (left (or (pop left-margins)
                        (company-space-string left-margin-size))))
-        (setq value (company--clean-string value))
         (when annotation
-          (setq annotation (company--clean-string annotation))
           (when company-tooltip-align-annotations
             ;; `lisp-completion-at-point' adds a space.
             (setq annotation (string-trim-left annotation))))
         (push (list value annotation left) items)
-        (setq width (max (+ (length value)
+        (setq width (max (+ (company--string-width value)
                             (if annotation
-                                (+ (length annotation)
+                                (+ (company--string-width annotation)
                                    company-tooltip-annotation-padding)
-                              (length annotation)))
+                              0))
                          width))))
 
     (setq width (min window-width
@@ -3559,7 +3714,7 @@ but adjust the expected values appropriately."
                (str (car item))
                (annotation (cadr item))
                (left (nth 2 item))
-               (right (company-space-string company-tooltip-margin))
+               (right (company--right-margin))
                (width width)
                (selected (equal selection i)))
           (when company-show-quick-access
@@ -3567,7 +3722,7 @@ but adjust the expected values appropriately."
                                             left right)))
                   (qa-hint (company-tooltip--format-quick-access-hint
                             row selected)))
-              (cl-decf width (string-width qa-hint))
+              (cl-decf width (company--string-width qa-hint))
               (setf (gv-deref quick-access)
                     (concat qa-hint (gv-deref quick-access))))
             (cl-incf row))
@@ -3595,10 +3750,27 @@ but adjust the expected values appropriately."
       (cons lower upper))))
 
 (defun company--scrollbar (i bounds)
-  (propertize " " 'face
-              (if (and (>= i (car bounds)) (<= i (cdr bounds)))
-                  'company-tooltip-scrollbar-thumb
-                'company-tooltip-scrollbar-track)))
+  (let* ((scroll-width (ceiling (* (default-font-width)
+                                   company-tooltip-scrollbar-width))))
+    (propertize " "
+                'display `(space . (:width (,scroll-width)))
+                'face
+                (if (and (>= i (car bounds)) (<= i (cdr bounds)))
+                    'company-tooltip-scrollbar-thumb
+                  'company-tooltip-scrollbar-track))))
+
+(defun company--right-margin ()
+  (if (or (not (eq company-tooltip-offset-display 'scrollbar))
+          (not (display-graphic-p))
+          (= company-tooltip-scrollbar-width 1))
+      (company-space-string company-tooltip-margin)
+    (let* ((scroll-width (ceiling (* (default-font-width)
+                                     company-tooltip-scrollbar-width)))
+           (rest-width (- (* (default-font-width) company-tooltip-margin)
+                          scroll-width)))
+      (propertize
+       (company-space-string company-tooltip-margin)
+       'display `(space . (:width (,rest-width)))))))
 
 (defun company--scrollpos-line (text width fancy-margin-width)
   (propertize (concat (company-space-string company-tooltip-margin)
@@ -3660,10 +3832,17 @@ Returns a negative number if the tooltip should be displayed above point."
 
       (let (nl beg end ov args)
         (save-excursion
-          (setq nl (< (move-to-window-line row) row)
-                beg (point)
+          (setq nl (< (move-to-window-line row) row))
+          ;; HACK: Very specific to the log-edit buffer.  Could alternatively
+          ;; look up the `display-line-numbers-disable' property, but with
+          ;; larger consequences.
+          (when (and (not nl) (> height 0))
+            (while (eq (get-char-property (point) 'face)
+                       'log-edit-headers-separator)
+              (vertical-motion 1)))
+          (setq beg (point)
                 end (save-excursion
-                      (move-to-window-line (+ row (abs height)))
+                      (vertical-motion (abs height))
                       (point))
                 ov (make-overlay beg end nil t)
                 args (list (mapcar 'company-plainify
@@ -3679,7 +3858,7 @@ Returns a negative number if the tooltip should be displayed above point."
           (overlay-put ov 'company-display
                        (apply 'company--replacement-string
                               lines column-offset args))
-          (overlay-put ov 'company-width (string-width (car lines))))
+          (overlay-put ov 'company-width (company--string-width (car lines))))
 
         (overlay-put ov 'company-column column)
         (overlay-put ov 'company-height height))))
@@ -3688,7 +3867,8 @@ Returns a negative number if the tooltip should be displayed above point."
   (let* ((col-row (company--col-row pos))
          (col (- (car col-row) column-offset)))
     (when (< col 0) (setq col 0))
-    (company-pseudo-tooltip-show (1+ (cdr col-row)) col company-selection)))
+    (company--with-face-remappings
+     (company-pseudo-tooltip-show (1+ (cdr col-row)) col company-selection))))
 
 (defun company-pseudo-tooltip-edit (selection)
   (let* ((height (overlay-get company-pseudo-tooltip-overlay 'company-height))
@@ -3696,7 +3876,7 @@ Returns a negative number if the tooltip should be displayed above point."
          (lines (cdr lines-and-offset))
          (column-offset (car lines-and-offset)))
     (overlay-put company-pseudo-tooltip-overlay 'company-width
-                 (string-width (car lines)))
+                 (company--string-width (car lines)))
     (overlay-put company-pseudo-tooltip-overlay 'company-display
                  (apply 'company--replacement-string
                         lines column-offset
@@ -3785,7 +3965,8 @@ Returns a negative number if the tooltip should be displayed above point."
     (hide (company-pseudo-tooltip-hide)
           (setq company-tooltip-offset 0))
     (update (when (overlayp company-pseudo-tooltip-overlay)
-              (company-pseudo-tooltip-edit company-selection)))
+              (company--with-face-remappings
+               (company-pseudo-tooltip-edit company-selection))))
     (select-mouse
      (let ((event-col-row (company--event-col-row company-mouse-event))
            (ovl-row (company--row))
@@ -4020,13 +4201,13 @@ Delay is determined by `company-tooltip-idle-delay'."
                     'company-echo)
               len (+ len 1 (length comp)))
         (let ((beg 0)
-              (end (string-width (or company-common ""))))
+              (end (company--string-width (or company-common ""))))
           (when (< numbered qa-keys-len)
             (let ((qa-hint
                    (format "%s: " (funcall
                                    company-quick-access-hint-function
                                    numbered))))
-              (setq beg (string-width qa-hint)
+              (setq beg (company--string-width qa-hint)
                     end (+ beg end))
               (cl-incf len beg)
               (setq comp (propertize (concat qa-hint comp) 'face 'company-echo)))
@@ -4057,7 +4238,7 @@ Delay is determined by `company-tooltip-idle-delay'."
                                  (funcall company-quick-access-hint-function
                                           numbered))))
             (setq comp (concat comp qa-hint))
-            (cl-incf len (string-width qa-hint)))
+            (cl-incf len (company--string-width qa-hint)))
           (cl-incf numbered))
         (if (>= len limit)
             (setq candidates nil)
