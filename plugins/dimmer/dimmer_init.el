@@ -2,9 +2,11 @@
 
 (setq dimmer-fraction 0.4)
 
- (dimmer-configure-which-key)
- (dimmer-configure-helm)
- (dimmer-mode t)
+(dimmer-configure-which-key)
+(dimmer-configure-helm)
+(dimmer-configure-posframe)
+(dimmer-configure-org)
+(dimmer-mode t)
 
 (provide 'dimmer_init)
 
