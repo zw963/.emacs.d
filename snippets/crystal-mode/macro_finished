@@ -1,0 +1,7 @@
+# -*- mode: snippet -*-
+# name: finished macro
+# key: finished
+# --
+macro finished
+  {% $0 %}
+end

@@ -1,0 +1,9 @@
+# -*- mode: snippet -*-
+# name: struct json serializable
+# key: struct_json
+# --
+struct ${1:StructName}
+  include JSON::Serializable
+
+  $0
+end

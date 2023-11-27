@@ -1,0 +1,9 @@
+# -*- mode: snippet -*-
+# name: struct yaml serializable
+# key: struct_yaml
+# --
+struct ${1:StructName}
+  include YAML::Serializable
+
+  $0
+end
