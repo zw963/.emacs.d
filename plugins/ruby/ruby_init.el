@@ -2,7 +2,6 @@
 (require 'ruby-mode_init)
 (require 'ruby-ffap)
 (require 'rvm_init)
-(require 'ruby-test-mode_init)
 (require 'ruby-mode_keyword_highlight_init)
 (require 'yard-mode_init)
 ;; (require 'lsp-ruby_init)
