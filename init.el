@@ -58,6 +58,7 @@
 (require 'markdown-mode_init)
 (require 'easy-kill_init)
 (require 'burly_init)
+(require 'sis_init)
 
 ;; ============================== 编程相关 ==============================
 
