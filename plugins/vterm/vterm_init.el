@@ -1,13 +1,5 @@
 (require 'vterm)
 
-;; How to build:
-
-;; cd emacs-libvterm
-;; mkdir -p build
-;; cd build
-;; cmake -DUSE_SYSTEM_LIBVTERM=no ..
-;; make
-
 ;; 按下 C-c C-t, 切换到 copy 模式，此时，直接按回车的话（没有添加选区），会拷贝整行。
 ;; 下面的参数，会跳过提示符。
 (setq vterm-copy-exclude-prompt t)
