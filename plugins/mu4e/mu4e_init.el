@@ -52,9 +52,13 @@
 ;; 4. mu index 创建索引
 ;; 5.
 ;; ============================== mu4e 设置 ==============================
+;; current version:
 (require 'mu4e)
 (require 'mu4e-contrib)                 ; Need by mu4e-html2text-command
 
+;; (add-to-list 'exec-path (expand-file-name "plugins/mu4e/bin"))
+
+(setq mu4e-mu-binary (expand-file-name "plugins/mu4e/bin/mu"))
 (setq mu4e-read-option-use-builtin nil
       mu4e-completing-read-function 'completing-read)
 

@@ -1,0 +1,29 @@
+#!/bin/bash
+
+function build () {
+    pacman_check meson ninja xapian-core glib2 gmime3
+
+    (
+        cd ~/Git/mu
+
+        ./autogen.sh
+
+        meson build && ninja -C build
+
+        strip build/mu/mu
+
+        mkdir -p ~/Dropbox/common/.emacs.d/plugins/mu4e/bin
+
+        cp build/mu/mu ~/Dropbox/common/.emacs.d/plugins/mu4e/bin/
+
+        bcomp build/mu4e/ ~/Dropbox/common/.emacs.d/plugins/mu4e/
+    )
+}
+
+build
+
+rm -rf ~/.cache/mu
+
+bin/mu init --maildir=~/Maildir --my-address=vil963@gmail.com
+bin/mu index
+bin/mu info
