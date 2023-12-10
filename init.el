@@ -47,7 +47,7 @@
 
 (require 'vterm_init)
 (require 'async_init)
-;; (require 'mu4e_init)
+(require 'mu4e_init)
 (require 'volatile-highlights_init) ;; 这个现在看不出效果？
 (require 'buffer-move_init)
 (require 'goto-chg_init)
@@ -70,7 +70,6 @@
 (require 'apheleia_init)
 (require 'git_init)
 (require 'flycheck_init)
-(require 'dart-mode_init)
 (require 'smartparens_init)
 (require 'string-inflection_init)
 (require 'highlight-indentation_init)
@@ -89,8 +88,9 @@
 (require 'ligature_init)
 
 ;; 关闭一些有用，但最近不常用的 mode
+;; (require 'dart-mode_init)
 ;; (require 'go-mode_init)
-(require 'rust_init)
+;; (require 'rust_init)
 (require 'go-ts-mode_init)
 ;; (require 'rust-ts-mode_init)
 
