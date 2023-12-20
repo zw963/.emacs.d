@@ -217,6 +217,7 @@
       auto-save-default t               ; 开启自动保存功能.
       auto-save-interval 50             ; 输入 50 个字符后，会自动保存。
       auto-save-timeout 10              ; 10 秒钟自动保存一次。
+      auto-save-file-name-transforms `((".*" "/ramdisk/.emacs-saves/" t))
       vc-make-backup-files t            ; 即使开启vc(e.g. git), 也备份
       kept-new-versions 1000            ;备份最近修改的版本 1000 次
       kept-old-versions 2               ;备份最原始版本两次。
