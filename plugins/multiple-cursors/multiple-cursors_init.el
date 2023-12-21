@@ -47,7 +47,7 @@
 ;; 下面两个库都针对 kill-ring-save, kill-region 等函数添加了 device.
 ;; 因为判断选区时, 总是首先判断 rect-mark, 因此要确保 rect-mark_init 在
 ;; browse-kill-ring 之后 require, 行为才正确.
-(require 'browse-kill-ring_init)
+;; (require 'browse-kill-ring_init)
 (require 'rect)
 
 (defadvice kill-ring-save (around rect-mark activate)
