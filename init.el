@@ -58,6 +58,7 @@
 (require 'easy-kill_init)
 (require 'burly_init)
 (require 'sis_init)
+(require 'page-break-lines_init)
 
 ;; ============================== 编程相关 ==============================
 

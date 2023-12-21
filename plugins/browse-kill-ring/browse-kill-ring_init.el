@@ -1,33 +1,20 @@
-;; ------------------------------ secondary  ------------------------------
-;; browse-kill-ring+ 的目的是让你可以同时使用 king-ring,  secondary-ring.
-;; browse-kill-ring+ 会自动尝试加载 second-sel, 并使用它作为 secondary-ring
-(require 'browse-kill-ring)
-
-(setq browse-kill-ring-separator "\f")
 (setq kill-do-not-save-duplicates t)
-(setq browse-kill-ring-no-duplicates t)
-(setq add-secondary-to-ring nil)
+
+(require 'browse-kill-ring)
+(setq browse-kill-ring-highlight-current-entry t)
+(setq browse-kill-ring-highlight-inserted-item 'cedet)
+(setq browse-kill-ring-separator "\f")
+(browse-kill-ring-default-keybindings)
 
 ;; (defun yank-pop-secondary-ring (&optional arg)
 ;;   (interactive)
 ;;   (let ((browse-kill-ring-current-ring 'secondary-selection-ring))
 ;;     (call-interactively 'yank-pop)))
 
-;; 默认, Emacs 提供了 yank-pop (Alt+y), 用来逐个的弹出 king-ring 中的内容.
-;; (global-set-key [remap yank-pop] 'yank-pop-secondary-ring) ;;; Alt + y 默认弹出 secondary-ring
-
-;; yank-pop-commands hack 了 yank-pop, 使它同时支持 king-ring, secondary-ring.
-;; 实现的功能:
-;; 1. C-y, 然后 M-y..M-y, 滚动 kill-ring
-;; 2. C-M-y, 然后 M-y..M-y,  滚动 secondary-ring, 并滚动 secondary-ring
-;; 3. 直接按下 M-y, 显示 kill-ring 列表
-
-(global-set-key [remap yank-pop] 'yank-pop-commands)
-(global-set-key [(control meta y)] 'yank-secondary) ; C-M-y 粘贴 secondary ring.
 (global-set-key "\C-cy" (lambda ()
                           (interactive)
                           (popup-menu 'yank-menu)))
-(define-key isearch-mode-map (kbd "C-M-y")  'isearch-yank-secondary)
+
 (add-hook 'browse-kill-ring-mode-hook
           (lambda ()
             (define-key browse-kill-ring-mode-map [(control \8)] 'kill-buffer-and-window)
@@ -61,35 +48,6 @@
   (kill-append "\n" nil)
   (beginning-of-line (or (and arg (1+ arg)) 2))
   (if (and arg (not (= 1 arg))) (message "%d lines copied" arg)))
-
-(defun convert-to-secondary-region ()
-  (interactive)
-  (primary-to-secondary (region-beginning) (region-end))
-  (delete-overlay mouse-secondary-overlay)
-  (deactivate-mark))
-
-;; 这个功能会造成 meta + w 复制内容之后, 不会自动的 deactivate mark
-;; 因此 deactivate-mark-hook 中的代码不会运行.
-
-(defadvice kill-ring-save (around secondary-ring activate)
-  "Let 'kill-ring-save support secondary ring."
-  (when (use-region-p) (convert-to-secondary-region))
-    ad-do-it
-    )
-(defadvice kill-region (around secondary-ring activate)
-  "Let 'kill-region support secondary ring."
-  (when (use-region-p) (convert-to-secondary-region))
-  ad-do-it
-  )
-
-(require 'page-break-lines)
-
-(with-eval-after-load 'browse-kill-ring+
-  (add-to-list 'page-break-lines-modes 'browse-kill-ring-mode)
-  )
-
-(global-page-break-lines-mode 1)
-
 
 ;; (require 'popup-kill-ring)
 ;; (global-set-key [(meta y)] 'popup-kill-ring)
