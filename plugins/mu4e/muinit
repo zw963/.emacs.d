@@ -24,6 +24,8 @@ build
 
 rm -rf ~/.cache/mu
 
+upx bin/mu
+
 bin/mu init --maildir=~/Maildir --my-address=vil963@gmail.com
 bin/mu index
 bin/mu info
