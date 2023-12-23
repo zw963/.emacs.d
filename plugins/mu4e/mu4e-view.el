@@ -654,8 +654,7 @@ As a side-effect, a message that is being viewed loses its
         (mu4e-error "Cannot get a message view"))
       (select-window mu4e~headers-view-win)))
   (with-current-buffer gnus-article-buffer
-    (let ((inhibit-read-only t))
-      (run-hooks 'mu4e-view-rendered-hook))))
+    (run-hooks 'mu4e-view-rendered-hook)))
 
 (defun mu4e-view-message-text (msg)
   "Return the pristine MSG as a string."
@@ -746,12 +745,10 @@ determine which browser function to use."
 
 (defun mu4e-view-refresh ()
   "Refresh the message view."
-  ;;; XXX: sometimes, side-effect: increase the header-buffers size
   (interactive)
-  (when-let ((msg (and (derived-mode-p 'mu4e-view-mode)
-                       mu4e--view-message)))
-    (mu4e-view-quit)
-    (mu4e-view msg)))
+  (when (derived-mode-p 'mu4e-view-mode)
+    (kill-buffer)
+    (mu4e-view mu4e--view-message)))
 
 (defun mu4e-view-toggle-show-mime-parts()
   "Toggle whether to show all MIME-parts."
@@ -871,20 +868,14 @@ This is useful for advising some Gnus-functionality that does not work in mu4e."
   "Quit the mu4e-view buffer."
   (interactive)
   (if (memq mu4e-split-view '(horizontal vertical))
-      (ignore-errors ;; try, don't error out.
-        (kill-buffer-and-window))
+      (kill-buffer-and-window)
     ;; single-window case
-    (let ((docid (mu4e-field-at-point :docid)))
-      (when mu4e-linked-headers-buffer ;; re-use mu4e-view-detach?
-        (with-current-buffer mu4e-linked-headers-buffer
-          (when (eq (selected-window) mu4e~headers-view-win)
-            (setq mu4e~headers-view-win nil)))
-        (setq mu4e-linked-headers-buffer nil)
-        (kill-buffer)
-        ;; attempt to move point to just-viewed message.
-        (when docid
-          (ignore-errors
-            (mu4e~headers-goto-docid docid)))))))
+    (when mu4e-linked-headers-buffer ;; re-use mu4e-view-detach?
+      (with-current-buffer mu4e-linked-headers-buffer
+        (when (eq (selected-window) mu4e~headers-view-win)
+          (setq mu4e~headers-view-win nil)))
+      (setq mu4e-linked-headers-buffer nil)
+      (kill-buffer))))
 
 (defvar mu4e-view-mode-map
   (let ((map (make-keymap)))
@@ -1057,10 +1048,6 @@ Based on Gnus' article-mode."
               (lambda(func &rest args)
                 (if (mu4e--view-mode-p)
                     "." (apply func args))))
-
-   ;; some external tools (bbdb) depend on this
-  (setq gnus-article-buffer (current-buffer))
-
   (use-local-map mu4e-view-mode-map)
   (mu4e-context-minor-mode)
   (mu4e-search-minor-mode)

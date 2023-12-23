@@ -1,6 +1,6 @@
 ;; auto-generated
 
-(defconst mu4e-mu-version "1.10.8"
+(defconst mu4e-mu-version "1.11.1"
   "Required mu binary version; mu4e's version must agree with this.")
 
 (defconst mu4e-builddir "/home/common/Git/mu/build/mu4e"

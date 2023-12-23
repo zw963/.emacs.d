@@ -241,7 +241,7 @@ Return the matching choice value (cdr of the cell)."
              ;; Require confirmation, if the input does not match a suggestion
              nil t nil nil nil))))
     (or quick-result
-        (cdadr (assoc result choices)))))
+        (cdr (assoc result choices)))))
 
 (defun mu4e--read-choice-builtin (prompt choices)
   "Read and return one of CHOICES, prompting for PROMPT.
