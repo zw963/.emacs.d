@@ -86,8 +86,8 @@
 (global-set-key [remap move-beginning-of-line] #'crux-move-beginning-of-line)
 (global-set-key [remap kill-whole-line] #'crux-kill-whole-line)
 
-(global-set-key [(meta P)] 'other-window-move-down) ;下一个窗口向下移动两行
-(global-set-key [(meta N)] 'other-window-move-up) ;下一个窗口向上移动一行
+(global-set-key [(meta P)] 'other-window-move-down) ;另一个窗口向下移动两行
+(global-set-key [(meta N)] 'other-window-move-up) ;另一个窗口向上移动一行
 (global-set-key [(meta n)] 'window-move-up) ;光标位置不变，窗口向上移动四行
 (global-set-key [(meta p)] 'window-move-down) ;光标位置不变，窗口向下移动两行
 ;; (require 'window-move-hack_init)

@@ -37,6 +37,7 @@
 
 (require 'themes_init)
 (require 'crux_init)
+(require 'whole-line-or-region_init)
 (require 'multiple-cursors_init)
 
 (relative-load "windows.el")
