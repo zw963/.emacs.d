@@ -1,6 +1,6 @@
 (require 'dimmer)
 
-(setq dimmer-fraction 0.4)
+(setq dimmer-fraction 0.3)
 
 (dimmer-configure-which-key)
 (dimmer-configure-helm)
