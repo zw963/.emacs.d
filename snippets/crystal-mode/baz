@@ -1,0 +1,7 @@
+# -*- mode: snippet -*-
+# name: baz
+# key: baz
+# --
+def baz$1
+  $0
+end
