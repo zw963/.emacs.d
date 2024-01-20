@@ -17,12 +17,6 @@
     (ruby-load-file (buffer-file-name))))
 (define-key inf-ruby-minor-mode-map (kbd "C-c C-l") 'robe-reload-enhanced)
 
-;; (with-eval-after-load 'helm
-;;   (require 'helm-robe)
-;;   (when (fboundp 'helm-robe-completing-read)
-;;     (custom-set-variables
-;;      '(robe-completing-read-func 'helm-robe-completing-read))))
-
 (run-ruby-mode-hook '(robe-mode))
 
 (with-eval-after-load 'company

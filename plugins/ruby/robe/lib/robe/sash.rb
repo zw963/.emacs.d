@@ -51,6 +51,7 @@ module Robe
     def method_spec(method)
       owner, inst = method.owner, nil
       if owner.__singleton_class__?
+        # FIXME: Use https://docs.ruby-lang.org/en/3.2/Class.html#method-i-attached_object
         name = owner.to_s[/Class:([A-Z][^\(> ]*)/, 1] # defined in an eigenclass
       elsif name = name_cache[owner]
         inst = true
@@ -137,7 +138,13 @@ module Robe
       tail = colons ? prefix[colons + 2..-1] : prefix
       if !colons
         path = [Object]
-        path += visor.resolve_path(mod) if mod
+
+        begin
+          path += visor.resolve_path(mod) if mod
+        rescue Visor::SearchError
+          # Containing module not resolved, but we can still search globally.
+        end
+
         path.flat_map do |m|
           complete_const_in_module(tail, m)
         end

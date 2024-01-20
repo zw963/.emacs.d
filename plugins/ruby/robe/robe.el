@@ -1,7 +1,7 @@
 ;;; robe.el --- Code navigation, documentation lookup and completion for Ruby -*- lexical-binding: t -*-
 
 ;; Copyright © 2012 Phil Hagelberg
-;; Copyright © 2012-2021 Dmitry Gutov
+;; Copyright © 2012-2023 Dmitry Gutov
 
 ;; Author: Dmitry Gutov
 ;; URL: https://github.com/dgutov/robe
@@ -106,6 +106,15 @@ nil means to use the global value of `completing-read-function'."
 (defcustom robe-rspec-support t
   "Non-nil to recognize RSpec/Minitest spec files."
   :type 'boolean)
+
+(defcustom robe-show-doc-source 'auto
+  "Whether to show the method source in the doc buffer.
+When other non-nil, it's shown right away.
+When nil, the source can be shown by pressing the button.
+When auto, the source will be shown when there is no doc."
+  :type '(choice (const :tag "Hidden by default" nil)
+                 (const :tag "Shown by default" t)
+                 (const :tag "When there is not doc" auto)))
 
 (defun robe-completing-read (&rest args)
   (let ((completing-read-function
@@ -255,7 +264,6 @@ project."
                                          (t "-")))
                                  args "/")))
          (response-buffer (robe-retrieve url)))
-    (message nil) ;; So "Contacting host" message is cleared
     (if response-buffer
         (prog1
             (with-temp-buffer
@@ -506,34 +514,21 @@ If invoked with a prefix or no symbol at point, delegate to `robe-ask'."
 (defun robe-jump-to-module (name)
   "Prompt for module, jump to a file where it has method definitions."
   (interactive `(,(robe-completing-read "Module: " (robe-request "modules"))))
-  (let ((paths (robe-request "const_locations" name (car (robe-context)))))
+  (let* ((context-module (car (robe-context)))
+         (search-result (robe-request "const_locations" name context-module))
+         (resolved-name (assoc-default 'resolved_name search-result))
+         (full-scan (assoc-default 'full_scan search-result))
+         (paths (assoc-default 'files search-result)))
+    (when full-scan
+      (setq paths (robe--filter-const-files paths resolved-name)))
     (when (null paths) (error "Can't find the location"))
     (let ((file (if (= (length paths) 1)
                     (car paths)
-                  (let* ((sort-pred
-                          (lambda (p1 p2)
-                            (and (string-match-p "/ruby/gems/" p2)
-                                 (not (string-match-p "/ruby/gems/" p1)))))
-                         (paths (sort paths sort-pred))
-                         (alist (robe-to-abbr-paths paths)))
-                    ;; FIXME: Sort the file names by how they match the
-                    ;; autoloading convention.
+                  (let ((alist (robe-to-abbr-paths paths)))
                     (cdr (assoc (robe-completing-read "File: " alist nil t)
                                 alist))))))
       (robe-find-file file)
-      (goto-char (point-min))
-      (let* ((nesting (split-string name "::"))
-             (cnt (1- (length nesting)))
-             (nesting-re (concat "\\_<"
-                                   (cl-loop for i from 1 to cnt
-                                            concat "\\(")
-                                   (mapconcat #'identity nesting "::\\)?")
-                                   "\\_>"))
-             case-fold-search)
-        (re-search-forward (concat "^[ \t]*\\(class\\|module\\) +.*"
-                                   nesting-re
-                                   "\\|"
-                                   "^[ \t]*" nesting-re " *=[^=>]")))
+      (robe--scan-to-const resolved-name)
       (back-to-indentation))))
 
 (defun robe-to-abbr-paths (list)
@@ -547,6 +542,46 @@ If invoked with a prefix or no symbol at point, delegate to `robe-ask'."
     (unless (zerop len)
       (while (/= (aref first (1- len)) ?/) (cl-decf len)))
     (mapcar (lambda (path) (cons (substring path len) path)) list)))
+
+(defun robe--scan-to-const (name)
+  (goto-char (point-min))
+  (let* ((nesting (split-string name "::"))
+         (cnt (1- (length nesting)))
+         (nesting-re (concat "\\_<\\("
+                             (cl-loop for i from 1 to cnt
+                                      concat "\\(?:")
+                             (mapconcat #'identity nesting "::\\)?")
+                             "\\_>\\)"))
+         case-fold-search)
+    (re-search-forward (concat "^[ \t]*\\(?:class\\|module\\) +.*"
+                               nesting-re
+                               "\\|"
+                               "^[ \t]*" nesting-re " *=[^=>]"))))
+
+(defun robe--filter-const-files (files resolved-name)
+  (cl-delete-if-not
+   (lambda (file)
+     (with-temp-buffer
+       (insert-file-contents file)
+       (ruby-mode)
+       (condition-case nil
+           (let* ((_ (robe--scan-to-const resolved-name))
+                  (found-name (or (match-string 2) (match-string 1)))
+                  new-module
+                  (full-name (if (match-beginning 1)
+                                 ;; Working around a bug in
+                                 ;; ruby-add-log-current-method
+                                 ;; where it can look at the preceding
+                                 ;; module when at bol.
+                                 (car (robe-context))
+                               (goto-char (match-beginning 2))
+                               (setq new-module (car (robe-context)))
+                               (if new-module
+                                   (concat new-module "::" found-name)
+                                 found-name))))
+             (equal full-name resolved-name))
+         (search-failed nil))))
+   files))
 
 (defun robe-context ()
   (let* ((ruby-symbol-re "[a-zA-Z0-9_?!]")
@@ -648,7 +683,10 @@ Only works with Rails, see e.g. `rinari-console'."
                 (insert source)
                 (robe-doc-fontify-ruby beg (point)))
             (insert (robe-doc-fontify-c-string source)))
-          (robe-toggle-source button)))
+          (when (or (not robe-show-doc-source)
+                    (and (eq robe-show-doc-source 'auto)
+                         (> (length docstring) 0)))
+            (robe-toggle-source button))))
       (goto-char (point-min))
       (save-excursion
         (insert (robe-signature spec))
@@ -712,8 +750,12 @@ Only works with Rails, see e.g. `rinari-console'."
 
 (defun robe-doc-fontify-ruby (from to)
   (let ((major-mode 'ruby-mode)
+        (font-lock-set-defaults nil)
+        (font-lock-syntax-table nil)
         (syntax-propertize-function #'ruby-syntax-propertize-function)
-        (font-lock-defaults '((ruby-font-lock-keywords) nil nil ((?_ . "w"))))
+        (font-lock-defaults '((ruby-font-lock-keywords) nil nil ((?_ . "w")
+                                                                 (?# . "<")
+                                                                 (?\n . ">"))))
         (font-lock-dont-widen t))
     (save-restriction
       (narrow-to-region from to)
@@ -1258,7 +1300,7 @@ The following commands are available:
         (kill-local-variable 'eldoc-documentation-function)
       (remove-function (local 'eldoc-documentation-function) #'robe-eldoc))))
 
-(defcustom robe-global-modes '(ruby-mode enh-ruby-mode)
+(defcustom robe-global-modes '(ruby-mode ruby-ts-mode enh-ruby-mode)
   "Modes for which `robe-mode' is automatically turned on.
 The value must be a list of major modes symbol names.
 `global-robe-mode' will enable it in the mentioned major modes
