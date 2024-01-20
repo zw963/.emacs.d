@@ -1,4 +1,4 @@
-;;; inf-ruby.el --- Run a Ruby process in a buffer
+;;; inf-ruby.el --- Run a Ruby process in a buffer -*- lexical-binding:t -*-
 
 ;; Copyright (C) 1999-2008 Yukihiro Matsumoto, Nobuyoshi Nakada
 
@@ -7,12 +7,12 @@
 ;;         Cornelius Mika <cornelius.mika@gmail.com>
 ;;         Dmitry Gutov <dgutov@yandex.ru>
 ;;         Kyle Hargraves <pd@krh.me>
-;; Maintainer: Dmitry Gutov <dgutov@yandex.ru>
+;; Maintainer: Dmitry Gutov <dmitry@gutov.dev>
 ;; URL: http://github.com/nonsequitur/inf-ruby
 ;; Created: 8 April 1998
 ;; Keywords: languages ruby
-;; Version: 2.6.2
-;; Package-Requires: ((emacs "24.3"))
+;; Version: 2.8.1
+;; Package-Requires: ((emacs "26.1"))
 
 ;; This program is free software: you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -126,7 +126,7 @@ available ones.  Otherwise, just use the value.
 
 Currently only affects Rails and Hanami consoles."
   :type '(choice
-          (const ask :tag "Ask the user")
+          (const :tag "Ask the user" ask)
           (string :tag "Environment name")))
 
 (defcustom inf-ruby-reuse-older-buffers t
@@ -141,6 +141,7 @@ the same directory and used the same base name."
     #'identity
     '("\\(^%s> *\\)"                      ; Simple
       "\\(^(rdb:1) *\\)"                  ; Debugger
+      "\\(^(rdbg[^)]*) *\\)"              ; Ruby Debug Gem
       "\\(^(byebug) *\\)"                 ; byebug
       "\\(^\\(irb([^)]+)"                 ; IRB default
       "\\([[0-9]+] \\)?[Pp]ry ?([^)]+)"   ; Pry
@@ -293,17 +294,24 @@ The following commands are available:
 
 \\{inf-ruby-mode-map}"
   (setq comint-prompt-regexp inf-ruby-prompt-pattern)
-  (ruby-mode-variables)
+
+  (setq-local comment-start "# ")
+  (setq-local comment-end "")
+  (setq-local comment-column ruby-comment-column)
+  (setq-local comment-start-skip "#+ *")
+
+  (setq-local parse-sexp-ignore-comments t)
+  (setq-local parse-sexp-lookup-properties t)
+
   (when (bound-and-true-p ruby-use-smie)
-    (set (make-local-variable 'smie-forward-token-function)
-         #'inf-ruby-smie--forward-token)
-    (set (make-local-variable 'smie-backward-token-function)
-         #'inf-ruby-smie--backward-token))
+    (smie-setup ruby-smie-grammar #'ruby-smie-rules
+                :forward-token  #'inf-ruby-smie--forward-token
+                :backward-token #'inf-ruby-smie--backward-token))
+
   (add-hook 'comint-output-filter-functions 'inf-ruby-output-filter nil t)
   (setq comint-get-old-input 'inf-ruby-get-old-input)
-  (set (make-local-variable 'compilation-error-regexp-alist)
-       inf-ruby-error-regexp-alist)
-  (set (make-local-variable 'comint-prompt-read-only) inf-ruby-prompt-read-only)
+  (setq-local compilation-error-regexp-alist inf-ruby-error-regexp-alist)
+  (setq-local comint-prompt-read-only inf-ruby-prompt-read-only)
   (when (eq system-type 'windows-nt)
     (setq comint-process-echoes t))
   (add-hook 'completion-at-point-functions 'inf-ruby-completion-at-point nil t)
@@ -478,16 +486,14 @@ Must not contain ruby meta characters.")
 (defun ruby-send-region (start end &optional print prefix suffix line-adjust)
   "Send the current region to the inferior Ruby process."
   (interactive "r\nP")
-  (let (term (file (or buffer-file-name (buffer-name))) line)
+  (let ((file (or buffer-file-name (buffer-name)))
+        line)
     (save-excursion
       (save-restriction
         (widen)
         (goto-char start)
         (setq line (+ start (forward-line (- start)) 1))
-        (goto-char start)
-        (while (progn
-                 (setq term (apply 'format ruby-send-terminator (random) (current-time)))
-                 (re-search-forward (concat "^" (regexp-quote term) "$") end t)))))
+        (goto-char start)))
     ;; compilation-parse-errors parses from second line.
     (save-excursion
       (let ((m (process-mark (inf-ruby-proc))))
@@ -497,15 +503,10 @@ Must not contain ruby meta characters.")
         (set-marker m (point))))
     (if line-adjust
 	(setq line (+ line line-adjust)))
-    (comint-send-string (inf-ruby-proc) (format "eval <<'%s', %s, %S, %d\n"
-                                                term inf-ruby-eval-binding
-                                                file line))
-    (if prefix
-	(comint-send-string (inf-ruby-proc) prefix))
-    (comint-send-region (inf-ruby-proc) start end)
-    (if suffix
-	(comint-send-string (inf-ruby-proc) suffix))
-    (comint-send-string (inf-ruby-proc) (concat "\n" term "\n"))
+    (ruby-send-string (concat prefix
+                              (buffer-substring-no-properties start end)
+                              suffix)
+                      file line)
     (ruby-print-result print)))
 
 (defface inf-ruby-result-overlay-face
@@ -519,9 +520,9 @@ Must not contain ruby meta characters.")
 
 (defun inf-ruby--make-overlay (l r type &rest props)
   "Place an overlay between L and R and return it.
-TYPE is a symbol put on the overlay's category property.  It is
+TYPE is a symbol put on the overlay\\='s category property.  It is
 used to easily remove all overlays from a region with:
-    (remove-overlays start end 'category TYPE)
+    (remove-overlays start end \\='category TYPE)
 PROPS is a plist of properties and values to add to the overlay."
   (let ((o (make-overlay l (or r l) (current-buffer))))
     (overlay-put o 'category type)
@@ -550,7 +551,6 @@ the overlay."
   (let ((format " => %s ")
 	(prepend-face 'inf-ruby-result-overlay-face)
 	(type 'result))
-    (declare (indent 1))
     (while (keywordp (car props))
       (setq props (cddr props)))
     ;; If the marker points to a dead buffer, don't do anything.
@@ -630,8 +630,7 @@ This function also removes itself from `pre-command-hook'."
 
 (defun ruby-print-result (&optional insert)
   "Print the result of the last evaluation in the current buffer."
-  (let ((proc (inf-ruby-proc))
-        (result (ruby-print-result-value)))
+  (let ((result (ruby-print-result-value)))
     (if insert
         (insert result)
       (inf-ruby--eval-overlay result))))
@@ -645,7 +644,7 @@ This function also removes itself from `pre-command-hook'."
                        (looking-at inf-ruby-first-prompt-pattern)))
         (accept-process-output proc))
       (re-search-backward inf-ruby-prompt-pattern)
-      (or (re-search-forward " => " (car comint-last-prompt) t)
+      (or (re-search-forward "[ \n]=> " (car comint-last-prompt) t)
           ;; Evaluation seems to have failed.
           ;; Try to extract the error string.
           (let* ((inhibit-field-text-motion t)
@@ -664,6 +663,46 @@ This function also removes itself from `pre-command-hook'."
                 (forward-sexp)
                 (point)))))
         (buffer-substring-no-properties (point) (line-end-position))))))
+
+(defun ruby-shell--encode-string (string)
+  "Escape all backslashes, double quotes, newlines, and # in STRING."
+  (cl-reduce (lambda (string subst)
+               (replace-regexp-in-string (car subst) (cdr subst) string))
+             '(("\\\\" . "\\\\\\\\")
+               ("\"" . "\\\\\"")
+               ("#" . "\\\\#")
+               ("\n" . "\\\\n"))
+             :initial-value string))
+
+(defun ruby-send-string (string &optional file line)
+  "Send STRING to the inferior Ruby process.
+Optionally provide FILE and LINE metadata to Ruby."
+  (interactive
+   (list (read-string "Ruby command: ") nil t))
+  (let* ((file-and-lineno (concat (when file
+                                    (format ", %S" (file-local-name file)))
+                                  (when (and file line)
+                                    (format ", %d" line))))
+         (code (format "eval(\"%s\", %s%s)\n"
+                       (ruby-shell--encode-string string)
+                       inf-ruby-eval-binding
+                       file-and-lineno)))
+    (if (or (null (process-tty-name (inf-ruby-proc)))
+            (<= (string-bytes code)
+                (or (bound-and-true-p comint-max-line-length)
+                    1024))) ;; For Emacs < 28
+        (comint-send-string (inf-ruby-proc) code)
+      (let* ((temporary-file-directory (temporary-file-directory))
+             (tempfile (make-temp-file "rb"))
+             (tempfile-local-name (file-local-name tempfile)))
+        (with-temp-file tempfile
+          (insert (format "File.delete(%S)\n" tempfile-local-name))
+          (insert string))
+        (comint-send-string (inf-ruby-proc)
+                            (format "eval(File.read(%S), %s%s)\n"
+                                    tempfile-local-name
+                                    inf-ruby-eval-binding
+                                    file-and-lineno))))))
 
 (defun ruby-send-definition ()
   "Send the current definition to the inferior Ruby process."
@@ -788,7 +827,7 @@ Then switch to the process buffer."
   (setq ruby-prev-l/c-dir/file (cons (file-name-directory    file-name)
                                      (file-name-nondirectory file-name)))
   (comint-send-string (inf-ruby-proc) (concat "(load \""
-                                              file-name
+                                              (file-local-name file-name)
                                               "\"\)\n")))
 
 (defun ruby-load-current-file ()
@@ -815,7 +854,7 @@ Then switch to the process buffer."
   (interactive)
   (save-restriction
     (widen)
-    (ruby-send-region (point-at-bol) (point-at-eol))))
+    (ruby-send-region (line-beginning-position) (line-end-position))))
 
 (defun ruby-send-line-and-go ()
   "Send the current line to the inferior Ruby process.
@@ -823,12 +862,6 @@ Then switch to the process buffer."
   (interactive)
   (ruby-send-line)
   (ruby-switch-to-inf t))
-
-(defun ruby-escape-single-quoted (str)
-  "Escape single quotes, double quotes and newlines in STR."
-  (replace-regexp-in-string "'" "\\\\'"
-    (replace-regexp-in-string "\n" "\\\\n"
-      (replace-regexp-in-string "\\\\" "\\\\\\\\" str))))
 
 (defun inf-ruby-completions (prefix)
   "Return a list of completions for the Ruby expression starting with EXPR."
@@ -847,7 +880,7 @@ Then switch to the process buffer."
          ;; Guard against running completions in parallel:
          inf-ruby-at-top-level-prompt-p)
     (unless (equal "(rdb:1) " inf-ruby-last-prompt)
-      (set-process-filter proc (lambda (proc string) (setq kept (concat kept string))))
+      (set-process-filter proc (lambda (_proc string) (setq kept (concat kept string))))
       (unwind-protect
           (let ((completion-snippet
                  (format
@@ -874,9 +907,9 @@ Then switch to the process buffer."
                    "  ensure"
                    "    Bond.agent.instance_variable_set('@weapon', old_wp) if old_wp "
                    "  end "
-                   "}.call('%s', '%s')\n")
-                  (ruby-escape-single-quoted (concat target prefix))
-                  (ruby-escape-single-quoted line))))
+                   "}.call(\"%s\", \"%s\")\n")
+                  (ruby-shell--encode-string (concat target prefix))
+                  (ruby-shell--encode-string line))))
             (process-send-string proc completion-snippet)
             (while (and (not (string-match inf-ruby-prompt-pattern kept))
                         (accept-process-output proc 2)))
@@ -949,19 +982,19 @@ interactive mode, i.e. hits a debugger breakpoint."
   (let ((mode major-mode)
         (arguments compilation-arguments)
         (orig-mode-line-process mode-line-process)
-        (orig-error-alist compilation-error-regexp-alist))
+        (orig-error-alist compilation-error-regexp-alist)
+        (cst (bound-and-true-p compilation--start-time)))
     (inf-ruby-mode)
-    (make-local-variable 'inf-ruby-orig-compilation-mode)
-    (setq inf-ruby-orig-compilation-mode mode)
-    (set (make-local-variable 'compilation-arguments) arguments)
-    (set (make-local-variable 'inf-ruby-orig-error-regexp-alist)
-         orig-error-alist)
+    (setq-local inf-ruby-orig-compilation-mode mode)
+    (setq-local compilation-arguments arguments)
+    (setq-local inf-ruby-orig-error-regexp-alist orig-error-alist)
+    (when cst
+      (setq-local compilation--start-time cst))
     (when orig-mode-line-process
       (setq mode-line-process orig-mode-line-process)))
   (let ((proc (get-buffer-process (current-buffer))))
     (when proc
-      (make-local-variable 'inf-ruby-orig-process-filter)
-      (setq inf-ruby-orig-process-filter (process-filter proc))
+      (setq-local inf-ruby-orig-process-filter (process-filter proc))
       (set-process-filter proc 'comint-output-filter))
     (when (looking-back inf-ruby-prompt-pattern (line-beginning-position))
       (let ((line (match-string 0)))
@@ -978,11 +1011,14 @@ Otherwise, just toggle read-only status."
             (proc (get-buffer-process (current-buffer)))
             (arguments compilation-arguments)
             (filter inf-ruby-orig-process-filter)
-            (errors inf-ruby-orig-error-regexp-alist))
+            (errors inf-ruby-orig-error-regexp-alist)
+            (cst (bound-and-true-p compilation--start-time)))
         (funcall inf-ruby-orig-compilation-mode)
         (setq mode-line-process orig-mode-line-process)
-        (set (make-local-variable 'compilation-arguments) arguments)
-        (set (make-local-variable 'compilation-error-regexp-alist) errors)
+        (setq-local compilation-arguments arguments)
+        (setq-local compilation-error-regexp-alist errors)
+        (when cst
+          (setq-local compilation--start-time cst))
         (when proc
           (set-process-filter proc filter)))
     (read-only-mode)))
@@ -1014,7 +1050,7 @@ keymaps to bind `inf-ruby-switch-from-compilation' to `С-x C-q'."
 one of the predicates matches, then calls `inf-ruby-console-TYPE',
 passing it the found directory.")
 
-(defvar inf-ruby-breakpoint-pattern "\\(\\[1\\] pry(\\)\\|\\((rdb:1)\\)\\|\\((byebug)\\)"
+(defvar inf-ruby-breakpoint-pattern "\\(\\[1\\] pry(\\)\\|\\((rdb:1)\\)\\|\\((byebug)\\)\\|\\((rdbg[^)]*)\\)"
   "Pattern found when a breakpoint is triggered in a compilation session.
 This checks if the current line is a pry or ruby-debug prompt.")
 
@@ -1031,15 +1067,16 @@ This checks if the current line is a pry or ruby-debug prompt.")
 
 ;;;###autoload
 (defun inf-ruby-console-auto ()
-  "Run the appropriate Ruby console command.
+  "Run the Ruby console command appropriate for the project.
 The command and the directory to run it from are detected
-automatically."
+automatically from `inf-ruby-console-patterns-alist' which
+contains the configuration for the known project types."
   (interactive)
   (let* ((dir (locate-dominating-file default-directory
                                       #'inf-ruby-console-match))
          (type (inf-ruby-console-match dir))
          (fun (intern (format "inf-ruby-console-%s" type))))
-    (unless type (error "No matching directory found"))
+    (unless type (error "No known project type found. Try `M-x inf-ruby' instead."))
     (funcall fun dir)))
 
 (defun inf-ruby-console-rails-p ()
@@ -1193,14 +1230,27 @@ Gemfile, it should use the `gemspec' instruction."
 
 ;;;###autoload
 (defun inf-ruby-auto-enter ()
-  "Switch to `inf-ruby-mode' if the breakpoint pattern matches the current line."
-  (when (and (inf-ruby-in-ruby-compilation-modes major-mode)
-             (save-excursion
-               (beginning-of-line)
-               (re-search-forward inf-ruby-breakpoint-pattern nil t)))
-    ;; Exiting excursion before this call to get the prompt fontified.
-    (inf-ruby-switch-from-compilation)
-    (add-hook 'comint-input-filter-functions 'inf-ruby-auto-exit nil t)))
+  "Switch to `inf-ruby-mode' if the breakpoint pattern matches the current line.
+Return the end position of the breakpoint prompt."
+  (let (pt)
+    (when (and (inf-ruby-in-ruby-compilation-modes major-mode)
+               (save-excursion
+                 (beginning-of-line)
+                 (setq pt
+                       (re-search-forward inf-ruby-breakpoint-pattern nil t))))
+      ;; Exiting excursion before this call to get the prompt fontified.
+      (inf-ruby-switch-from-compilation)
+      (add-hook 'comint-input-filter-functions 'inf-ruby-auto-exit nil t))
+    pt))
+
+;;;###autoload
+(defun inf-ruby-auto-enter-and-focus ()
+  "Switch to `inf-ruby-mode' on a breakpoint, select that window and set point."
+  (let ((window (get-buffer-window))
+        (pt (inf-ruby-auto-enter)))
+    (when (and pt window)
+      (select-window window)
+      (goto-char pt))))
 
 ;;;###autoload
 (defun inf-ruby-auto-exit (input)
@@ -1247,7 +1297,7 @@ Gemfile, it should use the `gemspec' instruction."
     (unless (file-exists-p "Gemfile")
       (error "The directory must contain a Gemfile"))
     (cond
-     ((inf-ruby-file-contents-match "Gemfile" "[\"']pry[\"']")
+     ((inf-ruby-file-contents-match "Gemfile" "^[ \t]*gem[ \t]*[\"']pry[\"']")
       (inf-ruby-console-run "bundle exec pry" "pry"))
      (t
       (inf-ruby-console-run "bundle console" "bundle console")))))
