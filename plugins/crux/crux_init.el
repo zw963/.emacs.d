@@ -83,6 +83,9 @@
 (global-set-key [(meta k)] 'mark-next-line)
 ;; (global-set-key [(control c) (?\t)] 'crux-indent-rigidly-and-copy-to-clipboard)
 
+(global-set-key [(meta =)] 'indent-rigidly-right)
+(global-set-key [(meta -)] 'indent-rigidly-left)
+
 (global-set-key [remap move-beginning-of-line] #'crux-move-beginning-of-line)
 (global-set-key [remap kill-whole-line] #'crux-kill-whole-line)
 
