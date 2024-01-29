@@ -98,6 +98,7 @@
 (dolist (hook '(
                 graphql-mode-hook
                 yaml-mode-hook
+                yaml-ts-mode-hook
                 conf-mode-hook
                 sh-mode-hook
                 bash-ts-mode-hook

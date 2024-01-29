@@ -6,6 +6,7 @@
 
 (add-hook 'nxml-mode-hook 'yafolding-mode)
 (add-hook 'yaml-mode-hook 'yafolding-mode)
+(add-hook 'yaml-ts-mode-hook 'yafolding-mode)
 
 (define-key yafolding-mode-map [(control tab)] 'yafolding-toggle-element)
 

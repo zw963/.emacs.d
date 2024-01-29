@@ -2,6 +2,7 @@
 
 (add-hook 'prog-mode-hook #'ws-butler-mode)
 (add-hook 'yaml-mode-hook #'ws-butler-mode)
+(add-hook 'yaml-ts-mode-hook #'ws-butler-mode)
 
 (provide 'ws-butler_init)
 

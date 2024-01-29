@@ -6,6 +6,7 @@
 (dolist (hook '(coffee-mode-hook
                 feature-mode-hook
                 yaml-mode-hook
+                yaml-ts-mode-hook
                 python-mode-hook
                 dart-mode-hook
                 slim-mode-hook
