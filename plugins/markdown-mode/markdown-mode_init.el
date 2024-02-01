@@ -16,6 +16,7 @@
       markdown-content-type "text/html"
       markdown-coding-system 'utf-8
       markdown-gfm-uppercase-checkbox t
+      markdown-gfm-use-electric-backquote nil
       )
 
 (add-to-list 'auto-mode-alist '("\\.markdown$" . gfm-mode))

@@ -7,7 +7,7 @@
 (sp-local-pair 'org-mode "=" nil :actions nil)
 (sp-local-pair 'org-mode "`" "`" :actions nil)
 (sp-local-pair 'org-mode "'" "'" :actions nil)
-(sp-local-pair 'org-mode "`" "'") ;; 这个不生效？
+(sp-local-pair 'org-mode "`" "'" :unless nil) ;; 这个不生效？
 
 (let ((pairs '(("{" nil) ("[" nil) ("(" nil))))
   (mapc
