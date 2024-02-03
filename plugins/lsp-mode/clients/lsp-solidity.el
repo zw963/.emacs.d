@@ -25,7 +25,7 @@
 (require 'lsp-mode)
 
 (lsp-dependency 'solidity-language-server
-                '(:system "solidity-language-server")
+                '(:system "nomicfoundation-solidity-language-server")
                 '(:npm :package "@nomicfoundation/solidity-language-server"
                        :path "nomicfoundation-solidity-language-server"))
 
@@ -51,7 +51,7 @@
                   :download-server-fn (lambda (_client callback error-callback _update?)
                                         (lsp-package-ensure 'solidity-language-server callback error-callback))))
 
-(defun lsp-client--solidity-validation-job-status (_workspace params)
+(defun lsp-client--solidity-validation-job-status (_workspace _params)
   ;; noop until I find out what to do with this
   )
 

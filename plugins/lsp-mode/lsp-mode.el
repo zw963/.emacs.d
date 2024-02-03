@@ -174,18 +174,20 @@ As defined by the Language Server Protocol 3.16."
   :package-version '(lsp-mode . "6.1"))
 
 (defcustom lsp-client-packages
-  '( ccls lsp-actionscript lsp-ada lsp-angular lsp-ansible lsp-awk lsp-astro lsp-bash
-     lsp-beancount lsp-clangd lsp-clojure lsp-cmake lsp-credo lsp-crystal lsp-csharp lsp-css
-     lsp-d lsp-dart lsp-dhall lsp-docker lsp-dockerfile lsp-elm lsp-elixir lsp-emmet
-     lsp-erlang lsp-eslint lsp-fortran lsp-fsharp lsp-gdscript lsp-go lsp-gleam
-     lsp-glsl lsp-graphql lsp-hack lsp-grammarly lsp-groovy lsp-haskell lsp-haxe
-     lsp-idris lsp-java lsp-javascript lsp-json lsp-kotlin lsp-latex lsp-ltex
-     lsp-lua lsp-markdown lsp-marksman lsp-mdx lsp-mint lsp-move lsp-nginx lsp-nim lsp-nix lsp-magik
-     lsp-mojo lsp-metals lsp-mssql lsp-ocaml lsp-openscad lsp-pascal lsp-perl lsp-perlnavigator
-     lsp-pls lsp-php lsp-pwsh lsp-pyls lsp-pylsp lsp-pyright lsp-python-ms lsp-purescript
-     lsp-r lsp-racket lsp-remark lsp-ruff-lsp lsp-rf lsp-rubocop lsp-rust lsp-semgrep lsp-shader
-     lsp-solargraph lsp-sorbet lsp-sourcekit lsp-sonarlint lsp-tailwindcss lsp-tex lsp-terraform
-     lsp-toml lsp-ttcn3 lsp-typeprof lsp-v lsp-vala lsp-verilog lsp-vetur lsp-volar
+  '( ccls lsp-actionscript lsp-ada lsp-angular lsp-ansible lsp-autotools lsp-awk lsp-asm lsp-astro
+     lsp-bash lsp-beancount lsp-bufls lsp-clangd lsp-clojure lsp-cmake lsp-credo
+     lsp-crystal lsp-csharp lsp-css lsp-cypher lsp-d lsp-dart lsp-dhall lsp-docker
+     lsp-dockerfile lsp-elm lsp-elixir lsp-emmet lsp-erlang lsp-eslint lsp-fortran
+     lsp-fsharp lsp-gdscript lsp-go lsp-golangci-lint lsp-gleam lsp-glsl lsp-graphql
+     lsp-hack lsp-grammarly lsp-groovy lsp-haskell lsp-haxe lsp-idris lsp-java
+     lsp-javascript lsp-json lsp-kotlin lsp-latex lsp-ltex lsp-lua lsp-markdown
+     lsp-marksman lsp-mdx lsp-mint lsp-move lsp-nginx lsp-nim lsp-nix lsp-magik
+     lsp-mojo lsp-metals lsp-mssql lsp-ocaml lsp-openscad lsp-pascal lsp-perl
+     lsp-perlnavigator lsp-pls lsp-php lsp-pwsh lsp-pyls lsp-pylsp lsp-pyright
+     lsp-python-ms lsp-purescript lsp-r lsp-racket lsp-remark lsp-ruff-lsp lsp-rf
+     lsp-rubocop lsp-rust lsp-semgrep lsp-shader lsp-solargraph lsp-sorbet
+     lsp-sourcekit lsp-sonarlint lsp-tailwindcss lsp-tex lsp-terraform lsp-toml
+     lsp-ttcn3 lsp-typeprof lsp-v lsp-vala lsp-verilog lsp-vetur lsp-volar
      lsp-vhdl lsp-vimscript lsp-xml lsp-yaml lsp-ruby-lsp lsp-ruby-syntax-tree
      lsp-solidity lsp-sqls lsp-svelte lsp-steep lsp-tilt lsp-zig lsp-jq)
   "List of the clients to be automatically required."
@@ -406,6 +408,8 @@ the server has requested that."
     "[/\\\\]\\.terraform\\'"
     "[/\\\\]\\.terragrunt-cache\\'"
     ;; nix-direnv
+    "[/\\\\]\\result"
+    "[/\\\\]\\result-bin"
     "[/\\\\]\\.direnv\\'")
   "List of regexps matching directory paths which won't be monitored when
 creating file watches. Customization of this variable is only honored at
@@ -768,6 +772,7 @@ Changes take effect only when a new session is started."
     ("\\.java\\'" . "java")
     ("\\.js$" . "javascript")
     ("\\.json$" . "json")
+    ("\\.jsonnet$" . "jsonnet")
     ("\\.jsonc$" . "jsonc")
     ("\\.jsx$" . "javascriptreact")
     ("\\.jq$"  . "jq")
@@ -776,6 +781,7 @@ Changes take effect only when a new session is started."
     ("\\.php$" . "php")
     ("\\.rs\\'" . "rust")
     ("\\.sql$" . "sql")
+    ("\\.cypher$" . "cypher")
     ("\\.svelte$" . "svelte")
     ("\\.toml\\'" . "toml")
     ("\\.ts$" . "typescript")
@@ -788,6 +794,7 @@ Changes take effect only when a new session is started."
     ("^go\\.mod\\'" . "go.mod")
     ("^settings.json$" . "jsonc")
     (ada-mode . "ada")
+    (ada-ts-mode . "ada")
     (awk-mode . "awk")
     (awk-ts-mode . "awk")
     (nxml-mode . "xml")
@@ -798,6 +805,7 @@ Changes take effect only when a new session is started."
     (bash-ts-mode . "shellscript")
     (ebuild-mode . "shellscript")
     (pkgbuild-mode . "shellscript")
+    (envrc-file-mode . "shellscript")
     (scala-mode . "scala")
     (scala-ts-mode . "scala")
     (julia-mode . "julia")
@@ -849,6 +857,7 @@ Changes take effect only when a new session is started."
     (haskell-mode . "haskell")
     (hack-mode . "hack")
     (php-mode . "php")
+    (php-ts-mode . "php")
     (powershell-mode . "powershell")
     (powershell-mode . "PowerShell")
     (json-mode . "json")
@@ -887,9 +896,11 @@ Changes take effect only when a new session is started."
     (csharp-ts-mode . "csharp")
     (plain-tex-mode . "plaintex")
     (context-mode . "context")
+    (cypher-mode . "cypher")
     (latex-mode . "latex")
     (v-mode . "v")
     (vhdl-mode . "vhdl")
+    (vhdl-ts-mode . "vhdl")
     (verilog-mode . "verilog")
     (terraform-mode . "terraform")
     (ess-julia-mode . "julia")
@@ -907,6 +918,7 @@ Changes take effect only when a new session is started."
     (robot-mode . "robot")
     (racket-mode . "racket")
     (nix-mode . "nix")
+    (nix-ts-mode . "Nix")
     (prolog-mode . "prolog")
     (vala-mode . "vala")
     (actionscript-mode . "actionscript")
@@ -933,8 +945,10 @@ Changes take effect only when a new session is started."
     (rst-mode . "restructuredtext")
     (glsl-mode . "glsl")
     (shader-mode . "shaderlab")
+    (wgsl-mode . "wgsl")
     (jq-mode . "jq")
-    (jq-ts-mode . "jq"))
+    (jq-ts-mode . "jq")
+    (protobuf-mode . "protobuf"))
   "Language id configuration.")
 
 (defvar lsp--last-active-workspaces nil
@@ -1145,7 +1159,7 @@ calling `remove-overlays'.")
 
 (defvar-local lsp--virtual-buffer-point-max nil)
 
-(cl-defmethod lsp-execute-command (server command arguments)
+(cl-defmethod lsp-execute-command (_server _command _arguments)
   "Ask SERVER to execute COMMAND with ARGUMENTS.")
 
 (defun lsp-elt (sequence n)
@@ -3577,6 +3591,12 @@ and expand the capabilities section"
   (setf (lsp--workspace-shutdown-action lsp--cur-workspace) (or (and restart 'restart) 'shutdown))
   (lsp--uninitialize-workspace))
 
+(defcustom lsp-inlay-hint-enable nil
+  "If non-nil it will enable inlay hints."
+  :type 'boolean
+  :group 'lsp-mode
+  :package-version '(lsp-mode . "8.0.1"))
+
 (defun lsp--uninitialize-workspace ()
   "Cleanup buffer state.
 When a workspace is shut down, by request or from just
@@ -3586,7 +3606,7 @@ disappearing, unset all the variables related to it."
     (mapc (lambda (buf)
             (when (lsp-buffer-live-p buf)
               (lsp-with-current-buffer buf
-                (lsp-managed-mode -1))))
+                                       (lsp-managed-mode -1))))
           buffers)
     (lsp-diagnostics--workspace-cleanup lsp--cur-workspace)))
 
@@ -5074,12 +5094,16 @@ identifier and the position respectively."
       (lsp-point-in-range? left-start right)
       (lsp-point-in-range? left-end right)))
 
+(defun lsp-make-position-1 (position)
+  (lsp-make-position :line (plist-get position :line)
+                     :character (plist-get position :character)))
+
 (defun lsp-cur-possition-diagnostics ()
   "Return any diagnostics that apply to the current line."
   (-let* ((start (if (use-region-p) (region-beginning) (point)))
           (end (if (use-region-p) (region-end) (point)))
-          (current-range (lsp-make-range :start (lsp-point-to-position start)
-                                         :end (lsp-point-to-position end))))
+          (current-range (lsp-make-range :start (lsp-make-position-1 (lsp-point-to-position start))
+                                         :end (lsp-make-position-1 (lsp-point-to-position end)))))
     (->> (lsp--get-buffer-diagnostics)
          (-filter
           (-lambda ((&Diagnostic :range))
@@ -5953,6 +5977,7 @@ Request codeAction/resolve for more info if server supports."
   ;; Taken from `dtrt-indent-mode'
   '(
     (ada-mode                   . ada-indent)                       ; Ada
+    (ada-ts-mode                . ada-ts-mode-indent-offset)
     (c++-mode                   . c-basic-offset)                   ; C++
     (c++-ts-mode                . c-ts-mode-indent-offset)
     (c-mode                     . c-basic-offset)                   ; C
@@ -5973,6 +5998,7 @@ Request codeAction/resolve for more info if server supports."
     (java-ts-mode               . java-ts-mode-indent-offset)
     (jde-mode                   . c-basic-offset)                   ; Java (JDE)
     (js-mode                    . js-indent-level)                  ; JavaScript
+    (js-ts-mode                 . js-indent-level)
     (js2-mode                   . js2-basic-offset)                 ; JavaScript-IDE
     (js3-mode                   . js3-indent-level)                 ; JavaScript-IDE
     (json-mode                  . js-indent-level)                  ; JSON
@@ -5984,6 +6010,7 @@ Request codeAction/resolve for more info if server supports."
     (pascal-mode                . pascal-indent-level)              ; Pascal
     (perl-mode                  . perl-indent-level)                ; Perl
     (php-mode                   . c-basic-offset)                   ; PHP
+    (php-ts-mode                . php-ts-mode-indent-offset)        ; PHP
     (powershell-mode            . powershell-indent)                ; PowerShell
     (raku-mode                  . raku-indent-offset)               ; Perl6/Raku
     (ruby-mode                  . ruby-indent-level)                ; Ruby
@@ -7380,6 +7407,9 @@ Originally coppied from eglot."
                          " "))
     program))
 
+(defvar tramp-use-ssh-controlmaster-options)
+(defvar tramp-ssh-controlmaster-options)
+
 (defun lsp-stdio-connection (command &optional test-command)
   "Returns a connection property list using COMMAND.
 COMMAND can be: A string, denoting the command to launch the
@@ -7414,7 +7444,7 @@ returned by COMMAND is available via `executable-find'"
                                      :name process-name
                                      :connection-type 'pipe
                                      :buffer (format "*%s*" process-name)
-                                     :coding 'utf-8-emacs-unix
+                                     :coding 'no-conversion
                                      :command final-command
                                      :filter filter
                                      :sentinel sentinel
@@ -8029,7 +8059,10 @@ When prefix UPDATE? is t force installation even if the server is present."
 (defun lsp-async-start-process (callback error-callback &rest command)
   "Start async process COMMAND with CALLBACK and ERROR-CALLBACK."
   (let ((name (cl-first command)))
-    (with-current-buffer (compilation-start (mapconcat #'shell-quote-argument command " ") t
+    (with-current-buffer (compilation-start (mapconcat #'shell-quote-argument (-filter (lambda (cmd)
+                                                                                         (not (null cmd)))
+                                                                                       command)
+                                                       " ") t
                                             (lambda (&rest _)
                                               (generate-new-buffer-name (format "*lsp-install: %s*" name))))
       (lsp-installation-buffer-mode +1)
@@ -8058,6 +8091,8 @@ Otherwise returns value itself."
 (defvar lsp-deps-providers
   (list :npm (list :path #'lsp--npm-dependency-path
                    :install #'lsp--npm-dependency-install)
+        :cargo (list :path #'lsp--cargo-dependency-path
+                     :install #'lsp--cargo-dependency-install)
         :system (list :path #'lsp--system-path)
         :download (list :path #'lsp-download-path
                         :install #'lsp-download-install)))
@@ -8075,10 +8110,11 @@ nil."
   ;; typescript-language-server). This is why we check for existence and not
   ;; that the path is executable.
   (let ((path (lsp-resolve-value path)))
-    (if (and (f-absolute? path)
-             (f-exists? path))
-        path
-      (executable-find path t))))
+    (cond
+     ((and (f-absolute? path)
+           (f-exists? path))
+      path)
+     ((executable-find path t) path))))
 
 (defun lsp-package-path (dependency)
   "Path to the DEPENDENCY each of the registered providers."
@@ -8146,6 +8182,37 @@ nil."
                                  package))
     (lsp-log "Unable to install %s via `npm' because it is not present" package)
     nil))
+
+
+;; Cargo dependency handling
+(cl-defun lsp--cargo-dependency-path (&key package path &allow-other-keys)
+  (let ((path (executable-find
+               (f-join lsp-server-install-dir
+                       "cargo"
+                       package
+                       "bin"
+                       path)
+               t)))
+    (unless (and path (f-exists? path))
+      (error "The package %s is not installed.  Unable to find %s" package path))
+    path))
+
+(cl-defun lsp--cargo-dependency-install (callback error-callback &key package git &allow-other-keys)
+  (if-let ((cargo-binary (executable-find "cargo")))
+      (lsp-async-start-process
+       callback
+       error-callback
+       cargo-binary
+       "install"
+       package
+       (when git
+         "--git")
+       git
+       "--root"
+       (f-join lsp-server-install-dir "cargo" package))
+    (lsp-log "Unable to install %s via `cargo' because it is not present" package)
+    nil))
+
 
 
 ;; Download URL handling
@@ -8425,7 +8492,7 @@ the next question until the queue is empty."
                                                    (format "%s-tramp"
                                                            (lsp--client-server-id client)))
             ;; disable automatic download
-            (lsp--client-download-server-fn client) nil)
+            (lsp--client-download-server-fn remote-client) nil)
       (lsp-register-client remote-client))))
 
 (defun lsp--create-initialization-options (_session client)
@@ -9595,12 +9662,6 @@ call-site)."
   "If non-nil update inlay hints immediately when scrolling or
 modifying window sizes."
   :type 'boolean
-  :package-version '(lsp-mode . "8.0.1"))
-
-(defcustom lsp-inlay-hint-enable nil
-  "If non-nil it will enable inlay hints."
-  :type 'boolean
-  :group 'lsp-mode
   :package-version '(lsp-mode . "8.0.1"))
 
 (defun lsp--format-inlay (text kind)
