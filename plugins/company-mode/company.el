@@ -1,6 +1,6 @@
 ;;; company.el --- Modular text completion framework  -*- lexical-binding: t -*-
 
-;; Copyright (C) 2009-2023  Free Software Foundation, Inc.
+;; Copyright (C) 2009-2024  Free Software Foundation, Inc.
 
 ;; Author: Nikolaj Schumacher
 ;; Maintainer: Dmitry Gutov <dmitry@gutov.dev>
@@ -148,7 +148,7 @@
 
 (defface company-tooltip-scrollbar-thumb
   '((((background light))
-     :background "darkred")
+     :background "indian red")
     (((background dark))
      :background "gray33"))
   "Face used for the tooltip scrollbar thumb (bar).")
@@ -1281,7 +1281,7 @@ be recomputed when this value changes."
                                         company--multi-uncached-backends))))
                       found))))
        t)
-      ((or `prefix `ignore-case `no-cache `require-match)
+      ((or `ignore-case `no-cache `require-match)
        (let (value)
          (cl-dolist (backend backends)
            (when (setq value (company--force-sync
@@ -1290,12 +1290,33 @@ be recomputed when this value changes."
                         (eq value 'keep-prefix))
                (setq value t))
              (cl-return value)))))
+      (`prefix (company--multi-prefix backends))
       (_
        (let ((arg (car args)))
          (when (> (length arg) 0)
            (let ((backend (or (get-text-property 0 'company-backend arg)
                               (car backends))))
              (apply backend command args))))))))
+
+(defun company--multi-prefix (backends)
+  (let (str len)
+    (dolist (backend backends)
+      (let* ((prefix (company--force-sync backend '(prefix) backend))
+             (prefix-len (cdr-safe prefix)))
+        (when (stringp (company--prefix-str prefix))
+          (cond
+           ((not str)
+            (setq str (company--prefix-str prefix)
+                  len (cdr-safe prefix)))
+           ((and prefix-len
+                 (not (eq len t))
+                 (equal str (company--prefix-str prefix))
+                 (or (eq prefix-len t)
+                     (> prefix-len (or len (length str)))))
+            (setq len prefix-len))))))
+    (if (and str len)
+        (cons str len)
+      str)))
 
 (defun company--multi-backend-adapter-candidates (backends prefix min-length separate)
   (let ((pairs (cl-loop for backend in backends
@@ -2914,6 +2935,8 @@ from the candidates list.")
 (defmacro company--with-face-remappings (&rest body)
   `(let ((fra-local (and (local-variable-p 'face-remapping-alist)
                          face-remapping-alist))
+         (bdt-local (and (local-variable-p 'buffer-display-table)
+                         buffer-display-table))
          (bufs (list (get-buffer-create " *string-pixel-width*")
                      (get-buffer-create " *company-sps*"))))
      (unwind-protect
@@ -2924,12 +2947,15 @@ from the candidates list.")
                  ;; Workaround for debbugs#67248.
                  (setq-local display-line-numbers nil))
                (when fra-local
-                 (setq-local face-remapping-alist fra-local))))
+                 (setq-local face-remapping-alist fra-local))
+               (when bdt-local
+                 (setq-local buffer-display-table bdt-local))))
            ,@body)
        (dolist (buf bufs)
          (and (buffer-live-p buf)
               (with-current-buffer buf
-                (kill-local-variable 'face-remapping-alist)))))))
+                (kill-local-variable 'face-remapping-alist)
+                (kill-local-variable 'buffer-display-table)))))))
 
 (defalias 'company--string-pixel-width
   (if (fboundp 'string-pixel-width)
@@ -2949,6 +2975,7 @@ from the candidates list.")
           (delete-region (point-min) (point-max))
           (insert string)
           (let ((wb (window-buffer))
+                (hscroll (window-hscroll))
                 (dedicated (window-dedicated-p)))
             (unwind-protect
                 (progn
@@ -2958,6 +2985,7 @@ from the candidates list.")
                   (car
                    (window-text-pixel-size nil nil nil 55555)))
               (set-window-buffer nil wb)
+              (set-window-hscroll nil hscroll)
               (when dedicated
                 (set-window-dedicated-p nil dedicated)))))))))
 
@@ -2976,9 +3004,9 @@ from the candidates list.")
         front back
         (orig-buf (window-buffer))
         (bis buffer-invisibility-spec)
-        (bdt buffer-display-table)
         (inhibit-read-only t)
         (dedicated (window-dedicated-p))
+        (hscroll (window-hscroll))
         window-configuration-change-hook)
     (with-current-buffer (get-buffer-create " *company-sps*")
       (unwind-protect
@@ -2986,7 +3014,6 @@ from the candidates list.")
             (delete-region (point-min) (point-max))
             (insert str)
             (setq-local buffer-invisibility-spec bis)
-            (setq-local buffer-display-table bdt)
             (when dedicated (set-window-dedicated-p nil nil))
             (set-window-buffer nil (current-buffer) t)
 
@@ -3003,7 +3030,7 @@ from the candidates list.")
               (setq from-chars (point)))
 
             (if (= from-chars (point-max))
-                (if to
+                (if (and to (> to from))
                     (propertize " " 'display `(space . (:width (,(- to from)))))
                   "")
               (if (not to)
@@ -3036,6 +3063,7 @@ from the candidates list.")
                                                      spw-to-prev))))))))
               (concat front (buffer-substring from-chars to-chars) back)))
         (set-window-buffer nil orig-buf t)
+        (set-window-hscroll nil hscroll)
         (when dedicated
           (set-window-dedicated-p nil dedicated))))))
 
@@ -3451,7 +3479,9 @@ If SHOW-VERSION is non-nil, show the version in the echo area."
                ;; We shouldn't get any of these, but sometimes we might.
                ;; The official "replacement character" is not supported by some fonts.
                ;;"\ufffd"
-               "?"
+               (if (equal match "\n")
+                   (propertize "\\\\n" 'face 'font-lock-escape-face)
+                 "?")
                )
               ((match-beginning 2)
                ;; Zero-width non-breakable space.
@@ -3540,8 +3570,7 @@ but adjust the expected values appropriately."
                (aref buffer-display-table ?\n))
       (cl-decf ww
                (if pixelwise
-                   (company--string-pixel-width
-                    (aref buffer-display-table ?\n))
+                   (company--string-pixel-width "\n")
                  (1- (length (aref buffer-display-table ?\n))))))
     ww))
 
@@ -3575,11 +3604,21 @@ but adjust the expected values appropriately."
     (setq lines (reverse lines)))
 
   (let* ((px-width (company--string-pixel-width (car lines)))
+         ;; The (display (space :width (..))) spec is only applied to the
+         ;; visible part of the buffer (past hscroll), so subtracting
+         ;; window-scroll here is a good idea.  But then we also need to slice
+         ;; the "old" strings so the hidden contents don't get shown.
+         ;; XXX: `auto-hscroll-mode' set to `current-line' is not supported.
          (px-col (* (- column (window-hscroll)) (default-font-width)))
          (remaining-px (- (company--window-width t) px-col))
+         (hscroll-space (when (> (window-hscroll) 0)
+                          (company-space-string (window-hscroll))))
          new)
     (when (> px-width remaining-px)
       (cl-decf px-col (- px-width remaining-px)))
+    (when hscroll-space
+      (setq old (mapcar (lambda (s) (company-safe-substring s (window-hscroll)))
+                        old)))
     (when align-top
       ;; untouched lines first
       (dotimes (_ (- (length old) (length lines)))
@@ -3603,7 +3642,7 @@ but adjust the expected values appropriately."
                        (when nl " \n")
                        (cl-mapcan
                         ;; https://debbugs.gnu.org/cgi/bugreport.cgi?bug=42552#23
-                        (lambda (line) (list line (propertize "\n" 'face nl-face)))
+                        (lambda (line) (list hscroll-space line (propertize "\n" 'face nl-face)))
                         (nreverse new)))))
       ;; https://debbugs.gnu.org/38563
       (add-face-text-property 0 (length str) 'default t str)
@@ -3618,6 +3657,7 @@ but adjust the expected values appropriately."
              (if company-tooltip-align-annotations 1 0)))
         left-margins
         left-margin-size
+        right-margin
         lines
         width
         lines-copy
@@ -3652,6 +3692,7 @@ but adjust the expected values appropriately."
 
     (setq width (max (length previous) (length remainder))
           lines (nthcdr company-tooltip-offset company-candidates)
+          right-margin (company--right-margin limit len)
           len (min limit len)
           lines-copy lines)
 
@@ -3714,7 +3755,7 @@ but adjust the expected values appropriately."
                (str (car item))
                (annotation (cadr item))
                (left (nth 2 item))
-               (right (company--right-margin))
+               (right right-margin)
                (width width)
                (selected (equal selection i)))
           (when company-show-quick-access
@@ -3759,10 +3800,11 @@ but adjust the expected values appropriately."
                     'company-tooltip-scrollbar-thumb
                   'company-tooltip-scrollbar-track))))
 
-(defun company--right-margin ()
+(defun company--right-margin (limit length)
   (if (or (not (eq company-tooltip-offset-display 'scrollbar))
           (not (display-graphic-p))
-          (= company-tooltip-scrollbar-width 1))
+          (= company-tooltip-scrollbar-width 1)
+          (<= length limit))
       (company-space-string company-tooltip-margin)
     (let* ((scroll-width (ceiling (* (default-font-width)
                                      company-tooltip-scrollbar-width)))

@@ -18,7 +18,7 @@
 ;; You should have received a copy of the GNU General Public License
 ;; along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-;; URL: https://github.com/yyoncho/dap-mode
+;; URL: https://github.com/emacs-lsp/dap-mode
 ;; Package-Requires: ((emacs "25.1") (tree-mode "1.1.1.1") (bui "1.1.0"))
 ;; Version: 0.2
 
@@ -55,6 +55,11 @@ number - expand N levels."
   :type '(choice (const :tag "Do not expand" nil)
                  (const :tag "Expand recursively" t)
                  (number :tag "Expand level"))
+  :group 'dap-ui)
+
+(defcustom dap-ui-overlay-priority 100
+  "Overlay's base prioirty."
+  :type 'integer
   :group 'dap-ui)
 
 (defcustom dap-ui-controls-screen-position #'posframe-poshandler-frame-top-center
@@ -254,7 +259,7 @@ BREAKPOINT-DAP - nil or the data comming from DAP."
         :fringe (if (and breakpoint-dap (gethash "verified" breakpoint-dap))
                     'dap-ui-breakpoint-verified-fringe
                   'breakpoint-disabled)
-        :priority 1))
+        :priority (+ dap-ui-overlay-priority 1)))
 
 (defun dap-ui--refresh-breakpoints ()
   "Refresh breakpoints in FILE-NAME.
@@ -291,7 +296,7 @@ DEBUG-SESSION the new breakpoints for FILE-NAME."
                      :char ">"
                      :bitmap 'right-triangle
                      :fringe 'dap-ui-compile-errline
-                     :priority 2))))
+                     :priority (+ dap-ui-overlay-priority 2)))))
 
 (defun dap-ui--stack-frame-changed (debug-session)
   "Handler for `dap-stack-frame-changed-hook'.

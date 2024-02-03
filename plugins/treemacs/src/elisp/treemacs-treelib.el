@@ -1,6 +1,6 @@
 ;;; treemacs.el --- A tree style file viewer package -*- lexical-binding: t -*-
 
-;; Copyright (C) 2020 Alexander Miller
+;; Copyright (C) 2023 Alexander Miller
 
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -252,8 +252,9 @@ Also pass additional DATA to predicate function.")
           open-icon
           closed-icon
           child-type
-          ;; visit-action
           ret-action
+          visit-action
+          double-click-action
           no-tab?
           variadic?
           async?
@@ -308,9 +309,21 @@ determines the behaviours (LABEL etc.) used to create the children of the node
 type being defined here.
 
 RET-ACTION is the function that is called when RET is pressed on a node of this
-be able to handle both a closed and open state.  If no explicit RET-ACTION type.
-The function is called with a single argument - the prefix arg - and must
-argument is given RET will do the same as TAB.
+be able to handle both a closed and open state.  If no explicit RET-ACTION type
+argument is given RET will do the same as TAB.  The function is called with a
+single argument - the prefix arg - and must be able to handle both a closed and
+and expanded node state.
+
+VISIT-ACTION is a function that is called when a node is to be opened with a
+command like `treemacs-visit-node-ace'.  It is called with the current `btn' and
+must be able to handle both an open and a closed state.  It will most likely be
+called in a window that is not the one where the button resides, so if you need
+to extract text properties from the button you to must use
+`treemacs-safe-button-get', e.g.  \(treemacs-safe-button-get btn :path\).
+
+DOUBLE-CLICK-ACTION is similar to RET-ACTION, but will be called without any
+arguments.  There is no default click behaviour, if no DOUBLE-CLICK-ACTION is
+given then treemacs will do nothing for double-clicks.
 
 NO-TAB indicates that pressing TAB on this node type should do nothing.  It will
 be set by `treemacs-define-leaf-node'.
@@ -364,6 +377,10 @@ argument."
           :on-expand       (lambda (&optional btn )     "" (ignore btn) ,on-expand)
           :on-collapse     (lambda (&optional btn )     "" (ignore btn) ,on-collapse)))
 
+       (with-eval-after-load 'treemacs-mouse-interface
+         (treemacs-define-doubleclick-action ',closed-state ,(or double-click-action '#'ignore))
+         (treemacs-define-doubleclick-action ',open-state ,(or double-click-action '#'ignore)))
+
        (treemacs-define-TAB-action
         ',closed-state
         ,(cond
@@ -373,6 +390,10 @@ argument."
        (treemacs-define-TAB-action ',open-state   ,(if no-tab? '#'ignore '#'treemacs-collapse-extension-node))
        (treemacs-define-RET-action ',closed-state ,(or ret-action (if no-tab? '#'ignore '#'treemacs-expand-extension-node)))
        (treemacs-define-RET-action ',open-state   ,(or ret-action (if no-tab? '#'ignore '#'treemacs-collapse-extension-node)))
+
+       (when ,visit-action
+         (put ',open-state   :treemacs-visit-action ,visit-action)
+         (put ',closed-state :treemacs-visit-action ,visit-action))
 
        (add-to-list 'treemacs--extension-registry (cons ',closed-state ,struct-name))
        (add-to-list 'treemacs--extension-registry (cons ',open-state   ,struct-name))
@@ -390,12 +411,14 @@ argument."
           label
           key
           more-properties
-          ret-action)
+          ret-action
+          visit-action
+          double-click-action)
 
   "Define a type of node that is a leaf and cannot be further expanded.
 The NAME, ICON, LABEL and KEY arguments are mandatory.
 
-MORE-PROPERTIES and RET-ACTION are optional.
+MORE-PROPERTIES, RET-ACTION, VISIT-ACTION and DOUBLE-CLICK-ACTION are optional.
 
 For a detailed description of all arguments see
 `treemacs-do-define-extension-type'."
@@ -409,9 +432,11 @@ For a detailed description of all arguments see
   `(treemacs-do-define-extension-type ,name
      :key ,key
      :label ,label
-     :more-properties (nconc '(:leaf t) ,more-properties)
+     :more-properties (append '(:leaf t) ,more-properties)
      :closed-icon ,icon
      :ret-action ,ret-action
+     :visit-action ,visit-action
+     :double-click-action ,double-click-action
      :no-tab? t
      :children (lambda () (error "Called :children of leaf node"))
      :child-type (lambda () (error "Called :child-type of leaf node"))))
@@ -426,6 +451,7 @@ For a detailed description of all arguments see
           child-type
           more-properties
           ret-action
+          double-click-action
           on-expand
           on-collapse
           async?)
@@ -434,7 +460,8 @@ For a detailed description of all arguments see
 The NAME, CLOSED-ICON, OPEN-ICON LABEL, KEY, CHILDREN and CHILD-TYPE arguments
 are mandatory.
 
-MORE-PROPERTIES, RET-ACTION, ON-EXPAND, ON-COLLAPSE and ASYNC are optional.
+MORE-PROPERTIES, RET-ACTION, DOUBLE-CLICK-ACTION, ON-EXPAND, ON-COLLAPSE and
+ASYNC are optional.
 
 For a detailed description of all arguments see
 `treemacs-do-define-extension-type'."
@@ -457,6 +484,7 @@ For a detailed description of all arguments see
      :child-type ,child-type
      :more-properties ,more-properties
      :ret-action ,ret-action
+     :double-click-action ,double-click-action
      :async? ,async?
      :on-expand ,on-expand
      :on-collapse ,on-collapse))
@@ -471,6 +499,7 @@ For a detailed description of all arguments see
           child-type
           more-properties
           ret-action
+          double-click-action
           on-expand
           on-collapse
           async?)
@@ -480,7 +509,8 @@ For a detailed description of all arguments see
 The KEY, LABEL, OPEN-ICON CLOSED-ICON, CHILDREN and CHILD-TYPE arguments are
 mandatory.
 
-MORE-PROPERTIES, RET-ACTION, ON-EXPAND, ON-COLLAPSE and ASYNC are optional.
+MORE-PROPERTIES, RET-ACTION, DOUBLE-CLICK-ACTION, ON-EXPAND, ON-COLLAPSE and
+ASYNC are optional.
 
 For a detailed description of all arguments see
 `treemacs-do-define-extension-type'."
@@ -504,6 +534,7 @@ For a detailed description of all arguments see
      :more-properties ,more-properties
      :async? ,async?
      :ret-action ,ret-action
+     :double-click-action ,double-click-action
      :on-expand ,on-expand
      :on-collapse ,on-collapse
      :entry-point? t))
@@ -579,7 +610,7 @@ EXT: `treemacs-extension' instance"
      (insert (propertize
               label
               'button '(t)
-              'category 'default-button
+              'category t
               :custom t
               :key key
               :path key
@@ -614,7 +645,7 @@ EXPAND-DEPTH: Int"
        (treemacs-dom-node->insert-into-dom! dom-node)
        (insert (propertize "Hidden node"
                            'button '(t)
-                           'category 'default-button
+                           'category t
                            'invisible t
                            'skip t
                            :custom t
@@ -665,8 +696,7 @@ LABEL: String"
              (apply
               #'propertize ,label
               'button '(t)
-              'category 'default-button
-              'help-echo nil
+              'category t
               :custom t
               :state ,state
               :parent ,parent
@@ -699,7 +729,7 @@ PARENT: Button"
      (treemacs-extension->get ext :closed-icon)
      (propertize (treemacs-extension->get ext :label)
                  'button '(t)
-                 'category 'default-button
+                 'category t
                  :custom t
                  :key key
                  :path path
@@ -883,7 +913,7 @@ ITEMS: List<Any>"
         :parent btn
         :parent-path parent-path
         :parent-dom-node parent-dom-node
-        :more-properties (nconc `(:item ,item) (funcall properties-fn btn item))
+        :more-properties (append `(:item ,item) (funcall properties-fn btn item))
         :icon (funcall closed-icon-fn btn item)
         :state child-state
         :key (funcall key-fn btn item)
@@ -949,7 +979,7 @@ EXPAND-DEPTH: Int"
        :parent-path parent-path
        :parent-dom-node parent-dom-node
        :more-properties
-       (nconc `(:item ,item)
+       (append `(:item ,item)
               `(:project ,(treemacs-project->create!
                            :name (funcall label-fn btn item)
                            :path path
