@@ -10068,7 +10068,7 @@ See URL `https://github.com/mpeterv/luacheck'."
           ;; the ID is optional here
           (optional " (" (id "E" (one-or-more digit)) ") ")
           (message) line-end))
-  :modes lua-mode)
+  :modes (lua-mode lua-ts-mode))
 
 (flycheck-define-checker lua
   "A Lua syntax checker using the Lua compiler.
@@ -10081,7 +10081,7 @@ See URL `http://www.lua.org/'."
           ;; Skip the name of the luac executable.
           (minimal-match (zero-or-more not-newline))
           ": stdin:" line ": " (message) line-end))
-  :modes lua-mode)
+  :modes (lua-mode lua-ts-mode))
 
 (flycheck-define-checker opam
   "A Opam syntax and style checker using opam lint.
@@ -10207,7 +10207,7 @@ See URL `http://php.net/manual/en/features.commandline.php'."
   :error-patterns
   ((error line-start (or "Parse" "Fatal" "syntax") " error" (any ":" ",") " "
           (message) " in " (file-name) " on line " line line-end))
-  :modes (php-mode php+-mode)
+  :modes (php-mode php-ts-mode php+-mode)
   :next-checkers ((warning . php-phpmd)
                   (warning . php-phpcs)))
 
@@ -10232,7 +10232,7 @@ See URL `https://phpmd.org/'."
             (eval (flycheck-option-comma-separated-list
                    flycheck-phpmd-rulesets)))
   :error-parser flycheck-parse-phpmd
-  :modes (php-mode php+-mode)
+  :modes (php-mode php-ts-mode php+-mode)
   :next-checkers (php-phpcs))
 
 (flycheck-def-option-var flycheck-phpcs-standard nil php-phpcs
@@ -10278,7 +10278,7 @@ See URL `http://pear.php.net/package/PHP_CodeSniffer/'."
   (lambda (errors)
     (flycheck-sanitize-errors
      (flycheck-remove-error-file-names "STDIN" errors)))
-  :modes (php-mode php+-mode)
+  :modes (php-mode php-ts-mode php+-mode)
   ;; phpcs seems to choke on empty standard input, hence skip phpcs if the
   ;; buffer is empty, see https://github.com/flycheck/flycheck/issues/907
   :predicate flycheck-buffer-nonempty-p)
@@ -11127,7 +11127,7 @@ See URL `https://nixos.org/nix/manual/#sec-nix-instantiate'."
     (flycheck-sanitize-errors
      (flycheck-remove-error-file-names "(string)" errors)))
   :next-checkers ((warning . nix-linter))
-  :modes nix-mode)
+  :modes (nix-mode nix-ts-mode))
 
 (defun flycheck-parse-nix-linter (output checker buffer)
   "Parse nix-linter warnings from JSON OUTPUT.
@@ -11164,7 +11164,7 @@ See URL `https://github.com/Synthetica9/nix-linter'."
     (-when-let (error-code (flycheck-error-id error))
       (flycheck-call-checker-process-for-output
        'nix-linter nil t "--help-for" error-code)))
-  :modes nix-mode)
+  :modes (nix-mode nix-ts-mode))
 
 (defun flycheck-locate-sphinx-source-directory ()
   "Locate the Sphinx source directory for the current buffer.
@@ -12253,9 +12253,8 @@ information about tflint."
   "A Terraform checker using tflint.
 
 See URL `https://github.com/terraform-linters/tflint'."
-  :command ("tflint" "--format=json"
-            (option-list "--var-file=" flycheck-tflint-variable-files concat)
-            source-original)
+  :command ("tflint" "--format=json" "--force"
+            (option-list "--var-file=" flycheck-tflint-variable-files concat))
   :error-parser flycheck-parse-tflint-linter
   :predicate flycheck-buffer-saved-p
   :modes terraform-mode)
