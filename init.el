@@ -90,9 +90,9 @@
 
 ;; 关闭一些有用，但最近不常用的 mode
 ;; (require 'dart-mode_init)
-;; (require 'go-mode_init)
+(require 'go-mode_init)
 ;; (require 'rust_init)
-(require 'go-ts-mode_init)
+;; (require 'go-ts-mode_init)
 ;; (require 'rust-ts-mode_init)
 
 ;; (require 'lsp-bridge_init)

@@ -10,7 +10,9 @@
 ;; 必须手动 require headerline 和 diagnostics 两个，才会有 flycheck 的小红线提示错误信息。
 ;; 如果没有小红线，可能很难发现一些错误。
 
-;; (setq lsp-log-io t)
+(setq lsp-log-io t)
+;; (setq debug-on-error t)              ;需要调试时，开启这个。
+(setq no-byte-compile t)
 
 ;; 这个不开，跳转的时候可能也会出错。
 (require 'lsp-modeline)
