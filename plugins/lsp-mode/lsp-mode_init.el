@@ -18,7 +18,7 @@
 (require 'lsp-icons)
 
 ;; 尝试 guess root, 注意不要打开这个，打开这个可能造成进入 lsp-dart 当前项目依赖的库文件之后，无法再次跳转。
-;; (setq lsp-auto-guess-root nil)
+;; (setq lsp-auto-guess-root t)
 
 ;; try disable watch file for performance reason, don't know it impact yet.
 ;; 下面的两个一个注释，另一个取消注释.
@@ -29,19 +29,19 @@
 (setq lsp-headerline-breadcrumb-enable-symbol-numbers t)
 
 ;; 这个 打开时，lsp-dart 非常卡，建议关闭
-(setq lsp-signature-auto-activate t)
+;; (setq lsp-signature-auto-activate t)
 ;; 使用 posframe 挺丑的
 ;; (setq lsp-signature-function 'lsp-signature-posframe)
 
 (setq lsp-enable-on-type-formatting nil)
 
 ;; 这个默认不打开，怀疑打开会很慢，先关闭
-;; (setq lsp-semantic-tokens-enable t)
+(setq lsp-semantic-tokens-enable t)
 
 ;; lsp-dart not support set this.
 ;; (setq lsp-use-plists t)
 
-;; 下面是这些新的配置相对于老的配置的一些改动：
+;; 下面是这些新的配置相对于老的配置, 恢复成了默认值
 
 ;; 1. lsp-modeline-code-actions-enable 从 nil 改为默认值 t
 ;; 2. lsp-ui-doc-position 从 at-point 改为默认值 top
@@ -61,13 +61,13 @@
   ;; code actions 是问题的修复策略, 在右侧显示问题的修复策略。
   ;; (setq lsp-ui-sideline-show-code-actions nil)
 
-  (setq lsp-ui-doc-delay 3)
+  (setq lsp-ui-doc-delay 1)
 
   ;; (setq lsp-ui-sideline-show-hover nil) ; 这是默认值
   ;; (setq lsp-ui-doc-enable t) ; 这是默认值
   ;; (setq lsp-ui-imenu-enable t) ; 这是默认值
 
-  ;; (require 'lsp-ui-flycheck)
+  ;;(require 'lsp-ui-flycheck)
   ;; (lsp-ui-flycheck-list-mode)
 
   ;; M-.
