@@ -22,14 +22,14 @@
 
 ;; try disable watch file for performance reason, don't know it impact yet.
 ;; 下面的两个一个注释，另一个取消注释.
-(setq lsp-enable-file-watchers nil)
-;; (setq lsp-file-watch-threshold 3000)
+;; (setq lsp-enable-file-watchers nil)
+(setq lsp-file-watch-threshold 3000)
 
 ;; for more customize, check lsp-headerline-breadcrumb-segments
 (setq lsp-headerline-breadcrumb-enable-symbol-numbers t)
 
 ;; 这个 打开时，lsp-dart 非常卡，建议关闭
-(setq lsp-signature-auto-activate nil)
+(setq lsp-signature-auto-activate t)
 ;; 使用 posframe 挺丑的
 ;; (setq lsp-signature-function 'lsp-signature-posframe)
 
