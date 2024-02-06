@@ -59,6 +59,16 @@
   :type 'boolean
   :group 'dark-plus)
 
+(defcustom vscode-dark-plus-render-line-highlight 'default
+  "Controls rendering of the current line highlight."
+  :type '(radio
+          (const :tag "None" none)
+          (const :tag "Gutter" gutter)
+          (const :tag "Line" line)
+          (const :tag "Gutter and Line" all)
+          (const :tag "Default" default))
+  :group 'dark-plus)
+
 (let ((class '((class color) (min-colors 89)))
       (fg0               "#aeafad")
       (fg1               "#d4d4d4") ; default fg
@@ -125,6 +135,9 @@
    `(font-lock-doc-face                       ((,class (:foreground ,doc))))
    `(font-lock-function-name-face             ((,class (:foreground ,func :bold nil))))
    `(font-lock-keyword-face                   ((,class (:bold nil :foreground ,keyword))))
+   `(font-lock-number-face                    ((,class (:foreground ,numeric))))
+   `(font-lock-operator-face                  ((,class (:inherit default))))
+   `(font-lock-punctuation-face               ((,class (:inherit default))))
    `(font-lock-string-face                    ((,class (:foreground ,str))))
    `(font-lock-type-face                      ((,class (:foreground ,type ))))
    `(font-lock-variable-name-face             ((,class (:foreground ,var))))
@@ -135,8 +148,13 @@
    `(region                                   ((,class (:background ,bg-hl :distant-foreground ,fg0 :extend nil))))
    `(secondary-selection                      ((,class (:inherit region))))
    `(highlight                                ((,class (:foreground "#4db2ff" :underline t)))) ; link hover
-   `(hl-line                                  ((,class (:background ,bg3))))
-   `(fringe                                   ((,class (:background nil :foreground ,fg4))))
+   `(hl-line                                  ((,class ,(pcase vscode-dark-plus-render-line-highlight
+                                                          ((or 'line 'all)
+                                                           `(:background ,bg1 :box (:color ,bg3 :line-width (0 . -1))))
+                                                          ('none `(:background ,bg1))
+                                                          ('default `(:background ,bg3))))))
+   `(fill-column-indicator                    ((,class (:foreground "#5a5a5a")))) ; editorRuler.foreground
+   `(fringe                                   ((,class (:background unspecified :foreground ,fg4))))
    `(cursor                                   ((,class (:background ,fg1))))
    `(show-paren-match-face                    ((,class (:background ,warning))))
    `(show-paren-match                         ((t (:foreground ,fg3 :background ,bg4 :bold t))))
@@ -150,12 +168,17 @@
    `(success                                  ((,class (:foreground ,ms-bluegreen))))
    `(dired-directory                          ((t (:inherit (font-lock-keyword-face)))))
    `(line-number                              ((,class (:inherit default :foreground ,line-num))))
-   `(line-number-current-line                 ((,class (:inherit default :foreground ,line-num-current))))
+   `(line-number-current-line                 ((,class (:inherit default :foreground ,line-num-current
+                                                                 ,@(pcase vscode-dark-plus-render-line-highlight
+                                                                     ((or 'gutter 'all)
+                                                                      `(:background ,bg1 :box (:color ,bg3 :line-width (0 . -1))))
+                                                                     ((or 'none 'default)
+                                                                      `(:background ,bg1)))))))
    `(header-line                              ((,class (:bold nil :foreground ,fg4 :background ,bg3))))
 
    `(mode-line                                ((,class (:bold nil :foreground ,fg4 :background ,mode-line-bg))))
    `(mode-line-inactive                       ((,class (:bold nil :foreground ,fg1 :background ,mode-line-bg-dark))))
-   `(mode-line-buffer-id                      ((,class (:bold nil :foreground ,accent :background nil))))
+   `(mode-line-buffer-id                      ((,class (:bold nil :foreground ,accent :background unspecified))))
    `(mode-line-highlight                      ((,class (:foreground ,keyword :box nil :weight normal))))
    `(mode-line-emphasis                       ((,class (:foreground ,fg1))))
 
@@ -178,7 +201,7 @@
    `(org-level-7                              ((,class (:bold nil :foreground ,ms-lightorange))))
    `(org-level-8                              ((,class (:bold nil :foreground ,ms-red))))
    `(org-code                                 ((,class (:foreground ,ms-orange))))
-   `(org-hide                                 ((,class (:foreground ,fg4))))
+   `(org-hide                                 ((,class (:foreground ,bg1))))
    `(org-date                                 ((,class (:underline t :foreground ,var) )))
    `(org-footnote                             ((,class (:underline t :foreground ,fg4))))
    `(org-link                                 ((,class (:underline t :foreground ,type ))))
@@ -259,7 +282,7 @@
    `(icompletep-determined                    ((,class :foreground ,builtin)))
 
    `(slime-repl-inputed-output-face           ((,class (:foreground ,type))))
-   `(trailing-whitespace                      ((,class :foreground nil :background ,warning)))
+   `(trailing-whitespace                      ((,class :foreground unspecified :background ,warning)))
    `(lazy-highlight                           ((,class (:background "#613214"))))
 
    `(undo-tree-visualizer-current-face        ((,class :foreground ,builtin)))
@@ -532,6 +555,10 @@
    `(highlight-numbers-number                 ((t (:foreground ,numeric))))
    `(highlight-operators-face                 ((t (:inherit default))))
    `(highlight-symbol-face                    ((t (:background "#343a40"))))
+
+   `(highlight-thing                          ((t ,(pcase vscode-dark-plus-render-line-highlight
+                                                     ('default `(:inherit region))
+                                                     (_ `(:background ,bg3))))))
 
    `(window-divider                           ((t (:foreground "gray40"))))
    `(window-divider-last-pixel                ((t (:foreground "gray20"))))

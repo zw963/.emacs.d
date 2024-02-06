@@ -5,10 +5,13 @@
 (setq custom-theme-directory (expand-file-name "plugins/themes"))
 ;; (load-theme 'vscode-dark-plus t)
 
-(setq zenburn-use-variable-pitch t)
-(setq zenburn-scale-org-headlines t)
-(setq zenburn-scale-outline-headlines t)
-(load-theme 'zenburn t)
+;; (setq zenburn-use-variable-pitch t)
+;; (setq zenburn-scale-org-headlines t)
+;; (setq zenburn-scale-outline-headlines t)
+;; (load-theme 'zenburn t)
+
+(require ' doom-ayu-moonlight-theme)
+(load-theme 'doom-ayu-moonlight t)
 
 ;; (load-theme 'material t) ;; 这个是原来的
 ;; (load-theme 'material-light t) ;; 这个是原来的
