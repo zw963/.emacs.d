@@ -1,11 +1,11 @@
-;;; all-the-icons-ibuffer.el --- Display icons for all buffers in ibuffer        -*- lexical-binding: t; -*-
+;;; nerd-icons-ibuffer.el --- Display nerd icons in ibuffer        -*- lexical-binding: t; -*-
 
-;; Copyright (C) 2020 Vincent Zhang
+;; Copyright (C) 2023 Vincent Zhang
 
 ;; Author: Vincent Zhang <seagle0128@gmail.com>
-;; Homepage: https://github.com/seagle0128/all-the-icons-ibuffer
-;; Version: 1.5.0
-;; Package-Requires: ((emacs "24.4") (all-the-icons "2.2.0"))
+;; Homepage: https://github.com/seagle0128/nerd-icons-ibuffer
+;; Version: 1.0.0
+;; Package-Requires: ((emacs "24.3") (nerd-icons "0.0.1"))
 ;; Keywords: convenience, icons, ibuffer
 
 ;; This file is not part of GNU Emacs.
@@ -29,85 +29,75 @@
 
 ;;; Commentary:
 
-;; Display icons for all buffers in ibuffer.
+;; Display nerd icons in ibuffer.
 ;;
 ;; Install:
-;; From melpa, `M-x package-install RET all-the-icons-ibuffer RET`.
-;; (add-hook 'ibuffer-mode-hook #'all-the-icons-ibuffer-mode)
+;; From melpa, `M-x package-install RET nerd-icons-ibuffer RET`.
+;; (add-hook 'ibuffer-mode-hook #'nerd-icons-ibuffer-mode)
 ;; or
-;; (use-package all-the-icons-ibuffer
+;; (use-package nerd-icons-ibuffer
 ;;   :ensure t
-;;   :hook (ibuffer-mode . all-the-icons-ibuffer-mode))
+;;   :hook (ibuffer-mode . nerd-icons-ibuffer-mode))
 
 ;;; Code:
 
 (require 'ibuffer)
-(require 'all-the-icons)
+(require 'nerd-icons)
 
-(defgroup all-the-icons-ibuffer nil
-  "Display icons for all buffers in ibuffer."
-  :group 'all-the-icons
+(defgroup nerd-icons-ibuffer nil
+  "Display nerd icons in ibuffer."
+  :group 'nerd-icons
   :group 'ibuffer
-  :link '(url-link :tag "Homepage" "https://github.com/seagle0128/all-the-icons-ibuffer"))
+  :link '(url-link :tag "Homepage" "https://github.com/seagle0128/nerd-icons-ibuffer"))
 
-(defface all-the-icons-ibuffer-icon-face
+(defface nerd-icons-ibuffer-icon-face
   '((t (:inherit default)))
-  "Face used for the icons while `all-the-icons-ibuffer-color-icon' is nil."
-  :group 'all-the-icons-ibuffer)
+  "Face used for the icons while `nerd-icons-ibuffer-color-icon' is nil."
+  :group 'nerd-icons-ibuffer)
 
-(defface all-the-icons-ibuffer-dir-face
+(defface nerd-icons-ibuffer-dir-face
   '((t (:inherit font-lock-doc-face)))
   "Face used for the directory icon."
-  :group 'all-the-icons-ibuffer)
+  :group 'nerd-icons-ibuffer)
 
-(defface all-the-icons-ibuffer-size-face
+(defface nerd-icons-ibuffer-size-face
   '((t (:inherit font-lock-constant-face)))
   "Face used for the size."
-  :group 'all-the-icons-ibuffer)
+  :group 'nerd-icons-ibuffer)
 
-(defface all-the-icons-ibuffer-mode-face
+(defface nerd-icons-ibuffer-mode-face
   '((t (:inherit font-lock-keyword-face)))
   "Face used for the major mode."
-  :group 'all-the-icons-ibuffer)
+  :group 'nerd-icons-ibuffer)
 
-(defface all-the-icons-ibuffer-file-face
+(defface nerd-icons-ibuffer-file-face
   '((t (:inherit completions-annotations)))
   "Face used for the filename/process."
-  :group 'all-the-icons-ibuffer)
+  :group 'nerd-icons-ibuffer)
 
-(defcustom all-the-icons-ibuffer-display-predicate #'display-graphic-p
-  "Predicate whether the icons are able to be displayed."
-  :group 'all-the-icons-ibuffer
-  :type 'boolean)
-
-(defcustom all-the-icons-ibuffer-icon t
+(defcustom nerd-icons-ibuffer-icon t
   "Whether display the icons."
-  :group 'all-the-icons-ibuffer
+  :group 'nerd-icons-ibuffer
   :type 'boolean)
 
-(defcustom all-the-icons-ibuffer-color-icon t
+(defcustom nerd-icons-ibuffer-color-icon t
   "Whether display the colorful icons.
 
-It respects `all-the-icons-color-icons'."
-  :group 'all-the-icons-ibuffer
+It respects `nerd-icons-color-icons'."
+  :group 'nerd-icons-ibuffer
   :type 'boolean)
 
-(defcustom all-the-icons-ibuffer-icon-size 1.0
+(defcustom nerd-icons-ibuffer-icon-size 1.0
   "The default icon size in ibuffer."
-  :group 'all-the-icons-ibuffer
+  :group 'nerd-icons-ibuffer
   :type 'float)
 
-(defcustom all-the-icons-ibuffer-icon-v-adjust 0.0
-  "The default vertical adjustment of the icon in ibuffer."
-  :group 'all-the-icons-ibuffer
-  :type 'float)
-
-(defcustom all-the-icons-ibuffer-human-readable-size t
+(defcustom nerd-icons-ibuffer-human-readable-size t
   "Use human readable file size in ibuffer."
-  :group 'all-the-icons-ibuffer
+  :group 'nerd-icons-ibuffer
   :type 'boolean)
 
-(defcustom all-the-icons-ibuffer-formats
+(defcustom nerd-icons-ibuffer-formats
   `((mark modified read-only ,(if (>= emacs-major-version 26) 'locked "")
           ;; Here you may adjust by replacing :right with :center or :left
           ;; According to taste, if you want the icon further from the name
@@ -117,15 +107,15 @@ It respects `all-the-icons-color-icons'."
           " " (mode+ 16 16 :left :elide)
           " " filename-and-process+)
     (mark " " (name 16 -1) " " filename))
-  "A list of ways to display buffer lines with `all-the-icons'.
+  "A list of ways to display buffer lines with `nerd-icons'.
 
 See `ibuffer-formats' for details."
-  :group 'all-the-icons-ibuffer
+  :group 'nerd-icons-ibuffer
   :type '(repeat sexp))
 
 
 
-(defun all-the-icons-ibuffer--file-size-human-readable-to-bytes (file-size &optional flavor)
+(defun nerd-icons-ibuffer--file-size-human-readable-to-bytes (file-size &optional flavor)
   "Convert a human-readable FILE-SIZE string into bytes with FLAVOR."
   (let ((power (if (or (null flavor) (eq flavor 'iec))
 		           1024.0
@@ -145,43 +135,38 @@ See `ibuffer-formats' for details."
 ;; For alignment, the size of the name field should be the width of an icon
 (define-ibuffer-column icon
   (:name "" :inline t)
-  (if (and all-the-icons-ibuffer-icon
-           (funcall all-the-icons-ibuffer-display-predicate))
-      (let ((icon (cond
-                   ((and (buffer-file-name) (all-the-icons-auto-mode-match?))
-                    (all-the-icons-icon-for-file (file-name-nondirectory (buffer-file-name))
-                                                 :height all-the-icons-ibuffer-icon-size
-                                                 :v-adjust all-the-icons-ibuffer-icon-v-adjust))
-                   ((eq major-mode 'dired-mode)
-                    (all-the-icons-icon-for-dir (buffer-name)
-                                                :height all-the-icons-ibuffer-icon-size
-                                                :v-adjust all-the-icons-ibuffer-icon-v-adjust
-                                                :face 'all-the-icons-ibuffer-dir-face))
-                   (t
-                    (all-the-icons-icon-for-mode major-mode
-                                                 :height all-the-icons-ibuffer-icon-size
-                                                 :v-adjust all-the-icons-ibuffer-icon-v-adjust)))))
+  (if nerd-icons-ibuffer-icon
+      (let ((icon (cond ((and (buffer-file-name) (nerd-icons-auto-mode-match?))
+                         (nerd-icons-icon-for-file (file-name-nondirectory (buffer-file-name))
+                                                   :height nerd-icons-ibuffer-icon-size))
+                        ((eq major-mode 'dired-mode)
+                         (nerd-icons-icon-for-dir (buffer-name)
+                                                  :height nerd-icons-ibuffer-icon-size
+                                                  :face 'nerd-icons-ibuffer-dir-face))
+                        (t
+                         (nerd-icons-icon-for-mode major-mode
+                                                   :height nerd-icons-ibuffer-icon-size)))))
         (concat
          (if (or (null icon) (symbolp icon))
-             (setq icon (all-the-icons-faicon "file-o"
-                                              :face (if all-the-icons-ibuffer-color-icon
-                                                        'all-the-icons-dsilver
-                                                      'all-the-icons-ibuffer-icon-face)
-                                              :height (* 0.9 all-the-icons-ibuffer-icon-size)
-                                              :v-adjust all-the-icons-ibuffer-icon-v-adjust))
-           (if all-the-icons-ibuffer-color-icon
+             (nerd-icons-faicon "nf-fa-file_o"
+                                :face (if nerd-icons-ibuffer-color-icon
+                                          'nerd-icons-dsilver
+                                        'nerd-icons-ibuffer-icon-face)
+                                :height nerd-icons-ibuffer-icon-size)
+           (if nerd-icons-ibuffer-color-icon
                icon
-             (propertize icon 'face `(:inherit all-the-icons-ibuffer-icon-face
-                                      :family ,(plist-get (get-text-property 0 'face icon)
-                                                          :family)))))
-         (propertize " " 'display '((space :relative-width 0.5)))))
+             (propertize icon
+                         'face `(:inherit nerd-icons-ibuffer-icon-face
+                                 :family ,(plist-get (get-text-property 0 'face icon)
+                                                     :family)))))
+         " "))
     ""))
 
 ;; Human readable file size for ibuffer
 (define-ibuffer-column size-h
   (:name "Size"
    :inline t
-   :props ('font-lock-face 'all-the-icons-ibuffer-size-face)
+   :props ('font-lock-face 'nerd-icons-ibuffer-size-face)
    :header-mouse-map ibuffer-size-header-map
    :summarizer
    (lambda (column-strings)
@@ -189,13 +174,13 @@ See `ibuffer-formats' for details."
        (dolist (string column-strings)
 	     (setq total
 	           ;; like, ewww ...
-	           (+ (float (all-the-icons-ibuffer--file-size-human-readable-to-bytes string))
+	           (+ (float (nerd-icons-ibuffer--file-size-human-readable-to-bytes string))
 		          total)))
-       (if all-the-icons-ibuffer-human-readable-size
+       (if nerd-icons-ibuffer-human-readable-size
            (file-size-human-readable total)
          (format "%0.f" total)))))
   (let ((size (buffer-size)))
-    (if all-the-icons-ibuffer-human-readable-size
+    (if nerd-icons-ibuffer-human-readable-size
         (file-size-human-readable size)
       (format "%s" size))))
 
@@ -203,7 +188,7 @@ See `ibuffer-formats' for details."
   (:name "Mode"
    :inline t
    :header-mouse-map ibuffer-mode-header-map
-   :props ('font-lock-face 'all-the-icons-ibuffer-mode-face
+   :props ('font-lock-face 'nerd-icons-ibuffer-mode-face
                            'mouse-face 'highlight
 	                       'keymap ibuffer-mode-name-map
 	                       'help-echo "mouse-2: filter by this mode"))
@@ -211,7 +196,7 @@ See `ibuffer-formats' for details."
 
 (define-ibuffer-column filename-and-process+
   (:name "Filename/Process"
-   :props ('font-lock-face 'all-the-icons-ibuffer-file-face)
+   :props ('font-lock-face 'nerd-icons-ibuffer-file-face)
    :header-mouse-map ibuffer-filename/process-header-map
    :summarizer
    (lambda (strings)
@@ -240,18 +225,18 @@ See `ibuffer-formats' for details."
 		          ""))
       filename)))
 
-(defvar all-the-icons-ibuffer-old-formats ibuffer-formats)
+(defvar nerd-icons-ibuffer-old-formats ibuffer-formats)
 
 ;;;###autoload
-(define-minor-mode all-the-icons-ibuffer-mode
+(define-minor-mode nerd-icons-ibuffer-mode
   "Display icons for all buffers in ibuffer."
   :lighter nil
   (when (derived-mode-p 'ibuffer-mode)
-    (setq-local ibuffer-formats (if all-the-icons-ibuffer-mode
-                                    all-the-icons-ibuffer-formats
-                                  all-the-icons-ibuffer-old-formats))
+    (setq-local ibuffer-formats (if nerd-icons-ibuffer-mode
+                                    nerd-icons-ibuffer-formats
+                                  nerd-icons-ibuffer-old-formats))
     (ibuffer-update nil t)))
 
-(provide 'all-the-icons-ibuffer)
+(provide 'nerd-icons-ibuffer)
 
-;;; all-the-icons-ibuffer.el ends here
+;;; nerd-icons-ibuffer.el ends here

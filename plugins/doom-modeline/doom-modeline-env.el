@@ -1,6 +1,6 @@
 ;;; doom-modeline-env.el --- A environment parser for doom-modeline -*- lexical-binding: t -*-
 
-;; Copyright (C) 2019-2020 Justin Barclay, Vincent Zhang
+;; Copyright (C) 2019-2024 Vincent Zhang, Justin Barclay
 
 ;; This file is not part of GNU Emacs.
 
@@ -25,8 +25,9 @@
 
 ;;; Code:
 
-(require 'subr-x)
 (require 'doom-modeline-core)
+(eval-when-compile
+  (require 'subr-x))
 
 
 ;; Externals
@@ -200,15 +201,26 @@ PARSER should be a function for parsing COMMAND's output line-by-line, to
 
 ;;;###autoload (autoload 'doom-modeline-env-setup-python "doom-modeline-env")
 (doom-modeline-def-env python
-  :hooks   'python-mode-hook
-  :command (lambda () (cond ((and (fboundp 'pipenv-project-p)
-                             (pipenv-project-p))
+  :hooks   '(python-mode-hook python-ts-mode-hook)
+  :command (lambda () (cond ((and (executable-find "pipenv")
+                                  (locate-dominating-file default-directory "Pipfile"))
                         (list "pipenv" "run"
                               (or doom-modeline-env-python-executable
                                   python-shell-interpreter
                                   "python")
                               "--version"))
                        ((executable-find "pyenv") (list "pyenv" "version-name"))
+                       ((and (executable-find "direnv")
+                                  (locate-dominating-file default-directory ".envrc"))
+                             (list "bash"
+                                   "-c"
+                                   ;; Direnv unfortunately writes crao on stderr
+                                   ;; so we need to pipe that to /dev/null
+                                   (format "direnv exec %s %s --version 2>/dev/null"
+                                           default-directory
+                                           (or doom-modeline-env-python-executable
+                                               python-shell-interpreter
+                                               "python"))))
                        ((list (or doom-modeline-env-python-executable
                                   python-shell-interpreter
                                   "python")
@@ -220,7 +232,7 @@ PARSER should be a function for parsing COMMAND's output line-by-line, to
 
 ;;;###autoload (autoload 'doom-modeline-env-setup-ruby "doom-modeline-env")
 (doom-modeline-def-env ruby
-  :hooks   '(ruby-mode-hook enh-ruby-mode-hook)
+  :hooks   '(ruby-mode-hook ruby-ts-mode-hook enh-ruby-mode-hook)
   :command (lambda () (list (or doom-modeline-env-ruby-executable "ruby") "--version"))
   :parser  (lambda (line)
              (car (split-string
@@ -244,7 +256,7 @@ PARSER should be a function for parsing COMMAND's output line-by-line, to
 
 ;;;###autoload (autoload 'doom-modeline-env-setup-go "doom-modeline-env")
 (doom-modeline-def-env go
-  :hooks   'go-mode-hook
+  :hooks   '(go-mode-hook go-ts-mode-hook)
   :command (lambda () (list (or doom-modeline-env-go-executable "go") "version"))
   :parser  (lambda (line)
              (cadr
@@ -262,7 +274,7 @@ PARSER should be a function for parsing COMMAND's output line-by-line, to
 
 ;;;###autoload (autoload 'doom-modeline-env-setup-rust "doom-modeline-env")
 (doom-modeline-def-env rust
-  :hooks   'rust-mode-hook
+  :hooks   '(rust-mode-hook rust-ts-mode-hook)
   :command (lambda () (list (or doom-modeline-env-rust-executable "rustc") "--version"))
   :parser  (lambda (line)
              (car

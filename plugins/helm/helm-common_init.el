@@ -66,5 +66,9 @@
 (custom-set-variables '(helm-imenu-fuzzy-match t))
 (add-to-list 'helm-imenu-all-buffer-assoc  '(enh-ruby-mode . js2-mode))
 
+(require 'helm-icons)
+(setq helm-icons-provider 'nerd-icons)
+(helm-icons-enable)
+
 (provide 'helm-common_init)
 ;;; helm-common_init.el ends here

@@ -10,6 +10,7 @@
 (require 'ibuffer_init)
 (require 'dired_init)
 (require 'shell_init)
+(require 'nerd-icons_init)
 (require 'treemacs_init)
 ;; (require 'sort-tab_init)
 (require 'awesome-tab_init)
@@ -106,7 +107,6 @@
 (require 'posframe_init)
 (require 'shackle_init)
 (require 'popper_init)
-(require 'all-the-icons_init)
 
 (add-hook 'prog-mode-hook 'display-line-numbers-mode)
 (add-hook 'sgml-mode-hook 'display-line-numbers-mode)

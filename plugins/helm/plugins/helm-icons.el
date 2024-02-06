@@ -32,9 +32,11 @@
 (require 'dash)
 (require 'seq)
 (require 'f)
+(require 'treemacs-faces nil t)
 (require 'treemacs-icons nil t)
 (require 'treemacs-themes nil t)
 (require 'all-the-icons nil t)
+(require 'nerd-icons nil t)
 
 (defgroup helm-icons nil
   "Helm treemacs icons."
@@ -51,6 +53,7 @@
   'treemacs
   "Provider to load symbols from."
   :type '(choice (const all-the-icons)
+                 (const nerd-icons)
                  (const treemacs))
   :group 'helm)
 
@@ -72,15 +75,40 @@
   (cond ((eq helm-icons-provider 'all-the-icons)
          (require 'all-the-icons)
          (concat
-          (or (cond ((not file) (all-the-icons-octicon "gear"))
+          (or (cond ((not (stringp file)) (all-the-icons-octicon "gear"))
                     ((or
                       (member (f-base file) '("." ".."))
                       (f-dir? file))
                      (all-the-icons-octicon "file-directory")))
               (all-the-icons-icon-for-file file))
           " "))
+        ((eq helm-icons-provider 'nerd-icons)
+         (require 'nerd-icons)
+         (concat
+          (or (cond ((not (stringp file)) (nerd-icons-octicon "nf-oct-gear"))
+                    ((or
+                      (member (f-base file) '("." ".."))
+                      (f-dir? file))
+                     (nerd-icons-octicon "nf-oct-file_directory")))
+              (nerd-icons-icon-for-file file))
+          " "))
         ((eq helm-icons-provider 'treemacs)
          (helm-icons--treemacs-icon file))))
+
+(defun helm-icons--get-icon-for-mode (mode)
+  "Get icon for mode. First it will use the customized
+helm-icons-mode->icon to resolve the icon, otherwise it tries to
+use the provider."
+  (or (-some->> (assoc major-mode helm-icons-mode->icon)
+           (cl-rest)
+           helm-icons--get-icon)
+      (cond ((eq helm-icons-provider 'all-the-icons)
+             (-let ((icon (all-the-icons-icon-for-mode mode)))
+               (when (stringp icon) (concat icon " "))))
+            ((eq helm-icons-provider 'nerd-icons)
+             (-let ((icon (nerd-icons-icon-for-mode mode)))
+               (when (stringp icon) (concat icon " "))))
+            (t nil))))
 
 (defun helm-icons-buffers-add-icon (candidates _source)
   "Add icon to buffers source.
@@ -88,9 +116,7 @@ CANDIDATES is the list of candidates."
   (-map (-lambda ((display . buffer))
           (cons (concat
                  (with-current-buffer buffer
-                   (or (->> (assoc major-mode helm-icons-mode->icon)
-                            (cl-rest)
-                            helm-icons--get-icon)
+                   (or (helm-icons--get-icon-for-mode major-mode)
                        (-some->> (buffer-file-name)
                          helm-icons--get-icon)
                        (helm-icons--get-icon 'fallback)))
@@ -152,10 +178,11 @@ NAME, CLASS and ARGS are the original params."
   "Setup icons based on which provider is set."
   (cond ((eq helm-icons-provider 'all-the-icons)
          (require 'all-the-icons))
+        ((eq helm-icons-provider 'nerd-icons)
+         (require 'nerd-icons))
         ((eq helm-icons-provider 'treemacs)
          (require 'treemacs-themes)
-         (require 'treemacs-icons)
-         (treemacs--setup-icon-background-colors))))
+         (require 'treemacs-icons))))
 
 ;;;###autoload
 (defun helm-icons-enable ()

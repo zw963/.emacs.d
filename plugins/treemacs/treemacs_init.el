@@ -32,12 +32,9 @@
 
 (setq treemacs-width 42)
 
-(require 'treemacs-icons-dired)
-;; 让 dired 使用 treemacs 图标。
-(treemacs-icons-dired-mode t)
-
-;; (require 'treemacs-all-the-icons)
-;; (treemacs-load-theme "all-the-icons")
+;; (require 'treemacs-icons-dired)
+;; ;; 让 dired 使用 treemacs 图标。
+;; (treemacs-icons-dired-mode t)
 
 ;; 改变图标大小，默认 22.
 ;; (treemacs-resize-icons 18)
@@ -47,10 +44,6 @@
 
 (add-hook 'treemacs-mode-hook
           (lambda ()
-            (with-eval-after-load 'doom-themes
-              (require 'doom-themes-ext-treemacs)
-              (doom-themes-treemacs-config)
-              )
             (define-key treemacs-mode-map [(control d)] 'treemacs-remove-project-from-workspace)
             ))
 
