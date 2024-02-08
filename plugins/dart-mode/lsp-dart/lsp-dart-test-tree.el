@@ -322,7 +322,7 @@ POSITION is the test start position."
   (lsp-dart-test-tree-add-suite suite))
 
 (lsp-defun lsp-dart-test-tree--handle-group ((&GroupNotification :group))
-    (lsp-dart-test-tree-set-group group))
+  (lsp-dart-test-tree-set-group group))
 
 (lsp-defun lsp-dart-test-tree--handle-start ((&TestStartNotification :test))
   "Handle test start notification."
@@ -331,6 +331,18 @@ POSITION is the test start position."
 (lsp-defun lsp-dart-test-tree--handle-done ((&TestDoneNotification :test-id :result :time :skipped) _test-name test-start-time)
   "Handle test done notification."
   (lsp-dart-test-tree-mark-as-done test-id (- time test-start-time) result skipped))
+
+(defun lsp-dart-test-tree--render-final (suite-or-group)
+  "Rebuild the test tree for SUITE-OR-GROUP one last time."
+  (seq-map
+   (-lambda ((_group-id . group))
+     (lsp-dart-test-tree--render-final group)
+     (lsp-dart-test-tree--render))
+   (plist-get suite-or-group :groups)))
+
+(defun lsp-dart-test-tree--handle-all-done (_params)
+  "Handle test done notification."
+  (seq-map #'lsp-dart-test-tree--render-final (map-values lsp-dart-test-tree--suites)))
 
 
 ;;; Public
@@ -408,6 +420,7 @@ POSITION is the test start position."
 (add-hook 'lsp-dart-test-group-notification-hook #'lsp-dart-test-tree--handle-group)
 (add-hook 'lsp-dart-test-start-notification-hook #'lsp-dart-test-tree--handle-start)
 (add-hook 'lsp-dart-test-done-notification-hook #'lsp-dart-test-tree--handle-done)
+(add-hook 'lsp-dart-test-all-done-notification-hook #'lsp-dart-test-tree--handle-all-done)
 
 (provide 'lsp-dart-test-tree)
 ;;; lsp-dart-test-tree.el ends here

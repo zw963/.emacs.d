@@ -2,7 +2,7 @@
 
 ;; Copyright (C) 2022 Eric Dallo
 
-;; Version: 1.23.0
+;; Version: 1.24.2
 ;; Package-Requires: ((emacs "26.3") (lsp-treemacs "0.3") (lsp-mode "7.0.1") (dap-mode "0.6") (f "0.20.0") (dash "2.14.1") (dart-mode "1.0.5") (jsonrpc "1.0.15") (ht "2.2"))
 ;; Keywords: languages, extensions
 ;; URL: https://emacs-lsp.github.io/lsp-dart
@@ -54,7 +54,7 @@
   :type '(repeat string)
   :group 'lsp-dart)
 
-(defcustom lsp-dart-extra-library-directories '()
+(defcustom lsp-dart-extra-library-directories (list (expand-file-name "~/.pub-cache"))
   "List of directories which will be considered to be libraries."
   :risky t
   :type '(repeat string)
@@ -99,7 +99,7 @@ If unspecified, diagnostics will not be generated."
 
 ;;; Internal
 
-(defvar lsp-dart-version-string "1.23.0")
+(defvar lsp-dart-version-string "1.24.2")
 
 (defun lsp-dart--library-folders ()
   "Return the library folders path to analyze."

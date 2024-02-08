@@ -1,10 +1,31 @@
 ;;; dart-mode.el --- Major mode for editing Dart files -*- lexical-binding: t; -*-
 
-;; Author: https://github.com/bradyt/dart-mode/issues
-;; URL: https://github.com/bradyt/dart-mode
+;; Copyright (C) 2011-2018  Google Inc.
+;; Copyright (C) 2018-2023  Brady Trainor
+
+;; Author: Brady Trainor
+;; Maintainer: Jen-Chieh Shen <jcs090218@gmail.com>
+;; URL: https://github.com/emacsorphanage/dart-mode
 ;; Version: 1.0.7
-;; Package-Requires: ((emacs "24.3"))
+;; Package-Requires: ((emacs "27.1"))
 ;; Keywords: languages
+
+;;; About the previous implementation:
+
+;; To a not fully determined extend, this implementation derives from an
+;; earlier implementation by Natalie Weizenbaum, for which the copyright
+;; holder is Google.
+
+;; In the discussion attached to [1], Brady Trainor implicitly repeats
+;; his claim, that no code from that earlier implementation remains.
+;; This seems plausible, but, as mentioned in that discussion, would have
+;; to be studied in more detail, to be absolutely certain, which is why I
+;; am restoring Google's copyright notice.
+
+;; [1]: https://github.com/emacsorphanage/dart-mode/commit/69d7c23be7518bcb004860120ba3ea2a7dcfb6de
+
+;; Bradly Trainor added the below statement in 2021.  It is preserved
+;; unchanged:
 
 ;; The author is Brady Trainor, but removed from keywords in attempt
 ;; to avoid some class of robots.
@@ -20,19 +41,19 @@
 
 ;;; Commentary:
 
-;; Major mode for editing Dart files.
-
-;; Provides basic syntax highlighting and indentation.
+;; This package implements a major-mode for the Dart language,
+;; providing basic syntax highlighting and indentation support.
 
 ;;; Code:
 
 ;;; Configuration
 
-(defvar dart-mode-map (make-sparse-keymap)
+(defvar dart-mode-map
+  (let ((map (make-sparse-keymap)))
+    (define-key map (kbd "<backtab>") #'dart-dedent-simple)
+    (define-key map (kbd "C-c C-i") #'indent-according-to-mode)
+    map)
   "Keymap used in dart-mode buffers.")
-(define-key dart-mode-map (kbd "<backtab>") 'dart-dedent-simple)
-(define-key dart-mode-map (kbd "C-c C-i") 'indent-according-to-mode)
-
 
 ;;; Indentation
 
@@ -189,36 +210,40 @@ indentation levels from right to left."
     "null"
     "true"))
 
-(defvar dart--async-keywords-re (rx word-start
-                                    (or "async" "await" "sync" "yield")
-                                    word-end
-                                    (zero-or-one ?*)))
+(defvar dart--async-keywords-re
+  (rx word-start
+      (or "async" "await" "sync" "yield")
+      word-end
+      (zero-or-one ?*)))
 
 ;; https://dart.dev/guides/language/specifications/DartLangSpec-v2.10.pdf
 ;; 17.5 Numbers
-(defvar dart--numeric-literal-re (rx-let
-                                     ((numeric-literal (| number hex-number))
-                                      (number (: (| (: (1+ digit) (? (: ?. (1+ digit))))
-                                                    (: ?. (1+ digit)))
-                                                 (? exponent)))
-                                      (exponent (: (| ?e ?E)
-                                                   (? (| ?+ ?-))
-                                                   (1+ digit)))
-                                      (hex-number (: ?0 (| ?x ?X) (1+ hex-digit))))
-                                   (rx bow numeric-literal eow)))
+(defvar dart--numeric-literal-re
+  (rx-let
+      ((numeric-literal (| number hex-number))
+       (number (: (| (: (1+ digit) (? (: ?. (1+ digit))))
+                     (: ?. (1+ digit)))
+                  (? exponent)))
+       (exponent (: (| ?e ?E)
+                    (? (| ?+ ?-))
+                    (1+ digit)))
+       (hex-number (: ?0 (| ?x ?X) (1+ hex-digit))))
+    (rx bow numeric-literal eow)))
 
-(defvar dart--operator-declaration-re (rx "operator"
-                                          (one-or-more space)
-                                          (group
-                                           (one-or-more (not (any ?\())))))
+(defvar dart--operator-declaration-re
+  (rx "operator"
+      (one-or-more space)
+      (group
+       (one-or-more (not (any ?\())))))
 
-(eval-and-compile (defun dart--identifier (&optional case)
-   `(and (or word-start symbol-start)
-         (zero-or-more (any ?$ ?_))
-         ,(if case
-              case
-            'alpha)
-         (zero-or-more (or ?$ ?_ alnum)))))
+(eval-and-compile
+  (defun dart--identifier (&optional case)
+    `(and (or word-start symbol-start)
+          (zero-or-more (any ?$ ?_))
+          ,(if case
+               case
+             'alpha)
+          (zero-or-more (or ?$ ?_ alnum)))))
 
 (defvar dart--metadata-re (rx ?@ (eval (dart--identifier))))
 
@@ -346,30 +371,32 @@ For example, \"compareTo\" in \"  int compareTo(num other);\" would be
 matched."
   (catch 'result
     (let (beg end)
-        (while (re-search-forward
-                (rx (and (not (any ?\.)) (group (eval (dart--identifier 'lower)))) ?\() limit t)
-          (setq beg (match-beginning 1))
-          (setq end (match-end 1))
-          (condition-case nil
-              (progn
-                (up-list)
-                (when (and (< (point) (point-max))
-                           (= (char-after (point)) ?\;))
-                  (goto-char beg)
-                  (back-to-indentation)
-                  (when (and (= (current-column) 2)
-                             (not (looking-at "return"))
-                             (string-match-p
-                              " " (buffer-substring-no-properties
-                                   (point) beg))
-                             (not (string-match-p
-                                   "=" (buffer-substring-no-properties
-                                        (point) beg))))
-                    (goto-char end)
-                    (set-match-data (list beg end))
-                    (throw 'result t))))
-            (scan-error nil))
-          (goto-char end)))
+      (while (re-search-forward
+              (rx (and (not (any ?\.)) (group (eval (dart--identifier 'lower))))
+                  ?\()
+              limit t)
+        (setq beg (match-beginning 1))
+        (setq end (match-end 1))
+        (condition-case nil
+            (progn
+              (up-list)
+              (when (and (< (point) (point-max))
+                         (= (char-after (point)) ?\;))
+                (goto-char beg)
+                (back-to-indentation)
+                (when (and (= (current-column) 2)
+                           (not (looking-at "return"))
+                           (string-match-p
+                            " " (buffer-substring-no-properties
+                                 (point) beg))
+                           (not (string-match-p
+                                 "=" (buffer-substring-no-properties
+                                      (point) beg))))
+                  (goto-char end)
+                  (set-match-data (list beg end))
+                  (throw 'result t))))
+          (scan-error nil))
+        (goto-char end)))
     (throw 'result nil)))
 
 (defun dart--declared-identifier-func (limit)
@@ -570,9 +597,9 @@ untyped parameters. For example, in
 
 (defvar dart-font-lock-keywords-1
   `((,(regexp-opt dart--file-directives 'words) . font-lock-builtin-face)
-    (dart--function-declaration-func            . font-lock-function-name-face)
-    (,dart--operator-declaration-re             . (1 font-lock-function-name-face))
-    (dart--abstract-method-func                 . font-lock-function-name-face)))
+    (dart--function-declaration-func . font-lock-function-name-face)
+    (,dart--operator-declaration-re  . (1 font-lock-function-name-face))
+    (dart--abstract-method-func      . font-lock-function-name-face)))
 
 (defvar dart-font-lock-keywords-2
   `(,dart--async-keywords-re
@@ -641,19 +668,23 @@ strings."
       ;; Unless rawp, ensure an even number of backslashes
       (when (or (looking-at (concat (unless rawp (rx (zero-or-more ?\\ ?\\)))
                                     string-delimiter))
-                (re-search-forward (concat (unless rawp (rx (not (any ?\\)) (zero-or-more ?\\ ?\\)))
+                (re-search-forward (concat (unless rawp
+                                             (rx (not (any ?\\))
+                                                 (zero-or-more ?\\ ?\\)))
                                            string-delimiter)
                                    end t))
         (let ((eos (match-end 0)))
           ;; Set end of string fence delimiter
-          (put-text-property (1- eos) eos 'syntax-table (string-to-syntax "|") nil)
+          (put-text-property (1- eos) eos 'syntax-table (string-to-syntax "|"))
           ;; For all strings, remove fence property between fences
           ;; For raw strings, set all backslashes to punctuation syntax
           (dolist (pt (number-sequence (1+ bos) (- eos 2)))
-            (when (equal (get-text-property pt 'syntax-table) (string-to-syntax "|"))
+            (when (equal (get-text-property pt 'syntax-table)
+                         (string-to-syntax "|"))
               (remove-text-properties pt (1+ pt) 'syntax-table))
             (when (and rawp (equal (char-after pt) ?\\))
-              (put-text-property pt (1+ pt) 'syntax-table (string-to-syntax ".") nil)))
+              (put-text-property pt (1+ pt) 'syntax-table
+                                 (string-to-syntax ".") nil)))
           (goto-char eos))))))
 
 
@@ -688,5 +719,4 @@ Key bindings:
   (setq-local syntax-propertize-function 'dart-syntax-propertize-function))
 
 (provide 'dart-mode)
-
 ;;; dart-mode.el ends here
