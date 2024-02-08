@@ -10,9 +10,9 @@
 ;; 必须手动 require headerline 和 diagnostics 两个，才会有 flycheck 的小红线提示错误信息。
 ;; 如果没有小红线，可能很难发现一些错误。
 
-(setq lsp-log-io t)
+;; (setq lsp-log-io t)
 ;; (setq debug-on-error t)              ;需要调试时，开启这个。
-(setq no-byte-compile t)
+;; (setq no-byte-compile t)
 
 ;; 这个不开，跳转的时候可能也会出错。
 (require 'lsp-modeline)
@@ -126,12 +126,10 @@
 ;;               (setq-local company-format-margin-function #'company-vscode-dark-icons-margin))
 ;;             ))
 
+;; (setq lsp-disabled-clients '(html-ls emmet-ls eslint rubocop-ls semgrep-ls))
+
 (with-eval-after-load 'which-key
   (add-hook 'lsp-after-open-hook 'lsp-enable-which-key-integration))
-
-;; 关闭 html-ls 和 emmet-ls 来使得 lsp-tailwindcss 生效
-(setq lsp-disabled-clients '(html-ls emmet-ls eslint rubocop-ls semgrep-ls))
-(setq lsp-tailwindcss-add-on-mode t)
 
 (provide 'lsp-mode_init)
 
