@@ -107,7 +107,7 @@
                 ))
   (add-hook hook
             (lambda ()
-              (set (make-local-variable 'company-backends) '((company-capf company-dabbrev-code company-keywords)))
+              (set (make-local-variable 'company-backends) '(company-capf (company-dabbrev-code company-keywords) company-dabbrev))
               )))
 
 (setq company-files-exclusions '(".git/" ".DS_Store"))
@@ -210,7 +210,7 @@ ac-auto-show-menu 为 nil 的情形, 这种模式比较适合在 yasnippet 正�
   (require 'company-web-html)
   (add-hook 'web-mode-hook
             (lambda ()
-              (set (make-local-variable 'company-backends) '((company-capf company-web-html company-dabbrev-code company-keywords)))
+              (set (make-local-variable 'company-backends) '(company-web-html company-capf (company-dabbrev-code company-keywords) company-dabbrev))
               (company-mode t))
             )
   )

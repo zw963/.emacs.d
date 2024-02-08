@@ -12,6 +12,7 @@
         (cmake-mode      . cmake-ts-mode)
         (csharp-mode     . csharp-ts-mode)
         (python-mode     . python-ts-mode)
+        (sh-mode         . bash-ts-mode)
         ))
 
 (provide 'tree-sitter_init)

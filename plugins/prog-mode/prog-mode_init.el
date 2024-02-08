@@ -95,6 +95,7 @@
        ;; (cl-fourth (syntax-ppss))
        ;; (member (cl-fourth (syntax-ppss)) (list ?\/))
        (and (member major-mode '(sh-mode
+                                 bash-ts-mode
                                  conf-space-mode
                                  conf-unix-mode
                                  emacs-lisp-mode
