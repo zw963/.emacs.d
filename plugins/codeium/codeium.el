@@ -39,7 +39,7 @@
 
 ;;; Code:
 
-(defvar codeium-latest-local-server-version "1.4.4")
+(defvar codeium-latest-local-server-version "1.6.13")
 
 ;; (require 'url-parse)
 (autoload 'url-parse-make-urlobj "url-parse")
@@ -162,7 +162,7 @@
 	(let ((endpoint
 			  (or (alist-get api codeium-special-url-alist)
 				  (concat "/exa.language_server_pb.LanguageServerService/" (symbol-name api)))))
-		(url-parse-make-urlobj "http" nil nil "localhost" (codeium-state-port state)
+		(url-parse-make-urlobj "http" nil nil "127.0.0.1" (codeium-state-port state)
 			endpoint nil nil t)))
 
 
@@ -261,6 +261,7 @@
 		 (perl-mode . 28)
 		 (cperl-mode . 28)
 		 (php-mode . 29)
+  		 (php-ts-mode . 29)
 		 (text-mode . 30)
 		 (python-mode . 33)
 		 (python-ts-mode . 33)
@@ -1138,7 +1139,8 @@ returns. Prefer using `codeium-request' directly instead.
 			(tmp (codeium-request-synchronously 'GetCompletions state nil))
 			(req (car tmp))
 			(res (cdr tmp))
-			(rst (and (not (input-pending-p)) (codeium-parse-getcompletions-res req res))))
+			(rst (and (not (input-pending-p)) (codeium-parse-getcompletions-res req res)))
+			(company-doc-buffer " *codeium-docs*"))
 		(cl-destructuring-bind (dmin dmax table completionids) rst
 			(let*
 				(
@@ -1155,12 +1157,49 @@ returns. Prefer using `codeium-request' directly instead.
 						(string=
 							(buffer-substring-no-properties rmin rmax)
 							(substring-no-properties buffer-prev-str pmin pmax)))
-					(list rmin rmax table :exit-function
-						(lambda (string status)
-							(when-let ((num (and (eq status 'finished) (cl-position string table :test 'string=))))
-								(codeium-request 'AcceptCompletion state
-									`((codeium/completion_id . ,(nth num completionids)))
-									#'ignore))))))))
+					(list rmin rmax table
+					      :exit-function
+					      `(lambda (string status)
+						 (ignore-errors (kill-buffer ,company-doc-buffer))
+						 (when-let* ((num (and (eq status 'finished) (cl-position string ',table :test 'string=))))
+						   (codeium-request 'AcceptCompletion ,state
+								    `((codeium/completion_id . ,(nth num ',completionids)))
+								    #'ignore)))
+					      :annotation-function
+					      (lambda (_)
+						  (propertize
+						   " Codeium"
+						   'face font-lock-comment-face))
+					      :company-kind
+					      (lambda (_) 'magic)
+					      :company-doc-buffer
+					      `(lambda (string)
+						 ;; Soft load of markdown-mode, if no package then will show doc in plain text
+						 (unless (featurep 'markdown-mode)
+						   (ignore-errors (require 'markdown-mode)))
+						 (let* ((derived-lang (or (if (boundp 'markdown-code-lang-modes)
+									      (car (rassoc major-mode
+											   markdown-code-lang-modes)))
+									  (replace-regexp-in-string
+									   "\\(/.*\\|-ts-mode\\|-mode\\)$" ""
+									   (substring-no-properties mode-name))))
+							(markdown-fontify-code-blocks-natively t)
+							(inhibit-read-only t)
+							(non-essential t)
+							(delay-mode-hooks t))
+						   (with-current-buffer (get-buffer-create ,company-doc-buffer t)
+						     (erase-buffer)
+						     (if (fboundp 'gfm-view-mode)
+							 (progn
+							   (ignore-errors (funcall 'gfm-view-mode))
+							   (insert (concat "Codeium: " derived-lang "\n"
+									   "*****\n"
+									   "```" (downcase derived-lang) "\n"
+									   string "\n"
+									   "```")))
+						       (insert string))
+						     (font-lock-ensure (point-min) (point-max))
+						     (current-buffer)))))))))
 	;; (error
 	;; 	(message "an error occurred in codeium-completion-at-point: %s" (error-message-string err))
 	;; 	nil)
