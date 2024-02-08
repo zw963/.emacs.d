@@ -43,6 +43,7 @@ Meant to be used as `hs-set-up-overlay'."
   (let* ((marker-string "*fringe-dummy*")
          (marker-length (length marker-string))
          (close-icon (if (featurep 'all-the-icons) (concat "... " (all-the-icons-material "unfold_more")) "...")))
+    ;; (close-icon (if (featurep 'nerd-icons) (concat "... " (nerd-icons-mdicon "nf-md-unfold_more_horizontal")) "...")))
     (cond
      ((eq 'code (overlay-get ov 'hs))
       (let* ((nmb-line (count-lines (overlay-start ov) (overlay-end ov)))

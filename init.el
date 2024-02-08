@@ -10,10 +10,12 @@
 (require 'ibuffer_init)
 (require 'dired_init)
 (require 'shell_init)
-(require 'nerd-icons_init)
 (require 'treemacs_init)
 ;; (require 'sort-tab_init)
-(require 'awesome-tab_init)
+
+;; 这个包有问题, 老是让 helm 无法正确显示, 例如, helm-mini 出来之后, 没有显示
+;; 需要 C-p 移动一下才能看到内容
+;; (require 'awesome-tab_init)
 (require 'dimmer_init)
 (require 'fancy-narrow_init)
 (require 'zoom-frm_init)
@@ -107,6 +109,7 @@
 (require 'posframe_init)
 (require 'shackle_init)
 (require 'popper_init)
+(require 'nerd-icons_init)
 
 (add-hook 'prog-mode-hook 'display-line-numbers-mode)
 (add-hook 'sgml-mode-hook 'display-line-numbers-mode)
