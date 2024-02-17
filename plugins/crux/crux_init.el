@@ -4,7 +4,7 @@
 
 (global-set-key [(f2)] 'kill-buffer-enhanced) ;关闭当前缓冲区 F2
 
-(global-set-key [(control c) (j)] 'imenu)
+(global-set-key [(control c) (l)] 'imenu)
 
 (global-set-key [(meta D)] (lambda () (interactive) (dired "./"))) ; 打开 dired buffer.
 

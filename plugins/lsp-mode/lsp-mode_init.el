@@ -1,44 +1,106 @@
-(require 'dap-mode_init)
+;; (require 'dap-mode_init)
 (require 'lsp-mode)
+(require 'lsp-semantic-tokens)
+(lsp-semantic-tokens-mode 1)
 (require 'lsp-completion)
+(require 'lsp-modeline) ;; 这个不开，跳转的时候可能也会出错?
+(require 'lsp-lens)
+;; 必须手动 require headerline 和 diagnostics 两个，才会有 flycheck 的小红线提示错误信息。
+(require 'lsp-headerline) ;; 会 require lsp-icons
+(require 'lsp-diagnostics)
+
+(setq lsp-auto-configure nil)
+
+(defun zw/lsp-mode-common-hooks ()
+  (add-hook 'before-save-hook #'lsp-format-buffer t t)
+  (setq-local company-minimum-prefix-length 1)
+  (lsp-deferred)
+  (lsp-diagnostics-mode t)  ;; Toggle LSP diagnostics integration.
+  (lsp-completion-mode t)  ;; Toggle LSP completion support.
+  (lsp-signature-mode t)  ;; show signature popup.
+  (lsp-lens-mode t) ;; code-lens overlays.
+  ;; (lsp-installation-buffer-mode)
+  ;; (lsp-inlay-hints-mode)
+  (lsp-semantic-tokens-mode t) ;; semantic-tokens support.
+
+  ;; 这两个在 lsp-ui 也存在同样的设置, 因此关掉
+  ;; (lsp-modeline-code-actions-mode t) ;; code actions on modeline.
+  ;; (lsp-modeline-diagnostics-mode t)
+
+  (lsp-modeline-workspace-status-mode t) ;; workspace status on modeline.
+  (lsp-headerline-breadcrumb-mode t) ;; breadcrumb on headerline.
+
+  (require 'lsp-ui)
+  (lsp-ui-mode t)
+  (lsp-ui-sideline-mode t)
+  (lsp-ui-imenu-buffer-mode t)
+  (lsp-ui-peek-mode t)
+  (lsp-ui-doc-mode t)
+  ;; 关闭这个，会让 diagnostics(从 lsp-server 返回的诊断信息) 和 flycheck 信息在 minibuffer 合并显示.
+  (setq lsp-ui-sideline-show-diagnostics t)
+  ;; code actions 是问题的修复策略, 在右侧显示问题的修复策略。
+  (setq lsp-ui-sideline-show-code-actions t)
+  (setq lsp-ui-doc-delay 1)
+  ;; (setq lsp-ui-sideline-show-hover nil) ; 这是默认值
+
+  ;; M-.
+  (define-key lsp-ui-mode-map [remap xref-find-definitions] #'lsp-ui-peek-find-definitions)
+  ;; M-?
+  (define-key lsp-ui-mode-map [remap xref-find-references] #'lsp-ui-peek-find-references)
+
+  )
+
+;; (setq
+;;  lsp-enable-snippet t
+;;  lsp-enable-folding t
+;;  lsp-enable-links t
+;;  lsp-enable-imenu t
+;;  lsp-enable-dap-auto-configure nil
+;;  lsp-enable-symbol-highlighting t
+;;  lsp-enable-xref t
+;;  lsp-enable-indentation t
+;; lsp-enable-on-type-formatting t ;; 这个原来关闭的, 近期打开了, 试试看
+;;  lsp-enable-text-document-color t
+;;  lsp-enable-suggest-server-download t
+
+;;  lsp-eldoc-enable-hover t
+;;  lsp-semantic-tokens-enable t ;; 这个默认不打开，怀疑打开会很慢，先试试
+;;  lsp-completion-enable t
+;;  lsp-modeline-code-actions-enable t
+;;  lsp-modeline-diagnostics-enable t
+;;  lsp-modeline-workspace-status-enable t
+;;  lsp-headerline-breadcrumb-enable t
+;;  lsp-lens-enable t
+;;  lsp-inlay-hint-enable nil
+;;  )
+
+;; 下面的两个一个注释，另一个取消注释.
+(setq
+ ;; lsp-enable-file-watchers nil
+ lsp-file-watch-threshold 3000
+ )
+
+
+(setq lsp-completion-enable-additional-text-edit t)
+(setq lsp-headerline-breadcrumb-enable-diagnostics t)
+(setq lsp-headerline-breadcrumb-enable-symbol-numbers t) ;; for more customize, check lsp-headerline-breadcrumb-segments
+(setq lsp-headerline-breadcrumb-icons-enable t)
 
 ;; 如果退出最后一个 lsp buffer, 自动 kill 掉 lsp-server，否则 Emacs 会很慢。
 ;; (setq lsp-keep-workspace-alive nil)
-
-(require 'lsp-headerline)
-(require 'lsp-diagnostics)
-;; 必须手动 require headerline 和 diagnostics 两个，才会有 flycheck 的小红线提示错误信息。
-;; 如果没有小红线，可能很难发现一些错误。
 
 ;; (setq lsp-log-io t)
 ;; (setq debug-on-error t)              ;需要调试时，开启这个。
 ;; (setq no-byte-compile t)
 
-;; 这个不开，跳转的时候可能也会出错。
-(require 'lsp-modeline)
-
-(require 'lsp-icons)
-
 ;; 尝试 guess root, 注意不要打开这个，打开这个可能造成进入 lsp-dart 当前项目依赖的库文件之后，无法再次跳转。
 ;; (setq lsp-auto-guess-root t)
 
-;; try disable watch file for performance reason, don't know it impact yet.
-;; 下面的两个一个注释，另一个取消注释.
-;; (setq lsp-enable-file-watchers nil)
-(setq lsp-file-watch-threshold 3000)
-
-;; for more customize, check lsp-headerline-breadcrumb-segments
-(setq lsp-headerline-breadcrumb-enable-symbol-numbers t)
-
 ;; 这个 打开时，lsp-dart 非常卡，建议关闭
 ;; (setq lsp-signature-auto-activate t)
+
 ;; 使用 posframe 挺丑的
 ;; (setq lsp-signature-function 'lsp-signature-posframe)
-
-(setq lsp-enable-on-type-formatting nil)
-
-;; 这个默认不打开，怀疑打开会很慢，先关闭
-(setq lsp-semantic-tokens-enable t)
 
 ;; lsp-dart not support set this.
 ;; (setq lsp-use-plists t)
@@ -54,32 +116,15 @@
 
 ;; lsp-ui auto config completion, code-actions, breadcrumb, ‘flycheck’,
 ;;‘flymake’, ‘imenu’, symbol highlighting, lenses, links, and so on.
-
-(require 'lsp-ui)
-(with-eval-after-load 'lsp-ui
-  ;; 关闭这个，会让 diagnostics(从 lsp-server 返回的诊断信息) 和 flycheck 信息在 minibuffer 合并显示.
-  (setq lsp-ui-sideline-show-diagnostics nil)
-
-  ;; code actions 是问题的修复策略, 在右侧显示问题的修复策略。
-  ;; (setq lsp-ui-sideline-show-code-actions nil)
-
-  (setq lsp-ui-doc-delay 1)
-
-  ;; (setq lsp-ui-sideline-show-hover nil) ; 这是默认值
-  ;; (setq lsp-ui-doc-enable t) ; 这是默认值
-  ;; (setq lsp-ui-imenu-enable t) ; 这是默认值
-
-  ;;(require 'lsp-ui-flycheck)
-  ;; (lsp-ui-flycheck-list-mode)
-
-  ;; M-.
-  (define-key lsp-ui-mode-map [remap xref-find-definitions] #'lsp-ui-peek-find-definitions)
-  ;; M-?
-  (define-key lsp-ui-mode-map [remap xref-find-references] #'lsp-ui-peek-find-references)
-  )
+;; (with-eval-after-load 'lsp-ui
+;;   (setq lsp-ui-sideline-enable t)
+;;   (setq lsp-ui-imenu-enable t)
+;;   ;; (setq lsp-ui-doc-enable t) ; 这是默认值
+;;   ;; (setq lsp-ui-imenu-enable t) ; 这是默认值
+;;   )
 
 ;; 这个不是每个 backend 都支持
-;; (require 'lsp-iedit)
+(require 'lsp-iedit)
 ;; (with-eval-after-load 'lsp-iedit
 ;;   (define-key lsp-mode-map [(control \;)] #'lsp-iedit-highlights)
 ;;   )
