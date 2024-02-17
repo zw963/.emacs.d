@@ -206,14 +206,14 @@ ac-auto-show-menu 为 nil 的情形, 这种模式比较适合在 yasnippet 正�
 ;; (require 'company-tng)
 ;; (add-hook 'after-init-hook 'company-tng-mode)
 
-(with-eval-after-load 'web-mode
-  (require 'company-web-html)
-  (add-hook 'web-mode-hook
-            (lambda ()
-              (set (make-local-variable 'company-backends) '(company-web-html company-capf (company-dabbrev-code company-keywords) company-dabbrev))
-              (company-mode t))
-            )
-  )
+;; (with-eval-after-load 'web-mode
+;;   (require 'company-web-html)
+;;   (add-hook 'web-mode-hook
+;;             (lambda ()
+;;               (set (make-local-variable 'company-backends) '(company-web-html company-capf (company-dabbrev-code company-keywords) company-dabbrev))
+;;               (company-mode t))
+;;             )
+;;   )
 
 (provide 'company_init)
 
