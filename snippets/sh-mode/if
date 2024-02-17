@@ -4,6 +4,6 @@
 # binding: i
 # condition: (yas-use-region-p)
 # --
-if`(field "1" "cond")`; then
+if `(field "1" "cond")`; then
   `(yas-stripped-selected-text "")`$0
 fi
