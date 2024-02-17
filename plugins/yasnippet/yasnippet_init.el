@@ -85,8 +85,8 @@
       (insert (comment-padright comment-start add)))))
 
 (defun expand-from-key-p ()
-  "当使用 eky 再按下 TAB 来激活的 snippet 时，this_command 是 yas-expand"
-  (equal (this-command-keys-vector) '[tab]))
+  "当使用 key 再按下 TAB 来激活的 snippet 时，this_command 是 yas-expand"
+  (member (this-command-keys-vector) '([tab] [?\t])))
 
 (defun expand-with-binding ()
   "当使用 binding: 激活一个 snippet 时，this command 是 yas-expand-from-keymap"
