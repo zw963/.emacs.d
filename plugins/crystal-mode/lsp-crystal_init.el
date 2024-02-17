@@ -18,8 +18,7 @@
                     :server-id 'crystalline)))
 
 (require 'lsp-mode_init)
-
-(add-hook 'crystal-mode-hook 'zw/lsp-mode-common-hooks)
+(add-hook 'crystal-mode-hook 'lsp-mode-common-hooks)
 
 (provide 'lsp-crystal_init)
 

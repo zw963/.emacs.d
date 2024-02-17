@@ -3,9 +3,8 @@
 
 (add-hook 'go-mode-hook
           (lambda ()
-            (add-hook 'before-save-hook #'lsp-format-buffer t t)
             (add-hook 'before-save-hook #'lsp-organize-imports t t)
-            (lsp-deferred)
+            (lsp-mode-common-hooks)
             ))
 
 ;; 为了让远程 debug 成功，需要在项目下面提供一个 .dir-locals.el 文件。

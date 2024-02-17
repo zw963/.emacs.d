@@ -20,11 +20,7 @@
 
 ;; (setq lsp-dart-dap-use-sdk-debugger nil)
 
-(add-hook 'dart-mode-hook
-          (lambda ()
-            (add-hook 'before-save-hook #'lsp-format-buffer t t)
-            (lsp-deferred)
-            ))
+(add-hook 'crystal-mode-hook 'lsp-mode-common-hooks)
 
 (provide 'lsp-dart_init)
 

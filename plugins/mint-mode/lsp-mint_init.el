@@ -1,11 +1,5 @@
 (require 'lsp-mode_init)
-
-(add-hook 'mint-mode-hook
-          (lambda ()
-            (add-hook 'before-save-hook #'lsp-format-buffer t t)
-            (setq-local company-minimum-prefix-length 1)
-            (lsp-deferred)
-            ))
+(add-hook 'mint-mode-hook 'lsp-mode-common-hooks)
 
 (provide 'lsp-mint_init)
 

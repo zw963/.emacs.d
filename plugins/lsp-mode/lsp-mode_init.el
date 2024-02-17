@@ -9,19 +9,16 @@
 (require 'lsp-headerline) ;; 会 require lsp-icons
 (require 'lsp-diagnostics)
 
-(setq lsp-auto-configure nil)
-
-(defun zw/lsp-mode-common-hooks ()
+(defun lsp-mode-common-hooks ()
   (add-hook 'before-save-hook #'lsp-format-buffer t t)
   (setq-local company-minimum-prefix-length 1)
-  (lsp-deferred)
   (lsp-diagnostics-mode t)  ;; Toggle LSP diagnostics integration.
   (lsp-completion-mode t)  ;; Toggle LSP completion support.
   (lsp-signature-mode t)  ;; show signature popup.
   (lsp-lens-mode t) ;; code-lens overlays.
   ;; (lsp-installation-buffer-mode)
   ;; (lsp-inlay-hints-mode)
-  (lsp-semantic-tokens-mode t) ;; semantic-tokens support.
+  (lsp-semantic-tokens-mode t) ;; ;; 这个默认不打开，怀疑打开会很慢，先试试
 
   ;; 这两个在 lsp-ui 也存在同样的设置, 因此关掉
   ;; (lsp-modeline-code-actions-mode t) ;; code actions on modeline.
@@ -48,53 +45,59 @@
   ;; M-?
   (define-key lsp-ui-mode-map [remap xref-find-references] #'lsp-ui-peek-find-references)
 
+  (when (featurep 'treemacs) (save-selected-window (treemacs-select-window)))
+
+  (lsp-deferred)
   )
 
+;; ;; 下面是默认值
 ;; (setq
 ;;  lsp-enable-snippet t
 ;;  lsp-enable-folding t
 ;;  lsp-enable-links t
 ;;  lsp-enable-imenu t
-;;  lsp-enable-dap-auto-configure nil
 ;;  lsp-enable-symbol-highlighting t
 ;;  lsp-enable-xref t
 ;;  lsp-enable-indentation t
-;; lsp-enable-on-type-formatting t ;; 这个原来关闭的, 近期打开了, 试试看
+;;  lsp-enable-on-type-formatting t ;; 这个原来关闭的, 近期打开了, 试试看
 ;;  lsp-enable-text-document-color t
 ;;  lsp-enable-suggest-server-download t
-
 ;;  lsp-eldoc-enable-hover t
-;;  lsp-semantic-tokens-enable t ;; 这个默认不打开，怀疑打开会很慢，先试试
-;;  lsp-completion-enable t
 ;;  lsp-modeline-code-actions-enable t
 ;;  lsp-modeline-diagnostics-enable t
+;;  lsp-lens-enable t
+;;  lsp-completion-enable t
 ;;  lsp-modeline-workspace-status-enable t
 ;;  lsp-headerline-breadcrumb-enable t
-;;  lsp-lens-enable t
 ;;  lsp-inlay-hint-enable nil
+;;  lsp-completion-enable-additional-text-edit t
+;;  lsp-headerline-breadcrumb-enable-diagnostics t
+;;  lsp-headerline-breadcrumb-icons-enable t
 ;;  )
 
-;; 下面的两个一个注释，另一个取消注释.
 (setq
+ lsp-auto-configure nil
+ lsp-enable-dap-auto-configure t
+
+ ;; 下面的两个一个注释，另一个取消注释.
  ;; lsp-enable-file-watchers nil
  lsp-file-watch-threshold 3000
+
+ ;; for more customize, check lsp-headerline-breadcrumb-segments
+ lsp-headerline-breadcrumb-enable-symbol-numbers t
+
+ ;; 如果退出最后一个 lsp buffer, 自动 kill 掉 lsp-server，否则 Emacs 会很慢。
+ ;; lsp-keep-workspace-alive nil
+
+ ;; 尝试 guess root, 打开这个可能造成跳转入 lsp-dart 依赖的库文件之后，无法再次跳转。
+ lsp-auto-guess-root t
  )
 
 
-(setq lsp-completion-enable-additional-text-edit t)
-(setq lsp-headerline-breadcrumb-enable-diagnostics t)
-(setq lsp-headerline-breadcrumb-enable-symbol-numbers t) ;; for more customize, check lsp-headerline-breadcrumb-segments
-(setq lsp-headerline-breadcrumb-icons-enable t)
-
-;; 如果退出最后一个 lsp buffer, 自动 kill 掉 lsp-server，否则 Emacs 会很慢。
-;; (setq lsp-keep-workspace-alive nil)
 
 ;; (setq lsp-log-io t)
 ;; (setq debug-on-error t)              ;需要调试时，开启这个。
 ;; (setq no-byte-compile t)
-
-;; 尝试 guess root, 注意不要打开这个，打开这个可能造成进入 lsp-dart 当前项目依赖的库文件之后，无法再次跳转。
-;; (setq lsp-auto-guess-root t)
 
 ;; 这个 打开时，lsp-dart 非常卡，建议关闭
 ;; (setq lsp-signature-auto-activate t)
@@ -125,9 +128,7 @@
 
 ;; 这个不是每个 backend 都支持
 (require 'lsp-iedit)
-;; (with-eval-after-load 'lsp-iedit
-;;   (define-key lsp-mode-map [(control \;)] #'lsp-iedit-highlights)
-;;   )
+(define-key lsp-mode-map [(control \;)] #'lsp-iedit-highlights)
 
 ;; (require 'lsp-ivy)
 (with-eval-after-load 'lsp-ivy

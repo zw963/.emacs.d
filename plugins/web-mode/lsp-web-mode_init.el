@@ -6,9 +6,9 @@
 (setq lsp-tailwindcss-add-on-mode t)
 
 (add-hook 'before-save-hook 'lsp-tailwindcss-rustywind-before-save)
-;; (add-to-list 'lsp-tailwindcss-major-modes 'crystal-mode)
+(add-to-list 'lsp-tailwindcss-major-modes 'crystal-mode)
 
-(add-hook 'web-mode-hook 'lsp-deferred)
+(add-hook 'web-mode-hook 'lsp-mode-common-hooks)
 
 (provide 'lsp-web-mode_init)
 
