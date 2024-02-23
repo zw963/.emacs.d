@@ -1,5 +1,4 @@
 (require 'web-mode)
-;; (require 'lsp-web-mode_init)
 
 ;; (require 'auto-rename-tag)
 ;; (add-hook 'web-mode-hook 'auto-rename-tag-mode)
