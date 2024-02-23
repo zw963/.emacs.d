@@ -80,6 +80,9 @@
 (autoload 'slim-mode "slim-mode" nil t)
 (add-to-list 'auto-mode-alist '("\\.slim\\'" . slim-mode))
 
+(with-eval-after-load 'slim-mode
+  (require 'tailwindcss_init))
+
 (autoload 'lua-mode "lua-mode" nil t)
 (setq lua-indent-level 2)
 (add-to-list 'auto-mode-alist '("\\.lua$" . lua-mode))

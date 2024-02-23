@@ -121,5 +121,7 @@
 
 (add-to-list 'web-mode-commands-like-expand-region 'rhtml-mark-sexp-tag)
 
+(require 'tailwindcss_init)
+
 (provide 'web-mode_init)
 ;;; web-mode_init.el ends here
