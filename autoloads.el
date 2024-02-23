@@ -77,6 +77,9 @@
 (autoload 'mint-mode "mint-mode_init" nil t)
 (add-to-list 'auto-mode-alist '("\\.mint\\'" . mint-mode))
 
+(autoload 'slim-mode "slim-mode" nil t)
+(add-to-list 'auto-mode-alist '("\\.slim\\'" . slim-mode))
+
 (autoload 'lua-mode "lua-mode" nil t)
 (setq lua-indent-level 2)
 (add-to-list 'auto-mode-alist '("\\.lua$" . lua-mode))
