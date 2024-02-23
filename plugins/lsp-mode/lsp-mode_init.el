@@ -1,16 +1,16 @@
 ;; (require 'dap-mode_init)
 (require 'lsp-mode)
 (require 'lsp-semantic-tokens)
-(lsp-semantic-tokens-mode 1)
 (require 'lsp-completion)
 (require 'lsp-modeline) ;; 这个不开，跳转的时候可能也会出错?
 (require 'lsp-lens)
 ;; 必须手动 require headerline 和 diagnostics 两个，才会有 flycheck 的小红线提示错误信息。
 (require 'lsp-headerline) ;; 会 require lsp-icons
 (require 'lsp-diagnostics)
+(require 'lsp-ui)
 
 (defun lsp-mode-common-hooks ()
-  (add-hook 'before-save-hook #'lsp-format-buffer t t)
+  ;; (add-hook 'before-save-hook #'lsp-format-buffer t t)
   (setq-local company-minimum-prefix-length 1)
   (lsp-diagnostics-mode t)  ;; Toggle LSP diagnostics integration.
   (lsp-completion-mode t)  ;; Toggle LSP completion support.
@@ -18,6 +18,7 @@
   (lsp-lens-mode t) ;; code-lens overlays.
   ;; (lsp-installation-buffer-mode)
   ;; (lsp-inlay-hints-mode)
+
   (lsp-semantic-tokens-mode t) ;; ;; 这个默认不打开，怀疑打开会很慢，先试试
 
   ;; 这两个在 lsp-ui 也存在同样的设置, 因此关掉
@@ -27,11 +28,10 @@
   (lsp-modeline-workspace-status-mode t) ;; workspace status on modeline.
   (lsp-headerline-breadcrumb-mode t) ;; breadcrumb on headerline.
 
-  (require 'lsp-ui)
   (lsp-ui-mode t)
   (lsp-ui-sideline-mode t)
   (lsp-ui-imenu-buffer-mode t)
-  (lsp-ui-peek-mode t)
+  ;; (lsp-ui-peek-mode t)
   (lsp-ui-doc-mode t)
   ;; 关闭这个，会让 diagnostics(从 lsp-server 返回的诊断信息) 和 flycheck 信息在 minibuffer 合并显示.
   (setq lsp-ui-sideline-show-diagnostics t)
@@ -49,6 +49,14 @@
 
   (lsp-deferred)
   )
+
+(setq lsp-auto-configure nil)
+(setq lsp-enable-dap-auto-configure t)
+
+;; (defun lsp-mode-common-hooks ()
+;;   (when (featurep 'treemacs) (save-selected-window (treemacs-select-window)))
+;;   (lsp-deferred)
+;;   )
 
 ;; ;; 下面是默认值
 ;; (setq
@@ -76,9 +84,6 @@
 ;;  )
 
 (setq
- lsp-auto-configure nil
- lsp-enable-dap-auto-configure t
-
  ;; 下面的两个一个注释，另一个取消注释.
  ;; lsp-enable-file-watchers nil
  lsp-file-watch-threshold 3000
