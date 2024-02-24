@@ -11,3 +11,9 @@ def producer(name : String, &generator : -> T) forall T
     end
   }
 end
+
+def log(msg : String)
+  puts "#{Fiber.current.name}: #{msg}"
+end
+
+values = producer("rand") { sleep rand; rand }
