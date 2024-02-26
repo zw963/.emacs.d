@@ -206,7 +206,7 @@ yas-field 的依赖函数"
 js 以 { 开头, function(done) { ... }
 "
   (cond
-   ((member major-mode '(ruby-mode enh-ruby-mode crystal-mode))
+   ((member major-mode '(ruby-mode ruby-ts-mode enh-ruby-mode crystal-mode))
     (if yas-selected-text
         (if (string-match "\n" yas-selected-text) "" ";")
       "")
@@ -232,8 +232,8 @@ js 以 { 开头, function(done) { ... }
 (defun _yas-def-end ()
   "定义一个方法时，结尾分隔符."
   (cond
-   ((member major-mode '(ruby-mode elixir-mode enh-ruby-mode crystal-mode)) "end")
-   ((eql major-mode 'sh-mode) "done")
+   ((member major-mode '(ruby-mode ruby-ts-mode elixir-mode enh-ruby-mode crystal-mode)) "end")
+   ((member major-mode '(sh-mode bash-ts-mode)) "done")
    ((member major-mode '(js2-mode cc-mode rust-mode)) "}")
    ((member major-mode '(rhtml-mode web-mode)) "<% end %>")
    ))
