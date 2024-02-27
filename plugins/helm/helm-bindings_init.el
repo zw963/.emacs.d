@@ -20,7 +20,8 @@
 
 (add-hook 'prog-mode-hook
           #'(lambda ()
-              (local-set-key [(control c) (l)] 'helm-imenu-in-all-buffers)
+              ;; (local-set-key [(control c) (l)] 'helm-imenu-in-all-buffers)
+              (local-set-key [(control c) (l)] 'helm-imenu)
               ))
 
 ;;;  ------------------------ helm-swoop -------------------------
