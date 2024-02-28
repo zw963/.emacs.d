@@ -112,6 +112,20 @@
   (let ((fn (buffer-file-name (ibuffer-current-buffer t))))
     (run-process "bc2" fn)))
 
+(defun region-to-file-force (file)
+  "Prints string into file, matters not if file exists."
+  (write-region (region-beginning) (region-end) file nil nil nil nil))
+
+(defun bc1-current-region ()
+  (interactive)
+    (region-to-file-force "/tmp/bc3_one")
+  (run-process "bc1" "/tmp/bc3_one"))
+
+(defun bc2-current-region ()
+  (interactive)
+    (region-to-file-force "/tmp/bc3_two")
+  (run-process "bc2" "/tmp/bc3_two"))
+
 (provide 'beyond-compare-functions)
 
 ;;; beyond-compare-functions.el ends here

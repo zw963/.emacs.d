@@ -30,8 +30,11 @@
             (define-key vc-git-log-view-mode-map [(=)] 'bc3-gitdiff-file-at-point) ;; 当前文件与 commit 之间的修改.
             ))
 
-(global-set-key [(control f12)] 'bc1-current-file) ; Ctrl-F11 bc1
-(global-set-key [(meta f12)] 'bc2-current-file) ; Meta-F11 bc2
+(global-set-key [(control f12)] 'bc1-current-file)
+(global-set-key [(meta f12)] 'bc2-current-file)
+
+(global-set-key [(control f11)] 'bc1-current-region)
+(global-set-key [(meta f11)] 'bc2-current-region)
 
 (with-eval-after-load 'git-emacs
   (global-set-key [(control x) (v) (=)] 'bc3-gitdiff) ;; 当前 diff 修改.
@@ -39,9 +42,9 @@
   )
 
 (add-hook 'git--branch-mode-hook
-            (lambda ()
-              (define-key git--branch-mode-map [(=)] 'bc3-gitdiff-file-at-point) ;; 指定分支和 commit 之间的修改.
-              ))
+          (lambda ()
+            (define-key git--branch-mode-map [(=)] 'bc3-gitdiff-file-at-point) ;; 指定分支和 commit 之间的修改.
+            ))
 
 (add-hook 'git-log-view-mode-hook
           (lambda ()
