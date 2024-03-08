@@ -1,7 +1,7 @@
 # -*- mode: snippet -*-
-# name: while ... done
+# name: while ... end
 # key: while
 # binding: w
 # condition: (yas-use-region-p)
 # --
-while `(field "1" "cond")`; do`(def)`
+while ${1:cond}`(def)`

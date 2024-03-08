@@ -161,7 +161,7 @@ yas-field 的依赖函数"
    (t "\"")))
 
 ;; ---------------------------
-(defun def (&optional def-begin def-end single-line-end-seperator)
+(defun def (&optional def-begin def-end single-line-end-seperator def-space)
   "这个 def 用来定义一个 tag 的结束部分是否添加换行，根据选区的不同，
 同时支持单行/多行定义的问题。这个模式尤其对于 web 模式有效，
 例如，你希望 wrap 一个 div 像这样
@@ -179,9 +179,9 @@ yas-field 的依赖函数"
  "
   (insert
    (concat
-    (_def-begin def-begin "")
+    (_def-begin def-begin (or def-space " "))
     "`(yas-stripped-selected-text)`$0"
-    (_def-end def-end single-line-end-seperator "")
+    (_def-end def-end single-line-end-seperator (or def-space " "))
     )))
 
 ;; 为了做到关注点分离, 有时候, 存在公共的重复逻辑是不可避免的.
@@ -211,7 +211,7 @@ js 以 { 开头, function(done) { ... }
         (if (string-match "\n" yas-selected-text) "" ";")
       "")
     )
-   ((member major-mode '(elixir-mode)) " do")
+   ((member major-mode '(elixir-mode elixir-ts-mode)) " do")
    ((member major-mode '(sh-mode)) "")
    ((member major-mode '(js2-mode cc-mode rust-mode)) " {"))
   )
@@ -232,8 +232,8 @@ js 以 { 开头, function(done) { ... }
 (defun _yas-def-end ()
   "定义一个方法时，结尾分隔符."
   (cond
-   ((member major-mode '(ruby-mode ruby-ts-mode elixir-mode enh-ruby-mode crystal-mode)) "end")
-   ((member major-mode '(sh-mode bash-ts-mode)) "done")
+   ((member major-mode '(ruby-mode ruby-ts-mode elixir-mode elixir-ts-mode enh-ruby-mode crystal-mode)) "end")
+   ((member major-mode '(sh-mode bash-ts-mode)) "; done")
    ((member major-mode '(js2-mode cc-mode rust-mode)) "}")
    ((member major-mode '(rhtml-mode web-mode)) "<% end %>")
    ))
