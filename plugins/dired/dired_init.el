@@ -104,6 +104,16 @@
 
 (require 'find-dupes-dired)
 
+;; (require 'dired-preview)
+;; (setq dired-preview-delay 0.7)
+;; (setq dired-preview-max-size (expt 2 20))
+;; (setq dired-preview-ignored-extensions-regexp
+;;       (concat "\\."
+;;               "\\(mkv\\|webm\\|mp4\\|mp3\\|ogg\\|m4a"
+;;               "\\|gz\\|zst\\|tar\\|xz\\|rar\\|zip"
+;;               "\\|iso\\|epub\\|pdf\\)"))
+;; (dired-preview-global-mode 1)
+
 ;; 一些常用的命令:
 ;; t, dired-toggle-marks, 可以用来 mark 所有文件.
 ;; /, dired-narrow-fuzzy, 用来动态的 narrow 匹配的文件, g 会恢复.
