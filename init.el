@@ -105,6 +105,8 @@
 ;; (require 'js2-mode_init)
 ;; (require 'lua-mode_init)
 
+(require 'elixir_init)
+
 ;; 这个似乎要放到最后面？
 (require 'posframe_init)
 (require 'shackle_init)
