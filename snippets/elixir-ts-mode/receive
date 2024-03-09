@@ -1,0 +1,6 @@
+# -*- mode: snippet -*-
+# name: receive
+# key: receive
+# condition: (yas-use-region-p)
+# --
+receive`(def)`

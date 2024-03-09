@@ -1,0 +1,6 @@
+# -*- mode: snippet -*-
+# name: unless
+# key: unless
+# condition: (yas-use-region-p)
+# --
+unless ${1:condition}`(def)`
