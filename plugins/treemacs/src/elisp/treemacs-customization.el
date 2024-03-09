@@ -1,6 +1,6 @@
 ;;; treemacs.el --- A tree style file viewer package -*- lexical-binding: t -*-
 
-;; Copyright (C) 2023 Alexander Miller
+;; Copyright (C) 2024 Alexander Miller
 
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -607,7 +607,12 @@ Can be set to nil to disable workspace persistence."
   "Action to perform when a persisted project is not found on the disk.
 If the project is not found, the project can either be kept in the project list,
 or removed from it.  If the project is removed, when projects are persisted, the
-missing project will not appear in the project list next time Emacs is started."
+missing project will not appear in the project list next time Emacs is started.
+
+Possible values are:
+ - `ask'
+ - `remove'
+ - `keep'"
   :type '(choice (const :tag "Ask whether to remove" ask)
                  (const :tag "Remove without asking" remove)
                  (const :tag "Keep without asking" keep))

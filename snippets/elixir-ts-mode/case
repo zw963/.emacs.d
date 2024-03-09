@@ -1,0 +1,6 @@
+# -*- mode: snippet -*-
+# name: case
+# key: case
+# condition: (yas-use-region-p)
+# --
+case `(field "1" "var")``(def)`

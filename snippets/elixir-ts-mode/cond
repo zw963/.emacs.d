@@ -1,0 +1,6 @@
+# -*- mode: snippet -*-
+# name: cond
+# key: cond
+# condition: (yas-use-region-p)
+# --
+cond`(def)`

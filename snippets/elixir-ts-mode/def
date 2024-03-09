@@ -1,0 +1,7 @@
+# -*- mode: snippet -*-
+# name: def func
+# key: d
+# binding: d
+# condition: (yas-use-region-p)
+# --
+def `(field "1" "func")``(def)`

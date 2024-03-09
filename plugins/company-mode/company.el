@@ -691,7 +691,9 @@ treated as if it was on this list."
 (defcustom company-continue-commands '(not save-buffer save-some-buffers
                                            save-buffers-kill-terminal
                                            save-buffers-kill-emacs
-                                           completion-at-point)
+                                           completion-at-point
+                                           complete-symbol
+                                           completion-help-at-point)
   "A list of commands that are allowed during completion.
 If this is t, or if `company-begin-commands' is t, any command is allowed.
 Otherwise, the value must be a list of symbols.  If it starts with `not',
@@ -1106,7 +1108,7 @@ Matching is limited to the current line."
 (defun company-grab-symbol ()
   "If point is at the end of a symbol, return it.
 Otherwise, if point is not inside a symbol, return an empty string."
-  (if (looking-at "\\_>")
+  (if (looking-at-p "\\_>")
       (buffer-substring (point) (save-excursion (skip-syntax-backward "w_")
                                                 (point)))
     (unless (and (char-after) (memq (char-syntax (char-after)) '(?w ?_)))
@@ -1115,7 +1117,7 @@ Otherwise, if point is not inside a symbol, return an empty string."
 (defun company-grab-word ()
   "If point is at the end of a word, return it.
 Otherwise, if point is not inside a symbol, return an empty string."
-  (if (looking-at "\\>")
+  (if (looking-at-p "\\>")
       (buffer-substring (point) (save-excursion (skip-syntax-backward "w")
                                                 (point)))
     (unless (and (char-after) (eq (char-syntax (char-after)) ?w))
@@ -2185,7 +2187,11 @@ For more details see `company-insertion-on-trigger' and
       (if company-abort-manual-when-too-short
           ;; Must not be less than minimum or initial length.
           (min company-minimum-prefix-length
-               (length company--manual-prefix))
+               (if-let ((mp-len-override (cdr-safe company--manual-prefix)))
+                   (if (numberp mp-len-override)
+                       mp-len-override
+                     (length (car-safe company--manual-prefix)))
+                 (length company--manual-prefix)))
         0)
     company-minimum-prefix-length))
 
@@ -3005,6 +3011,7 @@ from the candidates list.")
         (orig-buf (window-buffer))
         (bis buffer-invisibility-spec)
         (inhibit-read-only t)
+        (inhibit-modification-hooks t)
         (dedicated (window-dedicated-p))
         (hscroll (window-hscroll))
         window-configuration-change-hook)
