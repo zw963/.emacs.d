@@ -9,6 +9,12 @@
 (require 'lsp-diagnostics)
 (require 'lsp-ui)
 
+(defun lsp--describe-thing-at-point! ()
+  (interactive)
+  (lsp-describe-thing-at-point)
+  (with-current-buffer (get-buffer-create "*lsp-help*")
+    (lsp-ui-doc-frame-mode)))
+
 (defun lsp-mode-common-hooks ()
   ;; (add-hook 'before-save-hook #'lsp-format-buffer t t)
   (setq-local company-minimum-prefix-length 1)
