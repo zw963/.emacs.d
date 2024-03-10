@@ -76,6 +76,18 @@
   (define-key-after menu [hs-separator] menu-bar-separator)
   menu)
 
+(defun context-menu-show-lsp-describe-thing-at-point (menu click)
+  "Populate MENU with `lsp describe thing at point' commands."
+  (define-key-after menu [show-lsp-code-actions]
+    '(menu-item "Show lsp describe thing at point"
+                (lambda (click) (interactive "e")
+                  (save-excursion
+                    (mouse-set-point click)
+                    (call-interactively 'lsp-describe-thing-at-point)
+                    ))))
+  (define-key-after menu [hs-separator] menu-bar-separator)
+  menu)
+
 (defun context-menu-unwrap-flutter-widget (menu click)
   "Populate MENU with `flutter-unwrap-widget' commands."
   (define-key-after menu [unwrap-flutter-widget]
@@ -92,6 +104,7 @@
         '(context-menu-hideshow
           context-menu-show-git-message
           context-menu-show-lsp-code-actions
+          context-menu-show-lsp-describe-thing-at-point
           occur-context-menu
           prog-context-menu
           context-menu-local
@@ -102,6 +115,7 @@
         '(context-menu-hideshow
           context-menu-show-git-message
           context-menu-show-lsp-code-actions
+          context-menu-show-lsp-describe-thing-at-point
           context-menu-unwrap-flutter-widget
           occur-context-menu
           prog-context-menu
@@ -110,9 +124,12 @@
 
 (add-hook 'dart-mode-hook 'context-menu-lsp-dart-context-menu)
 (add-hook 'go-mode-hook 'context-menu-lsp-common-context-menu)
+(add-hook 'go-ts-mode-hook 'context-menu-lsp-common-context-menu)
 (run-ruby-mode-hook '(context-menu-lsp-common-context-menu))
 (add-hook 'rust-mode-hook 'context-menu-lsp-common-context-menu)
+(add-hook 'rust-ts-mode-hook 'context-menu-lsp-common-context-menu)
 (add-hook 'rustic-mode-hook 'context-menu-lsp-common-context-menu)
+(add-hook 'elixir-ts-mode-hook 'context-menu-lsp-common-context-menu)
 
 (context-menu-mode t)
 

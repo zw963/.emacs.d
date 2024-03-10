@@ -50,6 +50,7 @@
   (define-key lsp-ui-mode-map [remap xref-find-definitions] #'lsp-ui-peek-find-definitions)
   ;; M-?
   (define-key lsp-ui-mode-map [remap xref-find-references] #'lsp-ui-peek-find-references)
+  (define-key lsp-ui-mode-map [(control h) (d)] #'lsp-describe-thing-at-point)
 
   (when (featurep 'treemacs) (save-selected-window (treemacs-select-window)))
 
