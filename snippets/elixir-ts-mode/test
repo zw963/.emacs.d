@@ -1,0 +1,6 @@
+# -*- mode: snippet -*-
+# name: test block
+# key: test
+# condition: (yas-use-region-p)
+# --
+test `(string-field "1" "feature")``(def)`

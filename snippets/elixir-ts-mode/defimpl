@@ -1,0 +1,6 @@
+# -*- mode: snippet -*-
+# name: defimpl
+# key: defimpl
+# condition: (yas-use-region-p)
+# --
+defimpl `(field "1" "Protocol")`, for: `(field "2" "Any")``(def)`

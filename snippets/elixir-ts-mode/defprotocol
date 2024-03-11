@@ -1,0 +1,6 @@
+# -*- mode: snippet -*-
+# name: defprotocol
+# key: defprotocol
+# condition: (yas-use-region-p)
+# --
+defprotocol `(field "1" "Protocol")``(def)`

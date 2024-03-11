@@ -1,0 +1,9 @@
+# -*- mode: snippet -*-
+# name: elisrc
+# key: elisrc
+# contributor: Billy.Zheng vil963@gmail.com
+# --
+#+begin_src elixir-ts
+  $0
+#+end_src
+[[elisp:org-copy-src-block-link][click to copy]]
