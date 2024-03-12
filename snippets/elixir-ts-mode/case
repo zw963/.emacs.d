@@ -3,4 +3,4 @@
 # key: case
 # condition: (yas-use-region-p)
 # --
-case `(field "1" "var")``(def)`
+case `(field "1" "expr")``(def)`

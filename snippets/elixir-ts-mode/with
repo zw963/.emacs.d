@@ -1,0 +1,6 @@
+# -*- mode: snippet -*-
+# name: with
+# key: with
+# condition: (yas-use-region-p)
+# --
+with `(field "2" "pattern")` <- `(field "1" "expr")``(def)`

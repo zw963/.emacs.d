@@ -1,0 +1,8 @@
+# -*- mode: snippet -*-
+# name: for
+# key: for
+# condition: (yas-use-region-p)
+# --
+for `(field "2" "item")` <- `(field "1" "Enumerable")` do
+  $0
+end
