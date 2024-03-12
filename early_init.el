@@ -40,6 +40,7 @@
 (require 'whole-line-or-region_init)
 (require 'multiple-cursors_init)
 
+(relative-load "fonts.el")
 (relative-load "windows.el")
 (relative-load "autoloads.el")
 (relative-load "functions.el")

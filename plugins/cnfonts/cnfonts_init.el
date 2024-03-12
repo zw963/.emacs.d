@@ -4,17 +4,17 @@
 (setq cnfonts-directory (expand-file-name "configs_retina" (file-name-directory (or load-file-name buffer-file-name))))
 
 (defconst cnfonts-personal-fontnames
- '(;; 英文字体
-   ("Fira Code")
-   ;; 中文字体
-   ("霞鹜文楷等宽")
-   ;; EXT-B 字体
-   ()
-   ;; Symbol 字符字体
-   ("Noto Color Emoji")
-   ;; Emacs 社区配置中，用于装饰的字符使用的字体
-   ()
-   ))
+  '(;; 英文字体
+    ("Fira Code")
+    ;; 中文字体
+    ("霞鹜文楷等宽")
+    ;; EXT-B 字体
+    ()
+    ;; Symbol 字符字体
+    ("Noto Color Emoji")
+    ;; Emacs 社区配置中，用于装饰的字符使用的字体
+    ()
+    ))
 
 (cnfonts-mode 1)
 
