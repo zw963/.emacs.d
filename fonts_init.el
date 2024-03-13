@@ -1,16 +1,29 @@
 ;; Stolen from https://github.com/DogLooksGood/meomacs/blob/master/laf.org
 
+;; 👩‍🚒
+
 (defvar meomacs-font-size 15
   "Current font size.")
 
-(defvar meomacs-fonts '((default . "终端更纱黑体-简 Nerd")
-                        (cjk . "终端更纱黑体-简 Nerd")
+;; (defvar meomacs-font-name "终端更纱黑体-简 Nerd"
+;;   "Current font name.")
+
+;; 我发现我还是喜欢永远的, 经典的 Inconsolata
+(defvar meomacs-font-name "Inconsolata Nerd Font Mono"
+  "Current font name.")
+
+;; 可以针对 org table 单独设定字体
+;; (custom-set-faces
+;;  '(org-table ((t (:family "Sarasa Mono SC")))))
+
+(defvar meomacs-fonts `((default . ,meomacs-font-name)
+                        (cjk . ,meomacs-font-name)
                         (symbol . "Noto Color Emoji")
-                        (fixed . "终端更纱黑体-简 Nerd")
-                        (fixed-serif . "终端更纱黑体-简 Nerd")
+                        (fixed . ,meomacs-font-name)
+                        (fixed-serif . ,meomacs-font-name)
                         (variable . "Sans Serif")
-                        ;; (wide . "终端更纱黑体-简 Nerd")
-                        ;; (tall . "终端更纱黑体-简 Nerd")
+                        (wide . ,meomacs-font-name)
+                        (tall . ,meomacs-font-name)
                         )
   "Fonts to use.")
 
