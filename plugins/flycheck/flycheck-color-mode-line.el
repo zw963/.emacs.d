@@ -6,7 +6,7 @@
 ;; Keywords: convenience language tools
 ;; Homepage: https://github.com/flycheck/flycheck-color-mode-line
 ;; Version: 0.3
-;; Package-Requires: ((flycheck "0.15") (dash "1.2") (emacs "24.3"))
+;; Package-Requires: ((flycheck "0.15") (emacs "24.3"))
 
 ;; This file is not part of GNU Emacs.
 
@@ -42,7 +42,6 @@
 
 ;;; Code:
 
-(require 'dash)
 (require 'flycheck)
 (require 'face-remap)
 
@@ -110,14 +109,14 @@ Used to restore the original mode line face.")
   (let ((face (pcase status
                 (`finished
                  (cond
-                  ((flycheck-has-current-errors-p 'error)
-                   'flycheck-color-mode-line-error-face)
-                  ((flycheck-has-current-errors-p 'warning)
-                   'flycheck-color-mode-line-warning-face)
-                  ((flycheck-has-current-errors-p 'info)
+                  ((not (flycheck-has-current-errors-p))
+                   'flycheck-color-mode-line-success-face)
+                  ((flycheck-has-max-current-errors-p 'info)
                    'flycheck-color-mode-line-info-face)
-                  (t
-                   'flycheck-color-mode-line-success-face)))
+                  ((flycheck-has-max-current-errors-p 'warning)
+                   'flycheck-color-mode-line-warning-face)
+                  ((flycheck-has-max-current-errors-p 'error)
+                   'flycheck-color-mode-line-error-face)))
                 (`running
                  (when flycheck-color-mode-line-show-running
                    'flycheck-color-mode-line-running-face)))))
