@@ -72,7 +72,7 @@ Other buffer group by `awesome-tab-get-group-name' with project name."
     ((memq major-mode
            '(dev-mode
              ruby-mode enh-ruby-mode rhtml-mode web-mode feature-mode
-             js-mode js2-mode yaml-mode
+             js-mode js2-mode yaml-mode yaml-ts-mode
              haml-mode slim-mode css-mode scss-mode coffee-mode
              sh-mode bash-ts-mode emacs-lisp-mode makefile-bsdmake-mode
              sql-mode nxml-mode markdown-mode conf-unix-mode-hook

@@ -80,6 +80,9 @@
 (autoload 'slim-mode "slim-mode" nil t)
 (add-to-list 'auto-mode-alist '("\\.slim\\'" . slim-mode))
 
+(autoload 'yaml-mode "yaml-mode" nil t)
+(add-to-list 'auto-mode-alist '("\\.\\(e?ya?\\|ra\\)ml\\'" . yaml-mode))
+
 (with-eval-after-load 'slim-mode
   (require 'tailwindcss_init))
 

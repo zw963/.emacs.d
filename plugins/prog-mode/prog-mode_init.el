@@ -40,8 +40,8 @@
                    )))
 
 (dolist (hook '(prog-mode-hook
-                yaml-ts-mode-hook
                 yaml-mode-hook
+                yaml-ts-mode-hook
                 elixir-mode-hook
                 web-mode-hook
                 org-mode-hook

@@ -1,0 +1,6 @@
+# -*- mode: snippet -*-
+# name: spawn_link
+# key: spawn_link
+# condition: (yas-use-region-p)
+# --
+spawn_link(fn -> $0 end)

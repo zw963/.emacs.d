@@ -1,0 +1,6 @@
+# -*- mode: snippet -*-
+# name: Task.start_link
+# key: Stask.start_link
+# condition: (yas-use-region-p)
+# --
+Task.start_link(fn -> $0 end)
