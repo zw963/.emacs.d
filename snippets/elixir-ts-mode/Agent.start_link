@@ -1,0 +1,6 @@
+# -*- mode: snippet -*-
+# name: Agent.start_link
+# key: Agent.stask_link
+# condition: (yas-use-region-p)
+# --
+Agent.start_link(fn -> $0 end)

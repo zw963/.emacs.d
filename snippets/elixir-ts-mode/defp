@@ -1,7 +1,6 @@
 # -*- mode: snippet -*-
 # name: defp func
 # key: dp
-# binding: p
 # condition: (yas-use-region-p)
 # --
 defp `(field "1" "func")``(def)`

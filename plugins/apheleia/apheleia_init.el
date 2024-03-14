@@ -7,9 +7,9 @@
 (setf (alist-get 'dart-format apheleia-formatters)
       '("flutter" "format" filepath))
 
-(add-to-list 'apheleia-mode-alist '(elixir-ts-mode . mix-format))
-(setf (alist-get 'mix-format apheleia-formatters)
-      '("mix" "format" filepath))
+;; (add-to-list 'apheleia-mode-alist '(elixir-ts-mode . mix-format))
+;; (setf (alist-get 'mix-format apheleia-formatters)
+;;       '("mix" "format" filepath))
 
 (setq apheleia-mode-alist
       (delete '(js3-mode . prettier-javascript)

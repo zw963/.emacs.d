@@ -1,0 +1,6 @@
+# -*- mode: snippet -*-
+# name: Agent.update
+# key: Agent.update
+# condition: (yas-use-region-p)
+# --
+Agent.update(${1:agent}, fn ${2:input} -> $0 end)

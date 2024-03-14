@@ -1,7 +1,6 @@
 # -*- mode: snippet -*-
 # name: def module
 # key: struct
-# binding: struct
 # condition: (yas-use-region-p)
 # --
 defmodule ${1:StructName} do
