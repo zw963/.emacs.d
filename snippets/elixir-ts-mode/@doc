@@ -2,6 +2,6 @@
 # name: @doc
 # key: @doc
 # --
-@doc ```
+@doc """
 $0
-```
+"""

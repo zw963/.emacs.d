@@ -1,8 +1,8 @@
 ;; Stolen from https://github.com/DogLooksGood/meomacs/blob/master/laf.org
 
 ;; 👩‍🚒
-
-(defvar meomacs-font-size 15
+;; Inconsolata Nerd Font Mono 字体 12, 15 才能对齐, 更小没测试.
+(defvar meomacs-font-size 12
   "Current font size.")
 
 ;; (defvar meomacs-font-name "终端更纱黑体-简 Nerd"

@@ -1,0 +1,8 @@
+# -*- mode: snippet -*-
+# name: start_link
+# key: start_link
+# condition: (yas-use-region-p)
+# --
+def start_link(`(field "1" "_opts")`) do
+  $0
+end
