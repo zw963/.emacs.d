@@ -25,7 +25,7 @@
   ;; (lsp-installation-buffer-mode)
   ;; (lsp-inlay-hints-mode)
 
-  (lsp-semantic-tokens-mode t) ;; ;; 这个默认不打开，怀疑打开会很慢，先试试
+  ;; (lsp-semantic-tokens-mode t) ;; ;; 这个默认不打开，怀疑打开会很慢，先试试
 
   ;; 这两个在 lsp-ui 也存在同样的设置, 因此关掉
   ;; (lsp-modeline-code-actions-mode t) ;; code actions on modeline.
