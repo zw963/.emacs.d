@@ -69,7 +69,7 @@
 (global-set-key [(shift meta down)] 'move-dup-move-lines-down)
 (global-set-key [(meta o)] 'crux-other-window-or-switch-buffer)
 (global-set-key [(control c) (k)] 'crux-kill-other-buffers)
-(global-set-key [(control c) (tab)] 'crux-indent-rigidly-and-copy-to-clipboard)
+;; (global-set-key [(control c) (tab)] 'crux-indent-rigidly-and-copy-to-clipboard)
 (global-set-key [(control ?^)] 'crux-top-join-line)
 (global-set-key [(control backspace)] 'crux-kill-line-backwards)
 (global-set-key [(control ?\d)] 'crux-kill-line-backwards)

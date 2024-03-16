@@ -1,3 +1,9 @@
+(setq quickrun-option-default-directory ".quickrun/")
+(defun quickrun--create-option-default-directory ()
+  (unless (file-directory-p quickrun-option-default-directory)
+    (make-directory quickrun-option-default-directory)))
+(advice-add 'quickrun :before #'quickrun--create-option-default-directory)
+
 (require 'quickrun)
 
 (setq quickrun-timeout-seconds nil)
@@ -6,7 +12,7 @@
 
 ;; (setq quickrun-focus-p nil)
 
-(setq quickrun-debug t)
+;; (setq quickrun-debug t)
 
 (dolist (hook '(
                 ruby-mode-hook
@@ -16,10 +22,12 @@
                 go-mode-hook
                 sh-mode-hook
                 bash-ts-mode-hook
+                elixir-ts-mode-hook
                 ))
   (add-hook hook (lambda ()
                    (local-set-key [(control x) (control e)] 'quickrun-region)
                    (local-set-key [(control c) (return)] 'quickrun)
+                   ;; (local-set-key (kbd "C-c RET") 'quickrun)
                    (local-set-key [(control c) (tab)] 'quickrun-compile-only)
                    )))
 
