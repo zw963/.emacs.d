@@ -10,6 +10,7 @@
  )
 
 (add-hook 'shell-mode-hook (lambda ()
+                             (ansi-color-for-comint-mode-on)
                              (define-key shell-mode-map [(control n)] 'comint-next-input)
                              (define-key shell-mode-map [(control p)] 'comint-previous-input)
                              (define-key shell-mode-map [(control r)] 'comint-previous-matching-input-from-input)

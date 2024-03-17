@@ -193,11 +193,11 @@
 (setq whitespace-line-column nil)
 (setq whitespace-style
       '(face
-       empty            ; empty lines at beginning/end of buffer
-       tab-mark
-       indentation
-       trailing       ; trailing blanks
-       ))
+        empty            ; empty lines at beginning/end of buffer
+        tab-mark
+        indentation
+        trailing       ; trailing blanks
+        ))
 
 
 ;; (setq whitespace-global-modes '(not makefile-mode))
