@@ -7,6 +7,7 @@
 
 (require 'quickrun)
 
+;; 临时文件名前缀改为 .qr_
 (defun quickrun--temp-name (src)
   "Not documented."
   (let* ((extension (file-name-extension src))
@@ -14,12 +15,16 @@
          (dir (quickrun--default-directory)))
     (expand-file-name (concat dir (make-temp-name ".qr_") suffix))))
 
-(setq quickrun-timeout-seconds nil)
+;; 允许彩色输出
+(quickrun--defvar quickrun-option-outputter
+  'quickrun--default-outputter quickrun--outputter-p
+  "Specify format function output buffer as file local variable")
 
 (add-to-list 'quickrun--major-mode-alist '(enh-ruby-mode . "ruby"))
+(add-to-list 'quickrun--major-mode-alist '(elixir-ts-mode . "elixir"))
 
+;; (setq quickrun-timeout-seconds nil)
 ;; (setq quickrun-focus-p nil)
-
 ;; (setq quickrun-debug t)
 
 (dolist (hook '(
@@ -35,10 +40,8 @@
   (add-hook hook (lambda ()
                    (local-set-key [(control x) (control e)] 'quickrun-region)
                    (local-set-key [(control c) (return)] 'quickrun)
-                   ;; (local-set-key (kbd "C-c RET") 'quickrun)
                    (local-set-key [(control c) (tab)] 'quickrun-compile-only)
                    )))
-
 
 (add-hook 'quickrun-after-run-hook 'say)
 
