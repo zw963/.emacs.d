@@ -1,10 +1,18 @@
-(setq quickrun-option-default-directory ".quickrun/")
-(defun quickrun--create-option-default-directory ()
-  (unless (file-directory-p quickrun-option-default-directory)
-    (make-directory quickrun-option-default-directory)))
-(advice-add 'quickrun :before #'quickrun--create-option-default-directory)
+;; (setq quickrun-option-default-directory ".quickrun/")
+;; (defun quickrun--create-option-default-directory ()
+;;   (if (file-directory-p quickrun-option-default-directory)
+;;       t
+;;     (make-directory quickrun-option-default-directory t)))
+;; (advice-add 'quickrun :before #'quickrun--create-option-default-directory)
 
 (require 'quickrun)
+
+(defun quickrun--temp-name (src)
+  "Not documented."
+  (let* ((extension (file-name-extension src))
+         (suffix (or (and extension (concat "." extension)) ""))
+         (dir (quickrun--default-directory)))
+    (expand-file-name (concat dir (make-temp-name ".qr_") suffix))))
 
 (setq quickrun-timeout-seconds nil)
 
