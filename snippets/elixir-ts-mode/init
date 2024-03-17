@@ -1,0 +1,8 @@
+# -*- mode: snippet -*-
+# name: def init
+# key: init
+# --
+def init(:ok) do
+  $0
+  {:ok, initial_state}
+end

@@ -4,4 +4,4 @@
 # binding: d
 # condition: (yas-use-region-p)
 # --
-def `(field "1" "func")``(def)`
+def `(field "1" "func")``(field "2" "expr" " when ")``(def)`

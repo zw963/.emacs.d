@@ -1,0 +1,8 @@
+# -*- mode: snippet -*-
+# name: def handle_call
+# key: handle_call
+# --
+def handle_call(${1:pattern}, _from, state) do
+  $0
+  {:reply, to_caller, new_state}
+end

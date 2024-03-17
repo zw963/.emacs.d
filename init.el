@@ -90,6 +90,7 @@
 (require 'ws-butler_init)
 (require 'yafolding_init)
 (require 'ligature_init)
+(require 'xterm-color_init)
 
 ;; 关闭一些有用，但最近不常用的 mode
 ;; (require 'dart-mode_init)
