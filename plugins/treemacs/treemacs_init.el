@@ -21,12 +21,14 @@
 (setq treemacs-silent-refresh    t)
 (setq treemacs-silent-filewatch    t)
 
-;; (defun treemacs-ignore-example (filename absolute-path)
-;;   (or (string-suffix-p filename ".elc")
-;;       ;; (string-prefix-p "/x/y/z/" absolute-path)
-;;       ))
+(defun treemacs-ignore-example (filename absolute-path)
+  (or
+   ;; (string-suffix-p ".elc" filename)
+   ;; (string-prefix-p "/x/y/z/" absolute-path)
+   (string-prefix-p filename ".qr_")
+   ))
 
-;; (add-to-list 'treemacs-ignored-file-predicates 'treemacs-ignore-example)
+(add-to-list 'treemacs-ignored-file-predicates 'treemacs-ignore-example)
 
 (global-set-key [(control x) (\1)] 'treemacs-delete-other-windows)
 

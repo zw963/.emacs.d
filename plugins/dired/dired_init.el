@@ -26,7 +26,8 @@
                                               t "")))))
 
 (require 'dired-x) ;; 这个是内置
-(setq dired-omit-files (concat dired-omit-files "\\|~$"))
+;; "\\`[.]?#\\|\\`[.][.]?\\'\\|~$\\|\\`.qr_[a-zA-Z0-9]{6}..*\\'"
+(setq dired-omit-files (concat dired-omit-files "\\|~$\\|\\`\\.qr_[a-zA-Z0-9]\\{6\\}\\..*\\'"))
 
 (require 'dired-aux)  ;; 这个是内置
 (unless (version-list-<= (version-to-list emacs-version) '(24 3 1))
