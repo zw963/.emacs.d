@@ -90,12 +90,28 @@ Meant to be used as `hs-set-up-overlay'."
 (add-to-list 'hs-special-modes-alist '(mint-mode "{" "}" "/[*/]" nil nil))
 
 (add-to-list 'hs-special-modes-alist
-	     '(ruby-mode
-	       "\\(def\\|do\\|{\\)" "\\(end\\|end\\|}\\)" "#" nil nil))
+             '(ruby-mode
+               "\\(def\\|do\\|{\\)" "\\(end\\|}\\)" "#" (lambda (arg) (ruby-forward-sexp)) nil))
 
 (add-to-list 'hs-special-modes-alist
-	     '(enh-ruby-mode
-	       "\\(def\\|do\\|{\\)" "\\(end\\|end\\|}\\)" "#" (lambda (arg) (enh-ruby-forward-sexp)) nil))
+             '(ruby-ts-mode
+               "\\(def\\|do\\|{\\)" "\\(end\\|}\\)" "#" (lambda (arg) (ruby-forward-sexp)) nil))
+
+(add-to-list 'hs-special-modes-alist
+             '(enh-ruby-mode
+               "\\(def\\|do\\|{\\)" "\\(end\\|}\\)" "#" (lambda (arg) (enh-ruby-forward-sexp)) nil))
+
+(add-to-list 'hs-special-modes-alist
+             '(crystal-mode
+               "\\(def\\|do\\|{\\)" "\\(end\\|}\\)" "#" (lambda (arg) (crystal-forward-sexp)) nil))
+
+(add-to-list 'hs-special-modes-alist
+             `(elixir-ts-mode
+               ,(concat (regexp-opt '("def" "defmodule" "defprotocol" "case" "cond" "quote" "receive" "fn" "if" "for")) ".*? do") "end" "#" (lambda (arg) (elixir-ts--forward-sexp)) nil))
+
+(add-to-list 'hs-special-modes-alist
+             '(bash-ts-mode
+               "{" "}" "#" nil nil))
 
 (provide 'hideshow_init)
 

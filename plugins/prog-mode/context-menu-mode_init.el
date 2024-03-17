@@ -1,12 +1,5 @@
-(require 'hideshow)
-
-(setq-default context-menu-functions
-              '(context-menu-hideshow
-                context-menu-show-git-message
-                context-menu-split/close-window
-                occur-context-menu
-                context-menu-region
-                ))
+(require 'hideshow_init)
+(require 'yafolding_init)
 
 (defun context-menu-split/close-window (menu click)
   "Close current window"
@@ -19,13 +12,12 @@
                         (split-window-right-then-switch-to)
                         ))))
     (define-key-after menu [close-window]
-      '(menu-item "Close Window"
+      '(menu-item "Close current Window"
                   (lambda (click) (interactive "e")
                     (save-excursion
                       (mouse-set-point click)
                       (delete-window)
                       )))))
-
   (define-key-after menu [hs-separator] menu-bar-separator)
   menu)
 
@@ -35,17 +27,40 @@
     (mouse-set-point click)
     (if (hs-already-hidden-p)
         (define-key-after menu [hs-show-block]
-          '(menu-item "Show block"
+          '(menu-item "Unfold block"
                       (lambda (click) (interactive "e")
                         (save-excursion
                           (mouse-set-point click)
                           (hs-show-block)))))
       (define-key-after menu [hs-hide-block]
-        '(menu-item "Hide block"
+        '(menu-item "Fold block"
                     (lambda (click) (interactive "e")
                       (save-excursion
                         (mouse-set-point click)
                         (hs-hide-block)))))))
+  (define-key-after menu [hs-separator]
+    menu-bar-separator)
+  menu)
+
+;; For use with yaml-mode
+(defun context-menu-yafolding (menu click)
+  "Populate MENU with `hideshow' commands."
+  (save-excursion
+    (mouse-set-point click)
+    (if (yafolding-get-overlays (line-beginning-position)
+                                (+ 1 (line-end-position)))
+        (define-key-after menu [hs-show-block]
+          '(menu-item "Unfold indentation"
+                      (lambda (click) (interactive "e")
+                        (save-excursion
+                          (mouse-set-point click)
+                          (yafolding-show-element)))))
+      (define-key-after menu [hs-hide-block]
+        '(menu-item "Fold indentation"
+                    (lambda (click) (interactive "e")
+                      (save-excursion
+                        (mouse-set-point click)
+                        (yafolding-hide-element)))))))
   (define-key-after menu [hs-separator]
     menu-bar-separator)
   menu)
@@ -99,37 +114,58 @@
   (define-key-after menu [hs-separator] menu-bar-separator)
   menu)
 
-(defun context-menu-lsp-common-context-menu ()
-  (setq context-menu-functions
-        '(context-menu-hideshow
-          context-menu-show-git-message
-          context-menu-show-lsp-code-actions
-          context-menu-show-lsp-describe-thing-at-point
-          occur-context-menu
-          prog-context-menu
-          context-menu-local
-          )))
+(dolist (hook '(
+                yaml-mode-hook
+                yaml-ts-mode-hook
+                ))
+  (add-hook hook (lambda ()
+                   (add-to-list 'context-menu-functions 'context-menu-split/close-window)
+                   (add-to-list 'context-menu-functions 'context-menu-show-git-message)
 
-(defun context-menu-lsp-dart-context-menu ()
-  (setq context-menu-functions
-        '(context-menu-hideshow
-          context-menu-show-git-message
-          context-menu-show-lsp-code-actions
-          context-menu-show-lsp-describe-thing-at-point
-          context-menu-unwrap-flutter-widget
-          occur-context-menu
-          prog-context-menu
-          context-menu-local
-          )))
+                   (add-to-list 'context-menu-functions 'context-menu-yafolding)
+                   )))
 
-(add-hook 'dart-mode-hook 'context-menu-lsp-dart-context-menu)
-(add-hook 'go-mode-hook 'context-menu-lsp-common-context-menu)
-(add-hook 'go-ts-mode-hook 'context-menu-lsp-common-context-menu)
-(run-ruby-mode-hook '(context-menu-lsp-common-context-menu))
-(add-hook 'rust-mode-hook 'context-menu-lsp-common-context-menu)
-(add-hook 'rust-ts-mode-hook 'context-menu-lsp-common-context-menu)
-(add-hook 'rustic-mode-hook 'context-menu-lsp-common-context-menu)
-(add-hook 'elixir-ts-mode-hook 'context-menu-lsp-common-context-menu)
+(dolist (hook '(
+                dart-mode-hook
+                ))
+  (add-hook hook (lambda ()
+                   (add-to-list 'context-menu-functions 'context-menu-unwrap-flutter-widget)
+
+                   (add-to-list 'context-menu-functions 'context-menu-show-lsp-describe-thing-at-point)
+                   (add-to-list 'context-menu-functions 'context-menu-show-lsp-code-actions)
+
+                   (add-to-list 'context-menu-functions 'context-menu-split/close-window)
+                   (add-to-list 'context-menu-functions 'context-menu-show-git-message)
+
+                   (add-to-list 'context-menu-functions 'context-menu-hideshow)
+                   )))
+
+;; (dolist (hook '(
+;;                 rust-mode-hook
+;;                 rust-ts-mode-hook
+;;                 rustic-mode-hook
+;;                 ))
+;;   (add-hook hook 'add-lsp-common-context-menu))
+
+;; 这里可以使用 hideshow 的 mode 都必须在 hs-special-modes-alist 当中被定义
+(dolist (hook '(
+                ruby-mode-hook
+                ruby-ts-mode-hook
+                enh-ruby-mode-hook
+                crystal-mode-hook
+                elixir-ts-mode-hook
+                go-mode-hook
+                mint-mode-hook
+                bash-ts-mode-hook
+                emacs-lisp-mode-hook
+                ))
+  (add-hook hook (lambda ()
+                   (add-to-list 'context-menu-functions 'context-menu-show-lsp-describe-thing-at-point)
+                   (add-to-list 'context-menu-functions 'context-menu-show-lsp-code-actions)
+                   (add-to-list 'context-menu-functions 'context-menu-split/close-window)
+                   (add-to-list 'context-menu-functions 'context-menu-show-git-message)
+                   (add-to-list 'context-menu-functions 'context-menu-hideshow)
+                   )))
 
 (context-menu-mode t)
 
