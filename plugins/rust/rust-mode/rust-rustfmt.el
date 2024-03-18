@@ -41,49 +41,54 @@
 
 (defun rust--format-call (buf)
   "Format BUF using rustfmt."
-  (with-current-buffer (get-buffer-create rust-rustfmt-buffername)
-    (view-mode +1)
-    (let ((inhibit-read-only t))
-      (erase-buffer)
-      (insert-buffer-substring buf)
-      (let* ((tmpf (make-temp-file "rustfmt"))
-             (ret (apply 'call-process-region
-                         (point-min)
-                         (point-max)
-                         rust-rustfmt-bin
-                         t
-                         `(t ,tmpf)
-                         nil
-                         rust-rustfmt-switches)))
-        (unwind-protect
-            (cond
-             ((zerop ret)
-              (if (not (string= (buffer-string)
-                                (with-current-buffer buf (buffer-string))))
-                  ;; replace-buffer-contents was in emacs 26.1, but it
-                  ;; was broken for non-ASCII strings, so we need 26.2.
-                  (if (and (fboundp 'replace-buffer-contents)
-                           (version<= "26.2" emacs-version))
-                      (with-current-buffer buf
-                        (replace-buffer-contents rust-rustfmt-buffername))
-                    (copy-to-buffer buf (point-min) (point-max))))
-              (kill-buffer))
-             ((= ret 3)
-              (if (not (string= (buffer-string)
-                                (with-current-buffer buf (buffer-string))))
-                  (copy-to-buffer buf (point-min) (point-max)))
-              (erase-buffer)
-              (insert-file-contents tmpf)
-              (rust--format-fix-rustfmt-buffer (buffer-name buf))
-              (error "Rustfmt could not format some lines, see %s buffer for details"
-                     rust-rustfmt-buffername))
-             (t
-              (erase-buffer)
-              (insert-file-contents tmpf)
-              (rust--format-fix-rustfmt-buffer (buffer-name buf))
-              (error "Rustfmt failed, see %s buffer for details"
-                     rust-rustfmt-buffername))))
-        (delete-file tmpf)))))
+  (let ((path exec-path))
+    (with-current-buffer (get-buffer-create rust-rustfmt-buffername)
+      (setq-local exec-path path)
+      (view-mode +1)
+      (let ((inhibit-read-only t))
+        (erase-buffer)
+        (insert-buffer-substring buf)
+        (let* ((tmpf (make-temp-file "rustfmt"))
+               (ret (apply #'call-process-region
+                           (point-min)
+                           (point-max)
+                           rust-rustfmt-bin
+                           t
+                           `(t ,tmpf)
+                           nil
+                           rust-rustfmt-switches)))
+          (unwind-protect
+              (cond
+               ((zerop ret)
+                (if (not (string= (buffer-string)
+                                  (with-current-buffer buf (buffer-string))))
+                    ;; replace-buffer-contents was in emacs 26.1, but it
+                    ;; was broken for non-ASCII strings, so we need 26.2.
+                    (if (and (fboundp 'replace-buffer-contents)
+                             (version<= "26.2" emacs-version))
+                        (with-current-buffer buf
+                          (replace-buffer-contents rust-rustfmt-buffername))
+                      (copy-to-buffer buf (point-min) (point-max))))
+	        (let ((win (get-buffer-window rust-rustfmt-buffername)))
+		  (if win
+		      (quit-window t win)
+		    (kill-buffer rust-rustfmt-buffername))))
+               ((= ret 3)
+                (if (not (string= (buffer-string)
+                                  (with-current-buffer buf (buffer-string))))
+                    (copy-to-buffer buf (point-min) (point-max)))
+                (erase-buffer)
+                (insert-file-contents tmpf)
+                (rust--format-fix-rustfmt-buffer (buffer-name buf))
+                (error "Rustfmt could not format some lines, see %s buffer for details"
+                       rust-rustfmt-buffername))
+               (t
+                (erase-buffer)
+                (insert-file-contents tmpf)
+                (rust--format-fix-rustfmt-buffer (buffer-name buf))
+                (error "Rustfmt failed, see %s buffer for details"
+                       rust-rustfmt-buffername))))
+          (delete-file tmpf))))))
 
 ;; Since we run rustfmt through stdin we get <stdin> markers in the
 ;; output. This replaces them with the buffer name instead.
@@ -147,12 +152,13 @@ rustfmt complain in the echo area."
           (goto-char (point-min))
           (forward-line (1- (car target-point)))
           (forward-char (1- (cdr target-point))))
-        (message target-problem)))))
+        (unless rust-format-show-buffer
+          (message target-problem))))))
 
 (defconst rust--format-word "\
 \\b\\(else\\|enum\\|fn\\|for\\|if\\|let\\|loop\\|\
 match\\|struct\\|union\\|unsafe\\|while\\)\\b")
-(defconst rust--format-line "\\([\n]\\)")
+(defconst rust--format-line "\\(\n\\)")
 
 ;; Counts number of matches of regex beginning up to max-beginning,
 ;; leaving the point at the beginning of the last match.
@@ -239,7 +245,7 @@ match\\|struct\\|union\\|unsafe\\|while\\)\\b")
 Return the created process."
   (interactive)
   (unless (executable-find rust-rustfmt-bin)
-    (error "Could not locate executable \%s\"" rust-rustfmt-bin))
+    (error "Could not locate executable %S" rust-rustfmt-bin))
   (let* ((buffer
           (with-current-buffer
               (get-buffer-create "*rustfmt-diff*")
@@ -247,14 +253,14 @@ Return the created process."
               (erase-buffer))
             (current-buffer)))
          (proc
-          (apply 'start-process
+          (apply #'start-process
                  "rustfmt-diff"
                  buffer
                  rust-rustfmt-bin
                  "--check"
                  (cons (buffer-file-name)
                        rust-rustfmt-switches))))
-    (set-process-sentinel proc 'rust-format-diff-buffer-sentinel)
+    (set-process-sentinel proc #'rust-format-diff-buffer-sentinel)
     proc))
 
 (defun rust-format-diff-buffer-sentinel (process _e)
