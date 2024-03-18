@@ -87,17 +87,20 @@
 
 (setq frame-inhibit-implied-resize t)
 
-(meomacs-load-default-font)
-(meomacs-load-face-font)
+(defun load-my-fonts ()
+  (meomacs-load-default-font)
+  (meomacs-load-face-font)
 
-;; Run after startup
-(add-hook 'after-init-hook
-          (lambda ()
-            (when window-system
-              (meomacs-load-charset-font))))
+  ;; Run after startup
+  (add-hook 'after-init-hook
+            (lambda ()
+              (when window-system
+                (meomacs-load-charset-font))))
 
-(add-hook 'window-state-change-hook 'meomacs-dynamic-set-font)
+  (add-hook 'window-state-change-hook 'meomacs-dynamic-set-font)
+  )
 
+(load-my-fonts)
 ;; (require 'cnfonts_init)
 
 (provide 'fonts_init)
