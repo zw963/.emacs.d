@@ -4,5 +4,6 @@
 # condition: (yas-use-region-p)
 # --
 fn
-`(field "1" "arg" "" " ")`-> $0
+`(field "1" "arg" "" " ")`->
+  $0
 end

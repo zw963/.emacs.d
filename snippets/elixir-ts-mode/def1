@@ -1,0 +1,5 @@
+# -*- mode: snippet -*-
+# name: def func when
+# key: d1
+# --
+def `(field "1" "func")``(field "2" "expr" " when ")``(def)`

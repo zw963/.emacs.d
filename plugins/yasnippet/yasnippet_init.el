@@ -62,6 +62,17 @@
                       (upcase (substring match 1)))
      (capitalize name)))))
 
+(defun elixir-refactoring:camelize (name)
+  "Translate file name into corresponding Ruby class name."
+  (replace-regexp-in-string
+   "_" ""
+   (replace-regexp-in-string
+    "/" "."
+    (replace-regexp-in-string
+     "_\\([a-z]\\)" (lambda (match)
+                      (upcase (substring match 1)))
+     (capitalize name)))))
+
 (defun current-git-file-path ()
   (interactive)
   (let ((git-folder (locate-dominating-file
@@ -108,8 +119,16 @@
               (replace-regexp-in-string
                "^::"
                ""
-               (rails-refactoring:camelize
-                (replace-regexp-in-string path "" (replace-regexp-in-string "\\(_spec\\)?\\.rb$" "" file))))
+               (cond
+                ((member major-mode '(ruby-mode enh-ruby-mode ruby-ts-mode crystal-mode))
+                 (rails-refactoring:camelize
+                  (replace-regexp-in-string path "" (replace-regexp-in-string "\\(_spec\\)?\\.rb$" "" file))))
+
+                ((member major-mode '(elixir-mode elixir-ts-mode))
+                 (elixir-refactoring:camelize
+                  (replace-regexp-in-string path "" (replace-regexp-in-string "\\(\\.ex\\|\\.exs\\)$" "" file))))
+                )
+               )
             (replace-regexp-in-string
              "^::"
              ""

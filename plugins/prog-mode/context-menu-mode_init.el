@@ -50,13 +50,13 @@
     (if (yafolding-get-overlays (line-beginning-position)
                                 (+ 1 (line-end-position)))
         (define-key-after menu [hs-show-block]
-          '(menu-item "Unfold indentation"
+          '(menu-item "Unfold"
                       (lambda (click) (interactive "e")
                         (save-excursion
                           (mouse-set-point click)
                           (yafolding-show-element)))))
       (define-key-after menu [hs-hide-block]
-        '(menu-item "Fold indentation"
+        '(menu-item "Fold"
                     (lambda (click) (interactive "e")
                       (save-excursion
                         (mouse-set-point click)

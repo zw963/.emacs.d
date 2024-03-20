@@ -1,8 +1,7 @@
 # -*- mode: snippet -*-
 # name: def module
 # key: struct
-# condition: (yas-use-region-p)
 # --
 defmodule ${1:StructName} do
-  defstruct [$0]
+  defstruct $0
 end

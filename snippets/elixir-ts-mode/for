@@ -3,6 +3,6 @@
 # key: for
 # condition: (yas-use-region-p)
 # --
-for `(field "2" "item")` <- `(field "1" "Enumerable")` do
+for `(field "2" "item")` <- `(field "1" "Enumerable")``(field "3" "cond" ", ")` do
   $0
 end
