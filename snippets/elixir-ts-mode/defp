@@ -2,4 +2,4 @@
 # name: defp func
 # key: dp
 # --
-def `(field "1" "func")``(def)`
+defp `(field "1" "func")``(def)`

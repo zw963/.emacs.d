@@ -24,7 +24,8 @@
 (defun treemacs-ignore-example (filename absolute-path)
   (or
    ;; (string-suffix-p ".elc" filename)
-   ;; (string-prefix-p "/x/y/z/" absolute-path)
+   (string-suffix-p "/_build" absolute-path)
+   (string-suffix-p "/deps" absolute-path)
    (string-prefix-p filename ".qr_")
    ))
 

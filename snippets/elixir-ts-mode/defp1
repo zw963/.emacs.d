@@ -2,4 +2,4 @@
 # name: defp func when
 # key: dp1
 # --
-def `(field "1" "func")``(field "2" "expr" " when ")``(def)`
+defp `(field "1" "func")``(field "2" "expr" " when ")``(def)`
