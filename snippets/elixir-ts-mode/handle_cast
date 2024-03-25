@@ -2,7 +2,7 @@
 # name: def handle_cast
 # key: handle_cast
 # --
-def handle_casat(${1:pattern}, state) do
+def handle_cast(${1:pattern}, state) do
   $0
   {:noreply, new_state}
 end

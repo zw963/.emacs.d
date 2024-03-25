@@ -1,6 +1,6 @@
 ;;; diff-hl-dired.el --- Highlight changed files in Dired -*- lexical-binding: t -*-
 
-;; Copyright (C) 2012-2017  Free Software Foundation, Inc.
+;; Copyright (C) 2012-2017, 2023  Free Software Foundation, Inc.
 
 ;; This file is part of GNU Emacs.
 
@@ -140,19 +140,7 @@ status indicators."
 (defun diff-hl-dired-status-files (backend dir files update-function)
   "Using version control BACKEND, return list of (FILE STATE EXTRA) entries
 for DIR containing FILES. Call UPDATE-FUNCTION as entries are added."
-  (if (version< "25" emacs-version)
-      (vc-call-backend backend 'dir-status-files dir files update-function)
-    (vc-call-backend backend 'dir-status-files dir files nil update-function)))
-
-(when (version< emacs-version "24.4.51.5")
-  ;; Work around http://debbugs.gnu.org/19386
-  (defadvice vc-git-dir-status-goto-stage (around
-                                           diff-hl-dired-skip-up-to-date
-                                           (stage files update-function)
-                                           activate)
-    (when (eq stage 'ls-files-up-to-date)
-      (setq stage 'diff-index))
-    ad-do-it))
+  (vc-call-backend backend 'dir-status-files dir files update-function))
 
 (defun diff-hl-dired-highlight-items (alist)
   "Highlight ALIST containing (FILE . TYPE) elements."
@@ -167,6 +155,7 @@ for DIR containing FILES. Call UPDATE-FUNCTION as entries are added."
                  (diff-hl-fringe-face-function 'diff-hl-dired-face-from-type)
                  (o (diff-hl-add-highlighting type 'single)))
             (overlay-put o 'modification-hooks '(diff-hl-overlay-modified))
+            (overlay-put o 'diff-hl-dired-type type)
             ))))))
 
 (defun diff-hl-dired-face-from-type (type _pos)
