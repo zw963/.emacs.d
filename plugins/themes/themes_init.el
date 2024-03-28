@@ -5,6 +5,8 @@
 (setq custom-theme-directory (expand-file-name "plugins/themes"))
 (load-theme 'vscode-dark-plus t)
 
+;; (load-theme 'borland-blue t)
+
 ;; (setq zenburn-use-variable-pitch t)
 ;; (setq zenburn-scale-org-headlines t)
 ;; (setq zenburn-scale-outline-headlines t)

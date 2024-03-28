@@ -1,6 +1,5 @@
 # -*- mode: snippet -*-
-# name: pry
+# name: require IEx; IEx.pry
 # key: pry
-# group: debug
 # --
 require IEx; IEx.pry

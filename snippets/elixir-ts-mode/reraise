@@ -1,0 +1,6 @@
+# -*- mode: snippet -*-
+# name: reraise
+# key: reraise
+# condition: (yas-use-region-p)
+# --
+reraise exception, __STACKTRACE__

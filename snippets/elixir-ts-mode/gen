@@ -1,0 +1,6 @@
+# -*- mode: snippet -*-
+# name: gen
+# key: gen
+# condition: (yas-use-region-p)
+# --
+use GenServer
