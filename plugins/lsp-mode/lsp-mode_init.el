@@ -9,6 +9,8 @@
 (require 'lsp-diagnostics)
 (require 'lsp-ui)
 
+(require 'project_init)
+
 (defun lsp--describe-thing-at-point! ()
   (interactive)
   (lsp-describe-thing-at-point)
@@ -104,8 +106,6 @@
  ;; 尝试 guess root, 打开这个可能造成跳转入 lsp-dart 依赖的库文件之后，无法再次跳转。
  lsp-auto-guess-root t
  )
-
-
 
 ;; (setq lsp-log-io t)
 ;; (setq debug-on-error t)              ;需要调试时，开启这个。
