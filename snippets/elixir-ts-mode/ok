@@ -1,0 +1,5 @@
+# -*- mode: snippet -*-
+# name: pattern match :ok
+# key: ok
+# --
+{:ok, $0}

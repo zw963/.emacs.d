@@ -1,0 +1,5 @@
+# -*- mode: snippet -*-
+# name: pattern match :error
+# key: error
+# --
+{:error, $0}

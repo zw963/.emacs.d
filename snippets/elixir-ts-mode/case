@@ -1,6 +1,9 @@
 # -*- mode: snippet -*-
 # name: case
 # key: case
+# binding: c
 # condition: (yas-use-region-p)
 # --
-case `(field "1" "expr")``(def)`
+case `(key-field "1" "expr")` do
+  $0
+end
