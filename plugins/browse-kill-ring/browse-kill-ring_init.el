@@ -4,6 +4,7 @@
 (setq browse-kill-ring-highlight-current-entry t)
 (setq browse-kill-ring-highlight-inserted-item 'cedet)
 (setq browse-kill-ring-separator "\f")
+(setq browse-kill-ring-show-preview nil) ;; 预览有时候会造成死机
 (browse-kill-ring-default-keybindings)
 
 ;; (defun yank-pop-secondary-ring (&optional arg)
