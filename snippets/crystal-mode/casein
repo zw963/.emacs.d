@@ -1,6 +1,6 @@
 # -*- mode: snippet -*-
 # name: case ... in
-# key: case
+# key: casein
 # --
 case ${1:object}
 in ${2:pattern}
