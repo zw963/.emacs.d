@@ -41,7 +41,7 @@
             ;; (define-key crystal-mode-map [(control meta \,) ] #'crystal-tool-context)
 
             (define-key crystal-mode-map [(control t) ] #'crystal-spec-switch)
-            (define-key crystal-mode-map [(control meta ?\s)] 'ruby-mark-sexp-or-block)
+            ;; (define-key crystal-mode-map [(control meta ?\s)] 'mark-sexp)
             ;; (define-key crystal-mode-map [(control c) (tab)] 'crystal-project-compile)
             ;; (define-key crystal-mode-map [(control c) (return)] 'crystal-project-run)
             ;; (local-set-key [(kbd "RET")] 'reindent-then-newline-and-indent)

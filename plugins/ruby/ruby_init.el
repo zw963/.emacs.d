@@ -52,9 +52,7 @@
     (cond
      ((equal major-mode 'enh-ruby-mode) (enh-ruby-forward-sexp))
      ((equal major-mode 'crystal-mode) (ruby-forward-sexp))
-     (t (ruby-forward-sexp))
-     )
-    )))
+     (t (ruby-forward-sexp))))))
 
 (defun seeing-is-believing ()
   "Replace the current region (or the whole buffer, if none) with the output
