@@ -3,4 +3,4 @@
 # binding: M-c i
 # condition: (and (yas-use-region-p) (yas-in-string-p))
 # --
-\033[0;33m`yas-selected-text`\033[0m
+\033[0;35m`yas-selected-text`\033[0m
