@@ -48,8 +48,8 @@
 ;; 初始化 mu 的步骤：
 ;; 1. pacman -S xapian-core，安装必须的依赖
 ;; 2. 可选的，编译 mu
-;; 3. mu init 初始化
-;; 4. mu index 创建索引
+;; 3. mu init -m ~/Maildir 初始化
+;; 4. mu index 创建索引到 ~/.cache/mu/xapian, 这可能会比较慢
 ;; 5.
 ;; ============================== mu4e 设置 ==============================
 ;; current version:
