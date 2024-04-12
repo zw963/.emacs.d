@@ -104,7 +104,7 @@ If GREP-SPACE is used translate escaped space to \"\\s\" instead of \"\\s-\"."
     (string= candidate pattern)))
 
 (defun helm-mm-exact-search (pattern &rest _ignore)
-  (re-search-forward (helm-mm-exact-get-pattern pattern) nil t))
+  (helm-re-search-forward (helm-mm-exact-get-pattern pattern) nil t))
 
 
 ;;; Prefix match
@@ -249,8 +249,9 @@ i.e (identity (re-search-forward \"foo\" (pos-eol) t)) => t."
                            regex)
            when (eq (caar pat) 'not) return
            ;; Pass the job to `helm-search-match-part'.
-           (prog1 (list (pos-bol) (pos-eol))
-             (forward-line 1))
+           ;; We now forward-line from helm-search-from-candidate-buffer, see
+           ;; comments about bug#2650 there.
+           (list (pos-bol) (pos-eol))
            while (condition-case _err
                      (funcall searchfn1 (or regex1 "") nil t)
                    (invalid-regexp nil))
@@ -277,7 +278,7 @@ Forward line on empty lines, otherwise goto eol."
 
 (defun helm-mm-3-search (pattern &rest _ignore)
   (helm-mm-3-search-base
-   pattern 're-search-forward 're-search-forward))
+   pattern #'helm-re-search-forward #'helm-re-search-forward))
 
 (defun helm-mm-3-search-on-diacritics (pattern &rest _ignore)
   (let ((helm-mm--match-on-diacritics t))

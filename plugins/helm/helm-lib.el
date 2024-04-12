@@ -435,6 +435,9 @@ This is done recursively."
     exit-minibuffer
     helm-M-x))
 
+(defconst helm-this-command-functions '(read-multiple-choice--long-answers)
+  "The functions that should be returned by `helm-this-command' when found.")
+
 (defun helm-this-command ()
   "Return the actual command in action.
 Like `this-command' but return the real command, and not
@@ -442,13 +445,18 @@ Like `this-command' but return the real command, and not
   (cl-loop for count from 1 to 50
            for btf = (backtrace-frame count)
            for fn = (cl-second btf)
-           if (and
-               ;; In some case we may have in the way an
-               ;; advice compiled resulting in byte-code,
-               ;; ignore it (Bug#691).
-               (symbolp fn)
-               (commandp fn)
-               (not (memq fn helm-this-command-black-list)))
+           ;; Some commands like `kill-buffer' may call another function
+           ;; involving a completing-read, in this case we want to stop at this
+           ;; function and not go up to the initial interactive call (in this
+           ;; case kill-buffer) See Issue#2634.
+           if (or (memq fn helm-this-command-functions)
+                  (and
+                   ;; In some cases we may have in the way an
+                   ;; advice compiled resulting in byte-code,
+                   ;; ignore it (Bug#691).
+                   (symbolp fn)
+                   (commandp fn)
+                   (not (memq fn helm-this-command-black-list))))
            return fn
            else
            if (and (eq fn 'call-interactively)
@@ -558,20 +566,49 @@ is usable in next condition."
                 (helm-aand ,@(cdr conditions))))))
 
 (defmacro helm-acase (expr &rest clauses)
-  "A simple anaphoric `cl-case' implementation handling strings.
-EXPR is bound to a temporary variable called `it' which is usable
-in CLAUSES to refer to EXPR.
-NOTE: Duplicate keys in CLAUSES are deliberately not handled.
+  "Check if EXPR match KEYLIST and then execute BODY.
+
+`helm-acase' is a small macro mixing the features of `cl-case'
+and `cond'.
+
+KEYLIST can be any object that will be compared with `equal' or
+an expression starting with `guard' which is then evaluated.
+Once evaluated `guard' is bound to the returned value that can be
+used in the cdr of clause.  When KEYLIST match EXPR, BODY is
+executed and `helm-acase' exited with its value.
+
+If KEYLIST is a non-quoted list, each elements of the list are
+checked with `member' to see if one match EXPR.  To compare a
+whole list with EXPR, you have to quote it.
+
+The last clause can use `t' or \\='otherwise as KEYLIST to specify a
+fallback clause when previous clauses didn't match, if such a clause
+starting with `t' or \\='otherwise is specified before last clause it
+will override all next clauses, if you want to match an EXPR value equal
+to `t' in any clauses quote it, i.e. `'t' or use an explicit
+\(guard (eq it t)).
+
+NOTE: `guard' as a temp var is reserved for `helm-acase', so if
+you let-bind a local var outside the `helm-acase' body, it will
+be overriden deliberately by `helm-acase'.
+
+EXPR is bound to a temporary variable called `it' which is
+usable in all clauses to refer to EXPR.
 
 \(fn EXPR (KEYLIST BODY...)...)"
-  (declare (indent 1) (debug (form &rest (sexp body))))
+  (declare (indent 1) (debug (form &rest ([&or (symbolp form) sexp] body))))
   (unless (null clauses)
-    (let ((clause1 (car clauses)))
-      `(let ((key ',(car clause1))
-             (it ,expr))
-         (if (or (equal it key)
-                 (and (listp key) (member it key))
-                 (eq key t))
+    (let* ((clause1 (car clauses))
+           (key     (car clause1))
+           (isguard (eq 'guard (car-safe key)))
+           (sexp    (and isguard (cadr key))))
+      `(let* ((it ,expr)
+              (guard ,sexp))
+         (if (or guard
+                 (equal it ',key)
+                 (and (not ,isguard) (listp ',key) (member it ',key))
+                 (and (symbolp ',key)
+                      (or (eq ',key t) (eq ',key 'otherwise))))
              (progn ,@(cdr clause1))
            (helm-acase it ,@(cdr clauses)))))))
 
@@ -580,9 +617,9 @@ NOTE: Duplicate keys in CLAUSES are deliberately not handled.
 (defsubst helm--mapconcat-pattern (pattern)
   "Transform string PATTERN in regexp for further fuzzy matching.
 E.g.: helm.el$
-     => \"[^h]*?h[^e]*?e[^l]*?l[^m]*?m[^.]*?[.][^e]*?e[^l]*?l$\"
+     => \"[^h]*h[^e]*e[^l]*l[^m]*m[^.]*\\\\.[^e]*e[^l]*l$\"
      ^helm.el$
-     => \"helm[.]el$\"."
+     => \"helm\\\\.el$\"."
   (let ((ls (split-string-and-unquote pattern "")))
     (if (string= "^" (car ls))
         ;; Exact match.
@@ -595,13 +632,16 @@ E.g.: helm.el$
         (mapconcat (lambda (c)
                      (if (and (string= c "$")
                               (string-match "$\\'" pattern))
-                         c (format "[^%s]*?%s" c (regexp-quote c))))
+                         c (format "[^%s]*%s" c (regexp-quote c))))
                    ls ""))))
 
 (defsubst helm--collect-pairs-in-string (string)
-  (cl-loop for str on (split-string string "" t) by 'cdr
-           when (cdr str)
-           collect (list (car str) (cadr str))))
+  ;; We want to collect e.g.
+  ;; in "abcd" -> (("a" "b") ("b" "c") ("c" "d"))
+  ;; and not (("a" "b") ("c" "d")) so we use by #'cdr which is the default.
+  ;; If the last pair have no cdr i.e. (s1 nil) ignore it.
+  (cl-loop for (s1 s2) on (split-string string "" t)
+           when s2 collect (list s1 s2)))
 
 ;;; Help routines.
 ;;
@@ -736,9 +776,10 @@ displayed in BUFNAME."
 
 (defun helm-help-org-cycle ()
   "Runs `org-cycle' in `helm-help'."
-  (pcase (helm-iter-next helm-help--iter-org-state)
-    ((pred numberp) (org-content))
-    ((and state) (org-cycle state))))
+  (helm-acase (helm-iter-next helm-help--iter-org-state)
+    ((guard (numberp it)) (org-content))
+    ;; See `helm--help-org-prefargs' about `org-cycle' ARG.
+    (t (org-cycle it))))
 
 (defun helm-help-copy-region-as-kill ()
   "Copy region function for `helm-help'"
@@ -763,13 +804,18 @@ displayed in BUFNAME."
   (ignore-errors
     (org-mark-ring-goto)))
 
+(defvar helm--help-org-prefargs
+  (if (> emacs-major-version 28)
+      '(1 (4) (16)) '(1 (16) (64)))
+  "`org-cycle' ARG have not the same meaning across Emacs versions.")
+
 (defun helm-help-event-loop ()
   "The loop in charge of scanning keybindings in `helm-help'."
   (let ((prompt (propertize
                  helm-help-default-prompt
                  'face 'helm-helper))
         scroll-error-top-bottom
-        (helm-help--iter-org-state (helm-iter-circular '(1 (16) (64)))))
+        (helm-help--iter-org-state (helm-iter-circular helm--help-org-prefargs)))
     (catch 'helm-help-quit
       (helm-awhile (read-key prompt)
         (let ((fun (cl-loop for (k . v) in helm-help-hkmap
@@ -875,10 +921,11 @@ This is a bug in `puthash' which store the printable
 representation of object instead of storing the object itself,
 this to provide at the end a printable representation of
 hashtable itself."
-  (cl-loop with cont = (make-hash-table :test test)
-           for elm in seq
-           unless (gethash elm cont)
-           collect (puthash elm elm cont)))
+  (let ((table (make-hash-table :test test)))
+    (mapcan (lambda (x)
+              (unless (gethash x table)
+                (list (puthash x x table))))
+            seq)))
 
 (defsubst helm--string-join (strings &optional separator)
   "Join all STRINGS using SEPARATOR."
@@ -1098,10 +1145,10 @@ Examples:
 (defun helm-stringify (elm)
   "Return the representation of ELM as a string.
 ELM can be a string, a number or a symbol."
-  (pcase elm
-    ((pred stringp) elm)
-    ((pred numberp) (number-to-string elm))
-    ((pred symbolp) (symbol-name elm))))
+  (helm-acase elm
+    ((guard (stringp it)) it)
+    ((guard (numberp it)) (number-to-string it))
+    ((guard (symbolp it)) (symbol-name it))))
 
 (defun helm-substring (str width)
   "Return the substring of string STR from 0 to WIDTH.
@@ -1236,7 +1283,7 @@ accepted.
 
 Example:
 
-    (pcase (helm-read-answer
+    (helm-acase (helm-read-answer
              \"answer [y,n,!,q]: \"
              \\='(\"y\" \"n\" \"!\" \"q\"))
        (\"y\" \"yes\")
@@ -1252,7 +1299,7 @@ Example:
         (message "Please answer by %s" (mapconcat 'identity answer-list ", "))
         (sit-for 1)))))
 
-(defun helm-read-answer-dolist-with-action (prompt list action)
+(defun helm-read-answer-dolist-with-action (prompt list action &optional prompt-formater)
   "Read answer with PROMPT and execute ACTION on each element of LIST.
 
 Argument PROMPT is a format spec string e.g. \"Do this on %s?\"
@@ -1265,15 +1312,21 @@ differently depending of answer:
 - y  Execute ACTION on element.
 - n  Skip element.
 - !  Don't ask anymore and execute ACTION on remaining elements.
-- q  Skip all remaining elements."
+- q  Skip all remaining elements.
+
+PROMPT-FORMATER is a function called with one argument which is
+used to modify each element of LIST to be displayed in PROMPT."
   (let (dont-ask)
     (catch 'break
       (dolist (elm list)
         (if dont-ask
             (funcall action elm)
-          (pcase (helm-read-answer
-                  (format (concat prompt "[y,n,!,q]") elm)
-                  '("y" "n" "!" "q"))
+          (helm-acase (helm-read-answer
+                       (format (concat prompt "[y,n,!,q]")
+                               (if prompt-formater
+                                   (funcall prompt-formater elm)
+                                 elm))
+                       '("y" "n" "!" "q"))
             ("y" (funcall action elm))
             ("n" (ignore))
             ("!" (prog1
@@ -1291,10 +1344,10 @@ differently depending of answer:
 ;;
 (defun helm-symbolify (str-or-sym)
   "Get symbol of STR-OR-SYM."
-  (cond ((symbolp str-or-sym)
-         str-or-sym)
-        ((equal str-or-sym "") nil)
-        (t (intern str-or-sym))))
+  (helm-acase str-or-sym
+    ((guard (symbolp it)) it)
+    ("" nil)
+    (t (intern it))))
 
 (defun helm-symbol-name (obj)
   (if (or (and (consp obj) (functionp obj))
@@ -1755,30 +1808,29 @@ Directories expansion is not supported."
          (cmd "%s %s | head -n1 | awk 'match($0,\"%s\",a) {print a[2]}'\
  | awk -F ' -*-' '{print $1}'")
          (regexp "^;;;(.*) ---? (.*)$")
-         (proc (start-process-shell-command
-                "helm-locate-lib-get-summary" "*helm locate lib*"
+         (desc (shell-command-to-string
                 (format cmd
                         (if (string-match-p "\\.gz\\'" file)
                             "gzip -c -q -d" "cat")
                         (shell-quote-argument file)
-                        regexp)))
-         output)
-    (set-process-filter proc nil)
-    (set-process-sentinel
-     proc (lambda (process event)
-            (when (and (string= event "finished\n")
-                       (process-buffer process))
-              (setq output
-                    (with-current-buffer (process-buffer process)
-                      (replace-regexp-in-string
-                       "\n" ""
-                       (buffer-string))))
-              (kill-buffer (process-buffer process)))))
-    (while (and proc (eq (process-status proc) 'run))
-      (accept-process-output proc))
-    (if (string= output "")
+                        regexp))))
+    (if (string= desc "")
         "Not documented"
-      output)))
+      (replace-regexp-in-string "\n" "" desc))))
+
+(defun helm-local-directory-files (directory &rest args)
+  "Run `directory-files' without tramp file name handlers.
+Take same args as `directory-files'."
+  (require 'tramp)
+  (let ((file-name-handler-alist
+         (cl-loop for (re . sym) in file-name-handler-alist
+                  unless (and (symbolp sym)
+                              (string-prefix-p "tramp-" (symbol-name sym)))
+                  collect `(,re . ,sym)))
+       tramp-mode)
+    ;; Avoid error with 5nth arg COUNT which is not available in previous Emacs,
+    ;; at least 27.1, see bug#2662.
+    (apply #'directory-files directory args)))
 
 ;;; helm internals
 ;;
@@ -1892,8 +1944,8 @@ flex or helm-flex completion style if present."
         '(basic partial-completion emacs22)
       (or
        styles
-       (pcase (cdr (assq from helm-completion-styles-alist))
-         (`(,_l . ,ll) ll))
+       (helm-acase (cdr (assq from helm-completion-styles-alist))
+         ((guard (and (consp it) (cdr it))) guard))
        ;; We need to have flex always behind helm, otherwise
        ;; when matching against e.g. '(foo foobar foao frogo bar
        ;; baz) with pattern "foo" helm style if before flex will

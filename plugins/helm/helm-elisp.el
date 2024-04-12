@@ -33,6 +33,7 @@
 (declare-function helm-comp-read "helm-mode")
 (declare-function helm-M-x-transformer-no-sort-no-props "helm-command")
 (defvar helm-M-x-show-short-doc)
+(defvar completions-detailed)
 (defvar helm-completions-detailed)
 
 
@@ -159,9 +160,9 @@ display."
 ;; Called each time cursor move in helm-buffer.
 (defun helm-show-completion ()
   (with-helm-current-buffer
-    (overlay-put helm-show-completion-overlay
-                 'display (substring-no-properties
-                           (helm-get-selection)))))
+    (helm-aif (helm-get-selection)
+        (overlay-put helm-show-completion-overlay
+                     'display (substring-no-properties it)))))
 
 (defun helm-show-completion-init-overlay (beg end)
   (setq helm-show-completion-overlay (make-overlay beg end))
@@ -297,13 +298,10 @@ Return a cons (beg . end)."
     (when (and pos (< (point) pos))
       (push-mark pos t t))))
 
-(defvar helm-lisp-completion--cache nil)
-(defvar helm-lgst-len nil)
 ;;;###autoload
 (defun helm-lisp-completion-at-point ()
   "Preconfigured Helm for Lisp symbol completion at point."
   (interactive)
-  (setq helm-lgst-len 0)
   (let* ((target     (helm-thing-before-point))
          (beg        (car (helm-bounds-of-thing-before-point)))
          (end        (point))
@@ -316,17 +314,12 @@ Return a cons (beg . end)."
          (helm-quit-if-no-candidate t)
          (helm-execute-action-at-once-if-one t)
          (enable-recursive-minibuffers t))
-    (setq helm-lisp-completion--cache (cl-loop for sym in candidates
-                                            for len = (length sym)
-                                            when (> len helm-lgst-len)
-                                            do (setq helm-lgst-len len)
-                                            collect sym))
     (if candidates
         (with-helm-show-completion beg end
           ;; Overlay is initialized now in helm-current-buffer.
           (helm
            :sources (helm-build-in-buffer-source "Lisp completion"
-                      :data helm-lisp-completion--cache
+                      :data candidates
                       :persistent-action `(helm-lisp-completion-persistent-action .
                                            ,(and (eq helm-elisp-help-function
                                                      'helm-elisp-show-doc-modeline)
@@ -365,17 +358,17 @@ other window according to the value of
       (helm-elisp-show-help "Toggle show help for the symbol")))
 
 (defun helm-elisp--show-help-1 (candidate &optional name)
-  (let ((sym (intern-soft candidate)))
-    (pcase sym
-      ((and (pred fboundp) (pred boundp))
-       (if (member name `(,helm-describe-function-function ,helm-describe-variable-function))
-           (funcall (intern (format "helm-%s" name)) sym)
-           ;; When there is no way to know what to describe
-           ;; prefer describe-function.
-           (helm-describe-function sym)))
-      ((pred fboundp)  (helm-describe-function sym))
-      ((pred boundp)    (helm-describe-variable sym))
-      ((pred facep)     (helm-describe-face sym)))))
+  (helm-acase (intern-soft candidate)
+    ((guard (and (fboundp it) (boundp it)))
+     (if (member name `(,helm-describe-function-function
+                        ,helm-describe-variable-function))
+         (funcall (intern (format "helm-%s" name)) it)
+       ;; When there is no way to know what to describe
+       ;; prefer describe-function.
+       (helm-describe-function it)))
+    ((guard (fboundp it)) (helm-describe-function it))
+    ((guard (boundp it))  (helm-describe-variable it))
+    ((guard (facep it))   (helm-describe-face it))))
 
 (defun helm-elisp-show-help (candidate &optional name)
   "Show full help for the function CANDIDATE.
@@ -399,17 +392,16 @@ the same time to variable and a function."
 (defun helm-lisp-completion-transformer (candidates _source)
   "Helm candidates transformer for Lisp completion."
   (cl-loop for c in candidates
-        for sym = (intern c)
-        for annot = (pcase sym
-                      ((pred commandp) " (Com)")
-                      ((pred class-p)   " (Class)")
-                      ((pred cl-generic-p) " (Gen)")
-                      ((pred fboundp)  " (Fun)")
-                      ((pred boundp)   " (Var)")
-                      ((pred facep)    " (Face)"))
-        for spaces = (make-string (- helm-lgst-len (length c)) ? )
-        collect (cons (concat c spaces annot) c) into lst
-        finally return (sort lst #'helm-generic-sort-fn)))
+           for sym = (intern c)
+           for annot = (helm-acase sym
+                         ((guard (commandp it))     " (Com)")
+                         ((guard (class-p it))      " (Class)")
+                         ((guard (cl-generic-p it)) " (Gen)")
+                         ((guard (fboundp it))      " (Fun)")
+                         ((guard (boundp it))       " (Var)")
+                         ((guard (facep it))        " (Face)"))
+           collect (cons (concat c (helm-make-separator c) annot) c) into lst
+           finally return (sort lst #'helm-generic-sort-fn)))
 
 ;;;###autoload
 (cl-defun helm-get-first-line-documentation (sym &optional
@@ -420,31 +412,37 @@ If SYM is not documented, return \"Not documented\".
 Argument NAME allows specifiying what function to use to display
 documentation when SYM name is the same for function and variable."
   (let ((doc (condition-case _err
-                 (pcase sym
-                   ((pred class-p) (cl--class-docstring (cl--find-class sym)))
-                   ((and (pred fboundp) (pred boundp))
-                    (pcase name
-                      ("describe-function"
-                       (documentation sym t))
-                      ("describe-variable"
-                       (documentation-property sym 'variable-documentation t))
-                      (_ (documentation sym t))))
-                   ((pred custom-theme-p)
-                    (documentation-property sym 'theme-documentation t))
-                   ((pred helm-group-p) (documentation-property
-                                         sym 'group-documentation t))
-                   ((pred fboundp)  (documentation sym t))
-                   ((pred boundp)   (documentation-property
-                                     sym 'variable-documentation t))
-                   ((pred facep)   (face-documentation sym)))
+                 (helm-acase sym
+                   ((guard (class-p it))
+                    (cl--class-docstring (cl--find-class it)))
+                   ((guard (and (fboundp it) (boundp it)))
+                    (if (string= name "describe-variable")
+                        (documentation-property it 'variable-documentation t)
+                      (documentation it t)))
+                   ((guard (custom-theme-p it))
+                    (documentation-property it 'theme-documentation t))
+                   ((guard (and (helm-group-p it) (not (fboundp it))))
+                    (documentation-property it 'group-documentation t))
+                   ((guard (fboundp it))
+                    (documentation it t))
+                   ((guard (boundp it))
+                    (documentation-property it 'variable-documentation t))
+                   ((guard (facep it)) (face-documentation it)))
                (void-function "Void function -- Not documented"))))
     (if (and doc (not (string= doc ""))
              ;; `documentation' return "\n\n(args...)"
              ;; for CL-style functions.
              (not (string-match-p "\\`\n\n" doc)))
-        ;; Some commands specify key bindings in their first line.
+        ;; Some commands specify key bindings or keymap in their first line,
+        ;; e.g.: "\<hexl-mode-map>A mode for editing binary [...].  As a result
+        ;; (substitute-command-keys doc) returns a string like "\nUses
+        ;; keymap...\nFirst line docstring.  See
+        ;; <https://debbugs.gnu.org/70163>.
         (truncate-string-to-width
-         (substitute-command-keys (car (split-string doc "\n")))
+         (helm-acase (split-string (substitute-command-keys doc) "\n")
+           ((guard (and (string= (car it) "") (cdr it)))
+            (cadr guard))
+           (t (car it)))
          end-column nil nil t)
       (if (or (symbol-function sym) (boundp sym) (facep sym) (helm-group-p sym))
           "Not documented"
@@ -462,7 +460,7 @@ documentation when SYM name is the same for function and variable."
   "Preconfigured Helm to complete file name at point."
   (interactive)
   (require 'helm-mode)
-  (let* ((tap (or (thing-at-point 'filename) ""))
+  (let* ((tap (or (thing-at-point 'filename t) ""))
          beg
          (init (and tap
                     (or force
@@ -471,8 +469,7 @@ documentation when SYM name is the same for function and variable."
                           (search-backward tap (pos-bol) t)
                           (setq beg (point))
                           (looking-back "[^'`( ]" (1- (point)))))
-                    (expand-file-name
-                     (substring-no-properties tap))))
+                    (expand-file-name tap)))
          (end  (point))
          (helm-quit-if-no-candidate t)
          (helm-execute-action-at-once-if-one t)
@@ -484,6 +481,7 @@ documentation when SYM name is the same for function and variable."
       (delete-region beg end) (insert (if (string-match "^~" tap)
                                           (abbreviate-file-name completion)
                                         completion)))))
+(make-obsolete 'helm-complete-file-name-at-point 'helm-find-files "3.9.6")
 
 ;;;###autoload
 (defun helm-lisp-indent ()
@@ -494,20 +492,6 @@ documentation when SYM name is the same for function and variable."
   (let ((tab-always-indent (or (eq tab-always-indent 'complete)
                                tab-always-indent)))
     (indent-for-tab-command current-prefix-arg)))
-
-;;;###autoload
-(defun helm-lisp-completion-or-file-name-at-point ()
-  "Preconfigured Helm to complete Lisp symbol or filename at point.
-Filename completion happens if string start after or between a
-double quote."
-  (interactive)
-  (let* ((tap (thing-at-point 'filename)))
-    (if (and tap (save-excursion
-                   (end-of-line)
-                   (search-backward tap (pos-bol) t)
-                   (looking-back "[^'`( ]" (1- (point)))))
-        (helm-complete-file-name-at-point)
-      (helm-lisp-completion-at-point))))
 
 
 ;;; Apropos
@@ -548,18 +532,17 @@ is only used to test DEFAULT."
 
 (defun helm-apropos-short-doc-transformer (candidates _source)
   (if helm-apropos-show-short-doc
-      (cl-loop with max-len = (helm-in-buffer-get-longest-candidate)
-               for cand in candidates
+      (cl-loop for cand in candidates
                for doc = (helm-get-first-line-documentation (intern-soft cand))
                collect (cons (format "%s%s%s"
                                      cand
                                      (if doc
-                                         (make-string (+ 1 (if (zerop max-len)
-                                                               max-len
-                                                             (- max-len (string-width cand))))
-                                                      ? )
+                                         (helm-make-separator cand)
                                        "")
-                                     (if doc (propertize doc 'face 'helm-M-x-short-doc) ""))
+                                     (if doc
+                                         (propertize
+                                          doc 'face 'helm-M-x-short-doc)
+                                       ""))
                              cand))
     candidates))
 
@@ -763,23 +746,23 @@ is only used to test DEFAULT."
               ("Info lookup" . helm-info-lookup-symbol))))
 
 (defun helm-info-lookup-fallback-source (candidate)
-  (let ((sym (helm-symbolify candidate))
-        src-name fn)
-    (cond ((class-p sym)
-           (setq fn #'helm-describe-function
-                 src-name "Describe class"))
-          ((cl-generic-p sym)
-           (setq fn #'helm-describe-function
-                 src-name "Describe generic function"))
-          ((fboundp sym)
-           (setq fn #'helm-describe-function
-                 src-name "Describe function"))
-          ((facep sym)
-           (setq fn #'helm-describe-face
-                 src-name "Describe face"))
-          (t
-           (setq fn #'helm-describe-variable
-                 src-name "Describe variable")))
+  (cl-multiple-value-bind (fn src-name)
+      (helm-acase (helm-symbolify candidate)
+        ((guard (class-p it))
+         (list #'helm-describe-function
+               "Describe class"))
+        ((guard (cl-generic-p it))
+         (list #'helm-describe-function
+               "Describe generic function"))
+        ((guard (fboundp it))
+         (list #'helm-describe-function
+               "Describe function"))
+        ((guard (facep it))
+         (list #'helm-describe-face
+               "Describe face"))
+        (t
+         (list #'helm-describe-variable
+               "Describe variable")))
     (helm-build-sync-source src-name
       :candidates (list candidate)
       :persistent-action (lambda (candidate)
@@ -953,18 +936,24 @@ a prefix arg."
                        for bn = (helm-basename c 2)
                        for sep = (helm-make-separator bn lgst)
                        for path = (or (assoc-default bn helm--locate-library-cache)
-                                      (let ((p (find-library-name bn)))
-                                        (push (cons bn p) helm--locate-library-cache)
-                                        p))
-                       for doc = (and (or completions-detailed helm-completions-detailed)
+                                      ;; A lock file in LOAD-PATH (bug#2626).
+                                      (unless (string-match "\\`\\.#" bn)
+                                        (let ((p (find-library-name bn)))
+                                          (push (cons bn p) helm--locate-library-cache)
+                                          p)))
+                       for doc = (and path
+                                      (or completions-detailed helm-completions-detailed)
                                       (or (gethash bn helm--locate-library-doc-cache)
                                           (puthash bn (helm-locate-lib-get-summary path)
                                                    helm--locate-library-doc-cache)))
-                       for disp = (if (or completions-detailed helm-completions-detailed)
-                                      (helm-aand (propertize doc 'face 'font-lock-warning-face)
-                                                 (propertize " " 'display (concat sep it))
-                                                 (concat bn it))
-                                    bn)
+                       for disp = (and path
+                                       (if (and doc
+                                                (or completions-detailed helm-completions-detailed))
+                                           (helm-aand (propertize doc 'face 'font-lock-warning-face)
+                                                      (propertize " " 'display (concat sep it))
+                                                      (concat bn it))
+                                         bn))
+                       when (and disp path)
                        collect (cons disp path)
                        when reporter do (progress-reporter-update reporter count)
                        finally do (setq done t)))

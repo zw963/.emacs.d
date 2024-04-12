@@ -33,6 +33,7 @@
 (declare-function all-the-icons-icon-for-file"ext:all-the-icons.el")
 (declare-function all-the-icons-octicon      "ext:all-the-icons.el")
 (declare-function all-the-icons-match-to-alist "ext:all-the-icons.el")
+(declare-function all-the-icons-faicon "ext:all-the-icons.el")
 
 (defvar all-the-icons-dir-icon-alist)
 
@@ -88,6 +89,10 @@ will be honored."
                                    helm-bookmark-default-filtered-sources)
                   for fn = (intern (format "%s-builder" s))
                   do (set s (funcall fn)))))
+
+(defcustom helm-bookmark-annotation-sign "*"
+  "Boomarks with annotation are prefixed with this string."
+  :type 'string)
 
 (defgroup helm-bookmark-faces nil
   "Customize the appearance of helm-bookmark."
@@ -250,7 +255,8 @@ will be honored."
 BOOKMARK is a bookmark name or a bookmark record."
   (or (eq (bookmark-get-handler bookmark) 'bmkext-jump-gnus)
       (eq (bookmark-get-handler bookmark) 'gnus-summary-bookmark-jump)
-      (eq (bookmark-get-handler bookmark) 'bookmarkp-jump-gnus)))
+      (eq (bookmark-get-handler bookmark) 'bookmarkp-jump-gnus)
+      (eq (bookmark-get-handler bookmark) 'bmkp-jump-gnus)))
 
 (defun helm-bookmark-mu4e-bookmark-p (bookmark)
   "Return non nil if BOOKMARK is a mu4e bookmark.
@@ -263,21 +269,24 @@ BOOKMARK is a bookmark name or a bookmark record."
 BOOKMARK is a bookmark name or a bookmark record."
   (or (eq (bookmark-get-handler bookmark) 'bmkext-jump-w3m)
       (eq (bookmark-get-handler bookmark) 'bookmark-w3m-bookmark-jump)
-      (eq (bookmark-get-handler bookmark) 'bookmarkp-jump-w3m)))
+      (eq (bookmark-get-handler bookmark) 'bookmarkp-jump-w3m)
+      (eq (bookmark-get-handler bookmark) 'bmkp-jump-w3m)))
 
 (defun helm-bookmark-woman-bookmark-p (bookmark)
   "Return non-nil if BOOKMARK is a Woman bookmark.
 BOOKMARK is a bookmark name or a bookmark record."
   (or (eq (bookmark-get-handler bookmark) 'bmkext-jump-woman)
       (eq (bookmark-get-handler bookmark) 'woman-bookmark-jump)
-      (eq (bookmark-get-handler bookmark) 'bookmarkp-jump-woman)))
+      (eq (bookmark-get-handler bookmark) 'bookmarkp-jump-woman)
+      (eq (bookmark-get-handler bookmark) 'bmkp-jump-woman)))
 
 (defun helm-bookmark-man-bookmark-p (bookmark)
   "Return non-nil if BOOKMARK is a Man bookmark.
 BOOKMARK is a bookmark name or a bookmark record."
   (or (eq (bookmark-get-handler bookmark) 'bmkext-jump-man)
       (eq (bookmark-get-handler bookmark) 'Man-bookmark-jump)
-      (eq (bookmark-get-handler bookmark) 'bookmarkp-jump-man)))
+      (eq (bookmark-get-handler bookmark) 'bookmarkp-jump-man)
+      (eq (bookmark-get-handler bookmark) 'bmkp-jump-man)))
 
 (defun helm-bookmark-woman-man-bookmark-p (bookmark)
   "Return non-nil if BOOKMARK is a Man or Woman bookmark.
@@ -302,7 +311,10 @@ BOOKMARK is a bookmark name or a bookmark record.
 This excludes bookmarks of a more specific kind (Info, Gnus, and W3m)."
   (let* ((filename   (bookmark-get-filename bookmark))
          (isnonfile  (equal filename helm-bookmark--non-file-filename)))
-    (and filename (not isnonfile) (not (bookmark-get-handler bookmark)))))
+    (and filename
+         (not isnonfile)
+         (not (helm-bookmark-org-file-p bookmark))
+         (not (bookmark-get-handler bookmark)))))
 
 (defun helm-bookmark-org-file-p (bookmark)
   (let* ((filename (bookmark-get-filename bookmark)))
@@ -388,6 +400,10 @@ If `browse-url-browser-function' is set to something else than
 (defalias 'bookmarkp-jump-w3m #'helm-bookmark-jump-w3m)
 (defalias 'bookmarkp-jump-woman #'woman-bookmark-jump)
 (defalias 'bookmarkp-jump-man #'Man-bookmark-jump)
+(defalias 'bmkp-jump-gnus #'gnus-summary-bookmark-jump)
+(defalias 'bmkp-jump-w3m #'helm-bookmark-jump-w3m)
+(defalias 'bmkp-jump-woman #'woman-bookmark-jump)
+(defalias 'bmkp-jump-man #'Man-bookmark-jump)
 
 
 ;;;; Filtered bookmark sources
@@ -619,15 +635,17 @@ If `browse-url-browser-function' is set to something else than
                                              all-the-icons-dir-icon-alist))
                                   (apply (car it) (cdr it))
                                 (all-the-icons-octicon "file-directory")))
+                             (isw3m (all-the-icons-faicon "firefox"))
                              ((and isfile isinfo) (all-the-icons-octicon "info"))
-                             (isfile (all-the-icons-icon-for-file (helm-basename isfile)))
                              ((or iswoman isman)
                               (all-the-icons-fileicon "man-page"))
                              ((or isgnus ismu4e)
-                              (all-the-icons-octicon "mail-read"))))
+                              (all-the-icons-octicon "mail-read"))
+                             (isfile (all-the-icons-icon-for-file (helm-basename isfile)))))
           ;; Add a * if bookmark have annotation
           if (and isannotation (not (string-equal isannotation "")))
-          do (setq trunc (concat "*" (if helm-bookmark-show-location trunc i)))
+          do (setq trunc (concat helm-bookmark-annotation-sign
+                                 (if helm-bookmark-show-location trunc i)))
           for sep = (and helm-bookmark-show-location
                          (make-string (- (+ bookmark-bmenu-file-column 2)
                                          (string-width trunc))
@@ -749,32 +767,42 @@ renamed."
   (setq bookmark-alist-modification-count (1+ bookmark-alist-modification-count))
   (when (bookmark-time-to-save-p) (bookmark-save)))
 
-(defun helm-bookmark-rename (old &optional new batch)
+(defun helm-bookmark-rename (old &optional new _batch)
   "Change bookmark's name from OLD to NEW.
-Interactively:
- If called from the keyboard, then prompt for OLD.
- If called from the menubar, select OLD from a menu.
 If NEW is nil, then prompt for its string value.
 
-If BATCH is non-nil, then do not rebuild the menu list.
+Unused arg _BATCH is kept for backward compatibility.
 
 While the user enters the new name, repeated `C-w' inserts
 consecutive words from the buffer into the new bookmark name."
-  (interactive (list (bookmark-completing-read "Old bookmark name")))
   (bookmark-maybe-historicize-string old)
   (bookmark-maybe-load-default-file)
-  (save-excursion (skip-chars-forward " ") (setq bookmark-yank-point (point)))
+  (save-excursion
+    (skip-chars-forward " ") (setq bookmark-yank-point (point)))
   (setq bookmark-current-buffer (current-buffer))
-  (let ((newname  (or new  (read-from-minibuffer
-                            "New name: " nil
-                            (let ((now-map  (copy-keymap minibuffer-local-map)))
-                              (define-key now-map  "\C-w" #'bookmark-yank-word)
-                              now-map)
-                            nil 'bookmark-history))))
-    (bookmark-set-name old newname)
-    (setq bookmark-current-bookmark  newname)
-    (unless batch (bookmark-bmenu-surreptitiously-rebuild-list))
-    (helm-bookmark-maybe-save-bookmark) newname))
+  (catch 'skip
+    (let ((newname
+           (or new  (read-from-minibuffer
+                     (format "(C-RET to skip) New name [%s]: " old) nil
+                     (let ((now-map  (copy-keymap minibuffer-local-map)))
+                       (define-key now-map "\C-w" #'bookmark-yank-word)
+                       (define-key now-map (kbd "C-<return>")
+                         #'(lambda () (interactive) (throw 'skip 'skip)))
+                       now-map)
+                     nil 'bookmark-history old))))
+      (bookmark-set-name old newname)
+      (setq bookmark-current-bookmark  newname)
+      (helm-bookmark-maybe-save-bookmark) newname)))
+
+(defun helm-bookmark-rename-marked (_candidate)
+  "Rename marked bookmarks."
+  (let* ((bmks (helm-marked-candidates))
+         (count 0)
+         (len (length bmks)))
+    (cl-loop for bmk in bmks
+             unless (eq (helm-bookmark-rename bmk) 'skip)
+             do (cl-incf count))
+    (message "(%s/%s) bookmark(s) renamed" count len)))
 
 (helm-make-command-from-action helm-bookmark-run-edit
   "Run `helm-bookmark-edit-bookmark' from keyboard."
@@ -808,7 +836,65 @@ E.g. prepended with *."
   (dolist (i (helm-marked-candidates))
     (bookmark-delete (helm-bookmark-get-bookmark-from-name i)
                      'batch)))
+
+;;; bookmark annotations
+;;
+(defun helm-bookmark-show-annotation (bookmark-name-or-record)
+  "Display the annotation for BOOKMARK-NAME-OR-RECORD in a buffer."
+  (let ((annotation (bookmark-get-annotation bookmark-name-or-record)))
+    (when (and annotation (not (string-equal annotation "")))
+      (let ((buf (get-buffer-create "*Bookmark Annotation*")))
+        (with-current-buffer buf
+          (let ((inhibit-read-only t))
+            (erase-buffer)
+            (insert annotation)
+            (goto-char (point-min))
+            (set-buffer-modified-p nil)
+            (helm-bookmark-annotation-mode)
+            (insert (substitute-command-keys
+                     "# Edit this buffer with \\[helm-bookmark-edit-annotation]")
+                    (substitute-command-keys
+                     "\n# Quit this buffer with \\[helm-bookmark-quit-annotation]\n"))
+            (set (make-local-variable 'bookmark-annotation-name)
+                 bookmark-name-or-record)
+            (put 'bookmark-annotation-name 'permanent-local t)))
+        (pop-to-buffer buf)))))
 
+(defun helm-bookmark-edit-annotation ()
+  "Edit bookmark annotation from the show annotation buffer."
+  (interactive)
+  (setq buffer-read-only nil)
+  (bookmark-edit-annotation-mode)
+  (save-excursion
+    (goto-char (point-min))
+    (delete-region
+     (point) (save-excursion (forward-line 2) (point)))
+    (insert (funcall bookmark-edit-annotation-text-func
+                     bookmark-annotation-name))))
+(put 'helm-bookmark-edit-annotation 'no-helm-mx t)
+
+(defun helm-bookmark-quit-annotation ()
+  "Quit bookmark annotation buffer."
+  (interactive)
+  (quit-window t))
+(put 'helm-bookmark-quit-annotation 'no-helm-mx t)
+
+(defvar helm-bookmark-annotation-mode-map
+  (let ((map (make-sparse-keymap)))
+    (set-keymap-parent map text-mode-map)
+    (define-key map (kbd "q") #'helm-bookmark-quit-annotation)
+    (define-key map (kbd "e") #'helm-bookmark-edit-annotation)
+    map)
+  "Map used in show annotation bookmark buffer.")
+
+(define-derived-mode helm-bookmark-annotation-mode
+    text-mode "helm-annotation-mode"
+    "Mode to display bookmark annotations.
+
+Special commands:
+\\{helm-bookmark-annotation-mode-map}"
+    :interactive nil
+    (setq-local buffer-read-only t))
 
 ;;;###autoload
 (defun helm-bookmarks ()
@@ -818,7 +904,7 @@ E.g. prepended with *."
                    helm-source-bookmark-set)
         :buffer "*helm bookmarks*"
         :default (buffer-name helm-current-buffer)))
-
+
 ;;;###autoload
 (defun helm-filtered-bookmarks ()
   "Preconfigured `helm' for bookmarks (filtered by category).

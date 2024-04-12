@@ -136,11 +136,11 @@
    "Jump to BM other window" 'helm-bookmark-jump-other-window
    "Jump to BM other frame" 'helm-bookmark-jump-other-frame
    "Jump to BM other tab" 'helm-bookmark-jump-other-tab
+   "Show bookmark annotation" 'helm-bookmark-show-annotation
    "Bookmark edit annotation" 'bookmark-edit-annotation
-   "Bookmark show annotation" 'bookmark-show-annotation
-   "Delete bookmark(s)" 'helm-delete-marked-bookmarks
+   "Delete marked bookmark(s)" 'helm-delete-marked-bookmarks
    "Edit Bookmark" 'helm-bookmark-edit-bookmark
-   "Rename bookmark" 'helm-bookmark-rename
+   "Rename marked bookmark(s)" 'helm-bookmark-rename-marked
    "Relocate bookmark" 'bookmark-relocate)
   "Default actions for type bookmarks."
   :group 'helm-bookmark
