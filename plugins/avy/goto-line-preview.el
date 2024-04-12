@@ -1,6 +1,6 @@
 ;;; goto-line-preview.el --- Preview line when executing `goto-line` command    -*- lexical-binding: t; -*-
 
-;; Copyright (C) 2019-2022  Shen, Jen-Chieh
+;; Copyright (C) 2019-2024  Shen, Jen-Chieh
 ;; Created date 2019-03-01 14:53:00
 
 ;; Author: Shen, Jen-Chieh <jcs090218@gmail.com>
@@ -48,6 +48,16 @@
   :group 'goto-line-preview
   :type 'hook)
 
+(defcustom goto-line-preview-hl-duration 1
+  "Duration of highlight when change preview line."
+  :group 'goto-line-preview
+  :type 'integer)
+
+(defface goto-line-preview-hl
+  '((t :inherit highlight :extend t))
+  "Face to use for highlighting when change preview line."
+  :group 'goto-line-preview)
+
 (defvar goto-line-preview--prev-window nil
   "Record down the previous window before we do preivew display.")
 
@@ -57,12 +67,22 @@
 (defvar goto-line-preview--relative-p nil
   "Flag to see if this command relative.")
 
+(defun goto-line-preview--highlight ()
+  "Keep highlight for a fixed time."
+  (when goto-line-preview-hl-duration
+    (let ((overlay (make-overlay (line-beginning-position) (1+ (line-end-position)))))
+      (overlay-put overlay 'face 'goto-line-preview-hl)
+      (overlay-put overlay 'window (selected-window))
+      (sit-for goto-line-preview-hl-duration)
+      (delete-overlay overlay))))
+
 (defun goto-line-preview--do (line-num)
   "Do goto LINE-NUM."
   (save-selected-window
     (select-window goto-line-preview--prev-window)
     (goto-char (point-min))
-    (forward-line (1- line-num))))
+    (forward-line (1- line-num))
+    (goto-line-preview--highlight)))
 
 (defun goto-line-preview--do-preview ()
   "Do the goto line preview action."
@@ -87,9 +107,14 @@
         jumped)
     (run-hooks 'goto-line-preview-before-hook)
     (unwind-protect
-        (setq jumped (read-number (if goto-line-preview--relative-p
-                                      "Goto line relative: "
-                                    "Goto line: ")))
+        (setq jumped (read-number
+                      (let ((lines (line-number-at-pos (point-max))))
+                        (format (if goto-line-preview--relative-p
+                                    "[%d] Goto line relative: (%d to %d) "
+                                  "[%d] Goto line: (%d to %d) ")
+                                goto-line-preview--prev-line-num
+                                (max 0 (min 1 lines))
+                                lines))))
       (if jumped
           (with-current-buffer (window-buffer goto-line-preview--prev-window)
             (unless (region-active-p) (push-mark window-point)))

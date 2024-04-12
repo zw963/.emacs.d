@@ -1,14 +1,13 @@
 ;;; goto-char-preview.el --- Preview character when executing `goto-char` command  -*- lexical-binding: t; -*-
 
-;; Copyright (C) 2019  Shen, Jen-Chieh
+;; Copyright (C) 2019-2024  Shen, Jen-Chieh
 ;; Created date 2019-04-18 16:03:46
 
 ;; Author: Shen, Jen-Chieh <jcs090218@gmail.com>
-;; Description: Preview character when executing `goto-char` command.
-;; Keyword: character navigation
+;; URL: https://github.com/emacs-vs/goto-char-preview
 ;; Version: 0.1.0
 ;; Package-Requires: ((emacs "24.3"))
-;; URL: https://github.com/jcs-elpa/goto-char-preview
+;; Keywords: convenience character navigation
 
 ;; This file is NOT part of GNU Emacs.
 
@@ -37,7 +36,7 @@
   :prefix "goto-char-preview-"
   :group 'convenience
   :group 'tools
-  :link '(url-link :tag "Repository" "https://github.com/jcs-elpa/goto-char-preview"))
+  :link '(url-link :tag "Repository" "https://github.com/emacs-vs/goto-char-preview"))
 
 (defcustom goto-char-preview-before-hook nil
   "Hooks run before `goto-char-preview' is run."
@@ -49,6 +48,16 @@
   :group 'goto-char-preview
   :type 'hook)
 
+(defcustom goto-char-preview-hl-duration 1
+  "Duration of highlight when change preview char."
+  :group 'goto-char-preview
+  :type 'integer)
+
+(defface goto-char-preview-hl
+  '((t :inherit highlight :extend t))
+  "Face to use for highlighting when change preview char."
+  :group 'goto-line-preview)
+
 (defvar goto-char-preview--prev-window nil
   "Record down the previous window before we do preview command.")
 
@@ -58,6 +67,15 @@
 (defvar goto-char-preview--relative-p nil
   "Flag to see if this command relative.")
 
+(defun goto-char-preview--highlight ()
+  "Keep highlight for a fixed time."
+  (when goto-char-preview-hl-duration
+    (let ((overlay (make-overlay (line-beginning-position) (1+ (line-end-position)))))
+      (overlay-put overlay 'face 'goto-char-preview-hl)
+      (overlay-put overlay 'window (selected-window))
+      (sit-for goto-char-preview-hl-duration)
+      (delete-overlay overlay))))
+
 (defun goto-char-preview--do (char-pos)
   "Do goto char.
 CHAR-POS : Target character position to navigate to."
@@ -66,7 +84,8 @@ CHAR-POS : Target character position to navigate to."
     (goto-char (point-min))
     (when (< (point-max) char-pos)
       (setq char-pos (point-max)))
-    (forward-char (1- char-pos))))
+    (forward-char (1- char-pos))
+    (goto-char-preview--highlight)))
 
 (defun goto-char-preview--do-preview ()
   "Do the goto char preview action."
@@ -92,9 +111,13 @@ CHAR-POS : Target character position to navigate to."
         jumped)
     (run-hooks 'goto-char-preview-before-hook)
     (unwind-protect
-        (setq jumped (read-number (if goto-char-preview--relative-p
-                                      "Goto char relative: "
-                                    "Goto char: ")))
+        (setq jumped (read-number
+                      (format (if goto-char-preview--relative-p
+                                  "[%d] Goto char relative: (%d to %d) "
+                                "[%d] Goto char: (%d to %d) ")
+                              goto-char-preview--prev-char-pos
+                              (point-min)
+                              (point-max))))
       (if jumped
           (with-current-buffer (window-buffer goto-char-preview--prev-window)
             (unless (region-active-p) (push-mark window-point)))

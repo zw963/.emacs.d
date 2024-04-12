@@ -101,9 +101,9 @@ Otherwise, forward to `goto-line' with ARG."
 
 ;; (setq avy-zap-function 'delete-region)
 
-;; (require 'goto-char-preview)
-;; (global-set-key [remap goto-char] 'goto-char-preview)
-
+(require 'goto-char-preview)
+(global-set-key [remap goto-char] 'goto-char-preview)
+n
 (require 'ace-window)
 ;; (setq aw-keys '(?a ?s ?d ?f ?g ?h ?j ?k ?l))
 (setq aw-scope 'visible)
@@ -134,11 +134,10 @@ Otherwise, forward to `goto-line' with ARG."
 ;; 在某些情况下，这个无法方便的像 helm 一样过滤，不够方便
 ;; (require 'ace-popup-menu)
 ;; (ace-popup-menu-mode 1)
-
-(with-eval-after-load 'yasnippet
-  ;; 当设定为 yas-x-prompt 时, 会使用 ace-popup-menu
-  (setq yas-prompt-functions '(yas-x-prompt))
-  )
+;; (with-eval-after-load 'yasnippet
+;;   ;; 当设定为 yas-x-prompt 时, 会使用 ace-popup-menu
+;;   (setq yas-prompt-functions '(yas-x-prompt))
+;;   )
 
 (require 'char-menu)
 (setq char-menu '("—" "‘’" "“”" "…" "«»" "–"
@@ -152,8 +151,8 @@ Otherwise, forward to `goto-line' with ARG."
 ;; 进入 help-mode, 测试快捷键 o.
 (ace-link-setup-default)
 
-(require 'goto-line-preview)
-(global-set-key [remap goto-line] 'goto-line-preview)
+;; (require 'goto-line-preview)
+;; (global-set-key [remap goto-line] 'goto-line-preview)
 
 (provide 'avy_init)
 ;;; avy_init.el ends here
