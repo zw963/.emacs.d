@@ -1,0 +1,5 @@
+# -*- mode: snippet -*-
+# name: puts "*"*100
+# key: puts
+# --
+puts "${1:*}"*100

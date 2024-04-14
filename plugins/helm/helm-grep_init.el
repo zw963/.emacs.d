@@ -15,12 +15,22 @@
     (when (use-region-p)
       (buffer-substring (region-beginning) (region-end)))))
 
+;; (defun helm-grep-do-git-grep-hacked (arg)
+;;   "Preconfigured `helm' for git-grepping `default-directory'.
+;; With a prefix arg ARG git-grep the whole repository."
+;;   (interactive "P")
+;;   (require 'helm-files)
+;;   (helm-grep-git-1 default-directory arg nil (helm-git-grep-get-input-symbol)))
+
 (defun helm-grep-do-git-grep-hacked (arg)
   "Preconfigured `helm' for git-grepping `default-directory'.
-With a prefix arg ARG git-grep the whole repository."
+    With a prefix arg ARG git-grep the whole repository."
   (interactive "P")
   (require 'helm-files)
-  (helm-grep-git-1 default-directory arg nil (helm-git-grep-get-input-symbol)))
+  (run-at-time 0.1 nil #'helm-grep-git-1
+               default-directory arg nil
+               (or helm-pattern
+                   (helm-git-grep-get-input-symbol))))
 
 (global-set-key (kbd "M-r") 'helm-grep-do-git-grep-hacked)
 (define-key helm-grep-map (kbd "M-r") 'helm-quit-and-do-git-grep-on-project)

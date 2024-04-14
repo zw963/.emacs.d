@@ -103,7 +103,7 @@ Otherwise, forward to `goto-line' with ARG."
 
 (require 'goto-char-preview)
 (global-set-key [remap goto-char] 'goto-char-preview)
-n
+
 (require 'ace-window)
 ;; (setq aw-keys '(?a ?s ?d ?f ?g ?h ?j ?k ?l))
 (setq aw-scope 'visible)
