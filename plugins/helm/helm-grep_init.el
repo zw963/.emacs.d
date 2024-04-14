@@ -2,12 +2,6 @@
 
 (setq helm-grep-file-path-style 'relative)
 
-(defun helm-quit-and-do-git-grep-on-project ()
-  "Drop into `helm-grep-do-git-grep' on entire project from `helm'."
-  (interactive)
-  (with-helm-alive-p
-    (helm-run-after-exit #'helm-grep-do-git-grep-hacked t)))
-
 (defun helm-git-grep-get-input-symbol ()
   "Get input symbol."
   (if (not mark-active)
@@ -15,24 +9,28 @@
     (when (use-region-p)
       (buffer-substring (region-beginning) (region-end)))))
 
-;; (defun helm-grep-do-git-grep-hacked (arg)
-;;   "Preconfigured `helm' for git-grepping `default-directory'.
-;; With a prefix arg ARG git-grep the whole repository."
-;;   (interactive "P")
-;;   (require 'helm-files)
-;;   (helm-grep-git-1 default-directory arg nil (helm-git-grep-get-input-symbol)))
+(defun helm-grep-do-git-grep-on-symbol (arg)
+  "Preconfigured `helm' for git-grepping `default-directory'.
+With a prefix arg ARG git-grep the whole repository."
+  (interactive "P")
+  (require 'helm-files)
+  (helm-grep-git-1 default-directory arg nil (helm-git-grep-get-input-symbol)))
 
-(defun helm-grep-do-git-grep-hacked (arg)
+(defun helm-grep-do-git-grep-on-previous-pattern (arg)
   "Preconfigured `helm' for git-grepping `default-directory'.
     With a prefix arg ARG git-grep the whole repository."
   (interactive "P")
-  (require 'helm-files)
   (run-at-time 0.1 nil #'helm-grep-git-1
                default-directory arg nil
-               (or helm-pattern
-                   (helm-git-grep-get-input-symbol))))
+               helm-pattern))
 
-(global-set-key (kbd "M-r") 'helm-grep-do-git-grep-hacked)
+(defun helm-quit-and-do-git-grep-on-project ()
+  "Drop into `helm-grep-do-git-grep' on entire project from `helm'."
+  (interactive)
+  (with-helm-alive-p
+    (helm-run-after-exit #'helm-grep-do-git-grep-on-previous-pattern t)))
+
+(global-set-key (kbd "M-r") 'helm-grep-do-git-grep-on-symbol)
 (define-key helm-grep-map (kbd "M-r") 'helm-quit-and-do-git-grep-on-project)
 (define-key helm-find-files-map (kbd "M-r") 'helm-ff-run-git-grep)
 
