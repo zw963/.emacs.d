@@ -39,7 +39,7 @@ Version 1.34.3 minimum is required."
 Version 1.34.3 minimum is required."
   :group 'lsp-mode
   :link '(url-link "https://github.com/OmniSharp/omnisharp-roslyn")
-  :package-version '(lsp-mode . "8.0.1"))
+  :package-version '(lsp-mode . "9.0.0"))
 
 (defcustom lsp-csharp-server-install-dir
   (f-join lsp-server-install-dir "omnisharp-roslyn/")
@@ -442,11 +442,6 @@ filename is returned so lsp-mode can display this file."
             (list csharp-ls-exec)
             solution-file-params)))
 
-(defun lsp-csharp--cls-test-csharp-ls-present ()
-  "Return non-nil if dotnet tool csharp-ls is installed globally."
-  (string-match-p "csharp-ls"
-                  (shell-command-to-string "dotnet tool list -g")))
-
 (defun lsp-csharp--cls-download-server (_client callback error-callback update?)
   "Install/update csharp-ls language server using `dotnet tool'.
 
@@ -458,8 +453,7 @@ Will update if UPDATE? is t"
    "dotnet" "tool" (if update? "update" "install") "-g" "csharp-ls"))
 
 (lsp-register-client
- (make-lsp-client :new-connection (lsp-stdio-connection #'lsp-csharp--cls-make-launch-cmd
-                                                        #'lsp-csharp--cls-test-csharp-ls-present)
+ (make-lsp-client :new-connection (lsp-stdio-connection #'lsp-csharp--cls-make-launch-cmd)
                   :priority -2
                   :server-id 'csharp-ls
                   :activation-fn (lsp-activate-on "csharp")

@@ -256,7 +256,7 @@ Must not nil.")
                   ,lsp-pwsh-pses-script
                   "-HostName" "\"Emacs Host\""
                   "-HostProfileId" "'Emacs.LSP'"
-                  "-HostVersion" "8.0.1"
+                  "-HostVersion" "9.0.0"
                   "-LogPath" ,(expand-file-name "emacs-powershell.log" lsp-pwsh-log-path)
                   "-LogLevel" ,lsp-pwsh-developer-editor-services-log-level
                   "-SessionDetailsPath" ,(expand-file-name (format "PSES-VSCode-%d" lsp-pwsh--sess-id)
@@ -293,14 +293,12 @@ Must not nil.")
                rule-id))
     (lsp-warn "Cannot show documentation for code action, no ruleName was supplied")))
 
-(defvar lsp-pwsh--major-modes '(powershell-mode))
-
 (lsp-register-client
  (make-lsp-client
   :new-connection (lsp-stdio-connection #'lsp-pwsh--command
                                         (lambda ()
                                           (f-exists? lsp-pwsh-pses-script)))
-  :major-modes lsp-pwsh--major-modes
+  :activation-fn (lsp-activate-on "powershell")
   :server-id 'pwsh-ls
   :priority -1
   :initialization-options #'lsp-pwsh--extra-init-params

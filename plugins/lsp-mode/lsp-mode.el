@@ -1,11 +1,11 @@
 ;;; lsp-mode.el --- LSP mode                              -*- lexical-binding: t; -*-
 
-;; Copyright (C) 2020 emacs-lsp maintainers
+;; Copyright (C) 2020-2024 emacs-lsp maintainers
 
 ;; Author: Vibhav Pant, Fangrui Song, Ivan Yonchovski
 ;; Keywords: languages
 ;; Package-Requires: ((emacs "27.1") (dash "2.18.0") (f "0.20.0") (ht "2.3") (spinner "1.7.3") (markdown-mode "2.3") (lv "0") (eldoc "1.11"))
-;; Version: 8.0.1
+;; Version: 9.0.1
 
 ;; URL: https://github.com/emacs-lsp/lsp-mode
 ;; This program is free software; you can redistribute it and/or modify
@@ -56,7 +56,6 @@
 (require 'xref)
 (require 'minibuffer)
 (require 'help-mode)
-(require 'yasnippet nil t)
 (require 'lsp-protocol)
 
 (defgroup lsp-mode nil
@@ -117,7 +116,7 @@
   "The methods to filter before print to lsp-log-io."
   :group 'lsp-mode
   :type '(repeat string)
-  :package-version '(lsp-mode . "8.0.1"))
+  :package-version '(lsp-mode . "9.0.0"))
 
 (defcustom lsp-log-max message-log-max
   "Maximum number of lines to keep in the log buffer.
@@ -174,22 +173,25 @@ As defined by the Language Server Protocol 3.16."
   :package-version '(lsp-mode . "6.1"))
 
 (defcustom lsp-client-packages
-  '( ccls lsp-actionscript lsp-ada lsp-angular lsp-ansible lsp-autotools lsp-awk lsp-asm lsp-astro
-     lsp-bash lsp-beancount lsp-bufls lsp-clangd lsp-clojure lsp-cmake lsp-credo
-     lsp-crystal lsp-csharp lsp-css lsp-cypher lsp-d lsp-dart lsp-dhall lsp-docker
-     lsp-dockerfile lsp-elm lsp-elixir lsp-emmet lsp-erlang lsp-eslint lsp-fortran
-     lsp-fsharp lsp-gdscript lsp-go lsp-golangci-lint lsp-gleam lsp-glsl lsp-graphql
-     lsp-hack lsp-grammarly lsp-groovy lsp-haskell lsp-haxe lsp-idris lsp-java
-     lsp-javascript lsp-json lsp-kotlin lsp-latex lsp-ltex lsp-lua lsp-markdown
-     lsp-marksman lsp-mdx lsp-mint lsp-move lsp-nginx lsp-nim lsp-nix lsp-magik
-     lsp-mojo lsp-metals lsp-mssql lsp-ocaml lsp-openscad lsp-pascal lsp-perl
-     lsp-perlnavigator lsp-pls lsp-php lsp-pwsh lsp-pyls lsp-pylsp lsp-pyright
-     lsp-python-ms lsp-purescript lsp-r lsp-racket lsp-remark lsp-ruff-lsp lsp-rf
-     lsp-rubocop lsp-rust lsp-semgrep lsp-shader lsp-solargraph lsp-sorbet
-     lsp-sourcekit lsp-sonarlint lsp-tailwindcss lsp-tex lsp-terraform lsp-toml
-     lsp-ttcn3 lsp-typeprof lsp-v lsp-vala lsp-verilog lsp-vetur lsp-volar
-     lsp-vhdl lsp-vimscript lsp-xml lsp-yaml lsp-ruby-lsp lsp-ruby-syntax-tree
-     lsp-solidity lsp-sqls lsp-svelte lsp-steep lsp-tilt lsp-zig lsp-jq)
+  '( ccls lsp-actionscript lsp-ada lsp-angular lsp-ansible lsp-asm lsp-astro
+     lsp-autotools lsp-awk lsp-bash lsp-beancount lsp-bufls lsp-clangd
+     lsp-clojure lsp-cmake lsp-cobol lsp-credo lsp-crystal lsp-csharp lsp-css
+     lsp-cucumber lsp-cypher lsp-d lsp-dart lsp-dhall lsp-docker lsp-dockerfile
+     lsp-elixir lsp-elm lsp-emmet lsp-erlang lsp-eslint lsp-fortran lsp-fsharp
+     lsp-gdscript lsp-gleam lsp-glsl lsp-go lsp-golangci-lint lsp-grammarly
+     lsp-graphql lsp-groovy lsp-hack lsp-haskell lsp-haxe lsp-idris lsp-java
+     lsp-javascript lsp-jq lsp-json lsp-kotlin lsp-latex lsp-lisp lsp-ltex
+     lsp-lua lsp-magik lsp-markdown lsp-marksman lsp-mdx lsp-metals lsp-mint
+     lsp-mojo lsp-move lsp-mssql lsp-nginx lsp-nim lsp-nix lsp-nushell lsp-ocaml
+     lsp-openscad lsp-pascal lsp-perl lsp-perlnavigator lsp-php lsp-pls
+     lsp-purescript lsp-pwsh lsp-pyls lsp-pylsp lsp-pyright lsp-python-ms
+     lsp-qml lsp-r lsp-racket lsp-remark lsp-rf lsp-rubocop lsp-ruby-lsp
+     lsp-ruby-syntax-tree lsp-ruff-lsp lsp-rust lsp-semgrep lsp-shader
+     lsp-solargraph lsp-solidity lsp-sonarlint lsp-sorbet lsp-sourcekit lsp-sqls
+     lsp-steep lsp-svelte lsp-tailwindcss lsp-terraform lsp-tex lsp-tilt
+     lsp-toml lsp-trunk lsp-ttcn3 lsp-typeprof lsp-v lsp-vala lsp-verilog
+     lsp-vetur lsp-vhdl lsp-vimscript lsp-volar lsp-wgsl lsp-xml lsp-yaml
+     lsp-yang lsp-zig)
   "List of the clients to be automatically required."
   :group 'lsp-mode
   :type '(repeat symbol))
@@ -364,6 +366,7 @@ the server has requested that."
     "[/\\\\]\\.metals\\'"
     "[/\\\\]target\\'"
     "[/\\\\]\\.ccls-cache\\'"
+    "[/\\\\]\\.vs\\'"
     "[/\\\\]\\.vscode\\'"
     "[/\\\\]\\.venv\\'"
     "[/\\\\]\\.mypy_cache\\'"
@@ -380,7 +383,9 @@ the server has requested that."
     ;; Bazel
     "[/\\\\]bazel-[^/\\\\]+\\'"
     ;; CSharp
+    "[/\\\\]\\.cache[/\\\\]lsp-csharp\\'"
     "[/\\\\]\\.meta\\'"
+    "[/\\\\]\\.nuget\\'"
     ;; Unity
     "[/\\\\]Library\\'"
     ;; Clojure
@@ -458,7 +463,6 @@ level or at a root of an lsp workspace."
   :group 'lsp-mode
   :package-version '(lsp-mode . "6.3"))
 
-(defconst lsp--sync-none 0)
 (defconst lsp--sync-full 1)
 (defconst lsp--sync-incremental 2)
 
@@ -482,8 +486,7 @@ This flag affects only servers which do not support incremental updates."
 
 (defcustom lsp-document-sync-method nil
   "How to sync the document with the language server."
-  :type '(choice (const :tag "Documents should not be synced at all." nil)
-                 (const :tag "Documents are synced by always sending the full content of the document." lsp--sync-full)
+  :type '(choice (const :tag "Documents are synced by always sending the full content of the document." lsp--sync-full)
                  (const :tag "Documents are synced by always sending incremental changes to the document." lsp--sync-incremental)
                  (const :tag "Use the method recommended by the language server." nil))
   :group 'lsp-mode)
@@ -640,7 +643,7 @@ The hook will receive two parameters list of added and removed folders."
   :type 'hook
   :group 'lsp-mode)
 
-(define-obsolete-variable-alias 'lsp-eldoc-hook 'eldoc-documentation-functions "lsp-mode 8.0.1")
+(define-obsolete-variable-alias 'lsp-eldoc-hook 'eldoc-documentation-functions "lsp-mode 9.0.0")
 
 (defcustom lsp-before-apply-edits-hook nil
   "Hooks to run before applying edits."
@@ -757,7 +760,7 @@ Changes take effect only when a new session is started."
 `textDocument/didOpen' notification."
   :type 'boolean
   :group 'lsp-mode
-  :package-version '(lsp-mode . "8.0.1"))
+  :package-version '(lsp-mode . "9.0.0"))
 
 (defvar lsp-language-id-configuration
   '(("\\(^CMakeLists\\.txt\\|\\.cmake\\)\\'" . "cmake")
@@ -765,25 +768,27 @@ Changes take effect only when a new session is started."
     ("\\.astro$" . "astro")
     ("\\.cs\\'" . "csharp")
     ("\\.css$" . "css")
+    ("\\.cypher$" . "cypher")
     ("\\.ebuild$" . "shellscript")
     ("\\.go\\'" . "go")
     ("\\.html$" . "html")
     ("\\.hx$" . "haxe")
     ("\\.hy$" . "hy")
     ("\\.java\\'" . "java")
+    ("\\.jq$"  . "jq")
     ("\\.js$" . "javascript")
     ("\\.json$" . "json")
-    ("\\.jsonnet$" . "jsonnet")
     ("\\.jsonc$" . "jsonc")
+    ("\\.jsonnet$" . "jsonnet")
     ("\\.jsx$" . "javascriptreact")
-    ("\\.jq$"  . "jq")
     ("\\.lua$" . "lua")
     ("\\.mdx\\'" . "mdx")
+    ("\\.nu$" . "nushell")
     ("\\.php$" . "php")
+    ("\\.ps[dm]?1\\'" . "powershell")
     ("\\.rs\\'" . "rust")
     ("\\.spec\\'" . "rpm-spec")
     ("\\.sql$" . "sql")
-    ("\\.cypher$" . "cypher")
     ("\\.svelte$" . "svelte")
     ("\\.toml\\'" . "toml")
     ("\\.ts$" . "typescript")
@@ -794,9 +799,12 @@ Changes take effect only when a new session is started."
     ("\\ya?ml$" . "yaml")
     ("^PKGBUILD$" . "shellscript")
     ("^go\\.mod\\'" . "go.mod")
-    ("^settings.json$" . "jsonc")
+    ("^settings\\.json$" . "jsonc")
+    ("^yang\\.settings$" . "jsonc")
     (ada-mode . "ada")
     (ada-ts-mode . "ada")
+    (gpr-mode . "gpr")
+    (gpr-ts-mode . "gpr")
     (awk-mode . "awk")
     (awk-ts-mode . "awk")
     (nxml-mode . "xml")
@@ -851,6 +859,7 @@ Changes take effect only when a new session is started."
     (cuda-mode . "cuda")
     (objc-mode . "objective-c")
     (html-mode . "html")
+    (html-ts-mode . "html")
     (sgml-mode . "html")
     (mhtml-mode . "html")
     (mint-mode . "mint")
@@ -865,6 +874,7 @@ Changes take effect only when a new session is started."
     (php-ts-mode . "php")
     (powershell-mode . "powershell")
     (powershell-mode . "PowerShell")
+    (powershell-ts-mode . "powershell")
     (json-mode . "json")
     (json-ts-mode . "json")
     (jsonc-mode . "jsonc")
@@ -953,7 +963,10 @@ Changes take effect only when a new session is started."
     (wgsl-mode . "wgsl")
     (jq-mode . "jq")
     (jq-ts-mode . "jq")
-    (protobuf-mode . "protobuf"))
+    (protobuf-mode . "protobuf")
+    (nushell-mode . "nushell")
+    (nushell-ts-mode . "nushell")
+    (yang-mode . "yang"))
   "Language id configuration.")
 
 (defvar lsp--last-active-workspaces nil
@@ -1987,9 +2000,9 @@ regex in IGNORED-FILES."
            (let ((number-of-directories (length dirs-to-watch)))
              (or
               (< number-of-directories lsp-file-watch-threshold)
-              (condition-case _err
+              (condition-case nil
                   (lsp--ask-about-watching-big-repo number-of-directories dir)
-                ('quit)))))
+                (quit)))))
       (dolist (current-dir dirs-to-watch)
         (condition-case err
             (progn
@@ -2144,7 +2157,7 @@ PARAMS - the data sent from WORKSPACE."
           (const :tag "Use modeline" lsp-on-progress-modeline)
           (const :tag "Legacy(uses either `progress-reporter' or `spinner' based on `lsp-progress-via-spinner')"
                  lsp-on-progress-legacy)
-          (const ignore :tag "Ignore")
+          (const :tag "Ignore" ignore)
           (function :tag "Other function"))
   :package-version '(lsp-mode . "8.0.0"))
 
@@ -3428,7 +3441,7 @@ Handler should give METHOD as argument and return function of one argument
 ERROR."
   :type 'function
   :group 'lsp-mode
-  :package-version '(lsp-mode . "8.0.1"))
+  :package-version '(lsp-mode . "9.0.0"))
 
 (defun lsp--create-default-error-handler (method)
   "Default error handler.
@@ -3600,7 +3613,7 @@ and expand the capabilities section"
   "If non-nil it will enable inlay hints."
   :type 'boolean
   :group 'lsp-mode
-  :package-version '(lsp-mode . "8.0.1"))
+  :package-version '(lsp-mode . "9.0.0"))
 
 (defun lsp--uninitialize-workspace ()
   "Cleanup buffer state.
@@ -3671,7 +3684,7 @@ disappearing, unset all the variables related to it."
                                      (resolveSupport . ((properties . ["edit" "command"])))
                                      (dataSupport . t)))
                       (completion . ((completionItem . ((snippetSupport . ,(cond
-                                                                            ((and lsp-enable-snippet (not (featurep 'yasnippet)) t)
+                                                                            ((and lsp-enable-snippet (not (fboundp 'yas-minor-mode)))
                                                                              (lsp--warn (concat
                                                                                          "Yasnippet is not installed, but `lsp-enable-snippet' is set to `t'. "
                                                                                          "You must either install yasnippet, or disable snippet support."))
@@ -4470,6 +4483,7 @@ from language server.")
   "Wrapper of `yas-expand-snippet' with all of it arguments.
 The snippet will be convert to LSP style and indent according to
 LSP server result."
+  (require 'yasnippet nil t)
   (let* ((inhibit-field-text-motion t)
          (yas-wrap-around-region nil)
          (yas-indent-line 'none)
@@ -4719,9 +4733,9 @@ Added to `before-change-functions'."
             (setq lsp--delayed-requests nil)))))
 
 (defun lsp--workspace-sync-method (workspace)
-  (let* ((sync (-> workspace
-                   (lsp--workspace-server-capabilities)
-                   (lsp:server-capabilities-text-document-sync?))))
+  (let ((sync (-> workspace
+                  (lsp--workspace-server-capabilities)
+                  (lsp:server-capabilities-text-document-sync?))))
     (if (lsp-text-document-sync-options? sync)
         (lsp:text-document-sync-options-change? sync)
       sync)))
@@ -5230,7 +5244,7 @@ If EXCLUDE-DECLARATION is non-nil, request the server to include declarations."
       lsp--eldoc-saved-message
     (setq lsp--hover-saved-bounds nil
           lsp--eldoc-saved-message nil)
-    (if (looking-at "[[:space:]\n]")
+    (if (looking-at-p "[[:space:]\n]")
         (setq lsp--eldoc-saved-message nil) ; And returns nil.
       (when (and lsp-eldoc-enable-hover (lsp--capability :hoverProvider))
         (lsp-request-async
@@ -5268,7 +5282,7 @@ If EXCLUDE-DECLARATION is non-nil, request the server to include declarations."
 (defun lsp--document-highlight ()
   (when (lsp-feature? "textDocument/documentHighlight")
     (let ((curr-sym-bounds (bounds-of-thing-at-point 'symbol)))
-      (unless (or (looking-at "[[:space:]\n]")
+      (unless (or (looking-at-p "[[:space:]\n]")
                   (not lsp-enable-symbol-highlighting)
                   (and lsp--have-document-highlights
                        curr-sym-bounds
@@ -5319,7 +5333,7 @@ If EXCLUDE-DECLARATION is non-nil, request the server to include declarations."
     (if (and contents (not (equal contents "")))
         (let ((lsp-help-buf-name "*lsp-help*"))
           (with-current-buffer (get-buffer-create lsp-help-buf-name)
-            (let ((delay-mode-hooks t))
+            (delay-mode-hooks
               (lsp-help-mode)
               (with-help-window lsp-help-buf-name
                 (insert (string-trim-right (lsp--render-on-hover-content contents t)))))
@@ -5468,13 +5482,13 @@ In addition, each can have property:
   "When non-nil enable server downloading suggestions."
   :group 'lsp-mode
   :type 'boolean
-  :package-version '(lsp-mode . "8.0.1"))
+  :package-version '(lsp-mode . "9.0.0"))
 
 (defcustom lsp-auto-register-remote-clients t
   "When non-nil register remote when registering the local one."
   :group 'lsp-mode
   :type 'boolean
-  :package-version '(lsp-mode . "8.0.1"))
+  :package-version '(lsp-mode . "9.0.0"))
 
 (defun lsp--display-inline-image (mode)
   "Add image property if available."
@@ -5999,6 +6013,8 @@ Request codeAction/resolve for more info if server supports."
     (erlang-mode                . erlang-indent-level)              ; Erlang
     (ess-mode                   . ess-indent-offset)                ; ESS (R)
     (go-ts-mode                 . go-ts-mode-indent-offset)
+    (gpr-mode                   . gpr-indent-offset)                ; GNAT Project
+    (gpr-ts-mode                . gpr-ts-mode-indent-offset)
     (hack-mode                  . hack-indent-offset)               ; Hack
     (java-mode                  . c-basic-offset)                   ; Java
     (java-ts-mode               . java-ts-mode-indent-offset)
@@ -6010,7 +6026,7 @@ Request codeAction/resolve for more info if server supports."
     (json-mode                  . js-indent-level)                  ; JSON
     (json-ts-mode               . json-ts-mode-indent-offset)
     (lua-mode                   . lua-indent-level)                 ; Lua
-    (lua-ts-mode                . lua-ts-mode-indent-offset)
+    (lua-ts-mode                . lua-ts-indent-offset)
     (nxml-mode                  . nxml-child-indent)                ; XML
     (objc-mode                  . c-basic-offset)                   ; Objective C
     (pascal-mode                . pascal-indent-level)              ; Pascal
@@ -6018,6 +6034,7 @@ Request codeAction/resolve for more info if server supports."
     (php-mode                   . c-basic-offset)                   ; PHP
     (php-ts-mode                . php-ts-mode-indent-offset)        ; PHP
     (powershell-mode            . powershell-indent)                ; PowerShell
+    (powershell-ts-mode         . powershell-ts-mode-indent-offset) ; PowerShell
     (raku-mode                  . raku-indent-offset)               ; Perl6/Raku
     (ruby-mode                  . ruby-indent-level)                ; Ruby
     (rust-mode                  . rust-indent-offset)               ; Rust
@@ -6030,6 +6047,7 @@ Request codeAction/resolve for more info if server supports."
     (typescript-mode            . typescript-indent-level)          ; Typescript
     (typescript-ts-mode         . typescript-ts-mode-indent-offset) ; Typescript (tree-sitter, Emacs29)
     (yaml-mode                  . yaml-indent-offset)               ; YAML
+    (yang-mode                  . c-basic-offset)                   ; YANG (yang-mode)
 
     (default                    . standard-indent))                 ; default fallback
   "A mapping from `major-mode' to its indent variable.")
@@ -7492,16 +7510,17 @@ returned by COMMAND is available via `executable-find'"
            (cl-incf retries)))))
     (or connection (error "Port %s was never taken. Consider increasing `lsp-tcp-connection-timeout'." port))))
 
+(defun lsp--port-available (host port)
+  "Return non-nil if HOST and PORT are available."
+  (condition-case _err
+      (delete-process (open-network-stream "*connection-test*" nil host port :type 'plain))
+    (file-error t)))
+
 (defun lsp--find-available-port (host starting-port)
   "Find available port on HOST starting from STARTING-PORT."
-  (let ((success nil)
-        (port starting-port))
-    (while (and (not success))
-      (condition-case _err
-          (progn
-            (delete-process (open-network-stream "*connection-test*" nil host port :type 'plain))
-            (cl-incf port))
-        (file-error (setq success t))))
+  (let ((port starting-port))
+    (while (not (lsp--port-available host port))
+      (cl-incf port))
     port))
 
 (defun lsp-tcp-connection (command-fn)
@@ -8510,7 +8529,7 @@ session workspace folder configuration for the server."
         (funcall initialization-options-or-fn)
       initialization-options-or-fn)))
 
-(defvar lsp-client-settings (make-hash-table)
+(defvar lsp-client-settings (make-hash-table :test 'equal)
   "For internal use, any external users please use
   `lsp-register-custom-settings' function instead")
 
@@ -8680,8 +8699,8 @@ When ALL is t, erase all log buffers of the running session."
 (cl-defmethod lsp-process-send ((process process) message)
   (condition-case err
       (process-send-string process (lsp--make-message message))
-    ('error (lsp--error "Sending to process failed with the following error: %s"
-                        (error-message-string err)))))
+    (error (lsp--error "Sending to process failed with the following error: %s"
+                       (error-message-string err)))))
 
 (cl-defmethod lsp-process-cleanup (process)
   ;; Kill standard error buffer only if the process exited normally.
@@ -8984,7 +9003,7 @@ Select action: "
               (lsp--persist-session session)
               nil)
           (t nil)))
-    ('quit)))
+    (quit)))
 
 (declare-function tramp-file-name-host "ext:tramp" (file) t)
 (declare-function tramp-dissect-file-name "ext:tramp" (file &optional nodefault))
@@ -9637,38 +9656,38 @@ defaults to `progress-bar."
   '((t :inherit font-lock-comment-face))
   "The face to use for the JavaScript inlays."
   :group 'lsp-mode
-  :package-version '(lsp-mode . "8.0.1"))
+  :package-version '(lsp-mode . "9.0.0"))
 
 (defface lsp-inlay-hint-type-face
   '((t :inherit lsp-inlay-hint-face))
   "Face for inlay type hints (e.g. inferred variable types)."
   :group 'lsp-mode
-  :package-version '(lsp-mode . "8.0.1"))
+  :package-version '(lsp-mode . "9.0.0"))
 
 (defcustom lsp-inlay-hint-type-format "%s"
   "Format string for variable inlays (part of the inlay face)."
   :type '(string :tag "String")
   :group 'lsp-mode
-  :package-version '(lsp-mode . "8.0.1"))
+  :package-version '(lsp-mode . "9.0.0"))
 
 (defface lsp-inlay-hint-parameter-face
   '((t :inherit lsp-inlay-hint-face))
   "Face for inlay parameter hints (e.g. function parameter names at
 call-site)."
   :group 'lsp-mode
-  :package-version '(lsp-mode . "8.0.1"))
+  :package-version '(lsp-mode . "9.0.0"))
 
 (defcustom lsp-inlay-hint-param-format "%s"
   "Format string for parameter inlays (part of the inlay face)."
   :type '(string :tag "String")
   :group 'lsp-mode
-  :package-version '(lsp-mode . "8.0.1"))
+  :package-version '(lsp-mode . "9.0.0"))
 
 (defcustom lsp-update-inlay-hints-on-scroll t
   "If non-nil update inlay hints immediately when scrolling or
 modifying window sizes."
   :type 'boolean
-  :package-version '(lsp-mode . "8.0.1"))
+  :package-version '(lsp-mode . "9.0.0"))
 
 (defun lsp--format-inlay (text kind)
   (cond

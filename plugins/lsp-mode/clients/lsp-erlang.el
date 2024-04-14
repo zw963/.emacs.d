@@ -46,7 +46,7 @@ It can use erlang-ls or erlang-language-platform (ELP)."
   "LSP semantic tokens support for ELP."
   :group 'lsp-erlang-elp
   :link '(url-link "https://github.com/WhatsApp/erlang-language-platform")
-  :package-version '(lsp-mode . "8.0.1"))
+  :package-version '(lsp-mode . "9.0.0"))
 
 (defcustom lsp-erlang-server 'erlang-ls
   "Choose LSP server."
@@ -96,7 +96,7 @@ It can use erlang-ls or erlang-language-platform (ELP)."
   "Show eqWAlizer types on hover."
   :type 'boolean
   :group 'lsp-erlang-elp
-  :package-version '(lsp-mode . "8.0.1")
+  :package-version '(lsp-mode . "9.0.0")
   :lsp-path "elp.typesOnHover.enable")
 
 (defcustom lsp-erlang-elp-server-command '("elp" "server")
@@ -163,19 +163,19 @@ It can use erlang-ls or erlang-language-platform (ELP)."
   "Face for semantic token modifier for `bound' attribute."
   :type 'face
   :group 'lsp-erlang-elp-semantic-tokens
-  :package-version '(lsp-mode . "8.0.1"))
+  :package-version '(lsp-mode . "9.0.0"))
 
 (defcustom lsp-erlang-elp-exported-function-modifier 'lsp-erlang-elp-exported-function-modifier-face
   "Face for semantic token modifier for `exported_function' attribute."
   :type 'face
   :group 'lsp-erlang-elp-semantic-tokens
-  :package-version '(lsp-mode . "8.0.1"))
+  :package-version '(lsp-mode . "9.0.0"))
 
 (defcustom lsp-erlang-elp-deprecated-function-modifier 'lsp-erlang-elp-deprecated-function-modifier-face
   "Face for semantic token modifier for `deprecated_function' attribute."
   :type 'face
   :group 'lsp-erlang-elp-semantic-tokens
-  :package-version '(lsp-mode . "8.0.1"))
+  :package-version '(lsp-mode . "9.0.0"))
 
 ;; ---------------------------------------------------------------------
 
@@ -206,7 +206,7 @@ tokens legend."
                                                                 :modifiers
                                                                 ,(lsp-erlang-elp--semantic-modifiers))
   :server-id 'elp
-  :custom-capabilities `((experimental . ((snippetTextEdit . ,(and lsp-enable-snippet (featurep 'yasnippet))))))
+  :custom-capabilities `((experimental . ((snippetTextEdit . ,(and lsp-enable-snippet (fboundp 'yas-minor-mode))))))
   :download-server-fn (lambda (_client callback error-callback _update?)
                         (lsp-package-ensure 'erlang-language-platform callback error-callback))))
 

@@ -40,7 +40,7 @@
 (define-obsolete-variable-alias
   'lsp-clients-typescript-init-opts
   'lsp-clients-typescript-preferences
-  "lsp-mode 8.0.1")
+  "lsp-mode 9.0.0")
 
 (defcustom lsp-clients-typescript-javascript-server-args '()
   "Extra arguments for the typescript-language-server language server."
@@ -498,7 +498,7 @@ TypeScript 2.6.1 or newer in the workspace."
           (const "ru")
           (const "zh-CN")
           (const "zh-TW")
-          nil)
+          (const :tag "default" nil))
   :package-version '(lsp-mode . "6.1"))
 
 (defcustom lsp-javascript-suggestion-actions-enabled t
@@ -608,45 +608,45 @@ Code's JavaScript and TypeScript support."
 (defcustom lsp-javascript-display-enum-member-value-hints nil
   "Show inlay hints for enum member values."
   :type 'boolean
-  :package-version '(lsp-mode . "8.0.1"))
+  :package-version '(lsp-mode . "9.0.0"))
 
 (defcustom lsp-javascript-display-return-type-hints nil
   "Show inlay hints for function return types."
   :type 'boolean
-  :package-version '(lsp-mode . "8.0.1"))
+  :package-version '(lsp-mode . "9.0.0"))
 
 (defcustom lsp-javascript-display-parameter-type-hints nil
   "Show inlay hints for function parameters."
   :type 'boolean
-  :package-version '(lsp-mode . "8.0.1"))
+  :package-version '(lsp-mode . "9.0.0"))
 
 (defcustom lsp-javascript-display-parameter-name-hints "none"
   "Level of hinting for parameter types."
   :type '(choice (const :tag "none" "none")
                  (const :tag "literals" "literals")
                  (const :tag "all" "all"))
-  :package-version '(lsp-mode . "8.0.1"))
+  :package-version '(lsp-mode . "9.0.0"))
 
 (defcustom lsp-javascript-display-parameter-name-hints-when-argument-matches-name nil
   "Show inlay hints for function parameters even when argument matches
 name (e.g. `data' variable passed as `data' parameter)."
   :type 'boolean
-  :package-version '(lsp-mode . "8.0.1"))
+  :package-version '(lsp-mode . "9.0.0"))
 
 (defcustom lsp-javascript-display-property-declaration-type-hints nil
   "Show inlay hints for property declaration types."
   :type 'boolean
-  :package-version '(lsp-mode . "8.0.1"))
+  :package-version '(lsp-mode . "9.0.0"))
 
 (defcustom lsp-javascript-display-variable-type-hints nil
   "Show inlay hints for variable types."
   :type 'boolean
-  :package-version '(lsp-mode . "8.0.1"))
+  :package-version '(lsp-mode . "9.0.0"))
 
 (defcustom lsp-javascript-completions-complete-function-calls t
   "Complete function calls."
   :type 'boolean
-  :package-version '(lsp-mode . "8.0.1"))
+  :package-version '(lsp-mode . "9.0.0"))
 
 (lsp-register-custom-settings
  '(("javascript.autoClosingTags" lsp-javascript-auto-closing-tags t)
@@ -791,16 +791,19 @@ name (e.g. `data' variable passed as `data' parameter)."
     (eq 'initialized (lsp--workspace-status workspace))))
 
 (defun lsp-clients-typescript-project-ts-server-path ()
+  "Return the project local TS server path."
   (f-join (lsp-workspace-root) "node_modules" "typescript" "lib" "tsserver.js"))
 
 (defun lsp-clients-typescript-server-path ()
+  "Return the TS sever path base on settings."
   (cond
-   ((and
-     lsp-clients-typescript-prefer-use-project-ts-server
-     (f-exists? (lsp-clients-typescript-project-ts-server-path)))
+   ((and lsp-clients-typescript-prefer-use-project-ts-server
+         (f-exists? (lsp-clients-typescript-project-ts-server-path)))
     (lsp-clients-typescript-project-ts-server-path))
    (t
-    (f-join (f-parent (lsp-package-path 'typescript)) "node_modules" "typescript" "lib"))))
+    (if (memq system-type '(cygwin windows-nt ms-dos))
+        (f-join (f-parent (lsp-package-path 'typescript)) "node_modules" "typescript" "lib")
+      (f-join (f-parent (f-parent (lsp-package-path 'typescript))) "lib" "node_modules" "typescript" "lib")))))
 
 (lsp-register-client
  (make-lsp-client :new-connection (lsp-stdio-connection (lambda ()
@@ -888,13 +891,13 @@ with the file contents."
         (unless (re-search-forward "[^\n[:space:]]" nil t)
           (setq stop t))
         (if (= (point) (point-min)) (setq stop t) (backward-char))
-        (cond ((or (looking-at "//+[ ]*@flow")
-                   (looking-at "/\\**[ ]*@flow")
-                   (looking-at "[ ]*\\*[ ]*@flow"))
+        (cond ((or (looking-at-p "//+[ ]*@flow")
+                   (looking-at-p "/\\**[ ]*@flow")
+                   (looking-at-p "[ ]*\\*[ ]*@flow"))
                (setq found t) (setq stop t))
-              ((or (looking-at "//") (looking-at "*"))
+              ((or (looking-at-p "//") (looking-at-p "*"))
                (forward-line))
-              ((looking-at "/\\*")
+              ((looking-at-p "/\\*")
                (save-excursion
                  (unless (re-search-forward "*/" nil t) (setq stop t)))
                (forward-line))
@@ -1008,15 +1011,15 @@ Examples: `./import-map.json',
 
 (defun lsp-clients-deno--make-init-options ()
   "Initialization options for the Deno language server."
-  `(:enable t
-    :config ,lsp-clients-deno-config
-    :importMap ,lsp-clients-deno-import-map
-    :lint ,(lsp-json-bool lsp-clients-deno-enable-lint)
-    :unstable ,(lsp-json-bool lsp-clients-deno-enable-unstable)
-    :codeLens (:implementations ,(lsp-json-bool lsp-clients-deno-enable-code-lens-implementations)
-               :references ,(lsp-json-bool (or lsp-clients-deno-enable-code-lens-references
-                                               lsp-clients-deno-enable-code-lens-references-all-functions))
-               :referencesAllFunctions ,(lsp-json-bool lsp-clients-deno-enable-code-lens-references-all-functions))))
+  `( :enable t
+     :config ,lsp-clients-deno-config
+     :importMap ,lsp-clients-deno-import-map
+     :lint ,(lsp-json-bool lsp-clients-deno-enable-lint)
+     :unstable ,(lsp-json-bool lsp-clients-deno-enable-unstable)
+     :codeLens ( :implementations ,(lsp-json-bool lsp-clients-deno-enable-code-lens-implementations)
+                 :references ,(lsp-json-bool (or lsp-clients-deno-enable-code-lens-references
+                                                 lsp-clients-deno-enable-code-lens-references-all-functions))
+                 :referencesAllFunctions ,(lsp-json-bool lsp-clients-deno-enable-code-lens-references-all-functions))))
 
 (lsp-register-client
  (make-lsp-client :new-connection

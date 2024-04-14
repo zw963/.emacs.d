@@ -30,21 +30,24 @@
   "Settings for credo language server."
   :group 'lsp-mode
   :link '(url-link "https://github.com/elixir-tools/credo-language-server")
-  :package-version '(lsp-mode . "8.0.1"))
+  :package-version '(lsp-mode . "9.0.0"))
 
-(defcustom lsp-credo-command '("credo-language-server" "--stdio=true")
+(defcustom lsp-credo-command
+  `(,(f-join lsp-server-install-dir "credo-language-server"
+            "credo-language-server")
+    "--stdio=true")
   "The command that starts credo-language-server."
   :type '(repeat :tag "List of string values" string)
   :group 'lsp-credo
-  :package-version '(lsp-mode . "8.0.1"))
+  :package-version '(lsp-mode . "9.0.0"))
 
-(defcustom lsp-credo-version "0.1.2"
+(defcustom lsp-credo-version "0.3.0"
   "Credo language server version to download.
 It has to be set before `lsp-credo.el' is loaded and it has to
 be available here: https://github.com/elixir-tools/credo-language-server/releases."
   :type 'string
   :group 'lsp-credo
-  :package-version '(lsp-mode . "8.0.1"))
+  :package-version '(lsp-mode . "9.0.0"))
 
 (defcustom lsp-credo-download-url
   (format (concat "https://github.com/elixir-tools/credo-language-server"
@@ -53,7 +56,7 @@ be available here: https://github.com/elixir-tools/credo-language-server/release
   "Automatic download url for credo-language-server."
   :type 'string
   :group 'lsp-credo
-  :package-version '(lsp-mode . "8.0.1"))
+  :package-version '(lsp-mode . "9.0.0"))
 
 (defcustom lsp-credo-binary-path
   (f-join lsp-server-install-dir
@@ -62,20 +65,22 @@ be available here: https://github.com/elixir-tools/credo-language-server/release
   "The path to `credo-language-server' binary."
   :type 'file
   :group 'lsp-credo
-  :package-version '(lsp-mode . "8.0.1"))
+  :package-version '(lsp-mode . "9.0.0"))
 
 (lsp-dependency
  'credo-language-server
  `(:download :url lsp-credo-download-url
-             :store-path ,(f-join lsp-server-install-dir
-                                  "credo-language-server"
-                                  "credo-language-server")
-             :binary-path lsp-credo-binary-path
+             :store-path lsp-credo-binary-path
              :set-executable? t))
 
 (lsp-register-client
  (make-lsp-client
-  :new-connection (lsp-stdio-connection lsp-credo-command)
+  :new-connection (lsp-stdio-connection
+                   (lambda ()
+                     `(,(or (executable-find
+                             (cl-first lsp-credo-command))
+                            (lsp-package-path 'credo-language-server))
+                       ,@(cl-rest lsp-credo-command))))
   :activation-fn (lsp-activate-on "elixir")
   :priority -1
   :add-on? t
