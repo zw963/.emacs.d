@@ -18,10 +18,6 @@
 ;; You should have received a copy of the GNU General Public License
 ;; along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-;; URL: https://github.com/emacs-lsp/dap-mode
-;; Package-Requires: ((emacs "25.1") (dash "2.14.1") (lsp-mode "4.0"))
-;; Version: 0.2
-
 ;;; Commentary:
 ;; Adapter for https://github.com/golang/vscode-go
 
@@ -62,21 +58,20 @@ Update `dap-go' using `C-u M-x dap-go-setup'")
   (lwarn '(dap-go) :warning
          "`dap-go' is deprecated. Use `dap-dlv-go' instead.
  See https://emacs-lsp.github.io/dap-mode/page/configuration/#go")
-  (setq conf (pcase (plist-get conf :mode)
-               ("auto" (dap-go--populate-auto-args conf))
-               ("debug" (dap--put-if-absent conf :program (f-dirname (buffer-file-name))))
-               ("exec" (dap--put-if-absent conf :program (read-file-name "enter full path to executable without tilde:")))
-               ("remote" (dap--put-if-absent conf :program (f-dirname (buffer-file-name)))
-		(dap--put-if-absent conf :host (read-string "enter host:" "127.0.0.1"))
-		(dap--put-if-absent conf :port (string-to-number (read-string "Enter port: " "2345"))))
-               ("local"
-                (dap--put-if-absent conf :cwd (f-dirname (buffer-file-name)))
-                (dap--put-if-absent conf :processId (string-to-number (read-string "Enter pid: " "2345"))))
-	       ))
-
+  (setq conf
+        (pcase (plist-get conf :mode)
+          ("auto" (dap-go--populate-auto-args conf))
+          ("debug" (dap--put-if-absent conf :program (f-dirname (buffer-file-name))))
+          ("exec" (dap--put-if-absent conf :program (read-file-name "enter full path to executable without tilde:")))
+          ("remote" (dap--put-if-absent conf :program (f-dirname (buffer-file-name)))
+           (dap--put-if-absent conf :host (read-string "enter host:" "127.0.0.1"))
+           (dap--put-if-absent conf :port (string-to-number (read-string "Enter port: " "2345"))))
+          ("local"
+           (dap--put-if-absent conf :cwd (f-dirname (buffer-file-name)))
+           (dap--put-if-absent conf :processId (string-to-number (read-string "Enter pid: " "2345"))))))
 
   (if (stringp (plist-get conf :args)) (plist-put conf :args (split-string (plist-get conf :args))) ())
-  
+
   (-> conf
       (dap--put-if-absent :dap-server-path dap-go-debug-program)
       (dap--put-if-absent :dlvToolPath dap-go-delve-path)

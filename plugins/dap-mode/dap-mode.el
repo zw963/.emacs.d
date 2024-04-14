@@ -1,6 +1,6 @@
 ;;; dap-mode.el --- Debug Adapter Protocol mode      -*- lexical-binding: t; -*-
 
-;; Copyright (C) 2019  Ivan Yonchovski
+;; Copyright (C) 2019-2024  emacs-lsp maintainers
 
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -19,7 +19,7 @@
 ;; Keywords: languages, debug
 ;; URL: https://github.com/emacs-lsp/dap-mode
 ;; Package-Requires: ((emacs "27.1") (dash "2.18.0") (lsp-mode "6.0") (bui "1.1.0") (f "0.20.0") (s "1.12.0") (lsp-treemacs "0.1") (posframe "0.7.0") (ht "2.3") (lsp-docker "1.0.0"))
-;; Version: 0.7
+;; Version: 0.8
 
 ;;; Commentary:
 ;; Debug Adapter Protocol client for Emacs.
@@ -861,8 +861,10 @@ will be reversed."
 
 (defun dap--buffers-w-breakpoints ()
   "Get only the buffers featuring at least one breakpoint"
-  ;; get the list from the keys of the breakpoint hash-table
-  (ht-keys (dap--get-breakpoints)))
+  ;; extract the list of buffers featuring a breakpoint from their first breakpoint marker
+  ;; (as stored in the LSP metadata)
+  (--map (marker-buffer (plist-get (car it) :marker))
+         (ht-values (dap--get-breakpoints))))
 
 (defun dap--refresh-breakpoints ()
   "Refresh breakpoints for DEBUG-SESSION."
@@ -892,14 +894,16 @@ will be reversed."
     (funcall cleanup-fn debug-session)))
 
 (defun dap--output-buffer-format-with-category (category output)
-  "Formats a string suitable for printing to the output buffer using CATEGORY and OUTPUT."
+  "Formats a string suitable for printing to the output buffer using
+CATEGORY and OUTPUT."
   (let ((message (format "%s: %s" category output)))
     (if (string= (substring message -1) "\n")
         message
       (concat message "\n"))))
 
 (defun dap--output-buffer-format (output-body)
-  "Formats a string suitable for printing to the output buffer using an OUTPUT-BODY."
+  "Formats a string suitable for printing to the output buffer using
+an OUTPUT-BODY."
   (if dap-label-output-buffer-category
       (dap--output-buffer-format-with-category (gethash "category" output-body)
                                                (gethash "output" output-body))
@@ -1266,7 +1270,7 @@ ADAPTER-ID the id of the adapter."
     debug-session))
 
 (defun dap--send-configuration-done (debug-session)
-  "Send 'configurationDone' message for DEBUG-SESSION."
+  "Send `configurationDone' message for DEBUG-SESSION."
   (dap--send-message (dap--make-request "configurationDone")
                      (dap--resp-handler
                       (lambda (_)
@@ -1396,7 +1400,8 @@ RESULT to use for the callback."
   (dap-eval (buffer-substring-no-properties start end)))
 
 (defun dap-switch-stack-frame ()
-  "Switch stackframe by selecting another stackframe stackframes from current thread."
+  "Switch stackframe by selecting another stackframe stackframes from
+current thread."
   (interactive)
   (when (not (dap--cur-session))
     (error "There is no active session"))
@@ -1705,18 +1710,18 @@ If ORIGIN is t, return the original configuration without prepopulation"
   dap-debug-template-configurations)
 
 (defconst dap-launch-configuration-providers
-  '(dap-launch-find-parse-launch-json
-    dap-debug-template-configurations-provider)
+  '( dap-launch-find-parse-launch-json
+     dap-debug-template-configurations-provider)
   "List of functions that can contribute launch configurations to dap-debug.
 When the user invokes dap-debug, all of the functions in this
 list are called and their results (which must be lists) are
-concatenated. The user can then choose one of them from the
+concatenated.  The user can then choose one of them from the
 resulting list.")
 
 (defconst dap-tasks-configuration-providers
   '(dap-tasks-find-parse-tasks-json)
   "List of functions that can contribute task configurations to dap-debug.
-When a launch configuration specifies a 'preLaunchTask', it can pull from
+When a launch configuration specifies a `preLaunchTask', it can pull from
 the results of these functions.")
 
 (defun dap-start-debugging (conf)
@@ -1897,9 +1902,9 @@ be used to compile the project, spin up docker, ...."
 
 (defun dap-debug-edit-template (&optional debug-args)
   "Edit registered template DEBUG-ARGS.
-When being invoked with prefix argument, poping up the prepopulated version of the template.
-Otherwise, return its original version.  After registration, the new template can be used
-normally with `dap-debug'"
+When being invoked with prefix argument, poping up the prepopulated version of
+the template.  Otherwise, return its original version.  After registration,
+the new template can be used normally with `dap-debug'"
   (interactive)
   (unless debug-args
     (setq debug-args (dap--select-template (not current-prefix-arg))))

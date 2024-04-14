@@ -18,10 +18,6 @@
 ;; You should have received a copy of the GNU General Public License
 ;; along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-;; URL: https://github.com/emacs-lsp/dap-mode
-;; Package-Requires: ((emacs "25.1") (tree-mode "1.1.1.1") (bui "1.1.0"))
-;; Version: 0.2
-
 ;;; Commentary:
 ;; DAP Windows/overlays
 
@@ -49,6 +45,16 @@
 
 (defcustom dap-ui-locals-expand-depth 1
   "Locals expand strategy.
+When nil - do not expand.
+t - expand recursively
+number - expand N levels."
+  :type '(choice (const :tag "Do not expand" nil)
+                 (const :tag "Expand recursively" t)
+                 (number :tag "Expand level"))
+  :group 'dap-ui)
+
+(defcustom dap-ui-sessions-expand-depth nil
+  "Sessions expand strategy.
 When nil - do not expand.
 t - expand recursively
 number - expand N levels."
@@ -233,7 +239,8 @@ VISUALS and MSG will be used for the overlay."
       (when (integer-or-marker-p point)
         (save-excursion
           (goto-char point)
-          (dap-ui--make-overlay (point-at-bol) (point-at-eol) visuals nil buf))))))
+          (dap-ui--make-overlay (line-beginning-position) (line-end-position)
+                                visuals nil buf))))))
 
 (defvar-local dap-ui--breakpoint-overlays nil)
 
@@ -809,7 +816,7 @@ DEBUG-SESSION is the debug session triggering the event."
   (dap-ui--show-buffer
    (lsp-treemacs-render
     (dap-ui--sessions-tree)
-    " Debug Sessions " nil
+    " Debug Sessions " dap-ui-sessions-expand-depth
     dap-ui--sessions-buffer
     '(["Delete All Sessions" dap-delete-all-sessions])))
   (dap-ui-sessions-mode)
@@ -1423,7 +1430,7 @@ TEXT is the current input."
                    (dap--make-request "completions"
                                       (list :frameId frame-id
                                             :text text
-                                            :column (- (length text) (- (point-at-eol) (point)))))
+                                            :column (- (length text) (- (line-end-position) (point)))))
                    (dap--resp-handler
                     (lambda (result)
                       (-if-let (targets (-some->> result (gethash "body") (gethash "targets")))
