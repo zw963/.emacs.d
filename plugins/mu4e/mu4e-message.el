@@ -1,4 +1,4 @@
-;;; mu4e-message.el -- part of mu4e -*- lexical-binding: t -*-
+;;; mu4e-message.el --- Working with mu4e-message plists -*- lexical-binding: t -*-
 
 ;; Copyright (C) 2012-2022 Dirk-Jan C. Binnema
 
@@ -215,13 +215,32 @@ If MSG is nil, use `mu4e-message-at-point'."
     (when-let ((msg (mu4e-message-at-point 'noerror)))
       (when (buffer-live-p mu4e--sexp-buffer-name)
         (kill-buffer mu4e--sexp-buffer-name))
-      (with-current-buffer-window (get-buffer-create mu4e--sexp-buffer-name) nil nil
-        (lisp-data-mode)
+      (with-current-buffer-window
+          (get-buffer-create mu4e--sexp-buffer-name) nil nil
+        (if (fboundp 'lisp-data-mode)
+            (lisp-data-mode)
+          (lisp-mode))
         (insert (pp-to-string msg))
         (font-lock-ensure)
         ;; add basic `quit-window' bindings
         (view-mode 1)))))
 
+(declare-function mu4e--decoded-message "mu4e-compose")
+
+(defun mu4e-fetch-field (msg hdr &optional first)
+  "Find the value for an arbitrary header field HDR from MSG.
+
+If the header appears multiple times, the field values are
+concatenated, unless FIRST is non-nil, in which case only the
+first value is returned. See `message-fetch-field' for details.
+
+Note: this loads the full message file such that any available
+message header can be used. If the header is part of the MSG
+plist, it is much more efficient to get the information from that
+plist."
+  (with-temp-buffer
+    (insert (mu4e--decoded-message msg 'headers-only))
+    (message-fetch-field hdr first)))
 ;;;
 (provide 'mu4e-message)
 ;;; mu4e-message.el ends here
