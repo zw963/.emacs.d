@@ -89,15 +89,15 @@
         (if (eq keymap global-map)
             alist
           (append alist (gethash prefix smartrep-global-alist-hash))))
-  (let ((oa (make-vector 13 nil)))
+  (let ((oa (make-vector 13 0)))
     (mapc (lambda(x)
 	    (let ((obj (intern (prin1-to-string
 				(smartrep-unquote (cdr x)))
 			       oa)))
 	      (fset obj (smartrep-map alist))
 	      (define-key keymap
-		(read-kbd-macro 
-		 (concat prefix " " (car x))) obj)))
+		          (read-kbd-macro
+		           (concat prefix " " (car x))) obj)))
 	  alist)))
 (put 'smartrep-define-key 'lisp-indent-function 2)
 
@@ -121,19 +121,19 @@
   (interactive)
   (setq smartrep-mode-line-string smartrep-mode-line-string-activated)
   (let ((ml-original-bg (face-background 'mode-line)))
+    (when smartrep-mode-line-active-bg
+      (set-face-background 'mode-line smartrep-mode-line-active-bg)
+      (force-mode-line-update))
+    (setq smartrep-original-position (cons (point) (window-start)))
+    (unwind-protect
+        (let ((repeat-repeat-char last-command-event))
+          (smartrep-do-fun repeat-repeat-char lst)
+          (when repeat-repeat-char
+            (smartrep-read-event-loop lst)))
+      (setq smartrep-mode-line-string "")
       (when smartrep-mode-line-active-bg
-        (set-face-background 'mode-line smartrep-mode-line-active-bg)
-        (force-mode-line-update))
-      (setq smartrep-original-position (cons (point) (window-start)))
-      (unwind-protect
-          (let ((repeat-repeat-char last-command-event))
-              (smartrep-do-fun repeat-repeat-char lst)
-            (when repeat-repeat-char
-              (smartrep-read-event-loop lst)))
-        (setq smartrep-mode-line-string "")
-        (when smartrep-mode-line-active-bg
-          (set-face-background 'mode-line ml-original-bg)
-          (force-mode-line-update)))))
+        (set-face-background 'mode-line ml-original-bg)
+        (force-mode-line-update)))))
 
 (defun smartrep-read-event-loop (lst)
   (lexical-let ((undo-inhibit-record-point t))
@@ -173,7 +173,7 @@
     (error
      (ding)
      (message "%s" (cdr err)))))
-    
+
 
 (defun smartrep-unquote (form)
   (if (and (listp form) (memq (car form) '(quote function)))
