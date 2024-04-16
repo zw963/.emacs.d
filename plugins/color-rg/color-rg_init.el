@@ -13,6 +13,8 @@
 ")
 
 (setq color-rg-search-no-ignore-file nil)
+(setq color-rg-show-lines-before-match 5)
+(setq color-rg-show-lines-after-match 5)
 
 (add-hook 'color-rg-mode-hook
           (lambda ()
