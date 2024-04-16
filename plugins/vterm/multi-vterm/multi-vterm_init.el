@@ -39,7 +39,6 @@
                              (define-key vterm-mode-map [(control x) (\2)] 'split-window-below-then-switch-to-new-vterm)
                              (define-key vterm-mode-map [(control x) (\3)] 'split-window-right-then-switch-to-new-vterm)
                              (define-key vterm-mode-map [(shift control t)] 'multi-vterm)
-                             (define-key vterm-mode-map [(control l)] 'toggle-drop-down-term)
                              (define-key vterm-mode-map [(control x) (control e)] 'vterm-edit-command-action)
                              ;; (dirtrack-mode 1)
                              ))

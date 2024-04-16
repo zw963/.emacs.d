@@ -58,8 +58,16 @@
 ;;                  )))))
 ;;     (select-window win)))
 
-;; 这个不用了，使用 popper.el 管理。
+(add-hook 'vterm-mode-hook
+          (lambda ()
+            (set (make-local-variable 'buffer-face-mode-face) '(:family "yaheiInconsolata"))
+            (buffer-face-mode t)))
 
+(require 'eterm-256color)
+
+(setq vterm-term-environment-variable "eterm-color")
+
+;; 这个不用了，使用 popper.el 管理。
 (require 'multi-vterm_init)
 
 (provide 'vterm_init)
