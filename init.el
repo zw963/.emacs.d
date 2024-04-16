@@ -19,7 +19,7 @@
 (require 'dimmer_init)
 (require 'fancy-narrow_init)
 (require 'zoom-frm_init)
-;; (require 'back-button_init)
+(require 'back-button_init)
 (require 'winum_init)
 (require 'which-key_init)
 ;;(require 'anzu_init)
