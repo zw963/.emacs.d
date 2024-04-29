@@ -68,7 +68,7 @@
 (require 'snap-indent_init)
 ;; (require 'indentinator_init)
 (require 'dumb-jump_init)
-;; (require 'apheleia_init) ;; 怀疑这个跟 lsp-mode 冲突?
+(require 'apheleia_init) ;; 怀疑这个跟 lsp-mode 冲突?
 (require 'git_init)
 (require 'flycheck_init)
 (require 'smartparens_init)
