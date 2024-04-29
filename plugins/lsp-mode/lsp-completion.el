@@ -525,7 +525,18 @@ The MARKERS and PREFIX value will be attached to each candidate."
        :company-require-match 'never
        :company-prefix-length
        (save-excursion
-         (and (lsp-completion--looking-back-trigger-characterp trigger-chars) t))
+         (let (
+               ;; 2 is a heuristic number to make sure we look futher back than
+               ;; the bounds-start, which can be different from the actual start
+               ;; of the symbol
+               (bounds-left (max (line-beginning-position) (- bounds-start 2)))
+               triggered-by-char?)
+           (while (and (> (point) bounds-left)
+                       (not (equal (char-after) ?\s))
+                       (not triggered-by-char?))
+             (setq triggered-by-char? (lsp-completion--looking-back-trigger-characterp trigger-chars))
+             (goto-char (1- (point))))
+           (and triggered-by-char? t)))
        :company-match #'lsp-completion--company-match
        :company-doc-buffer (-compose #'lsp-doc-buffer
                                      #'lsp-completion--get-documentation)

@@ -885,6 +885,7 @@ Changes take effect only when a new session is started."
     (typescript-mode . "typescript")
     (typescript-ts-mode . "typescript")
     (tsx-ts-mode . "typescriptreact")
+    (svelte-mode . "svelte")
     (fsharp-mode . "fsharp")
     (reason-mode . "reason")
     (caml-mode . "ocaml")
@@ -1125,6 +1126,9 @@ called with nil the signature info must be cleared."
 
 (defvar-local lsp--buffer-workspaces ()
   "List of the buffer workspaces.")
+
+(defvar-local lsp--buffer-deferred nil
+  "Whether buffer was loaded via `lsp-deferred'.")
 
 (defvar lsp--session nil
   "Contain the `lsp-session' for the current Emacs instance.")
@@ -2880,8 +2884,13 @@ and end-of-string meta-characters."
 
 (defun lsp-glob-to-regexps (glob-pattern)
   "Convert a GLOB-PATTERN to a list of Elisp regexps."
-  (let* ((trimmed-pattern (string-trim glob-pattern))
-         (top-level-unbraced-patterns (lsp-glob-unbrace-at-top-level trimmed-pattern)))
+  (when-let*
+      ((glob-pattern (cond ((hash-table-p glob-pattern)
+                            (ht-get glob-pattern "pattern"))
+                           ((stringp glob-pattern) glob-pattern)
+                           (t (error "Unknown glob-pattern type: %s" glob-pattern))))
+       (trimmed-pattern (string-trim glob-pattern))
+       (top-level-unbraced-patterns (lsp-glob-unbrace-at-top-level trimmed-pattern)))
     (seq-map #'lsp-glob-convert-to-wrapped-regexp
              top-level-unbraced-patterns)))
 
@@ -2926,7 +2935,7 @@ and end-of-string meta-characters."
     (:propertize "Disconnected" face warning))
    "]")
   :group 'lsp-mode
-  (when (and lsp-mode (not lsp--buffer-workspaces))
+  (when (and lsp-mode (not lsp--buffer-workspaces) (not lsp--buffer-deferred))
     ;; fire up `lsp' when someone calls `lsp-mode' instead of `lsp'
     (lsp)))
 
@@ -7629,9 +7638,6 @@ should return the command to start the LS server."
 
   ;; yas-snippet config
   (setq-local yas-inhibit-overlay-modification-protection t))
-
-(defvar-local lsp--buffer-deferred nil
-  "Whether buffer was loaded via `lsp-deferred'.")
 
 (defun lsp--restart-if-needed (workspace)
   "Handler restart for WORKSPACE."

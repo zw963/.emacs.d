@@ -14,12 +14,46 @@
 (setq org-hide-leading-stars t) ;隐藏刚开始的*符号
 (setq org-table-auto-blank-field nil)
 
+(defun my/org-prettify-symbols ()
+  (setq prettify-symbols-alist
+        (mapcan (lambda (x) (list x (cons (upcase (car x)) (cdr x))))
+                '(
+                  ;; ("[ ]"              . 9744)         ; ☐
+                  ;; ("[X]"              . 9745)         ; ☑️
+                  ;; ("[-]"              . 8863)         ; ⊟
+                  ("#+begin_src"      . 9998)         ; ✎
+                  ("#+end_src"        . 9633)         ; □
+                  ("#+begin_example"  . 61638)       ; 
+                  ("#+end_example"    . 129081)       ; 🠹
+                  ("#+results:"       . 9776)         ; ☰
+                  ("#+attr_latex:"    . "🄛")
+                  ("#+attr_html:"     . "🄗")
+                  ("#+attr_org:"      . "🄞")
+                  ("#+name:"          . "🄝")         ; 127261
+                  ("#+caption:"       . "🄒")         ; 127250
+                  ("#+date:"          . "📅")         ; 128197
+                  ("#+author:"        . "💁")         ; 128100
+                  ("#+setupfile:"     . 128221)       ; 📝
+                  ("#+email:"         . 128231)       ; 📧
+                  ("#+startup:"       . 10034)        ; ✲
+                  ("#+options:"       . 9965)         ; ⛭
+                  ("#+title:"         . 10162)        ; ➲
+                  ("#+subtitle:"      . 11146)        ; ⮊
+                  ("#+downloaded:"    . 8650)         ; ⇊
+                  ("#+language:"      . 128441)       ; 🖹
+                  ("#+begin_quote"    . 187)          ; »
+                  ("#+end_quote"      . 171)          ; «
+                  ("#+begin_results"  . 8943)         ; ⋯
+                  ("#+end_results"    . 8943)         ; ⋯
+                  ))))
+
 (add-hook 'org-mode-hook
           (
            lambda ()
            (local-set-key [(return)] 'org-return-indent)
            (local-set-key (kbd "RET") 'org-return-indent)
            (outline-minor-mode 1)
+           (my/org-prettify-symbols)
            ))
 
 

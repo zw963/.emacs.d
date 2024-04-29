@@ -107,7 +107,7 @@
  lsp-auto-guess-root t
  )
 
-;; (setq lsp-log-io t)
+(setq lsp-log-io t)
 ;; (setq debug-on-error t)              ;需要调试时，开启这个。
 ;; (setq no-byte-compile t)
 
