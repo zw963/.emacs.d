@@ -3105,9 +3105,9 @@ buffers (sessions).  When calling from Lisp, specify a
                    'default-directory (get-buffer buffer)))
     (setq helm-saved-selection nil
           helm-saved-action nil)
-    (unless (buffer-live-p helm-current-buffer)
-      ;; `helm-current-buffer' may have been killed.
-      (setq helm-current-buffer (current-buffer)))
+    ;; Always resume from current-buffer, if a source needs to resume from a
+    ;; specific buffer it should be specified from this source, not here.
+    (setq helm-current-buffer (current-buffer))
     (helm-aif (with-current-buffer buffer
                 helm--current-buffer-narrowed)
         (progn
@@ -7280,7 +7280,7 @@ When `helm-full-frame' is non-nil, and `helm-buffer' is displayed
 in only one window, the helm window is split to display
 `helm-select-persistent-action-window' in other window to
 maintain visibility.  The argument SPLIT can be used to force
-splitting inconditionally, it is unused actually."
+splitting inconditionally, it is unused currently."
   (interactive)
   (with-helm-alive-p
     (let ((source (helm-get-current-source)))
@@ -7318,7 +7318,7 @@ splitting inconditionally, it is unused actually."
           (when source
             (with-helm-window
               (save-selected-window
-                ;; FIXME: Simplify SPLIT behavior, it is a mess actually. 
+                ;; FIXME: Simplify SPLIT behavior, it is a mess currently. 
                 (if no-split
                     (helm-select-persistent-action-window :split 'never)
                   (helm-select-persistent-action-window
