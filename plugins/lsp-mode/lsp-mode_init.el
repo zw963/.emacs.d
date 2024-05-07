@@ -18,7 +18,7 @@
     (lsp-ui-doc-frame-mode)))
 
 (defun lsp-mode-common-hooks ()
-  ;; (add-hook 'before-save-hook #'lsp-format-buffer t t)
+  (add-hook 'before-save-hook #'lsp-format-buffer t t)
   (setq-local company-minimum-prefix-length 1)
   (lsp-diagnostics-mode t)  ;; Toggle LSP diagnostics integration.
   (lsp-completion-mode t)  ;; Toggle LSP completion support.
