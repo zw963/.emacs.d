@@ -66,6 +66,7 @@
     (dired-do-symlink . helm-read-file-name-handler-1)
     (dired-do-relsymlink . helm-read-file-name-handler-1)
     (dired-do-hardlink . helm-read-file-name-handler-1)
+    (dired-do-touch . nil)
     (basic-save-buffer . helm-read-file-name-handler-1)
     (write-file . (default helm-read-file-name-handler-1))
     (write-region . (default helm-read-file-name-handler-1))
@@ -1793,7 +1794,9 @@ See documentation of `completing-read' and `all-completions' for details."
          ;; otherwise helm have not the time to close its initial session.
          (minibuffer-setup-hook
           (cl-loop for h in minibuffer-setup-hook
-                   unless (or (consp h) ; a lambda.
+                   ;; lambdas are no more represented as list in
+                   ;; Emacs-29+ Bug#2666.
+                   unless (or (and (not (symbolp h)) (functionp h)) ; a lambda.
                               (byte-code-function-p h)
                               (helm-subr-native-elisp-p h)
                               (memq h helm-mode-minibuffer-setup-hook-black-list))
