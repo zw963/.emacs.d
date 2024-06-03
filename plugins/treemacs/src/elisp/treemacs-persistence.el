@@ -62,6 +62,10 @@
                (:constructor treemacs-iter->create!))
   list)
 
+(defvar treemacs--no-abbr-on-persist-prefixes nil
+  "Prefixes for paths to be saved as is, without using `abbreviate-file-name'.
+Will be set to all the `tramp-methods', after tramp has been loaded.")
+
 (define-inline treemacs-iter->next! (self)
   "Get the next element of iterator SELF.
 
@@ -144,7 +148,8 @@ ITER: Treemacs-Iter Struct"
                         (treemacs--get-path-status)))
               (setq action
                     (cond
-                     ((not (treemacs-project->is-unreadable? project))
+                     ((or (treemacs-project->is-disabled? project)
+                          (not (treemacs-project->is-unreadable? project)))
                       'keep)
                      ((eq treemacs-missing-project-action 'ask)
                       (let ((completions
@@ -200,7 +205,7 @@ ITER: Treemacs-Iter Struct"
                 (push (format
                        " - path :: %s\n"
                        (-let [path (treemacs-project->path pr)]
-                         (if (string-prefix-p "/ssh:" path)
+                         (if (--any? (string-prefix-p it path) treemacs--no-abbr-on-persist-prefixes)
                              path
                            (abbreviate-file-name path))))
                       txt)))
