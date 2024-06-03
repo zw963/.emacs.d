@@ -20,6 +20,7 @@
 (setq treemacs-is-never-other-window t)
 (setq treemacs-silent-refresh    t)
 (setq treemacs-silent-filewatch    t)
+(setq treemacs-position 'right)
 
 (defun treemacs-ignore-example (filename absolute-path)
   (or
