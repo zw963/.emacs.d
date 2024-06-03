@@ -68,7 +68,7 @@
 (require 'snap-indent_init)
 ;; (require 'indentinator_init)
 (require 'dumb-jump_init)
-;; (require 'apheleia_init) ;; 怀疑这个跟 lsp-mode 冲突?
+(require 'apheleia_init) ;; 怀疑这个跟 lsp-mode formatter 冲突?
 (require 'git_init)
 (require 'flycheck_init)
 (require 'smartparens_init)
@@ -90,9 +90,9 @@
 
 ;; 关闭一些有用，但最近不常用的 mode
 ;; (require 'dart-mode_init)
-(require 'go-mode_init)
+;; (require 'go-mode_init)
 ;; (require 'rust_init)
-;; (require 'go-ts-mode_init)
+(require 'go-ts-mode_init)
 ;; (require 'rust-ts-mode_init)
 
 ;; (require 'lsp-bridge_init)
