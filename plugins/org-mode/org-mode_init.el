@@ -128,8 +128,5 @@
 ;; (setq org-journal-enable-agenda-integration t)
 ;; (setq org-journal-enable-cache t)
 
-(require 'org-roam)
-(global-set-key [(control c) (control j)] 'org-roam-capture)
-
 (provide 'org-mode_init)
 ;;; org-mode_init.el ends here

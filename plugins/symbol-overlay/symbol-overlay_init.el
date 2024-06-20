@@ -1,12 +1,5 @@
 (require 'symbol-overlay)
 
-(global-set-key (kbd "C-SPC") 'symbol-overlay-put)
-(global-set-key (kbd "<f7>") 'symbol-overlay-remove-all)
-(define-key symbol-overlay-map (kbd "M-n") 'symbol-overlay-switch-forward)
-(define-key symbol-overlay-map (kbd "M-p") 'symbol-overlay-switch-backward)
-
-;; 不需要这个, 因为 n, p 就是类似功能, 下面是所有可用快捷键.
-
 ;; "i" -> symbol-overlay-put
 ;; "n" -> symbol-overlay-jump-next
 ;; "p" -> symbol-overlay-jump-prev
@@ -31,6 +24,8 @@
 (global-set-key (kbd "<f7>") 'symbol-overlay-put)
 ;; (global-set-key (kbd "C-;") 'symbol-overlay-put)
 (define-key symbol-overlay-map (kbd "C-g") 'symbol-overlay-remove-all)
+(define-key symbol-overlay-map (kbd "M-n") 'symbol-overlay-switch-forward)
+(define-key symbol-overlay-map (kbd "M-p") 'symbol-overlay-switch-backward)
 
 (provide 'symbol-overlay_init)
 
