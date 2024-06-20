@@ -1,8 +1,8 @@
-(require 'org)
-(require 'org-table)
-;; 允许将 org-mode 导出到 markdown, yep!
-;; 命令: org-md-export-as-markdown
-(require 'ox-md)
+;; (require 'org)
+;; (require 'org-table)
+;; ;; 允许将 org-mode 导出到 markdown, yep!
+;; ;; 命令: org-md-export-as-markdown
+;; (require 'ox-md)
 
 ;; (setq org-fontify-quote-and-verscmee-blocks nil
 ;;       org-fontify-whole-heading-line nil
@@ -74,11 +74,8 @@
     (kill-ring-save (region-beginning) (region-end) t))
   (org-edit-src-abort))
 (setq org-link-elisp-confirm-function nil)
-;; (setq org-confirm-babel-evaluate nil)
-(add-to-list 'org-babel-load-languages '(ruby . t))
-(add-to-list 'org-babel-load-languages '(rust . t))
 
-(require 'ox-publish)
+;; (require 'ox-publish)
 (setq org-publish-project-alist
       '(
         ("org-notes"
@@ -110,11 +107,11 @@
         ;; ... add all the components here (see below)...
         ))
 
-(require 'org-superstar)
-(setq org-hide-leading-stars nil)
-(setq org-superstar-leading-bullet ?\s)
-(setq org-indent-mode-turns-on-hiding-stars nil)
-(add-hook 'org-mode-hook #'org-superstar-mode)
+;; (require 'org-superstar)
+;; (setq org-hide-leading-stars nil)
+;; (setq org-superstar-leading-bullet ?\s)
+;; (setq org-indent-mode-turns-on-hiding-stars nil)
+;; (add-hook 'org-mode-hook #'org-superstar-mode)
 
 ;; 快捷键：C-c C-j 打开新的 entry, C-c C-k 保存并关闭
 ;; (require 'org-journal)
