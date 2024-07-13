@@ -41,6 +41,8 @@
             ;; (define-key crystal-mode-map [(control meta \,) ] #'crystal-tool-context)
 
             (define-key crystal-mode-map [(control t) ] #'crystal-spec-switch)
+            (define-key crystal-mode-map [(control meta f) ] #'ruby-end-of-block)
+            (define-key crystal-mode-map [(control meta b) ] #'ruby-beginning-of-block)
             ;; (define-key crystal-mode-map [(control meta ?\s)] 'mark-sexp)
             ;; (define-key crystal-mode-map [(control c) (tab)] 'crystal-project-compile)
             ;; (define-key crystal-mode-map [(control c) (return)] 'crystal-project-run)

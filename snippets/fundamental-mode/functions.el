@@ -233,7 +233,7 @@ js 以 { 开头, function(done) { ... }
   "定义一个方法时，结尾分隔符."
   (cond
    ((member major-mode '(ruby-mode ruby-ts-mode elixir-mode elixir-ts-mode enh-ruby-mode crystal-mode)) "end")
-   ((member major-mode '(sh-mode bash-ts-mode)) "; done")
+   ((member major-mode '(sh-mode bash-ts-mode)) "done")
    ((member major-mode '(js2-mode cc-mode rust-mode)) "}")
    ((member major-mode '(rhtml-mode web-mode)) "<% end %>")
    ))

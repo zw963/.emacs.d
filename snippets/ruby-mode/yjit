@@ -1,0 +1,6 @@
+# -*- mode: snippet -*-
+# name: enable yjit
+# key: yjit
+# --
+# Enable YJIT if using CRuby >= 3.3"
+RubyVM::YJIT.enable if RUBY_ENGINE == 'ruby' and RUBY_VERSION.to_f >= 3.3
