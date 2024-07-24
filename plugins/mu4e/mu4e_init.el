@@ -71,9 +71,9 @@
 ;; the maildirs you use frequently; access them with 'j' ('jump')
 (setq mu4e-maildir-shortcuts
       '( ("/gmail/INBOX"               . ?i)
-         ("/gmail/[Gmail].Sent Mail"   . ?s)
-         ("/gmail/[Gmail].Drafts"   . ?s)
-         ("/gmail/[Gmail].Trash"       . ?t)
+         ("/gmail/sent"   . ?s)
+         ("/gmail/drafts"   . ?s)
+         ("/gmail/trash"       . ?t)
          ;; ("/gmail/[Gmail].All Mail"    . ?a)
          ))
 
@@ -109,9 +109,9 @@
                          )
  gnus-unbuttonized-mime-types nil
  message-cite-reply-position 'below ;; 当回复消息时，我们写的消息，在引用的文字下面。
- mu4e-sent-folder   "/gmail/[Gmail].Sent Mail"
- mu4e-drafts-folder "/gmail/[Gmail].Drafts"
- mu4e-trash-folder  "/gmail/[Gmail].Trash"
+ ;; mu4e-sent-folder   "/gmail/[Gmail]/Sent Mail"
+ ;; mu4e-drafts-folder "/gmail/[Gmail]/Drafts"
+ ;; mu4e-trash-folder  "/gmail/[Gmail].Trash"
  mu4e-attachment-dir "~/Desktop"   ;; attachment save to ~/Desktop
  mu4e-view-show-images t
 
