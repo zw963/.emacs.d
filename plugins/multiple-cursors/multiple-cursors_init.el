@@ -33,7 +33,7 @@
 ;; 这个是用鼠标左键点一下, 就新增加一个 cursor.
 (global-set-key (kbd "C-S-<mouse-1>") 'mc/add-cursor-on-click)
 
- ;; -------------------------------------------------------
+;; -------------------------------------------------------
 
 ;; C-x r y, yank-rectangle 粘帖选区内容
 ;; C-x r k, kill-rectangle 剪切选区内容
@@ -50,6 +50,8 @@
 (require 'browse-kill-ring_init)
 (require 'rect)
 
+;; 不要把下面的函数和 multli-cursor 一起使用，那个是批量修改的，而不是批量复制粘贴的。
+;; 总是首先 C-x SPC 设定选区，复制后，C-x r y 粘贴。
 (defadvice kill-ring-save (around rect-mark activate)
   "Let 'kill-ring-save support rect-mark."
   (if rectangle-mark-mode
