@@ -95,14 +95,14 @@
 
 (defface company-box-background
   '((t :inherit company-tooltip))
-  "Face used for frame's background.
-Only the 'background' color is used in this face."
+  "Face used for frame background.
+Only the `background' color is used in this face."
   :group 'company-box)
 
 (defface company-box-scrollbar
   '((t :inherit company-tooltip-selection))
   "Face used for the scrollbar.
-Only the 'background' color is used in this face."
+Only the `background' color is used in this face."
   :group 'company-box)
 
 (defface company-box-numbers
@@ -163,24 +163,24 @@ An ICON can be either a SYMBOL, an IMAGE, a LIST, a STRING:
 
 - SYMBOL:  It is the name of the icon (from `company-box--icons-in-terminal').
 - IMAGE:   An image descriptor [1]
-           Example: '(image :type png :file \"/path/to/image.png\")
-- LIST:    The list is then `apply' to `company-box--icons-in-terminal' function.
-           Example: '(fa_icon :face some-face :foreground \"red\")
+           Example: \\='(image :type png :file \"/path/to/image.png\")
+- LIST:    The list is then `apply' to `company-box--icons-in-terminal'
+           function. Example: \\='(fa_icon :face some-face :foreground \"red\")
 - STRING:  A simple string which is inserted, should be of length 1
 
 If a function returns nil, it call the next function in the list.
 If all functions returns nil, `company-box-icons-unknown' is used.
 
 [1] https://www.gnu.org/software/emacs/manual/html_node/elisp/Image-Descriptors.html"
-  :type 'list
+  :type '(repeat symbol)
   :group 'company-box)
 
 (defcustom company-box-scrollbar t
   "Whether to draw the custom scrollbar or use default scrollbar.
 
 - t means uses the custom scrollbar
-- 'inherit uses same scrollbar than the current frame
-- 'left or 'right puts default scrollbars to the left or right
+- `inherit' uses same scrollbar than the current frame
+- `left' or `right' puts default scrollbars to the left or right
 - nil means draw no scrollbar."
   :type '(choice (const :tag "Custom scrollbar" t)
                  (const :tag "Inherit scrollbar" inherit)
@@ -202,6 +202,14 @@ character (see `frame-char-width'), set `0.5' to get half width of a character."
   :type 'number
   :group 'company-box)
 
+(defcustom company-box-frame-top-margin 0
+  "Set extra space above the top of the frame, in pixels.
+This is useful if the company box intrudes on the code/text above it.
+For example, set '70' if you're using copilot, to make sure
+the frame doesn't overlap with the first lines of copilot suggestions."
+  :type 'number
+  :group 'company-box)
+
 (make-obsolete-variable 'company-box-highlight-prefix nil nil)
 
 (defcustom company-box-highlight-prefix nil
@@ -218,7 +226,7 @@ for both cases."
 
 Each element has the form (BACKEND . COLOR)
 
-BACKEND is the backend's symbol for which the color applies
+BACKEND is the backend symbol for which the color applies
 COLOR can be a LIST or a STRING:
 
 - LIST:    A property list with the following keys:
@@ -238,7 +246,7 @@ COLOR can be a LIST or a STRING:
 
 Examples:
 
-'((company-yasnippet . (:candidate \"yellow\" :annotation some-face))
+\\='((company-yasnippet . (:candidate \"yellow\" :annotation some-face))
   (company-elisp . (:icon \"yellow\" :selected (:background \"orange\"
                                               :foreground \"black\")))
   (company-dabbrev . \"purple\"))")
@@ -582,7 +590,7 @@ It doesn't nothing if a font icon is used."
           (window-tab-line-height (if (fboundp 'window-tab-line-height)
                                       (window-tab-line-height)
                                     0))
-          (top (+ top window-tab-line-height))
+          (top (+ top window-tab-line-height company-box-frame-top-margin))
           (char-height (frame-char-height frame))
           (char-width (frame-char-width frame))
           (height (* (min company-candidates-length company-tooltip-limit) char-height))
