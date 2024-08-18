@@ -23,7 +23,6 @@
 
 (declare-function helm-find-files-1 "helm-files" (fname &optional preselect))
 (declare-function helm-grep-split-line "helm-grep" (line))
-(declare-function popup-tip "ext:popup")
 (declare-function markdown-show-entry "ext:markdown-mode.el")
 (declare-function outline-show-subtree "outline")
 (declare-function org-reveal "org")
@@ -104,11 +103,6 @@ Where PA means persistent action."
   "The size of the helm-window when resizing on persistent action."
   :group 'helm-utils
   :type 'integer)
-
-(defcustom helm-sources-using-help-echo-popup '("Ack-Grep" "AG" "RG" "Gid" "Git-Grep")
-  "Show the buffer name or the filename in a popup at selection."
-  :group 'helm-utils
-  :type '(repeat (choice string)))
 
 (defcustom helm-html-decode-entities-function #'helm-html-decode-entities-string
   "Function used to decode HTML entities in HTML bookmarks.
@@ -357,10 +351,13 @@ If a prefix arg is given split windows vertically."
 
 (defun helm-window-decide-split-fn (candidates &optional other-window-fn)
   "Try to find the best split window fn according to the number of CANDIDATES."
-  (let ((fn (cond ((>= (length candidates) 3)
+  (let ((fn (cond (;; 4 or more.
+                   (>= (length candidates) 4)
                    #'helm-window-mosaic-fn)
-                  ((>= (length candidates) 2)
+                  ;; 3 only.
+                  ((= (length candidates) 3)
                    #'helm-window-alternate-split-fn)
+                  ;; 2 or less.
                   (t #'helm-window-default-split-fn))))
     (funcall fn candidates other-window-fn)))
 
@@ -1005,38 +1002,65 @@ Assume regexp is a pcre based regexp."
 ;;; Popup buffer-name or filename in grep/moccur/imenu-all.
 ;;
 (defvar helm--show-help-echo-timer nil)
+(defvar helm--maybe-show-help-echo-overlay nil)
+(defface helm-tooltip
+  `((t :background "Goldenrod"
+       :foreground "black"))
+  "Face used by `helm-tooltip-show'."
+  :group 'helm-grep-faces)
 
 (defun helm-cancel-help-echo-timer ()
   (when helm--show-help-echo-timer
     (cancel-timer helm--show-help-echo-timer)
-    (setq helm--show-help-echo-timer nil)))
+    (setq helm--show-help-echo-timer nil))
+  (when helm--maybe-show-help-echo-overlay
+    (delete-overlay helm--maybe-show-help-echo-overlay)
+    (setq helm--maybe-show-help-echo-overlay nil)))
+
+(defun helm-tooltip-show (text pos)
+  "Display TEXT at POS in an overlay."
+  (setq helm--maybe-show-help-echo-overlay
+        (make-overlay pos (1+ pos)))
+  (overlay-put helm--maybe-show-help-echo-overlay
+               'display
+               (propertize
+                (concat text "\n")
+                'face 'helm-tooltip)))
 
 (defun helm-maybe-show-help-echo ()
   (when helm--show-help-echo-timer
     (cancel-timer helm--show-help-echo-timer)
     (setq helm--show-help-echo-timer nil))
-  (when (and helm-alive-p
-             helm-popup-tip-mode
-             (member (assoc-default 'name (helm-get-current-source))
-                     helm-sources-using-help-echo-popup))
-    (setq helm--show-help-echo-timer
-          (run-with-timer
-           1 nil
-           (lambda ()
-             (save-selected-window
-               (with-helm-window
-                 (helm-aif (get-text-property (pos-bol) 'help-echo)
-                     (popup-tip (concat " " (abbreviate-file-name
-                                             (replace-regexp-in-string "\n.*" "" it)))
-                                :around nil
-                                :point (save-excursion
-                                         (end-of-visual-line) (point)))))))))))
+  (when helm--maybe-show-help-echo-overlay
+    (delete-overlay helm--maybe-show-help-echo-overlay))
+  (let* ((src (helm-get-current-source))
+         (popup-info-fn (assoc-default 'popup-info src)))
+    (when (and helm-alive-p
+               helm-popup-tip-mode
+               popup-info-fn)
+      (setq helm--show-help-echo-timer
+            (run-with-idle-timer
+             1 nil
+             (lambda ()
+               (save-selected-window
+                 (with-helm-window
+                   ;; Use helm-grep-fname prop instead of help-echo as help-echo
+                   ;; maybe used by mouse overlay after resume.
+                   (let ((pos (save-excursion (end-of-visual-line) (point))))
+                     (helm-aif (and popup-info-fn
+                                    (funcall popup-info-fn (helm-get-selection)))
+                       (helm-tooltip-show
+                        (concat " " it)
+                        pos)))))))))))
 
 ;;;###autoload
 (define-minor-mode helm-popup-tip-mode
-    "Show help-echo informations in a popup tip at end of line."
+    "Show additional informations in a popup tip at end of line.
+
+When the mode is enabled, popup showup when the source the source
+has a `popup-info' attribute which define a specific function for
+this source to fetch infos on candidate."
   :global t
-  (require 'popup)
   (if helm-popup-tip-mode
       (progn
         (add-hook 'helm-move-selection-after-hook 'helm-maybe-show-help-echo)

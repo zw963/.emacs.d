@@ -315,23 +315,7 @@ the leading `-' char."
         (unless package--initialized (package-initialize 'no-activate))
         (or (cadr (assq pkg-name package-alist))
             (cadr (assq pkg-name package-archive-contents))))
-  
-      (defun package--upgradeable-packages ()
-        ;; Initialize the package system to get the list of package
-        ;; symbols for completion.
-        (package--archives-initialize)
-        (mapcar
-         #'car
-         (seq-filter
-          (lambda (elt)
-            (or (let ((available
-                       (assq (car elt) package-archive-contents)))
-                  (and available
-                       (version-list-<
-                        (package-desc-version (cadr elt))
-                        (package-desc-version (cadr available)))))))
-          package-alist)))
-
+      
       (defun package-upgrade (name)
         "Upgrade package NAME if a newer version exists."
         (let* ((package (if (symbolp name)
@@ -398,18 +382,18 @@ This is done recursively."
 
 ;; Inline `kmacro--to-vector' from E29 to fix compatibility of
 ;; `helm-kbd-macro-concat-macros' with E29 and E28.
-(unless (fboundp #'kmacro--to-vector)
+(unless (fboundp 'kmacro--to-vector)
   (defun kmacro--to-vector (object)
-  "Normalize an old-style key sequence to the vector form."
-  (if (not (stringp object))
-      object
-    (let ((vec (string-to-vector object)))
-      (unless (multibyte-string-p object)
-	(dotimes (i (length vec))
-	  (let ((k (aref vec i)))
-	    (when (> k 127)
-	      (setf (aref vec i) (+ k ?\M-\C-@ -128))))))
-      vec))))
+    "Normalize an old-style key sequence to the vector form."
+    (if (not (stringp object))
+        object
+      (let ((vec (string-to-vector object)))
+        (unless (multibyte-string-p object)
+	  (dotimes (i (length vec))
+	    (let ((k (aref vec i)))
+	      (when (> k 127)
+	        (setf (aref vec i) (+ k ?\M-\C-@ -128))))))
+        vec))))
 
 ;;; Macros helper.
 ;;
@@ -574,8 +558,9 @@ and `cond'.
 KEYLIST can be any object that will be compared with `equal' or
 an expression starting with `guard' which is then evaluated.
 Once evaluated `guard' is bound to the returned value that can be
-used in the cdr of clause.  When KEYLIST match EXPR, BODY is
-executed and `helm-acase' exited with its value.
+used in the cdr of clause.  When KEYLIST match EXPR or `guard'
+evaluation is non-nil, BODY is executed and `helm-acase' exits
+with its value.
 
 If KEYLIST is a non-quoted list, each elements of the list are
 checked with `member' to see if one match EXPR.  To compare a
@@ -1137,7 +1122,7 @@ Examples:
   (let* ((new-seq  (if reverse
                        (reverse sequence)
                      sequence))
-         (pos      (1+ (cl-position elm new-seq :test 'equal))))
+         (pos      (1+ (helm-position elm new-seq :test 'equal))))
     (append (nthcdr pos new-seq) (helm-take new-seq pos))))
 
 ;;; Strings processing.
@@ -1272,7 +1257,7 @@ behaviour of this function is really needed."
       (goto-char (point-min)))
     (decode-coding-string (buffer-string) 'utf-8)))
 
-(defun helm-read-answer (prompt answer-list)
+(defun helm-read-answer (prompt answer-list &optional help)
   "Prompt user for an answer.
 Arg PROMPT is the prompt to present user the different possible
 answers, ANSWER-LIST is a list of strings.
@@ -1280,26 +1265,66 @@ If user enters an answer which is one of ANSWER-LIST return this
 answer, otherwise keep prompting for a valid answer.
 Note that answer should be a single char, only short answer are
 accepted.
+When HELP is provided, it is a string or a function that returns a string
+which will be displayed in a buffer when \"h\"
+is pressed (don't forget to add \"h\" in prompt).
 
 Example:
 
-    (helm-acase (helm-read-answer
-             \"answer [y,n,!,q]: \"
-             \\='(\"y\" \"n\" \"!\" \"q\"))
-       (\"y\" \"yes\")
-       (\"n\" \"no\")
-       (\"!\" \"all\")
-       (\"q\" \"quit\"))
+     (helm-acase (helm/read-answer
+                 \"answer [y,n,!,q,h]: \"
+                 \\='(\"y\" \"n\" \"!\" \"q\")
+                 \"(y)es:  do this
+\(n)o:   skip
+\(!)all: do this for all
+\(q)uit: quit skipping remaining candidates\")
+      (\"y\" \"yes\")
+      (\"n\" \"no\")
+      (\"!\" \"all\")
+      (\"q\" \"quit\"))
 
 "
-  (helm-awhile (read-key (propertize prompt 'face 'minibuffer-prompt))
-    (let ((str (and (characterp it) (string it))))
-      (if (and str (member str answer-list))
-          (cl-return str)
-        (message "Please answer by %s" (mapconcat 'identity answer-list ", "))
-        (sit-for 1)))))
+  (unwind-protect
+       (helm-awhile (read-key (propertize
+                               prompt 'face 'minibuffer-prompt))
+         (let ((str (and (characterp it) (string it)))
+               (choices (remove "h" answer-list)))
+           (cond ((and str (member str choices))
+                  (cl-return str))
+                 ((and help (string= str "h"))
+                  (helm-aif (get-buffer-window "*choices help*" 'visible)
+                      (quit-window t it)
+                    (with-current-buffer-window "*choices help*"
+                        '(display-buffer-at-bottom
+                          (window-height . fit-window-to-buffer)
+                          (preserve-size . (nil . t)))
+                        nil (progn
+                              (insert (if (functionp help)
+                                          (funcall help) help))
+                              (setq-local cursor-type nil)))))
+                 (t (message "Please answer by %s"
+                             (mapconcat 'identity choices ", "))
+                    (sit-for 1)))))
+    (helm-aand help (get-buffer-window "*choices help*") (quit-window t it))))
 
-(defun helm-read-answer-dolist-with-action (prompt list action &optional prompt-formater)
+(defun helm-read-answer-default-help-fn ()
+  "Return a string suitable for `helm-read-answer' help."
+  (with-temp-buffer
+    (save-excursion
+      (insert "y: yes\n"
+              "n: no\n"
+              "!: yes for all\n"
+              "q: quit\n"
+              "h: toggle this help"))
+    (while (re-search-forward "^\\(.\\):" nil t)
+      (helm-add-face-text-properties (match-beginning 1) (match-end 1)
+                                     'font-lock-variable-name-face))
+    (buffer-string)))
+
+(defun helm-read-answer-dolist-with-action (prompt list action
+                                            &optional
+                                              prompt-formater
+                                              help-function)
   "Read answer with PROMPT and execute ACTION on each element of LIST.
 
 Argument PROMPT is a format spec string e.g. \"Do this on %s?\"
@@ -1314,19 +1339,29 @@ differently depending of answer:
 - !  Don't ask anymore and execute ACTION on remaining elements.
 - q  Skip all remaining elements.
 
-PROMPT-FORMATER is a function called with one argument which is
-used to modify each element of LIST to be displayed in PROMPT."
+PROMPT-FORMATER may be a function or a list containing strings and
+functions.  Functions either in list or alone are called on each element
+in LIST to be displayed in PROMPT."
   (let (dont-ask)
     (catch 'break
       (dolist (elm list)
         (if dont-ask
             (funcall action elm)
           (helm-acase (helm-read-answer
-                       (format (concat prompt "[y,n,!,q]")
-                               (if prompt-formater
-                                   (funcall prompt-formater elm)
-                                 elm))
-                       '("y" "n" "!" "q"))
+                       (apply #'format
+                              (concat prompt "[y,n,!,q,h]")
+                              (helm-acase prompt-formater
+                                ((guard (consp it))
+                                 (mapcar (lambda (x)
+                                           (if (functionp x)
+                                               (funcall x elm)
+                                             x))
+                                         it))
+                                ((guard (functionp it))
+                                 (list (funcall it elm)))
+                                (t (list elm))))
+                       '("y" "n" "!" "q")
+                       (or help-function #'helm-read-answer-default-help-fn))
             ("y" (funcall action elm))
             ("n" (ignore))
             ("!" (prog1
@@ -1339,6 +1374,15 @@ used to modify each element of LIST to be displayed in PROMPT."
   (cl-assert (stringp str) t)
   (or (cl-loop for c across str always (char-equal c ?0))
       (not (zerop (string-to-number str)))))
+
+(defsubst helm-re-search-forward (regexp &optional bound noerror count)
+  "Same as `re-search-forward' but return nil when point doesn't move.
+This avoid possible infloop when a wrong regexp is entered in minibuffer."
+  ;; See Issue#2652 and Issue#2653.
+  (let ((pos (point)))
+    (helm-acase (re-search-forward regexp bound noerror count)
+      ((guard (eql it pos)) nil)
+      (t it))))
 
 ;;; Symbols routines
 ;;
@@ -1835,6 +1879,44 @@ Take same args as `directory-files'."
     ;; Avoid error with 5nth arg COUNT which is not available in previous Emacs,
     ;; at least 27.1, see bug#2662.
     (apply #'directory-files directory args)))
+
+(defun helm-common-dir-1 (files)
+  "Find the common directories of FILES."
+  (if (cdr files)
+      (cl-loop with base = (car files)
+               with others = nil
+               for file in files
+               for cpart = (fill-common-string-prefix base file)
+               if cpart
+               do (setq base cpart)
+               else do (push file others)
+               finally return (if (and others base)
+                                  (nconc (list (directory-file-name base))
+                                         (helm-common-dir-1 others))
+                                (list (and base (directory-file-name base)))))
+    (and files (list (directory-file-name
+                      (file-name-directory (car files)))))))
+
+(defun helm-common-dir (files)
+  "Return the longest common directory path of FILES list.
+If FILES are not all common to the same drive (Windows) a list of
+common directory is returned."
+  (let ((result (helm-common-dir-1 files)))
+    (if (cdr result) result (car result))))
+
+;; Tests:
+;; (helm-common-dir '("c:/foo" "c:/foo/bar/baz"
+;;                    "f:/foo" "e:/foo" "f:/foo/bar"
+;;                    "d:/foo" "d:/foo/bar/baz"
+;;                    "e:/foo/bar/baz"))
+;; ("c:/foo" "e:/foo" "f:/foo" "d:/foo")
+
+
+;; (helm-common-dir '("/home/you/download/foo/"
+;;                    "/home/you/download/foo/bar/baz"
+;;                    "/home/you/tmp/foo"))
+;; "/home/you"
+
 
 ;;; helm internals
 ;;
@@ -2105,8 +2187,9 @@ Also `helm-completion-style' settings have no effect here,
   "\033\\[\\(K\\|[0-9;]*m\\)")
 (defvar helm--ansi-color-drop-regexp
   "\033\\[\\([ABCDsuK]\\|[12][JK]\\|=[0-9]+[hI]\\|[0-9;]*[Hf]\\)")
-(defun helm--ansi-color-apply (string)
-  "A version of `ansi-color-apply' immune to upstream changes.
+(with-suppressed-warnings ((obsolete ansi-color-apply-sequence))
+  (defun helm--ansi-color-apply (string)
+    "A version of `ansi-color-apply' immune to upstream changes.
 
 Similar to the emacs-24.5 version without support to
 `ansi-color-context' which is buggy in Emacs.
@@ -2117,36 +2200,36 @@ Modify also `ansi-color-regexp' by using own variable
 This is needed to provide compatibility for both emacs-25 and
 emacs-24.5 as emacs-25 version of `ansi-color-apply' is partially
 broken."
-  (require 'ansi-color)
-  (let ((start 0)
-        codes end escape-sequence
-        result colorized-substring)
-    ;; Find the next escape sequence.
-    (while (setq end (string-match helm--ansi-color-regexp string start))
-      (setq escape-sequence (match-string 1 string))
-      ;; Colorize the old block from start to end using old face.
+    (require 'ansi-color)
+    (let ((start 0)
+          codes end escape-sequence
+          result colorized-substring)
+      ;; Find the next escape sequence.
+      (while (setq end (string-match helm--ansi-color-regexp string start))
+        (setq escape-sequence (match-string 1 string))
+        ;; Colorize the old block from start to end using old face.
+        (when codes
+          (put-text-property
+           start end 'font-lock-face (ansi-color--find-face codes) string))
+        (setq colorized-substring (substring string start end)
+              start (match-end 0))
+        ;; Eliminate unrecognized ANSI sequences.
+        (while (string-match helm--ansi-color-drop-regexp colorized-substring)
+          (setq colorized-substring
+                (replace-match "" nil nil colorized-substring)))
+        (push colorized-substring result)
+        ;; Create new face, by applying escape sequence parameters.
+        (setq codes (ansi-color-apply-sequence escape-sequence codes)))
+      ;; If the rest of the string should have a face, put it there.
       (when codes
         (put-text-property
-         start end 'font-lock-face (ansi-color--find-face codes) string))
-      (setq colorized-substring (substring string start end)
-            start (match-end 0))
-      ;; Eliminate unrecognized ANSI sequences.
-      (while (string-match helm--ansi-color-drop-regexp colorized-substring)
-        (setq colorized-substring
-              (replace-match "" nil nil colorized-substring)))
-      (push colorized-substring result)
-      ;; Create new face, by applying escape sequence parameters.
-      (setq codes (ansi-color-apply-sequence escape-sequence codes)))
-    ;; If the rest of the string should have a face, put it there.
-    (when codes
-      (put-text-property
-       start (length string)
-       'font-lock-face (ansi-color--find-face codes) string))
-    ;; Save the remainder of the string to the result.
-    (if (string-match "\033" string start)
-        (push (substring string start (match-beginning 0)) result)
+         start (length string)
+         'font-lock-face (ansi-color--find-face codes) string))
+      ;; Save the remainder of the string to the result.
+      (if (string-match "\033" string start)
+          (push (substring string start (match-beginning 0)) result)
         (push (substring string start) result))
-    (apply 'concat (nreverse result))))
+      (apply 'concat (nreverse result)))))
 
 (when (< emacs-major-version 26)
   (advice-add 'ansi-color-apply :override #'helm--ansi-color-apply))
@@ -2176,4 +2259,4 @@ broken."
 
 (provide 'helm-lib)
 
-;;; helm-lib ends here
+;;; helm-lib.el ends here

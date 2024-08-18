@@ -27,6 +27,10 @@
 (declare-function jabber-chat-with "ext:jabber.el")
 (declare-function jabber-read-account "ext:jabber.el")
 (declare-function helm-comp-read "helm-mode")
+(declare-function outline-back-to-heading "outline.el")
+(declare-function outline-end-of-heading  "outline.el")
+(declare-function helm-goto-char "helm-utils")
+(declare-function helm-highlight-current-line "helm-utils")
 
 
 (defgroup helm-misc nil
@@ -387,6 +391,33 @@ Default action change TZ environment variable locally to emacs."
     (delete-minibuffer-contents)
     (insert elm)))
 
+;;;###autoload
+(defun helm-outline ()
+  "Basic helm navigation tool for outline buffers."
+  (interactive)
+  (helm :sources (helm-build-sync-source "helm outline"
+                 :candidates
+                 (lambda ()
+                   (with-helm-current-buffer
+                     (save-excursion
+                       (goto-char (point-min))
+                       (cl-loop while (re-search-forward outline-regexp nil t)
+                                for beg = (match-beginning 0)
+                                for end = (progn
+                                            (outline-end-of-heading) (point))
+                                collect
+                                (cons (buffer-substring beg end) beg)))))
+                 :action (lambda (pos)
+                           (helm-goto-char pos)
+                           (helm-highlight-current-line)))
+        :preselect (save-excursion
+                     (when (condition-case _err
+                               (outline-back-to-heading)
+                             (error nil))
+                       (regexp-quote
+                        (buffer-substring
+                         (point) (progn (outline-end-of-heading) (point))))))
+        :buffer "*helm outline*"))
 
 (provide 'helm-misc)
 

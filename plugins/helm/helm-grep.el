@@ -1186,6 +1186,7 @@ of grep."
 (defclass helm-grep-class (helm-source-async)
   ((candidates-process :initform 'helm-grep-collect-candidates)
    (filtered-candidate-transformer :initform #'helm-grep-fc-transformer)
+   (popup-info :initform #'helm-grep-popup-info-fn)
    (keymap :initform 'helm-grep-map)
    (pcre :initarg :pcre :initform nil
          :documentation
@@ -1396,6 +1397,10 @@ matching `helm-zgrep-file-extension-regexp' only."
         (and (stringp candidate)
              (helm-grep--filter-candidate-1 candidate nil pcre)))))
 
+(defun helm-grep-popup-info-fn (_candidate)
+  (helm-aif (get-text-property (pos-bol) 'helm-grep-fname)
+    (abbreviate-file-name it)))
+
 (defun helm-grep-fc-transformer (candidates source)
   (let ((helm-grep-default-directory-fn
          (or helm-grep-default-directory-fn
@@ -1584,8 +1589,9 @@ non-file buffers."
 ;;  https://github.com/BurntSushi/ripgrep
 
 (defun helm-grep--ag-command ()
-  (car (helm-remove-if-match
-        "\\`[A-Z]*=" (split-string helm-grep-ag-command))))
+  (and helm-grep-ag-command
+       (car (helm-remove-if-match
+             "\\`[A-Z]*=" (split-string helm-grep-ag-command)))))
 
 (defun helm-grep-ag-get-types ()
   "Returns a list of AG types if available with AG version.
@@ -1635,8 +1641,12 @@ returns if available with current AG version."
                                (helm-default-directory)
                                default-directory))
         (cmd-line (helm-grep-ag-prepare-cmd-line
-                   helm-pattern (or (file-remote-p directory 'localname)
-                                    directory)
+                   ;; NOTE Encode directory name and pattern,
+                   ;; or it may not work with Chinese and maybe other non-utf8
+                   ;; characters on MSWindows systems issue#2677 and issue#2678. 
+                   (encode-coding-string helm-pattern locale-coding-system)
+                   (or (file-remote-p directory 'localname)
+                       (encode-coding-string directory locale-coding-system))
                    type))
         (start-time (float-time))
         (proc-name (helm-grep--ag-command)))
@@ -1693,18 +1703,57 @@ returns if available with current AG version."
                      proc-name
                      (replace-regexp-in-string "\n" "" event))))))))))
 
+(defun helm-grep-ag-search-results (_candidate)
+  "Launch a new helm session on the current results.
+Allow narrowing the grep ag results to a specific file or pattern without
+continuing calling grep ag."
+  (with-helm-buffer
+    (let* ((src        (helm-get-current-source))
+           (candidates (nthcdr 1 (split-string
+                                  (buffer-substring-no-properties
+                                   (point-min) (point-max))
+                                  "\n")))
+           (transfo    (helm-get-attr 'filtered-candidate-transformer src))
+           (actions    (helm-get-attr 'action src))
+           (name       (helm-get-attr 'name src))
+           (directory  (helm-get-attr 'directory src)))
+      (helm :sources (helm-build-sync-source (format "Search in %s" name)
+                       :candidates candidates
+                       :keymap 'helm-grep-map
+                       :candidate-transformer
+                       (lambda (candidates)
+                         (let ((helm-grep-default-directory-fn
+                                (lambda () directory)))
+                           (funcall transfo candidates nil)))
+                       :action actions)
+            :buffer "*helm search ag*"))))
+
+(helm-make-command-from-action helm-grep-ag-run-search-results
+    "Run `helm-grep-ag-search-results' action." 'helm-grep-ag-search-results)
+
+(defvar helm-grep-ag-map
+  (let ((map (make-sparse-keymap)))
+    (set-keymap-parent map helm-grep-map)
+    (define-key map (kbd "C-s") 'helm-grep-run-ag-grep-parent-directory)
+    (define-key map (kbd "C-c s") 'helm-grep-ag-run-search-results)
+    map))
+
 (defclass helm-grep-ag-class (helm-source-async)
   ((nohighlight :initform t)
    (pcre :initarg :pcre :initform t
          :documentation
          "  Backend is using pcre regexp engine when non--nil.")
-   (keymap :initform 'helm-grep-map)
+   (keymap :initform 'helm-grep-ag-map)
    (history :initform 'helm-grep-ag-history)
    (help-message :initform 'helm-grep-help-message)
    (filtered-candidate-transformer :initform #'helm-grep-fc-transformer)
+   (popup-info :initform #'helm-grep-popup-info-fn)
    (persistent-action :initform 'helm-grep-persistent-action)
    (persistent-help :initform "Jump to line (`C-u' Record in mark ring)")
    (candidate-number-limit :initform 99999)
+   (directory :initarg :directory :initform nil
+              :documentation
+              "  Directory currently searched.")
    (requires-pattern :initform 2)
    (nomark :initform t)
    (action :initform 'helm-grep-actions)
@@ -1728,15 +1777,32 @@ If INPUT is provided, use it as the search string."
           :header-name (lambda (name)
                          (format "%s [%s]"
                                  name (abbreviate-file-name directory)))
+          :directory directory
+          :action (append helm-grep-actions
+                          `((,(format "%s grep parent directory"
+                                      (upcase (helm-grep--ag-command)))
+                              . helm-grep-ag-grep-parent-directory)
+                            (,(format "Search results in grep %s buffer"
+                                      (upcase (helm-grep--ag-command)))
+                             . helm-grep-ag-search-results)))
           :candidates-process
           (lambda () (helm-grep-ag-init directory type))))
   (helm-set-local-variable 'helm-input-idle-delay helm-grep-input-idle-delay)
   (helm :sources 'helm-source-grep-ag
-        :keymap helm-grep-map
         :history 'helm-grep-ag-history
         :input input
         :truncate-lines helm-grep-truncate-lines
         :buffer (format "*helm %s*" (helm-grep--ag-command))))
+
+(defun helm-grep-ag-grep-parent-directory (_candidate)
+  "Restart helm-grep-ag in the parent of the currently searched directory."
+  (let* ((src (with-helm-buffer (car helm-sources)))
+         (directory (helm-basedir (helm-get-attr 'directory src) t))
+         (input helm-pattern))
+    (helm-grep-ag-1 directory nil input)))
+
+(helm-make-command-from-action helm-grep-run-ag-grep-parent-directory
+    "Ag grep parent directory." 'helm-grep-ag-grep-parent-directory)
 
 (defun helm-grep-ag (directory with-types)
   "Start grep AG in DIRECTORY.

@@ -101,7 +101,10 @@ When adding a source here it is up to you to ensure the library
 of this source is accessible and properly loaded."
   :type '(repeat (choice symbol)))
 
-(defcustom helm-buffers-end-truncated-string "..."
+(defcustom helm-buffers-end-truncated-string
+  ;; `truncate-string-ellipsis', the function is not available in 27.1
+  ;; See issue#2673. 
+  (if (char-displayable-p ?…) "…" "...")
   "The string to display at end of truncated buffer names."
   :type 'string)
 

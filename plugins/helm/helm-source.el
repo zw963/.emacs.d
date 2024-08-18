@@ -290,7 +290,7 @@
   when the completion list from the source is built. The argument
   is the list of candidates retrieved from the source. The
   function should return a transformed list of candidates which
-  will be used for the actual completion.  If it is a list of
+  will be used for the current completion.  If it is a list of
   functions, it calls each function sequentially.
 
   This can be used to transform or remove items from the list of
@@ -614,7 +614,8 @@
     :custom integer
     :documentation
     "  Enable `helm-follow-mode' for this source only.
-  With a value of 1 enable, a value of -1 or nil disable the mode.
+  With a value of 1 enable, a value of -1 or nil disable the mode, value set to
+  \\='never prevent using `helm-follow-mode' in this source. 
   See `helm-follow-mode' for more infos.")
 
    (follow-delay
@@ -717,7 +718,15 @@
     :initform 'helm
     :custom symbol
     :documentation
-    "  The current source group, default to `helm' when not specified."))
+    "  The current source group, default to `helm' when not specified.")
+   (popup-info
+    :initarg :popup-info
+    :initform nil
+    :custom function
+    :documentation
+    "  A function that show infos in a popup on the selected candidate.
+  This happen when `helm-popup-tip-mode' is enabled.
+  The function is called on candidate."))
 
   "Main interface to define helm sources."
   :abstract t)
@@ -1309,4 +1318,4 @@ Args ARGS are keywords provided by `helm-source-in-file'."
 
 (provide 'helm-source)
 
-;;; helm-source ends here
+;;; helm-source.el ends here

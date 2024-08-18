@@ -27,6 +27,8 @@
 (declare-function helm-buffer-list "helm-buffers")
 (declare-function helm-grep-split-line "helm-grep")
 (declare-function helm-grep-highlight-match "helm-grep")
+(declare-function helm-grep-ag-1 "helm-grep")
+(declare-function helm-grep--ag-command "helm-grep")
 (declare-function helm-comp-read "helm-mode")
 
 (defvar helm-current-error)
@@ -53,6 +55,7 @@ Don't set it to any value, it will have no effect.")
     (define-key map (kbd "C-c o")    'helm-occur-run-goto-line-ow)
     (define-key map (kbd "C-c C-o")  'helm-occur-run-goto-line-of)
     (define-key map (kbd "C-x C-s")  'helm-occur-run-save-buffer)
+    (define-key map (kbd "C-s")      'helm-run-occur-grep-ag-buffer-directory)
     map)
   "Keymap used in occur source.")
 
@@ -64,8 +67,7 @@ Don't set it to any value, it will have no effect.")
   '(("Go to Line" . helm-occur-goto-line)
     ("Goto line other window (C-u vertically)" . helm-occur-goto-line-ow)
     ("Goto line new frame" . helm-occur-goto-line-of)
-    ("Save buffer" . helm-occur-save-results)
-    )
+    ("Save buffer" . helm-occur-save-results))
   "Actions for helm-occur."
   :type '(alist :key-type string :value-type function))
 
@@ -272,6 +274,7 @@ engine beeing completely different and also much faster."
   "Return CANDIDATES prefixed with line number."
   (cl-loop with buf = (helm-get-attr 'buffer-name source)
            for c in candidates
+           for bfname = (buffer-file-name (get-buffer buf))
            for disp-linum = (when (string-match helm-occur--search-buffer-regexp c)
                               (let ((linum (match-string 1 c))
                                     (disp (match-string 2 c)))
@@ -279,9 +282,10 @@ engine beeing completely different and also much faster."
                                  linum
                                  (format "%s:%s"
                                          (propertize
-                                          linum 'face 'helm-grep-lineno
-                                          'help-echo (buffer-file-name
-                                                      (get-buffer buf)))
+                                          linum
+                                          'face 'helm-grep-lineno
+                                          'help-echo bfname
+                                          'helm-grep-fname bfname)
                                          disp))))
            for linum = (car disp-linum)
            for disp = (cadr disp-linum)
@@ -320,6 +324,7 @@ When GSHORTHANDS is nil use PATTERN unmodified."
 
 (defun helm-occur-build-sources (buffers &optional source-name)
   "Build sources for `helm-occur' for each buffer in BUFFERS list."
+  (require 'helm-grep)
   (setq helm-occur--gshorthands nil)
   (and helm-occur-match-shorthands
        (setq helm-occur--gshorthands
@@ -378,7 +383,13 @@ When GSHORTHANDS is nil use PATTERN unmodified."
                 ;; Needed for resume.
                 :history 'helm-occur-history
                 :candidate-number-limit helm-occur-candidate-number-limit
-                :action 'helm-occur-actions
+                :action (append helm-occur-actions
+                                (helm-make-actions
+                                 (lambda ()
+                                   (when helm-grep-ag-command
+                                     (format "%s grep buffer directory"
+                                             (upcase (helm-grep--ag-command)))))
+                                 'helm-occur-grep-ag-buffer-directory))
                 :requires-pattern 2
                 :follow 1
                 :group 'helm-occur
@@ -521,6 +532,23 @@ persistent action."
                                  (buffer-file-name (get-buffer it)))))
     (when (and occur-fname (file-exists-p occur-fname))
       (expand-file-name occur-fname))))
+
+(defun helm-occur-grep-ag-buffer-directory (_candidate)
+  "Start helm-grep-ag in the `default-directory' of currently searched buffer."
+  (let* ((src (with-helm-buffer
+                ;; Search from current source or fallback to the first
+                ;; source if helm-buffer is empty, if only one source
+                ;; we are right in either cases.
+                (or (helm-get-current-source)
+                    (car helm-sources))))
+         (buf (helm-get-attr 'buffer-name src))
+         (directory (with-current-buffer buf
+                     default-directory))
+         (input helm-pattern))
+    (helm-grep-ag-1 directory nil input)))
+
+(helm-make-command-from-action helm-run-occur-grep-ag-buffer-directory
+    "Ag grep buffer directory." 'helm-occur-grep-ag-buffer-directory)
 
 ;;; helm-occur-mode
 ;;
@@ -734,12 +762,13 @@ numbered.  The property \\='buffer-name is added to the whole string."
   (let* ((split  (helm-grep-split-line candidate))
          (buf    (car split))
          (lineno (nth 1 split))
-         (str    (nth 2 split)))
+         (str    (nth 2 split))
+         (bfname (buffer-file-name (get-buffer buf))))
     (cons (concat (propertize
                    buf
                    'face 'helm-moccur-buffer
-                   'help-echo (buffer-file-name
-                               (get-buffer buf))
+                   'help-echo bfname
+                   'helm-grep-fname bfname
                    'buffer-name buf)
                   ":"
                   (propertize lineno 'face 'helm-grep-lineno)

@@ -588,10 +588,10 @@ On completion (\\[helm-ff-run-complete-fn-at-point]):
 
 Use of wildcard is supported to run an action over a set of files.
 
-Example: You can copy all the files with \".el\" extension by using \"*.el\" and
+Example: You can copy all the files with \".el\" extension by using \"​*.el\" and
 then run copy action.
 
-Similarly, \"**.el\" (note the two stars) will recursively select all \".el\"
+Similarly, \"​*​*.el\" (note the two stars) will recursively select all \".el\"
 files under the current directory.
 
 Note that when recursively copying files, you may have files with same name
@@ -606,7 +606,7 @@ to backup files in current directory.
 This command is available only when `dired-async-mode' is active.
 
 When using an action that involves an external backend (e.g. grep), using \"**\"
-is not recommended (even thought it works fine) because it will be slower to
+is not recommended (even though it works fine) because it will be slower to
 select all the files.  You are better off leaving the backend to do it, it will
 be faster.  However, if you know you have not many files it is reasonable to use
 this, also using not recursive wildcard (e.g. \"*.el\") is perfectly fine for
@@ -614,14 +614,14 @@ this.
 
 The \"**\" feature is active by default in the option `helm-file-globstar'.  It
 is different from the Bash \"shopt globstar\" feature in that to list files with
-a named extension recursively you would write \"**.el\" whereas in Bash it would
-be \"**/*.el\".  Directory selection with \"**/\" like Bash \"shopt globstar\"
+a named extension recursively you would write \"​*​*.el\" whereas in Bash it would
+be \"​*​*/​*.el\".  Directory selection with \"​*​*/\" like Bash \"shopt globstar\"
 option is not supported yet.
 
 Helm supports different styles of wildcards:
 
 - `sh' style, the ones supported by `file-expand-wildcards'.
-e.g. \"*.el\", \"*.[ch]\" which match respectively all \".el\"
+e.g. \"​*.el\", \"​*.[ch]\" which match respectively all \".el\"
 files or all \".c\" and \".h\" files.
 
 - `bash' style (partially) In addition to what allowed in `sh'
@@ -944,6 +944,8 @@ alias pack2xz apack -e -F .tar.xz $* &
 alias unpack aunpack $1 &
 
 Note the \"&\" at end of commands that make eshell aliases asynchronous.
+NOTE: Using the ampersand at end of command to make it asynchronous is broken
+in all emacs versions before emacs-28 (see emacs bug#50209).
 
 Of course you can use any other commands of your choice as aliases.
 
@@ -1038,9 +1040,9 @@ Starting at helm version 2.9.7 it is somewhat possible to
 colorize fnames by listing files without loosing performances with
 external commands (ls and awk) if your system is compatible.
 For this you can use `helm-list-dir-external' as value
-for `helm-list-directory-function'.
+for `helm-list-remote-directory-fn'.
 
-See `helm-list-directory-function' documentation for more infos.
+See `helm-list-remote-directory-fn' documentation for more infos.
 
 **** Completing host
 
@@ -1863,6 +1865,23 @@ the filename in output.
 Add (helm-popup-tip-mode 1) in your init file or enable it
 interactively with M-x helm-popup-tip-mode, however it is
 generally enough to just put your mouse cursor over candidate.
+
+*** Stop grepping with AG or RG and search in the current results
+
+Once you have found your results with helm grep ag you can search
+in these results (helm search, no grep).  This allows narrowing
+the results to a specific file for example or to a specific
+pattern without launching grep ag/rg.  The command is \\<helm-grep-ag-map>\\[helm-grep-ag-run-search-results].
+If you want to continue grepping, switch to the previous helm session
+which is helm-grep-ag session with \\<helm-map>\\[helm-resume-previous-session-after-quit].
+
+_NOTE_: This is available only in AG/RG, not grep.
+
+*** Grep AG/RG on parent directory
+
+The command
+\\<helm-grep-ag-map>\\[helm-grep-run-ag-grep-parent-directory] allow to grep the parent directory
+of the currently searched directory.
 
 *** Open file in other window
 
