@@ -6,6 +6,7 @@
         beginning-of-buffer
         crux-move-beginning-of-line
         describe-key
+        easy-kill
         helm-confirm-and-exit-minibuffer
         iedit-mode
         input-comma-with-space
@@ -16,7 +17,9 @@
 (setq mc/cmds-to-run-once
       '(
         comment-dwim
+        end-of-buffer
         help-for-help
         iedit-switch-to-mc-mode
+        sis--prefix-override-handler
         yas-expand-from-keymap
         ))
