@@ -1,8 +1,5 @@
 ;; -------------------------- 中英文字体对齐 -----------------------------
 ;; ------------------------------ 启动最大化 ------------------------------
-(require 'demap)
-(setq demap-minimap-window-width 15)
-
 ;; 可以通过运行 fc-list 来查看字体的名称.
 (defun initialize-frame-delay (&optional frame)
   "Maximize FRAME when create a new FRAME."
@@ -19,11 +16,13 @@
              popper-toggle-latest
              popper-cycle
              ))
-    (run-with-idle-timer 0.2 nil '(lambda ()
-                                    (demap-open nil nil)
-                                    ;; (toggle-frame-maximized)
-                                    )
-                         )
+    ;; (require 'demap)
+    ;; (setq demap-minimap-window-width 15)
+    ;; (run-with-idle-timer 0.2 nil '(lambda ()
+    ;;                                 (demap-open nil nil)
+    ;;                                 ;; (toggle-frame-maximized)
+    ;;                                 )
+    ;;                      )
     )
   )
 
