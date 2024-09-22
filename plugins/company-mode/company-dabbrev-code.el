@@ -50,9 +50,9 @@ complete only symbols, not text in comments or strings.  In other modes
 If `all', search all other buffers, except the ignored ones.  If t, search
 buffers with the same major mode.  If `code', search all
 buffers with major modes in `company-dabbrev-code-modes', or derived from one of
-them.  This can also be a function that take a parameter of the current
-buffer and returns a list of major modes to search.
-See also `company-dabbrev-code-time-limit'."
+them.  This can also be a function that takes the current buffer as
+parameter and returns a list of major modes to search.  See also
+`company-dabbrev-code-time-limit'."
   :type '(choice (const :tag "Off" nil)
                  (const :tag "Same major mode" t)
                  (const :tag "Code major modes" code)
@@ -76,7 +76,8 @@ See also `company-dabbrev-code-time-limit'."
   "Non-nil to use the completion styles for fuzzy matching."
   :type '(choice (const :tag "Prefix matching only" nil)
                  (const :tag "Matching according to `completion-styles'" t)
-                 (list :tag "Custom list of styles" symbol)))
+                 (list :tag "Custom list of styles" symbol))
+  :package-version '(company . "1.0.0"))
 
 (defvar-local company-dabbrev--boundaries nil)
 
@@ -113,7 +114,9 @@ comments or strings."
                  (company-grab-symbol-parts)))
     (candidates (company-dabbrev--candidates arg (car rest)))
     (adjust-boundaries (and company-dabbrev-code-completion-styles
-                            company-dabbrev--boundaries))
+                            (company--capf-boundaries
+                             company-dabbrev--boundaries)))
+    (expand-common (company-dabbrev-code--expand-common arg (car rest)))
     (kind 'text)
     (no-cache t)
     (ignore-case company-dabbrev-code-ignore-case)
@@ -121,26 +124,37 @@ comments or strings."
              (company--match-from-capf-face arg)))
     (duplicates t)))
 
+(defun company-dabbrev-code--expand-common (prefix suffix)
+  (when company-dabbrev-code-completion-styles
+    (let ((completion-styles (if (listp company-dabbrev-code-completion-styles)
+                                 company-dabbrev-code-completion-styles
+                               completion-styles)))
+      (company--capf-expand-common prefix suffix
+                                   (company-dabbrev-code--table prefix)))))
+
 (defun company-dabbrev--candidates (prefix suffix)
-  (let* ((case-fold-search company-dabbrev-code-ignore-case)
-         (regexp (company-dabbrev-code--make-regexp prefix)))
+  (let* ((case-fold-search company-dabbrev-code-ignore-case))
     (company-dabbrev-code--filter
      prefix suffix
-     (company-cache-fetch
-      'dabbrev-code-candidates
-      (lambda ()
-        (company-dabbrev--search
-         regexp
-         company-dabbrev-code-time-limit
-         (pcase company-dabbrev-code-other-buffers
-           (`t (list major-mode))
-           (`code company-dabbrev-code-modes)
-           ((pred functionp) (funcall company-dabbrev-code-other-buffers (current-buffer)))
-           (`all `all))
-         (not company-dabbrev-code-everywhere)))
-      :expire t
-      :check-tag
-      (cons regexp company-dabbrev-code-completion-styles)))))
+     (company-dabbrev-code--table prefix))))
+
+(defun company-dabbrev-code--table (prefix)
+  (let ((regexp (company-dabbrev-code--make-regexp prefix)))
+    (company-cache-fetch
+     'dabbrev-code-candidates
+     (lambda ()
+       (company-dabbrev--search
+        regexp
+        company-dabbrev-code-time-limit
+        (pcase company-dabbrev-code-other-buffers
+          (`t (list major-mode))
+          (`code company-dabbrev-code-modes)
+          ((pred functionp) (funcall company-dabbrev-code-other-buffers (current-buffer)))
+          (`all `all))
+        (not company-dabbrev-code-everywhere)))
+     :expire t
+     :check-tag
+     (cons regexp company-dabbrev-code-completion-styles))))
 
 (defun company-dabbrev-code--filter (prefix suffix table)
   (let ((completion-ignore-case company-dabbrev-code-ignore-case)
@@ -153,7 +167,10 @@ comments or strings."
       (setq res (company--capf-completions
                  prefix suffix
                  table))
-      (setq company-dabbrev--boundaries (assoc-default :boundaries res))
+      (setq company-dabbrev--boundaries
+            (company--capf-boundaries-markers
+             (assoc-default :boundaries res)
+             company-dabbrev--boundaries))
       (assoc-default :completions res))))
 
 (provide 'company-dabbrev-code)

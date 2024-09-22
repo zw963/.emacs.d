@@ -58,7 +58,8 @@ Set it to t or to a list of major modes."
   "Non-nil to use the completion styles for fuzzy matching."
   :type '(choice (const :tag "Prefix matching only" nil)
                  (const :tag "Matching according to `completion-styles'" t)
-                 (list :tag "Custom list of styles" symbol)))
+                 (list :tag "Custom list of styles" symbol))
+  :package-version '(company . "1.0.0"))
 
 (defvar company-etags-modes '(prog-mode c-mode objc-mode c++-mode java-mode
                               jde-mode pascal-mode perl-mode python-mode))
@@ -82,24 +83,37 @@ Set it to t or to a list of major modes."
         company-etags-buffer-table)))
 
 (defun company-etags--candidates (prefix suffix)
-  (let ((tags-table-list (company-etags-buffer-table))
-        (tags-file-name tags-file-name)
-        (completion-ignore-case company-etags-ignore-case)
+  (let ((completion-ignore-case company-etags-ignore-case)
         (completion-styles (if (listp company-etags-completion-styles)
                                company-etags-completion-styles
                              completion-styles))
-        table)
-    (and (or tags-file-name tags-table-list)
-         (fboundp 'tags-completion-table)
-         (setq table
-               (save-excursion
-                 (visit-tags-table-buffer)
-                 (tags-completion-table)))
+        (table (company-etags--table)))
+    (and table
          (if company-etags-completion-styles
              (let ((res (company--capf-completions prefix suffix table)))
-               (setq company-etags--boundaries (assoc-default :boundaries res))
+               (setq company-etags--boundaries
+                     (company--capf-boundaries-markers
+                      (assoc-default :boundaries res)
+                      company-etags--boundaries))
                (assoc-default :completions res))
            (all-completions prefix table)))))
+
+(defun company-etags--table ()
+  (let ((tags-table-list (company-etags-buffer-table))
+        (tags-file-name tags-file-name))
+    (and (or tags-file-name tags-table-list)
+         (fboundp 'tags-completion-table)
+         (save-excursion
+           (visit-tags-table-buffer)
+           (tags-completion-table)))))
+
+(defun company-etags--expand-common (prefix suffix)
+  (when company-etags-completion-styles
+    (let ((completion-styles (if (listp company-etags-completion-styles)
+                                 company-etags-completion-styles
+                               completion-styles)))
+      (company--capf-expand-common prefix suffix
+                                   (company-etags--table)))))
 
 ;;;###autoload
 (defun company-etags (command &optional arg &rest rest)
@@ -115,7 +129,9 @@ Set it to t or to a list of major modes."
                  (company-grab-symbol-parts)))
     (candidates (company-etags--candidates arg (car rest)))
     (adjust-boundaries (and company-etags-completion-styles
-                            company-etags--boundaries))
+                            (company--capf-boundaries
+                             company-etags--boundaries)))
+    (expand-common (company-etags--expand-common arg (car rest)))
     (no-cache company-etags-completion-styles)
     (location (let ((tags-table-list (company-etags-buffer-table)))
                 (when (fboundp 'find-tag-noselect)

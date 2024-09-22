@@ -19,7 +19,6 @@
 ;; You should have received a copy of the GNU General Public License
 ;; along with GNU Emacs.  If not, see <https://www.gnu.org/licenses/>.
 
-
 ;;; Commentary:
 ;;
 ;; The CAPF back-end provides a bridge to the standard
@@ -43,7 +42,8 @@
 By default it contains the functions that duplicate the built-in backends
 but don't support the corresponding configuration options and/or alter the
 intended priority of the default backends' configuration."
-  :type 'hook)
+  :type 'hook
+  :package-version '(company . "1.0.0"))
 
 ;; Amortizes several calls to a c-a-p-f from the same position.
 (defvar company--capf-cache nil)
@@ -115,12 +115,7 @@ so we can't just use the preceding variable instead.")
   (pcase command
     (`interactive (company-begin-backend 'company-capf))
     (`prefix
-     (let ((res (company--capf-data)))
-       (when res
-         (let ((length (plist-get (nthcdr 4 res) :company-prefix-length))
-               (prefix (buffer-substring-no-properties (nth 1 res) (point)))
-               (suffix (buffer-substring-no-properties (point) (nth 2 res))))
-           (list prefix suffix length)))))
+     (company-capf--prefix))
     (`candidates
      (company-capf--candidates arg (car rest)))
     (`sorted
@@ -161,10 +156,28 @@ so we can't just use the preceding variable instead.")
      (plist-get (nthcdr 4 (company--capf-data)) :company-require-match))
     (`init nil)      ;Don't bother: plenty of other ways to initialize the code.
     (`post-completion
-     (company--capf-post-completion arg))
+     (company-capf--post-completion arg))
     (`adjust-boundaries
-     company-capf--current-boundaries)
+     (company--capf-boundaries
+      company-capf--current-boundaries))
+    (`expand-common
+     (company-capf--expand-common arg (car rest)))
     ))
+
+(defun company-capf--prefix ()
+  (let ((res (company--capf-data)))
+    (when res
+      (let ((length (plist-get (nthcdr 4 res) :company-prefix-length))
+            (prefix (buffer-substring-no-properties (nth 1 res) (point)))
+            (suffix (buffer-substring-no-properties (point) (nth 2 res))))
+        (list prefix suffix length)))))
+
+(defun company-capf--expand-common (prefix suffix)
+  (let* ((data company-capf--current-completion-data)
+         (table (nth 3 data))
+         (pred (plist-get (nthcdr 4 data) :predicate)))
+    (company--capf-expand-common prefix suffix table pred
+                                 company-capf--current-completion-metadata)))
 
 (defun company-capf--annotation (arg)
   (let* ((f (or (plist-get (nthcdr 4 company-capf--current-completion-data)
@@ -197,10 +210,13 @@ so we can't just use the preceding variable instead.")
                                                      (and non-essential
                                                           (eq interrupt t))))
              (sortfun (cdr (assq 'display-sort-function meta)))
-             (candidates (assoc-default :completions all-result))
-             (boundaries (assoc-default :boundaries all-result)))
+             (candidates (assoc-default :completions all-result)))
         (setq company-capf--sorted (functionp sortfun))
-        (setq company-capf--current-boundaries boundaries)
+        (when candidates
+          (setq company-capf--current-boundaries
+                (company--capf-boundaries-markers
+                 (assoc-default :boundaries all-result)
+                 company-capf--current-boundaries)))
         (when sortfun
           (setq candidates (funcall sortfun candidates)))
         candidates))))
@@ -216,7 +232,7 @@ so we can't just use the preceding variable instead.")
            (throw 'interrupted 'new-input))
       res)))
 
-(defun company--capf-post-completion (arg)
+(defun company-capf--post-completion (arg)
   (let* ((res company-capf--current-completion-data)
          (exit-function (plist-get (nthcdr 4 res) :exit-function))
          (table (nth 3 res)))
