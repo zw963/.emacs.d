@@ -177,7 +177,7 @@ As defined by the Language Server Protocol 3.16."
      lsp-autotools lsp-awk lsp-bash lsp-beancount lsp-bufls lsp-clangd
      lsp-clojure lsp-cmake lsp-cobol lsp-credo lsp-crystal lsp-csharp lsp-css
      lsp-cucumber lsp-cypher lsp-d lsp-dart lsp-dhall lsp-docker lsp-dockerfile
-     lsp-elixir lsp-elm lsp-emmet lsp-erlang lsp-eslint lsp-fortran lsp-fsharp
+     lsp-earthly lsp-elixir lsp-elm lsp-emmet lsp-erlang lsp-eslint lsp-fortran lsp-fsharp
      lsp-gdscript lsp-gleam lsp-glsl lsp-go lsp-golangci-lint lsp-grammarly
      lsp-graphql lsp-groovy lsp-hack lsp-haskell lsp-haxe lsp-idris lsp-java
      lsp-javascript lsp-jq lsp-json lsp-kotlin lsp-latex lsp-lisp lsp-ltex
@@ -185,8 +185,8 @@ As defined by the Language Server Protocol 3.16."
      lsp-mojo lsp-move lsp-mssql lsp-nginx lsp-nim lsp-nix lsp-nushell lsp-ocaml
      lsp-openscad lsp-pascal lsp-perl lsp-perlnavigator lsp-php lsp-pls
      lsp-purescript lsp-pwsh lsp-pyls lsp-pylsp lsp-pyright lsp-python-ms
-     lsp-qml lsp-r lsp-racket lsp-remark lsp-rf lsp-rubocop lsp-ruby-lsp
-     lsp-ruby-syntax-tree lsp-ruff-lsp lsp-rust lsp-semgrep lsp-shader
+     lsp-qml lsp-r lsp-racket lsp-remark lsp-rf lsp-roslyn lsp-rubocop lsp-ruby-lsp
+     lsp-ruby-syntax-tree lsp-ruff lsp-rust lsp-semgrep lsp-shader
      lsp-solargraph lsp-solidity lsp-sonarlint lsp-sorbet lsp-sourcekit
      lsp-sql lsp-sqls lsp-steep lsp-svelte lsp-tailwindcss lsp-terraform
      lsp-tex lsp-tilt lsp-toml lsp-trunk lsp-ttcn3 lsp-typeprof lsp-v
@@ -769,6 +769,7 @@ Changes take effect only when a new session is started."
     ("\\.cs\\'" . "csharp")
     ("\\.css$" . "css")
     ("\\.cypher$" . "cypher")
+    ("Earthfile" . "earthfile")
     ("\\.ebuild$" . "shellscript")
     ("\\.go\\'" . "go")
     ("\\.html$" . "html")
@@ -870,6 +871,7 @@ Changes take effect only when a new session is started."
     (go-ts-mode . "go")
     (graphql-mode . "graphql")
     (haskell-mode . "haskell")
+    (haskell-ts-mode . "haskell")
     (hack-mode . "hack")
     (php-mode . "php")
     (php-ts-mode . "php")
@@ -901,6 +903,7 @@ Changes take effect only when a new session is started."
     (ruby-mode . "ruby")
     (enh-ruby-mode . "ruby")
     (ruby-ts-mode . "ruby")
+    (feature-mode . "cucumber")
     (fortran-mode . "fortran")
     (f90-mode . "fortran")
     (elm-mode . "elm")
@@ -936,7 +939,7 @@ Changes take effect only when a new session is started."
     (robot-mode . "robot")
     (racket-mode . "racket")
     (nix-mode . "nix")
-    (nix-ts-mode . "Nix")
+    (nix-ts-mode . "nix")
     (prolog-mode . "prolog")
     (vala-mode . "vala")
     (actionscript-mode . "actionscript")
@@ -956,6 +959,7 @@ Changes take effect only when a new session is started."
     (idris-mode . "idris")
     (idris2-mode . "idris2")
     (gleam-mode . "gleam")
+    (gleam-ts-mode . "gleam")
     (graphviz-dot-mode . "dot")
     (tiltfile-mode . "tiltfile")
     (solidity-mode . "solidity")
@@ -1032,6 +1036,7 @@ directory")
     ("textDocument/signatureHelp" :capability :signatureHelpProvider)
     ("textDocument/typeDefinition" :capability :typeDefinitionProvider)
     ("textDocument/typeHierarchy" :capability :typeHierarchyProvider)
+    ("textDocument/diagnostic" :capability :diagnosticProvider)
     ("workspace/executeCommand" :capability :executeCommandProvider)
     ("workspace/symbol" :capability :workspaceSymbolProvider))
 
@@ -1499,6 +1504,7 @@ INHERIT-INPUT-METHOD will be proxied to `completing-read' without changes."
                                         (_ 'x64)))
                                      ('gnu/linux
                                        (pcase system-configuration
+                                         ((rx bol "aarch64-") 'arm64)
                                          ((rx bol "x86_64") 'x64)
                                          ((rx bol (| "i386" "i886")) 'x32)))
                                      (_
@@ -1624,6 +1630,13 @@ return value of `body' or nil if interrupted."
   ;; current client is interested in executing the action instead of sending it
   ;; to the server.
   (action-handlers (make-hash-table :test 'equal))
+
+  ;; `action-filter' can be set to a function that modifies any incoming
+  ;; `CodeAction' in place before it is executed. The return value is ignored.
+  ;; This can be used to patch up broken code action requests before they are
+  ;; sent back to the LSP server. See `lsp-fix-code-action-booleans' for an
+  ;; example of a function that can be useful here.
+  (action-filter nil)
 
   ;; major modes supported by the client.
   major-modes
@@ -2151,7 +2164,7 @@ PARAMS - the data sent from WORKSPACE."
           (goto-char (lsp--position-to-point (lsp:range-start selection?))))
         t))))
 
-(defcustom lsp-progress-prefix " ⌛ "
+(defcustom lsp-progress-prefix "⌛ "
   "Progress prefix."
   :group 'lsp-mode
   :type 'string
@@ -2194,7 +2207,7 @@ PARAMS - the data sent from WORKSPACE."
                    "|"))))
             (lsp-workspaces)))))
     (unless (s-blank? progress-status)
-      (concat lsp-progress-prefix progress-status))))
+      (concat lsp-progress-prefix progress-status " "))))
 
 (lsp-defun lsp-on-progress-modeline (workspace (&ProgressParams :token :value
                                                                 (value &as &WorkDoneProgress :kind)))
@@ -2289,6 +2302,17 @@ Common usecase are:
 The result format is vector [_ errors warnings infos hints] or nil."
   (gethash (lsp--fix-path-casing path) lsp-diagnostic-stats))
 
+(defun lsp-diagnostics--request-pull-diagnostics (workspace)
+  "Request new diagnostics for the current file within WORKSPACE.
+This is only executed if the server supports pull diagnostics."
+  (when (lsp-feature? "textDocument/diagnostic")
+    (let ((path (lsp--fix-path-casing (buffer-file-name))))
+      (lsp-request-async "textDocument/diagnostic"
+                         (list :textDocument (lsp--text-document-identifier))
+                         (-lambda ((&DocumentDiagnosticReport :kind :items?))
+                           (lsp-diagnostics--apply-pull-diagnostics workspace path kind items?))
+                         :mode 'tick))))
+
 (defun lsp-diagnostics--update-path (path new-stats)
   (let ((new-stats (copy-sequence new-stats))
         (path (lsp--fix-path-casing (directory-file-name path))))
@@ -2298,9 +2322,8 @@ The result format is vector [_ errors warnings infos hints] or nil."
             (aref new-stats idx)))
       (puthash path new-stats lsp-diagnostic-stats))))
 
-(lsp-defun lsp--on-diagnostics-update-stats (workspace
-                                             (&PublishDiagnosticsParams :uri :diagnostics))
-  (let ((path (lsp--fix-path-casing (lsp--uri-to-path uri)))
+(defun lsp-diagnostics--convert-and-update-path-stats (workspace path diagnostics)
+  (let ((path (lsp--fix-path-casing path))
         (new-stats (make-vector 5 0)))
     (mapc (-lambda ((&Diagnostic :severity?))
             (cl-incf (aref new-stats (or severity? 1))))
@@ -2313,6 +2336,27 @@ The result format is vector [_ errors warnings infos hints] or nil."
     (while (not (string= path (setf path (file-name-directory
                                           (directory-file-name path)))))
       (lsp-diagnostics--update-path path new-stats))))
+
+(lsp-defun lsp--on-diagnostics-update-stats (workspace
+                                             (&PublishDiagnosticsParams :uri :diagnostics))
+  (lsp-diagnostics--convert-and-update-path-stats workspace (lsp--uri-to-path uri) diagnostics))
+
+(defun lsp-diagnostics--apply-pull-diagnostics (workspace path kind diagnostics?)
+  "Update WORKSPACE diagnostics at PATH with DIAGNOSTICS?.
+Depends on KIND being a \\='full\\=' update."
+  (cond
+   ((equal kind "full")
+    ;; TODO support `lsp-diagnostic-filter'
+    ;; (the params types differ from the published diagnostics response)
+    (lsp-diagnostics--convert-and-update-path-stats workspace path diagnostics?)
+    (-let* ((lsp--virtual-buffer-mappings (ht))
+            (workspace-diagnostics (lsp--workspace-diagnostics workspace)))
+      (if (seq-empty-p diagnostics?)
+          (remhash path workspace-diagnostics)
+        (puthash path (append diagnostics? nil) workspace-diagnostics))
+      (run-hooks 'lsp-diagnostics-updated-hook)))
+    ((equal kind "unchanged") t)
+    (t (lsp--error "Unknown pull diagnostic result kind '%s'" kind))))
 
 (defun lsp--on-diagnostics (workspace params)
   "Callback for textDocument/publishDiagnostics.
@@ -3734,6 +3778,8 @@ disappearing, unset all the variables related to it."
                       (publishDiagnostics . ((relatedInformation . t)
                                              (tagSupport . ((valueSet . [1 2])))
                                              (versionSupport . t)))
+                      (diagnostic . ((dynamicRegistration . :json-false)
+                                     (relatedDocumentSupport . :json-false)))
                       (linkedEditingRange . ((dynamicRegistration . t)))))
      (window . ((workDoneProgress . t)
                 (showDocument . ((support . t))))))
@@ -4254,6 +4300,8 @@ yet."
                :text (lsp--buffer-content))))
 
   (lsp-managed-mode 1)
+
+  (lsp-diagnostics--request-pull-diagnostics lsp--cur-workspace)
 
   (run-hooks 'lsp-after-open-hook)
   (when-let ((client (-some-> lsp--cur-workspace (lsp--workspace-client))))
@@ -4799,7 +4847,8 @@ Added to `after-change-functions'."
                 (with-lsp-workspace workspace
                   (lsp-notify "textDocument/didChange"
                               (list :contentChanges (vector (lsp--full-change-event))
-                                    :textDocument (lsp--versioned-text-document-identifier))))))
+                                    :textDocument (lsp--versioned-text-document-identifier)))
+                  (lsp-diagnostics--request-pull-diagnostics workspace))))
              (2
               (with-lsp-workspace workspace
                 (lsp-notify
@@ -4809,7 +4858,8 @@ Added to `after-change-functions'."
                                         (if content-change-event-fn
                                             (funcall content-change-event-fn start end length)
                                           (lsp--text-document-content-change-event
-                                           start end length)))))))))
+                                           start end length)))))
+                (lsp-diagnostics--request-pull-diagnostics workspace)))))
          (lsp-workspaces))
         (when lsp--delay-timer (cancel-timer lsp--delay-timer))
         (setq lsp--delay-timer (run-with-idle-timer
@@ -4818,14 +4868,7 @@ Added to `after-change-functions'."
                                 #'lsp--flush-delayed-changes))
         ;; force cleanup overlays after each change
         (lsp--remove-overlays 'lsp-highlight)
-        (lsp--after-change (current-buffer))
-        (setq lsp--signature-last-index nil
-              lsp--signature-last nil)
-        ;; cleanup diagnostics
-        (when lsp-diagnostic-clean-after-change
-          (lsp-foreach-workspace
-           (-let [diagnostics (lsp--workspace-diagnostics lsp--cur-workspace)]
-             (remhash (lsp--fix-path-casing (buffer-file-name)) diagnostics))))))))
+        (lsp--after-change (current-buffer))))))
 
 
 
@@ -4882,6 +4925,16 @@ Added to `after-change-functions'."
     (run-hooks 'lsp-on-change-hook)))
 
 (defun lsp--after-change (buffer)
+  "Called after most textDocument/didChange events."
+  (setq lsp--signature-last-index nil
+        lsp--signature-last nil)
+
+  ;; cleanup diagnostics
+  (when lsp-diagnostic-clean-after-change
+    (dolist (workspace (lsp-workspaces))
+      (-let [diagnostics (lsp--workspace-diagnostics workspace)]
+        (remhash (lsp--fix-path-casing (buffer-file-name)) diagnostics))))
+
   (when (fboundp 'lsp--semantic-tokens-refresh-if-enabled)
     (lsp--semantic-tokens-refresh-if-enabled buffer))
   (when lsp--on-change-timer
@@ -6005,7 +6058,49 @@ Request codeAction/resolve for more info if server supports."
 
   (cond
    ((stringp command?) (lsp--execute-command action))
-   ((lsp-command? command?) (lsp--execute-command command?))))
+   ((lsp-command? command?) (progn
+                              (when-let ((action-filter (->> (lsp-workspaces)
+                                                             (cl-first)
+                                                             (or lsp--cur-workspace)
+                                                             (lsp--workspace-client)
+                                                             (lsp--client-action-filter))))
+                                (funcall action-filter command?))
+                              (lsp--execute-command command?)))))
+
+(lsp-defun lsp-fix-code-action-booleans ((&Command :arguments?) boolean-action-arguments)
+  "Patch incorrect boolean argument values in the provided `CodeAction' command
+in place, based on the BOOLEAN-ACTION-ARGUMENTS list. The values
+in this list can be either symbols or lists of symbols that
+represent paths to boolean arguments in code actions:
+
+> (lsp-fix-code-action-booleans command `(:foo :bar (:some :nested :boolean)))
+
+When there are available code actions, the server sends
+`lsp-mode' a list of possible command names and arguments as
+JSON. `lsp-mode' parses all boolean false values as `nil'. As a
+result code action arguments containing falsy values don't
+roundtrip correctly because `lsp-mode' will end up sending null
+values back to the client. This list makes it possible to
+selectively transform `nil' values back into `:json-false'."
+  (seq-doseq (path boolean-action-arguments)
+    (seq-doseq (args arguments?)
+      (lsp--fix-nested-boolean args (if (listp path) path (list path))))))
+
+(defun lsp--fix-nested-boolean (structure path)
+  "Traverse STRUCTURE using the paths from the PATH list, changing the value to
+`:json-false' if it was `nil'. PATH should be a list containing
+one or more symbols, and STRUCTURE should be compatible with
+`lsp-member?', `lsp-get', and `lsp-put'."
+  (let ((key (car path))
+        (rest (cdr path)))
+    (if (null rest)
+        ;; `lsp-put' returns `nil' both when the key doesn't exist and when the
+        ;; value is `nil', so we need to explicitly check its presence here
+        (when (and (lsp-member? structure key) (not (lsp-get structure key)))
+          (lsp-put structure key :json-false))
+      ;; If `key' does not exist, then we'll silently ignore it
+      (when-let ((child (lsp-get structure key)))
+        (lsp--fix-nested-boolean child rest)))))
 
 (defvar lsp--formatting-indent-alist
   ;; Taken from `dtrt-indent-mode'
@@ -6649,13 +6744,24 @@ textDocument/didOpen for the new file."
 
 (advice-add 'set-visited-file-name :around #'lsp--on-set-visited-file-name)
 
-(defvar lsp--flushing-delayed-changes nil)
+(defcustom lsp-flush-delayed-changes-before-next-message t
+  "If non-nil send the document changes update before sending other messages.
+
+If nil, and `lsp-debounce-full-sync-notifications' is non-nil,
+ change notifications will be throttled by
+ `lsp-debounce-full-sync-notifications-interval' regardless of
+ other messages."
+  :group 'lsp-mode
+  :type 'boolean)
+
+(defvar lsp--not-flushing-delayed-changes t)
 
 (defun lsp--send-no-wait (message proc)
   "Send MESSAGE to PROC without waiting for further output."
 
-  (unless lsp--flushing-delayed-changes
-    (let ((lsp--flushing-delayed-changes t))
+  (when (and lsp--not-flushing-delayed-changes
+             lsp-flush-delayed-changes-before-next-message)
+    (let ((lsp--not-flushing-delayed-changes nil))
       (lsp--flush-delayed-changes)))
   (lsp-process-send proc message))
 
@@ -8583,16 +8689,24 @@ TBL - a hash table, PATHS is the path to the nested VALUE."
   "Defines `lsp-mode' server property."
   (declare (doc-string 3) (debug (name body))
            (indent defun))
-  (let ((path (plist-get args :lsp-path)))
+  (let ((path (plist-get args :lsp-path))
+        (setter (intern (concat (symbol-name symbol) "--set"))))
     (cl-remf args :lsp-path)
     `(progn
        (lsp-register-custom-settings
         (quote ((,path ,symbol ,(equal ''boolean (plist-get args :type))))))
 
-       (defcustom ,symbol ,standard ,doc
-         :set (lambda (sym val)
-                (lsp--set-custom-property sym val ,path))
-         ,@args))))
+       (defcustom ,symbol ,standard ,doc ,@args)
+
+       ;; Use a variable watcher instead of registering a `defcustom'
+       ;; setter since `hack-local-variables' is not aware of custom
+       ;; setters and won't invoke them.
+
+       (defun ,setter (sym val op _where)
+         (when (eq op 'set)
+           (lsp--set-custom-property sym val ,path)))
+
+       (add-variable-watcher ',symbol #',setter))))
 
 (defun lsp--set-custom-property (sym val path)
   (set sym val)
