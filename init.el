@@ -42,7 +42,7 @@
 (require 'yasnippet_init)
 (require 'wgrep_init)
 (require 'quickrun_init)
-(require 'amx_init)
+;; (require 'amx_init) ;; 似乎运行 dap-debug 时出错?
 (require 'spatial-navigate_init)
 
 (require 'vterm_init)
