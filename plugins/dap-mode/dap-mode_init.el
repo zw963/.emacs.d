@@ -1,7 +1,10 @@
 (setq dap-utils-extension-path (expand-file-name ".extension" (file-name-directory (or load-file-name buffer-file-name))))
 
+(setq dap-codelldb-extension-version "1.10.0")
 (require 'dap-mouse)
 (require 'dap-ui)
+(require 'dap-mode)
+(require 'dap-codelldb)
 
 ;; (dap-mode 1)
 ;; (dap-tooltip-mode 1)
