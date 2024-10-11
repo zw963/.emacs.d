@@ -4,4 +4,4 @@
 # binding: w
 # condition: (yas-use-region-p)
 # --
-while`(field "1" "cond")`; do`(def)`
+while ${1:cond}; do`(def)`
