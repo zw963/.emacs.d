@@ -1,5 +1,5 @@
 (require 'crystal-mode)
-;; (require 'lsp-crystal_init)
+(require 'lsp-crystal_init)
 (require 'flycheck-crystal)
 (require 'crystal-mode_keyword_highlight_init)
 
