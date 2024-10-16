@@ -111,8 +111,8 @@
 ;; (setq debug-on-error t)              ;需要调试时，开启这个。
 ;; (setq no-byte-compile t)
 
-;; 这个 打开时，lsp-dart 非常卡，建议关闭
-;; (setq lsp-signature-auto-activate t)
+;; 这个 打开时，lsp-dart 非常卡，这里尝试 Crystal 模式打开。
+(setq lsp-signature-auto-activate t)
 
 ;; 使用 posframe 挺丑的
 ;; (setq lsp-signature-function 'lsp-signature-posframe)
