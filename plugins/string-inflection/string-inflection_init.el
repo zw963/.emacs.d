@@ -21,8 +21,10 @@
     (string-inflection-all-cycle)
     )))
 
-(dolist (hook '(prog-mode-hook
+(dolist (hook '(
+                prog-mode-hook
                 markdown-mode
+                org-mode
                 ))
   (add-hook hook (lambda ()
                    (local-set-key [(meta u)] 'my-string-inflection-cycle-auto)
