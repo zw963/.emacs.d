@@ -523,6 +523,8 @@ used to restore window configuration after file content changed.")
     (define-key map (kbd "s") #'color-rg-rerun-change-dir)
     (define-key map (kbd "S") #'color-rg-customized-search)
 
+    (define-key map (kbd "z") #'color-rg-recursively)
+
     (define-key map (kbd "q") #'color-rg-quit)
     map)
   "Keymap used by `color-rg-mode'.")
@@ -605,6 +607,7 @@ This function is called from `compilation-filter-hook'."
         ;; Highlight filename.
         (goto-char beg)
         (while (re-search-forward "^\033\\[[0]*m\033\\[35m\\(.*?\\)\033\\[[0]*m$" end 1)
+          (add-to-list 'color-rg-search-files (substring-no-properties (match-string 1)) t)
           (replace-match (concat (propertize (match-string 1)
                                              'face nil 'font-lock-face 'color-rg-font-lock-file))
                          t t))
@@ -622,8 +625,7 @@ This function is called from `compilation-filter-hook'."
         ;; Delete all remaining escape sequences
         (goto-char beg)
         (while (re-search-forward "\033\\[[0-9;]*[0mK]" end 1)
-          (replace-match "" t t))))
-    ))
+          (replace-match "" t t))))))
 
 (defun color-rg-process-setup ()
   "Setup compilation variables and buffer for `color-rg'."
@@ -673,6 +675,8 @@ This function is called from `compilation-filter-hook'."
                             (propertize "x / X / u" 'font-lock-face 'color-rg-font-lock-header-line-edit-mode)
                             (propertize "  Filter regex: " 'font-lock-face 'color-rg-font-lock-header-line-text)
                             (propertize "f / F" 'font-lock-face 'color-rg-font-lock-header-line-edit-mode)
+                            (propertize "  Recursively " 'font-lock-face 'color-rg-font-lock-header-line-text)
+                            (propertize "z" 'font-lock-face 'color-rg-font-lock-header-line-edit-mode)
                             (propertize "  Customize " 'font-lock-face 'color-rg-font-lock-header-line-text)
                             (propertize "C" 'font-lock-face 'color-rg-font-lock-header-line-edit-mode)
                             (propertize " ]" 'font-lock-face 'color-rg-font-lock-line-number)
@@ -690,6 +694,7 @@ This function is called from `compilation-filter-hook'."
   no-ignore                             ; toggle no-ignore (t or nil)
   no-node                               ; toggle no-node (t or nil)
   mode                                  ; view or edit mode
+  file-list                             ; list of files to search
   )
 
 (defvar color-rg-cur-search (color-rg-search-create)
@@ -701,6 +706,9 @@ Becomes buffer local in `color-rg-mode' buffers.")
 
 (defvar color-rg-builtin-type-aliases nil
   "Cache for 'rg --type-list'.")
+
+(defvar color-rg-search-files nil
+  "Search files by rg command output.")
 
 (defconst color-rg-internal-type-aliases
   '(("all" . "all defined type aliases") ; rg --type all
@@ -747,7 +755,7 @@ excluded."
   "Return non nil if FILES is a custom file pattern."
   (not (assoc globs (color-rg-get-type-aliases))))
 
-(defun color-rg-build-command (keyword dir globs &optional literal no-ignore no-node case-sensitive file-exclude)
+(defun color-rg-build-command (keyword dir globs &optional file-list literal no-ignore no-node case-sensitive file-exclude)
   "Create the command line for KEYWORD.
 LITERAL determines if search will be literal or regexp based.
 NO-IGNORE determinies if search not ignore the ignored files.
@@ -801,7 +809,14 @@ CASE-SENSITIVE determinies if search is case-sensitive."
                 (list "--type-not <F>")
               (list "--type <F>")))
 
-          (list "-e <R>" (format "\"%s\"" (color-rg-filter-tramp-path dir))))))
+          (if file-list
+              (list (concat "-e <R> "
+                            (mapconcat
+                             (lambda (path)
+                               (concat "'" (shell-quote-argument path) "'"))
+                             file-list
+                             " ")))
+            (list "-e <R>" (format "\"%s\"" (color-rg-filter-tramp-path dir)))))))
 
     (setq command-line
           (grep-expand-template
@@ -822,10 +837,10 @@ CASE-SENSITIVE determinies if search is case-sensitive."
           path))
     path))
 
-(defun color-rg-search (keyword directory globs &optional literal no-ignore no-node case-sensitive file-exclude)
-  (let ((command (color-rg-build-command keyword directory globs
+(defun color-rg-search (keyword directory globs &optional file-list literal no-ignore no-node case-sensitive file-exclude)
+  (let ((command (color-rg-build-command keyword directory globs file-list
                                          literal no-ignore no-node
-                                         case-sensitive file-exclude)))
+                                         case-sensitive file-exclude )))
     ;; Reset visit temp buffers.
     (setq color-rg-temp-visit-buffers nil)
     ;; Reset hit count.
@@ -841,6 +856,7 @@ CASE-SENSITIVE determinies if search is case-sensitive."
             (read-only-mode -1)
             (erase-buffer)))
       (generate-new-buffer color-rg-buffer))
+    (setq color-rg-search-files nil)
     (setq color-rg-changed-lines nil)
 
     ;; Run search command.
@@ -880,6 +896,14 @@ CASE-SENSITIVE determinies if search is case-sensitive."
     (pop-to-buffer color-rg-buffer)
     (goto-char (point-min))
     ))
+
+(defun color-rg-recursively ()
+  "Search new keyword with match file list."
+  (interactive)
+  (let* ((keyword (read-from-minibuffer "Recursively search: "))
+         (files color-rg-search-files))
+    (setq color-rg-search-files nil)
+    (color-rg-search-input keyword default-directory nil files)))
 
 (defun color-rg-customized-search ()
   "Rerun rg with customized arguments. This function will give
@@ -962,15 +986,35 @@ This assumes that `color-rg-in-string-p' has already returned true, i.e.
       (forward-sexp 1)
       (cons start (1- (point))))))
 
+(defun color-rg-get-string-node-bound ()
+  (let* ((node (treesit-node-at (point)))
+         (node-type (treesit-node-type node))
+         (node-start (treesit-node-start node))
+         (node-end (treesit-node-end node)))
+    (pcase node-type
+      ("string_content" (cons node-start node-end))
+      ("string_start" (progn
+                        (goto-char node-end)
+                        (color-rg-get-string-node-bound)))
+      ("string_end" (progn
+                      (goto-char (1- node-start))
+                      (color-rg-get-string-node-bound))))))
+
 (defun color-rg-pointer-string ()
   (if (use-region-p)
       ;; Get region string if mark is set.
       (buffer-substring-no-properties (region-beginning) (region-end))
     ;; Get current symbol or string, and remove prefix char before return.
     (let* ((current-string (if (color-rg-in-string-p)
-                               (buffer-substring-no-properties
-                                (1+ (car (color-rg-string-start+end-points)))
-                                (cdr (color-rg-string-start+end-points)))
+                               (let ((string-node-bound (color-rg-get-string-node-bound)))
+                                 (if string-node-bound
+                                     (buffer-substring-no-properties
+                                      (car string-node-bound)
+                                      (cdr string-node-bound))
+                                   (buffer-substring-no-properties
+                                    (1+ (car (color-rg-string-start+end-points)))
+                                    (cdr (color-rg-string-start+end-points)))
+                                   ))
                              ""))
            (current-symbol (if (or (string-empty-p current-string)
                                    (string-match-p "[[:space:]]" current-string))
@@ -1099,12 +1143,11 @@ This assumes that `color-rg-in-string-p' has already returned true, i.e.
 
 (defun color-rg-clone-to-temp-buffer ()
   (color-rg-kill-temp-buffer)
-  (when (buffer-live-p color-rg-buffer)
+  (when (get-buffer color-rg-buffer)
     (with-current-buffer color-rg-buffer
       (add-hook 'kill-buffer-hook 'color-rg-kill-temp-buffer nil t)
       (generate-new-buffer color-rg-temp-buffer)
-      (append-to-buffer color-rg-temp-buffer (point-min) (point-max))
-      )))
+      (append-to-buffer color-rg-temp-buffer (point-min) (point-max)))))
 
 (defun color-rg-switch-to-view-mode ()
   (interactive)
@@ -1232,7 +1275,7 @@ This assumes that `color-rg-in-string-p' has already returned true, i.e.
      globs)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Interactive functions ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(defun color-rg-search-input (&optional keyword directory globs)
+(defun color-rg-search-input (&optional keyword directory globs file-list)
   (interactive)
   ;; Save window configuration before do search.
   ;; Just save when `color-rg-window-configuration-before-search' is nil
@@ -1253,10 +1296,18 @@ This assumes that `color-rg-in-string-p' has already returned true, i.e.
               default-directory)))
         (search-globs
          (or globs
-             "everything")))
+             "everything"))
+        (search-file-list
+         (or file-list
+             ;; Try to get file list from EAF file manager.
+             (when (and (require 'eaf nil t)
+                        (equal eaf--buffer-app-name "file-manager")
+                        (string-prefix-p "search:" eaf--buffer-args))
+               (eaf-call-sync "execute_function" eaf--buffer-id "get_file_names")))))
     (color-rg-search search-keyword
                      search-directory
-                     search-globs)))
+                     search-globs
+                     search-file-list)))
 
 (defun color-rg-search-symbol ()
   (interactive)
@@ -1358,6 +1409,11 @@ This assumes that `color-rg-in-string-p' has already returned true, i.e.
       ;; Update hit number in header line.
       (color-rg-update-header-line-hits))))
 
+(defun color-rg-kill-line ()
+  ;; Make sure `kill-whole-line' is nil
+  (let (kill-whole-line)
+    (kill-line)))
+
 (defun color-rg-remove-line-from-results ()
   (interactive)
   (save-excursion
@@ -1365,8 +1421,8 @@ This assumes that `color-rg-in-string-p' has already returned true, i.e.
       (when (color-rg-get-row-column-position)
         (read-only-mode -1)
         (beginning-of-line)
-        (kill-line)
-        (kill-line)
+        (color-rg-kill-line)
+        (color-rg-kill-line)
         (read-only-mode 1)
         ))))
 
@@ -1392,9 +1448,10 @@ from `color-rg-cur-search'."
         (literal (color-rg-search-literal color-rg-cur-search))
         (case-sensitive (color-rg-search-case-sensitive color-rg-cur-search))
         (no-ignore (color-rg-search-no-ignore color-rg-cur-search))
-        (no-node (color-rg-search-no-node color-rg-cur-search)))
+        (no-node (color-rg-search-no-node color-rg-cur-search))
+        (file-list (color-rg-search-file-list color-rg-cur-search)))
     (setcar compilation-arguments
-            (color-rg-build-command keyword dir globs literal no-ignore no-node case-sensitive file-exclude))
+            (color-rg-build-command keyword dir globs file-list literal no-ignore no-node case-sensitive file-exclude))
     ;; Reset hit count.
     (setq color-rg-hit-count 0)
 
@@ -1405,8 +1462,7 @@ from `color-rg-cur-search'."
     (color-rg-recompile)
     (color-rg-update-header-line)
     (pop-to-buffer color-rg-buffer)
-    (goto-char (point-min))
-    ))
+    (goto-char (point-min))))
 
 (defun color-rg-rerun-regexp (&optional keyword)
   "Re-search as regexp."
@@ -1831,11 +1887,11 @@ Function `move-to-column' can't handle mixed string of Chinese and English corre
             (setq color-rg-temp-visit-buffers (remove (current-buffer) color-rg-temp-visit-buffers))
             ;; Kill target line.
             (goto-line match-line)
-            (kill-line)
+            (color-rg-kill-line)
             ;; Insert change line.
             (if (string-equal changed-line-content "")
                 ;; Kill empty line if line mark as deleted.
-                (kill-line)
+                (color-rg-kill-line)
               ;; Otherwise insert new line into file.
               (insert changed-line-content))))
         ;; Save files after change.
