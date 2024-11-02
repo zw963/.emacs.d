@@ -9,8 +9,7 @@
 ;;   "Current font name.")
 
 ;; 我发现我还是喜欢永远的, 经典的 Inconsolata
-(defvar meomacs-font-name "Inconsolata Nerd Font Mono"
-  "Current font name.")
+(defvar meomacs-font-name "Inconsolata Nerd Font Mono" "Current font name.")
 
 ;; 可以针对 org table 单独设定字体
 ;; (custom-set-faces

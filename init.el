@@ -63,6 +63,7 @@
 ;; ============================== 编程相关 ==============================
 
 (require 'prog-mode_init)
+(require 'fira-code-mode_init)
 (require 'tree-sitter_init)
 ;; (require 'combobulate_init)
 (require 'snap-indent_init)
