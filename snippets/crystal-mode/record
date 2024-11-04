@@ -1,0 +1,12 @@
+# -*- mode: snippet -*-
+# name: create a record struct
+# key: record
+# --
+struct ${1:Name}
+  getter ${2:$(replace-regexp-in-string "@" "" yas-text)}
+
+  def initialize(${2:attr})
+  end
+
+  $0
+end
