@@ -1,5 +1,7 @@
 (require 'valign)
 
+(setq valign-fancy-bar t)
+
 (add-hook 'gfm-mode-hook 'valign-mode)
 (add-hook 'org-mode-hook 'valign-mode)
 
