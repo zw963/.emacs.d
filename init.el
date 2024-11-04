@@ -7,6 +7,7 @@
 
 ;; ==============================开启的功能==============================
 (require 'org-mode_init)
+(require 'valign_init)
 (require 'ibuffer_init)
 (require 'dired_init)
 (require 'shell_init)
@@ -63,7 +64,6 @@
 ;; ============================== 编程相关 ==============================
 
 (require 'prog-mode_init)
-(require 'fira-code-mode_init)
 (require 'tree-sitter_init)
 ;; (require 'combobulate_init)
 (require 'snap-indent_init)
@@ -87,6 +87,7 @@
 (require 'webpaste_init)
 (require 'ws-butler_init)
 (require 'yafolding_init)
+;; (require 'fira-code-mode_init)
 (require 'ligature_init)
 
 ;; 关闭一些有用，但最近不常用的 mode
