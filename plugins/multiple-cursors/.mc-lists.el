@@ -11,6 +11,7 @@
         iedit-mode
         input-comma-with-space
         kill-region
+        lsp-signature-stop
         undo-tree-or-undo-pp
         ))
 
