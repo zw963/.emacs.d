@@ -7,7 +7,6 @@
 
 ;; ==============================开启的功能==============================
 (require 'org-mode_init)
-;; (require 'valign_init)
 (require 'ibuffer_init)
 (require 'dired_init)
 (require 'shell_init)

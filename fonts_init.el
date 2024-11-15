@@ -101,8 +101,8 @@
   (add-hook 'window-state-change-hook 'meomacs-dynamic-set-font)
   )
 
-(load-my-fonts)
-;; (require 'cnfonts_init)
+;; (load-my-fonts)
+(require 'cnfonts_init)
 
 (provide 'fonts_init)
 
