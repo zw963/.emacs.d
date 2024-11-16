@@ -5,7 +5,7 @@
 ;; Author:   Dmitry Gutov <dmitry@gutov.dev>
 ;; URL:      https://github.com/dgutov/diff-hl
 ;; Keywords: vc, diff
-;; Version:  1.9.2
+;; Version:  1.10.0
 ;; Package-Requires: ((cl-lib "0.2") (emacs "25.1"))
 
 ;; This file is part of GNU Emacs.
@@ -202,8 +202,22 @@ control (VC) backend. It's disabled in remote buffers, though, since it
 didn't work reliably in such during testing."
   :type 'boolean)
 
+;; Threads are not reliable with remote files, yet.
+(defcustom diff-hl-async-inhibit-functions (list #'diff-hl-with-editor-p
+                                                 #'file-remote-p)
+  "Functions to call to check whether asychronous method should be disabled.
+
+When `diff-hl-update-async' is non-nil, these functions are called in turn
+and passed the value `default-directory'.
+
+If any returns non-nil, `diff-hl-update' will run synchronously anyway."
+  :type '(repeat :tag "Predicate" function))
+
 (defvar diff-hl-reference-revision nil
-  "Revision to diff against.  nil means the most recent one.")
+  "Revision to diff against.  nil means the most recent one.
+
+It can be a relative expression as well, such as \"HEAD^\" with Git, or
+\"-2\" with Mercurial.")
 
 (defun diff-hl-define-bitmaps ()
   (let* ((scale (if (and (boundp 'text-scale-mode-amount)
@@ -317,6 +331,8 @@ didn't work reliably in such during testing."
                diff-hl-reference-revision))))
 
 (declare-function vc-git-command "vc-git")
+(declare-function vc-git--rev-parse "vc-git")
+(declare-function vc-hg-command "vc-hg")
 
 (defun diff-hl-changes-buffer (file backend)
   (diff-hl-with-diff-switches
@@ -394,11 +410,15 @@ didn't work reliably in such during testing."
 (defun diff-hl-update ()
   "Updates the diff-hl overlay."
   (if (and diff-hl-update-async
-           ;; Disable threading on the remote file as it is unreliable.
-           (not (file-remote-p default-directory)))
+           (not
+            (run-hook-with-args-until-success 'diff-hl-async-inhibit-functions
+                                              default-directory)))
       ;; TODO: debounce if a thread is already running.
       (make-thread 'diff-hl--update-safe "diff-hl--update-safe")
     (diff-hl--update)))
+
+(defun diff-hl-with-editor-p (_dir)
+  (bound-and-true-p with-editor-mode))
 
 (defun diff-hl--update-safe ()
   "Updates the diff-hl overlay. It handles and logs when an error is signaled."
@@ -491,8 +511,7 @@ didn't work reliably in such during testing."
       (diff-hl-update))))
 
 (defun diff-hl-after-revert ()
-  (defvar revert-buffer-preserve-modes)
-  (when revert-buffer-preserve-modes
+  (when (bound-and-true-p revert-buffer-preserve-modes)
     (diff-hl-update)))
 
 (defun diff-hl-diff-goto-hunk-1 (historic)
@@ -1098,7 +1117,7 @@ CONTEXT-LINES is the size of the unified diff context, defaults to 0."
     (let* ((dest-buffer (or dest-buffer "*diff-hl-diff-buffer-with-reference*"))
            (backend (or backend (vc-backend file)))
            (temporary-file-directory
-            (if (file-directory-p "/dev/shm/")
+            (if (and (eq system-type 'gnu/linux) (file-directory-p "/dev/shm/"))
                 "/dev/shm/"
               temporary-file-directory))
            (rev
@@ -1110,7 +1129,7 @@ CONTEXT-LINES is the size of the unified diff context, defaults to 0."
                  (diff-hl-git-index-object-name file))
               (diff-hl-create-revision
                file
-               (or diff-hl-reference-revision
+               (or (diff-hl-resolved-reference-revision backend)
                    (diff-hl-working-revision file backend)))))
            (switches (format "-U %d --strip-trailing-cr" (or context-lines 0))))
       (diff-no-select rev (current-buffer) switches 'noasync
@@ -1120,6 +1139,22 @@ CONTEXT-LINES is the size of the unified diff context, defaults to 0."
           ;; Function `diff-sentinel' adds a final line, so remove it
           (delete-matching-lines "^Diff finished.*")))
       (get-buffer-create dest-buffer))))
+
+(defun diff-hl-resolved-reference-revision (backend)
+  (cond
+   ((null diff-hl-reference-revision)
+    nil)
+   ((eq backend 'Git)
+    (vc-git--rev-parse diff-hl-reference-revision))
+   ((eq backend 'Hg)
+    (with-temp-buffer
+      (vc-hg-command (current-buffer) 0 nil
+                     "identify" "-r" diff-hl-reference-revision
+                     "-i")
+      (goto-char (point-min))
+      (buffer-substring-no-properties (point) (line-end-position))))
+   (t
+    diff-hl-reference-revision)))
 
 ;; TODO: Cache based on .git/index's mtime, maybe.
 (defun diff-hl-git-index-object-name (file)
@@ -1132,7 +1167,7 @@ CONTEXT-LINES is the size of the unified diff context, defaults to 0."
 
 (defun diff-hl-git-index-revision (file object-name)
   (let ((filename (diff-hl-make-temp-file-name file
-                                               (concat ":" object-name)
+                                               (concat ";" object-name)
                                                'manual))
         (filebuf (get-file-buffer file)))
     (unless (file-exists-p filename)
