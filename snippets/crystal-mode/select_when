@@ -1,8 +1,6 @@
 # -*- mode: snippet -*-
 # name: select ... when
 # key: selectw
-# binding: s
-# condition: (yas-use-region-p)
 # --
 select
 when `(yas-selected-text)``(if-key "$0")`

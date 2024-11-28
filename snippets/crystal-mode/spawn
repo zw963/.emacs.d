@@ -1,5 +1,7 @@
 # -*- mode: snippet -*-
 # name: spawn do ... end
 # key: spawn
+# binding: s
+# condition: (yas-use-region-p)
 # --
 spawn`(string-field "1" "name" "(name: " ")")` `(ruby-do-block)`
