@@ -20,6 +20,7 @@
 
 (autoload 'systemd-mode "systemd" nil t)
 (add-to-list 'auto-mode-alist '("\\.service\\'"  . systemd-mode))
+(add-to-list 'auto-mode-alist '("\\.timer\\'"  . systemd-mode))
 
 (autoload 'web-mode "web-mode_init" nil t)
 (add-to-list 'auto-mode-alist '("\\.html?\\'" . web-mode))
