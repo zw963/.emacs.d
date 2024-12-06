@@ -1,0 +1,6 @@
+# -*- mode: snippet -*-
+# name: info
+# key: info
+# contributor: Billy.Zheng vil963@gmail.com
+# --
+$(warning $0)
