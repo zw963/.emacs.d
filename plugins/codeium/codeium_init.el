@@ -1,5 +1,7 @@
 (require 'codeium)
 
+;; 运行 codeium-install 安装 binary 到 ~/.emacs.d/codeium/codeium_language_server
+
 (add-to-list 'completion-at-point-functions #'codeium-completion-at-point)
 
 ;; (setq use-dialog-box nil)

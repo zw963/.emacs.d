@@ -39,7 +39,7 @@
 
 ;;; Code:
 
-(defvar codeium-latest-local-server-version "1.8.25")
+(defvar codeium-latest-local-server-version "1.12.0")
 
 ;; (require 'url-parse)
 (autoload 'url-parse-make-urlobj "url-parse")
@@ -184,10 +184,12 @@
 ;; for AcceptCompletion
 (codeium-def codeium/completion_id (_api _state val) val)
 
-;; alternative getting key from file?
-;; TODO
-;; (setq codeium/metadata/api_key 'codeium-default/metadata/api_key)
-(defun codeium-get-saved-api-key ())
+(defun codeium-get-saved-api-key ()
+  "Retrieve the saved API key for codeium.com from auth-source."
+  ;; Ensure the auth-source library is loaded
+  (require 'auth-source)
+  (auth-source-pick-first-password :host "codeium.com" :user "apikey"))
+
 (codeium-def codeium/metadata/api_key (_api state)
     (if-let ((api-key (or (codeium-state-last-api-key state) (codeium-get-saved-api-key))))
         (setq codeium/metadata/api_key api-key)
@@ -314,6 +316,9 @@
 (codeium-def codeium/document/line_ending "\n"
     "according to https://www.reddit.com/r/emacs/comments/5b7o9r/elisp_how_to_concat_newline_into_string_regarding/
     this can be always \\n")
+
+(codeium-def codeium/document/absolute_path_migrate_me_to_uri ()
+    (or buffer-file-name (expand-file-name (buffer-name))))
 
 (codeium-def codeium/editor_options/tab_size ()
     tab-width)
