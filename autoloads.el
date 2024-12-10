@@ -36,6 +36,7 @@
 (add-to-list 'auto-mode-alist '("\\.wxml$" . web-mode))
 
 (add-hook 'yaml-ts-mode-hook 'display-line-numbers-mode)
+(add-hook 'yaml-ts-mode-hook 'display-fill-column-indicator-mode)
 (add-to-list 'auto-mode-alist '("\\.\\(e?ya?\\|ra\\)ml\\'" . yaml-ts-mode))
 (add-to-list 'auto-mode-alist '("\\.yml\\.j2" . yaml-ts-mode))
 (add-to-list 'auto-mode-alist '("\\.yml" . yaml-ts-mode))

@@ -16,13 +16,11 @@ folder=~/.TabNine
 
 echo "$targets" | while read target
 do
+    mkdir -p binaries/$version/$target
     path=$version/$target
-    url=https://update.tabnine.com/bundles/$path/TabNine.zip
-    mkdir -p $folder/$path
     echo "downloading $path"
-    echo "$url"
-    curl -sS $url > $folder/$path/TabNine.zip
-    unzip -o $folder/$path/TabNine.zip -d $folder/$path
-    rm $folder/$path/TabNine.zip
-    chmod +x $folder/$path/*
+    curl -sS https://update.tabnine.com/bundles/$path/TabNine.zip > binaries/$path/TabNine.zip
+    unzip -o binaries/$path/TabNine.zip -d binaries/$path
+    rm binaries/$path/TabNine.zip
+    chmod +x binaries/$path/*
 done
