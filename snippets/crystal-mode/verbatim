@@ -1,0 +1,7 @@
+# -*- mode: snippet -*-
+# name: verbatim
+# key: verbatim
+# --
+{% verbatim do %}
+  $0
+{% end %}
