@@ -1,6 +1,6 @@
 # -*- mode: snippet -*-
-# name: warning
-# key: warning
+# name: error
+# key: error
 # contributor: Billy.Zheng vil963@gmail.com
 # --
-$(warning $1 IS $(${1:VAR}))
+$(error $1 IS $(${1:VAR}))

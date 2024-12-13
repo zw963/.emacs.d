@@ -12,6 +12,7 @@
         input-comma-with-space
         kill-region
         lsp-signature-stop
+        org-self-insert-command
         undo-tree-or-undo-pp
         ))
 

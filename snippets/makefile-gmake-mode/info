@@ -3,4 +3,4 @@
 # key: info
 # contributor: Billy.Zheng vil963@gmail.com
 # --
-$(warning $0)
+$(info $1 IS $(${1:VAR}))
