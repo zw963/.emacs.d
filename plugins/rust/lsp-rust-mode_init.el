@@ -1,5 +1,5 @@
-(require 'lsp-mode_init)
 (require 'lsp-rust)
+(require 'lsp-mode_init)
 
 (setq lsp-rust-analyzer-display-chaining-hints t)
 (setq lsp-rust-full-docs t)
