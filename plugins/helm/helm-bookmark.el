@@ -1,6 +1,6 @@
 ;;; helm-bookmark.el --- Helm for Emacs regular Bookmarks. -*- lexical-binding: t -*-
 
-;; Copyright (C) 2012 ~ 2023 Thierry Volpiatto 
+;; Copyright (C) 2012 ~ 2023 Thierry Volpiatto
 
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -34,8 +34,10 @@
 (declare-function all-the-icons-octicon      "ext:all-the-icons.el")
 (declare-function all-the-icons-match-to-alist "ext:all-the-icons.el")
 (declare-function all-the-icons-faicon "ext:all-the-icons.el")
+(declare-function eww-read-bookmarks "eww")
 
 (defvar all-the-icons-dir-icon-alist)
+(defvar eww-bookmarks)
 
 
 (defgroup helm-bookmark nil
@@ -74,6 +76,8 @@ Don't use `setq' to set this."
   "Sort method for `helm-filtered-bookmarks'.
 
 Value can be either \\='native' or \\='adaptive'.
+
+See `helm-adaptive-sort' for infos on \\='native'.
 
 Once you use \\='native' the bookmark variable `bookmark-sort-flag'
 will be honored."
@@ -272,6 +276,11 @@ BOOKMARK is a bookmark name or a bookmark record."
       (eq (bookmark-get-handler bookmark) 'bookmarkp-jump-w3m)
       (eq (bookmark-get-handler bookmark) 'bmkp-jump-w3m)))
 
+(defun helm-bookmark-eww-bookmark-p (bookmark)
+  "Return non-nil if BOOKMARK is an Eww bookmark.
+BOOKMARK is a bookmark name or a bookmark record."
+  (eq (bookmark-get-handler bookmark) 'eww-bookmark-jump))
+
 (defun helm-bookmark-woman-bookmark-p (bookmark)
   "Return non-nil if BOOKMARK is a Woman bookmark.
 BOOKMARK is a bookmark name or a bookmark record."
@@ -346,7 +355,8 @@ BOOKMARK is a bookmark name or a bookmark record."
                          helm-bookmark-image-bookmark-p
                          helm-bookmark-file-p
                          helm-bookmark-helm-find-files-p
-                         helm-bookmark-addressbook-p)
+                         helm-bookmark-addressbook-p
+                         helm-bookmark-eww-bookmark-p)
            never (funcall pred bookmark)))
 
 (defun helm-bookmark-filter-setup-alist (fn)
@@ -458,10 +468,39 @@ If `browse-url-browser-function' is set to something else than
 
 (defvar helm-source-bookmark-images (helm-source-bookmark-images-builder))
 
+;;; EWW bookmarks
+;;
+(defun helm-bookmark-normalize-eww-bmks ()
+  (unless eww-bookmarks (eww-read-bookmarks))
+  (cl-loop for (_url url _title title _time _time) in eww-bookmarks do
+           (unless (bookmark-get-bookmark title t)
+             (push (list title (cons 'location url)
+                         '(imported . t)
+                         '(handler . eww-bookmark-jump))
+                   bookmark-alist)
+             (cl-incf bookmark-alist-modification-count))))
+
+;;;###autoload
+(defun helm-bookmark-import-eww-bookmarks ()
+  "Import EWW bookmarks into bookmark-alist."
+  (interactive)
+  (when (y-or-n-p "Really import eww-bookmarks into bookmark-alist?")
+    (bookmark-maybe-load-default-file)
+    (helm-bookmark-normalize-eww-bmks)))
+
+(defun helm-bookmark-eww-setup-alist ()
+  "Specialized filter function for Eww bookmarks."
+  (helm-bookmark-filter-setup-alist 'helm-bookmark-eww-bookmark-p))
+
+(defun helm-source-bookmark-eww-builder ()
+  (helm-bookmark-build-source "Bookmark EWW" #'helm-bookmark-eww-setup-alist))
+
+(defvar helm-source-bookmark-eww (helm-source-bookmark-eww-builder))
+
 ;;; Woman Man
 ;;
 (defun helm-bookmark-man-setup-alist ()
-  "Specialized filter function for bookmarks w3m."
+  "Specialized filter function for Man pages bookmarks."
   (helm-bookmark-filter-setup-alist 'helm-bookmark-woman-man-bookmark-p))
 
 (defun helm-source-bookmark-man-builder ()
@@ -618,6 +657,7 @@ If `browse-url-browser-function' is set to something else than
           for isabook       = (string= (bookmark-prop-get i 'type)
                                        "addressbook")
           for isinfo        = (eq handlerp 'Info-bookmark-jump)
+          for iseww         = (eq handlerp 'eww-bookmark-jump)
           for loc = (bookmark-location i)
           for len =  (string-width i)
           for trunc = (if (and helm-bookmark-show-location
@@ -635,7 +675,8 @@ If `browse-url-browser-function' is set to something else than
                                              all-the-icons-dir-icon-alist))
                                   (apply (car it) (cdr it))
                                 (all-the-icons-octicon "file-directory")))
-                             (isw3m (all-the-icons-faicon "firefox"))
+                             ((or isw3m iseww)
+                              (all-the-icons-faicon "firefox"))
                              ((and isfile isinfo) (all-the-icons-octicon "info"))
                              ((or iswoman isman)
                               (all-the-icons-fileicon "man-page"))
@@ -656,6 +697,10 @@ If `browse-url-browser-function' is set to something else than
                                        'help-echo isfile))
                           ( ;; w3m buffers
                            isw3m
+                           (propertize trunc 'face 'helm-bookmark-w3m
+                                       'help-echo isfile))
+                          ( ;; eww buffers
+                           iseww
                            (propertize trunc 'face 'helm-bookmark-w3m
                                        'help-echo isfile))
                           ( ;; gnus buffers
@@ -792,7 +837,6 @@ consecutive words from the buffer into the new bookmark name."
                        now-map)
                      nil 'bookmark-history old))))
       (bookmark-set-name old newname)
-      (setq bookmark-current-bookmark  newname)
       (helm-bookmark-maybe-save-bookmark) newname)))
 
 (defun helm-bookmark-rename-marked (_candidate)

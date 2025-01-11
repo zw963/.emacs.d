@@ -159,6 +159,14 @@ the customize functions e.g. `customize-set-variable' and NOT
   :group 'helm-elisp
   :type 'function)
 
+(defcustom helm-current-directory-alist
+  '((dired-mode . dired-current-directory)
+    (mu4e-main-mode . mu4e-maildir))
+  "Tell `helm-current-directory' what to use according to `major-mode'.
+Each element of alist is (MAJOR-MODE . SYMBOL) where SYMBOL is either a variable
+or a function."
+  :type '(alist :key-type symbol :value-type sexp)
+  :group 'helm-files)
 
 ;;; Internal vars
 ;;
@@ -394,6 +402,12 @@ This is done recursively."
 	      (when (> k 127)
 	        (setf (aref vec i) (+ k ?\M-\C-@ -128))))))
         vec))))
+
+(defun helm-proper-list-p (obj)
+  "Compatibility function for `proper-list-p'."
+  (if (fboundp 'proper-list-p)
+      (proper-list-p obj) ; 27+
+    (and (listp obj) (not (cdr (last obj))))))
 
 ;;; Macros helper.
 ;;
@@ -556,26 +570,33 @@ is usable in next condition."
 and `cond'.
 
 KEYLIST can be any object that will be compared with `equal' or
-an expression starting with `guard' which is then evaluated.
-Once evaluated `guard' is bound to the returned value that can be
-used in the cdr of clause.  When KEYLIST match EXPR or `guard'
-evaluation is non-nil, BODY is executed and `helm-acase' exits
-with its value.
+an expression starting with special symbol `guard*' which is then
+evaluated.  Once evaluated the symbol `guard' is bound to the
+returned value that can be used in the cdr of clause.  When
+KEYLIST match EXPR or `guard*' sexp evaluation is non-nil, BODY is
+executed and `helm-acase' exits with its value.
 
-If KEYLIST is a non-quoted list, each elements of the list are
-checked with `member' to see if one match EXPR.  To compare a
-whole list with EXPR, you have to quote it.
+KEYLIST can also be a list starting with special symbol `dst*'
+followed by an expression suitable for `cl-destructuring-bind'.
+In this case all elements of `it' are bound to the elements of
+this expression e.g.
+
+    (helm-acase \\='(1 2 3 4 5)
+      ((dst* (l &rest args)) args))
+    => (2 3 4 5)
+
+If KEYLIST is a list, it is compared with EXPR, also each
+elements of the list are checked with `member' to see if one
+matches EXPR, ensure to not use special symbols `guard*' and
+`dst*' at start of such KEYLIST to avoid confusing helm-acase
+even if this is partially supported.
 
 The last clause can use `t' or \\='otherwise as KEYLIST to specify a
 fallback clause when previous clauses didn't match, if such a clause
 starting with `t' or \\='otherwise is specified before last clause it
 will override all next clauses, if you want to match an EXPR value equal
 to `t' in any clauses quote it, i.e. `'t' or use an explicit
-\(guard (eq it t)).
-
-NOTE: `guard' as a temp var is reserved for `helm-acase', so if
-you let-bind a local var outside the `helm-acase' body, it will
-be overriden deliberately by `helm-acase'.
+\(guard* (eq it t)).
 
 EXPR is bound to a temporary variable called `it' which is
 usable in all clauses to refer to EXPR.
@@ -583,19 +604,41 @@ usable in all clauses to refer to EXPR.
 \(fn EXPR (KEYLIST BODY...)...)"
   (declare (indent 1) (debug (form &rest ([&or (symbolp form) sexp] body))))
   (unless (null clauses)
-    (let* ((clause1 (car clauses))
-           (key     (car clause1))
-           (isguard (eq 'guard (car-safe key)))
-           (sexp    (and isguard (cadr key))))
-      `(let* ((it ,expr)
-              (guard ,sexp))
-         (if (or guard
-                 (equal it ',key)
-                 (and (not ,isguard) (listp ',key) (member it ',key))
-                 (and (symbolp ',key)
-                      (or (eq ',key t) (eq ',key 'otherwise))))
-             (progn ,@(cdr clause1))
-           (helm-acase it ,@(cdr clauses)))))))
+    (let* ((clause1    (car clauses))
+           (key        (car clause1))
+           (sexp       (car-safe (cdr-safe key)))
+           (sp-sym     (car-safe key))
+           ;; Ensure dst* and guard* are not treated as special symbols when
+           ;; they are not followed by one sexp and nothing else, however if the
+           ;; following sexp is not meant to be evaluated but just compared we
+           ;; fail miserably, is it worth fixing it?
+           (issexp     (and (consp sexp) (= (length key) 2)))
+           (isguard    (and (eq 'guard* sp-sym) issexp))
+           (isdst      (and (eq 'dst* sp-sym) issexp))
+           (special    (or isguard isdst))
+           (guard-sexp (and isguard sexp))
+           (dst-sexp   (and isdst sexp)))
+      `(let* ((it    ,expr)
+              (guard ,guard-sexp)
+              (dst   (and (consp it) ',dst-sexp)))
+         (cond ((or guard
+                    (and ,(not special)
+                         (or (equal it ',key)
+                             (and (listp ',key) (member it ',key))))
+                    (and (symbolp ',key)
+                         (or (eq ',key t) (eq ',key 'otherwise))))
+                ;; When this branch is expanded the compiler complains about not
+                ;; referenced variables (the ones in `dst' that will be used in
+                ;; next branch) so prevent warnings instead of using a progn
+                ;; Merci Stefan!
+                (with-no-warnings ,@(cdr clause1)))
+               ((and dst
+                     (condition-case nil
+                         (cl-destructuring-bind ,dst-sexp it
+                           ,@(cdr clause1))
+                       (wrong-number-of-arguments nil))))
+               (t
+                (helm-acase it ,@(cdr clauses))))))))
 
 ;;; Fuzzy matching routines
 ;;
@@ -668,6 +711,8 @@ E.g.: helm.el$
     ("M-f" . forward-word)
     ("M-b" . backward-word)
     ("M->" . end-of-buffer)
+    ("C-M-f" . forward-sexp)
+    ("C-M-b" . backward-sexp)
     ("M-<" . beginning-of-buffer)
     ("C-SPC" . helm-help-toggle-mark)
     ("C-M-SPC" . mark-sexp)
@@ -762,7 +807,7 @@ displayed in BUFNAME."
 (defun helm-help-org-cycle ()
   "Runs `org-cycle' in `helm-help'."
   (helm-acase (helm-iter-next helm-help--iter-org-state)
-    ((guard (numberp it)) (org-content))
+    ((guard* (numberp it)) (org-content))
     ;; See `helm--help-org-prefargs' about `org-cycle' ARG.
     (t (org-cycle it))))
 
@@ -886,9 +931,10 @@ See `helm-help-hkmap' for supported keys and functions."
     (nreverse result)))
 
 (defun helm-mklist (obj)
-  "Return OBJ as a list.
-Otherwise make a list with one element OBJ."
-  (if (and (listp obj) (not (functionp obj)))
+  "Return OBJ as a proper list.
+Otherwise make a proper list with one element OBJ.
+Anonymous functions (lambdas) are treated as single elements."
+  (if (and (helm-proper-list-p obj) (not (functionp obj)))
       obj
     (list obj)))
 
@@ -1010,13 +1056,9 @@ Examples:
     (helm-append-at-nth \\='(a b c d) \\='((x . 1) (y . 2)) 2)
     =>(a b (x . 1) (y . 2) c d)
 
-    But this is not working:
-    (helm-append-at-nth \\='(a b c d) \\='(x . 1) 2)
-    =>Wrong type argument: listp, 1
-
-NOTE: This function uses `append' internally, so ELM is expected
-to be a list to be appended to SEQ, even if for convenience an
-atom is supported as ELM value."
+    (helm-append-at-nth \\='((a . 1) (b . 2) (c . 3)) \\='(x . 1) 1)
+    =>((a . 1) (x . 1) (b . 2) (c . 3))
+"
   (setq index (min (max index 0) (length seq))
         elm   (helm-mklist elm))
   (if (zerop index)
@@ -1025,6 +1067,31 @@ atom is supported as ELM value."
            (len      (length end-part))
            (beg-part (butlast seq len)))
       (append beg-part elm end-part))))
+
+;;;###autoload
+(defun helm-add-to-list (var elm index &optional replace)
+  "Add or move ELM to the value of VAR at INDEX unless already here.
+
+If ELM is member of var value and at index INDEX, return var value
+unchanged, if INDEX value is different move ELM at this `nth' INDEX value.
+If ELM is not present in list add it at `nth' INDEX.
+
+If REPLACE is non nil replace element at INDEX by ELM.
+
+Do not use this function in helm code, use `helm-append-at-nth'
+instead.  It is meant to be used in config files only."
+  (cl-assert (boundp var) nil "Unbound variable `%s'" var)
+  (let ((val (symbol-value var))
+        flag)
+    (cond ((and (member elm val) (equal elm (nth index val))))
+          ((member elm val)
+           (setq val (delete elm val) flag t))
+          ((and replace (not (< index 0)) (not (> index (length val))))
+             (setq val (delete (nth index val) val) flag t))
+          (t (setq flag t)))
+    (if flag
+        (set var (helm-append-at-nth val elm index))
+      val)))
 
 (cl-defgeneric helm-take (seq n)
   "Return the first N elements of SEQ if SEQ is longer than N.
@@ -1131,9 +1198,9 @@ Examples:
   "Return the representation of ELM as a string.
 ELM can be a string, a number or a symbol."
   (helm-acase elm
-    ((guard (stringp it)) it)
-    ((guard (numberp it)) (number-to-string it))
-    ((guard (symbolp it)) (symbol-name it))))
+    ((guard* (stringp it)) it)
+    ((guard* (numberp it)) (number-to-string it))
+    ((guard* (symbolp it)) (symbol-name it))))
 
 (defun helm-substring (str width)
   "Return the substring of string STR from 0 to WIDTH.
@@ -1257,7 +1324,8 @@ behaviour of this function is really needed."
       (goto-char (point-min)))
     (decode-coding-string (buffer-string) 'utf-8)))
 
-(defun helm-read-answer (prompt answer-list &optional help)
+(cl-defun helm-read-answer (prompt answer-list
+                            &optional (help 'helm-read-answer-default-help-fn))
   "Prompt user for an answer.
 Arg PROMPT is the prompt to present user the different possible
 answers, ANSWER-LIST is a list of strings.
@@ -1271,13 +1339,9 @@ is pressed (don't forget to add \"h\" in prompt).
 
 Example:
 
-     (helm-acase (helm/read-answer
+     (helm-acase (helm-read-answer
                  \"answer [y,n,!,q,h]: \"
-                 \\='(\"y\" \"n\" \"!\" \"q\")
-                 \"(y)es:  do this
-\(n)o:   skip
-\(!)all: do this for all
-\(q)uit: quit skipping remaining candidates\")
+                 \\='(\"y\" \"n\" \"!\" \"q\"))
       (\"y\" \"yes\")
       (\"n\" \"no\")
       (\"!\" \"all\")
@@ -1351,13 +1415,13 @@ in LIST to be displayed in PROMPT."
                        (apply #'format
                               (concat prompt "[y,n,!,q,h]")
                               (helm-acase prompt-formater
-                                ((guard (consp it))
+                                ((guard* (consp it))
                                  (mapcar (lambda (x)
                                            (if (functionp x)
                                                (funcall x elm)
                                              x))
                                          it))
-                                ((guard (functionp it))
+                                ((guard* (functionp it))
                                  (list (funcall it elm)))
                                 (t (list elm))))
                        '("y" "n" "!" "q")
@@ -1381,7 +1445,7 @@ This avoid possible infloop when a wrong regexp is entered in minibuffer."
   ;; See Issue#2652 and Issue#2653.
   (let ((pos (point)))
     (helm-acase (re-search-forward regexp bound noerror count)
-      ((guard (eql it pos)) nil)
+      ((guard* (eql it pos)) nil)
       (t it))))
 
 ;;; Symbols routines
@@ -1389,7 +1453,7 @@ This avoid possible infloop when a wrong regexp is entered in minibuffer."
 (defun helm-symbolify (str-or-sym)
   "Get symbol of STR-OR-SYM."
   (helm-acase str-or-sym
-    ((guard (symbolp it)) it)
+    ((guard* (symbolp it)) it)
     ("" nil)
     (t (intern it))))
 
@@ -1434,6 +1498,97 @@ If object is a lambda, return \"Anonymous\"."
       (describe-face (if (cdr faces)
                          (mapcar 'helm-symbolify faces)
                          (helm-symbolify face))))))
+
+(defun helm-describe-re-char-classes-1 (exp)
+  (helm-acase exp
+             (":xdigit:"
+              (format "%s
+This matches the hexadecimal digits.
+‘0’ through ‘9’, ‘a’ through ‘f’ and ‘A’ through ‘F’." it))
+             (":word:"
+              (format "%s
+This matches any character that has word syntax.
+Note that the syntax of a character, and thus which characters are considered
+“word-constituent”, depends on the major mode." it))
+             (":upper:"
+              (format "%s
+This matches any upper-case letter.
+It is determined by the current case table.
+If ‘case-fold-search’ is non-‘nil’, this
+also matches any lower-case letter.  Note that a buffer can have
+its own local case table different from the default one." it))
+             (":unibyte:"
+              (format "%s
+This matches any unibyte character." it))
+             (":space:"
+              (format "%s
+This matches any character that has whitespace syntax.
+Note that the syntax of a character, and thus
+which characters are considered “whitespace”, depends on the major mode." it))
+             (":punct:"
+              (format "%s
+This matches any punctuation character.
+At present, for multibyte characters, it matches anything that has non-word syntax,
+and thus its exact definition can vary from one major mode to another, since
+the syntax of a character depends on the major mode.)" it))
+             (":print:"
+              (format "%s
+This matches any printing character.
+Either spaces or graphic characters matched by ‘[:graph:]’." it))
+             (":nonascii:"
+              (format "%s
+This matches any non-ASCII character." it))
+             (":multibyte:"
+              (format "%s
+This matches any multibyte character." it))
+             (":lower:"
+              (format "%s
+This matches any lower-case letter.
+It is determined by the current case table.
+If ‘case-fold-search’ is non-‘nil’, this also matches
+any upper-case letter.  Note that a buffer can have its own local
+case table different from the default one." it))
+             (":graph:"
+              (format "%s
+This matches graphic characters.
+Everything except spaces, ASCII and
+non-ASCII control characters, surrogates, and codepoints unassigned
+by Unicode, as indicated by the Unicode ‘general-category’ property." it))
+             (":digit:"
+              (format "%s
+This matches ‘0’ through ‘9’.
+Thus, ‘[-+[:digit:]]’ matches any digit,as well as ‘+’ and ‘-’." it))
+             (":cntrl:"
+              (format "%s
+This matches any cntrl character.
+That is any character whose code is in the range 0–31." it))
+             (":blank:"
+              (format "%s
+This matches horizontal whitespace.
+It is defined by Annex C of the Unicode Technical Standard #18.
+In particular, it matches spaces,tabs,
+and other characters whose Unicode ‘general-category’
+property indicates they are spacing separators." it))
+             (":alpha:"
+              (format "%s
+This matches any letter.
+For multibyte characters, it matches characters
+whose Unicode ‘general-category’ property indicates
+they are alphabetic characters." it))
+             (":alnum:"
+              (format "%s
+This matches any letter or digit.
+For multibyte characters, it matches characters
+whose Unicode ‘general-category’ property
+indicates they are alphabetic or decimal number characters." it))
+             (":ascii:"
+              (format "%s
+This matches any ASCII character (codes 0–127)." it))))
+
+(defun helm-describe-re-char-classes (exp)
+  "Describe Char Classes for regexps."
+  (with-output-to-temp-buffer "*help*"
+    (princ (helm-describe-re-char-classes-1 exp))))
 
 (defun helm-elisp--persistent-help (candidate fun &optional name)
   "Used to build persistent actions describing CANDIDATE with FUN.
@@ -1689,25 +1844,32 @@ e.g. (helm-basename \"~/ucs-utils-6.0-delta.py.gz\" \\='(2 . \"\\\\.py\\\\\\='\"
 
 (defun helm-basedir (fname &optional parent)
   "Return the base directory of FNAME ending by a slash.
-If PARENT is specified and FNAME is a directory return the parent
-directory of FNAME.
+If PARENT is non nil and FNAME is a directory return the parent
+directory of FNAME, if PARENT is a number return the parent directory up to
+PARENT level.
 If PARENT is not specified but FNAME doesn't end by a slash, the returned value
 is same as with PARENT."
   (helm-aif (and fname
                  (or (and (string= fname "~") "~")
                      (file-name-directory
-                      (if parent
-                          (directory-file-name fname)
-                        fname))))
+                      (helm-acase parent
+                        ((guard* (numberp it))
+                         (cl-loop repeat it
+                                  for bd = (helm-basedir (or bd fname) t)
+                                  finally return bd))
+                        ((guard* (eq it t))
+                         (directory-file-name fname))
+                        (t fname)))))
       (file-name-as-directory it)))
 
 (defun helm-current-directory ()
   "Return current-directory name at point.
-Useful in dired buffers when there is inserted subdirs."
+It is done according to `helm-current-directory-alist'."
   (expand-file-name
-   (if (eq major-mode 'dired-mode)
-       (dired-current-directory)
-       default-directory)))
+   (helm-acase major-mode
+     ((guard* (assoc-default it helm-current-directory-alist))
+      (helm-interpret-value guard))
+     (t default-directory))))
 
 (defun helm-shadow-boring-files (files)
   "Files matching `helm-boring-file-regexp' will be
@@ -1997,7 +2159,7 @@ property."
               completion-styles-alist
               :test 'equal)
   (unless (assq 'flex completion-styles-alist)
-    ;; Add helm-fuzzy style only if flex is not available.
+    ;; Add helm-flex style only if flex is not available.
     (cl-pushnew '(helm-flex helm-flex-completion-try-completion
                             helm-flex-completion-all-completions
                             "helm flex completion style.\nProvide flex matching for emacs-26.")
@@ -2031,7 +2193,7 @@ flex or helm-flex completion style if present."
       (or
        styles
        (helm-acase (cdr (assq from helm-completion-styles-alist))
-         ((guard (and (consp it) (cdr it))) guard))
+         ((dst* (_l &rest args)) args))
        ;; We need to have flex always behind helm, otherwise
        ;; when matching against e.g. '(foo foobar foao frogo bar
        ;; baz) with pattern "foo" helm style if before flex will
@@ -2063,7 +2225,8 @@ the sort function provided by the completion-style in
 use (emacs-27 only), otherwise (emacs-26) the sort function has
 to be provided if needed either with an FCT function in source or
 by passing the sort function with METADATA
-E.g.: (metadata (display-sort-function . foo)).
+E.g.: \\='((metadata (display-sort-function . foo))).
+Candidates can be modified by passing an affixation-function in METADATA.
 
 If you don't want the sort fn provided by style to kick
 in (emacs-27) you can use as metadata value the symbol `nosort'.
@@ -2098,6 +2261,12 @@ Also `helm-completion-style' settings have no effect here,
            (nosort (eq metadata 'nosort))
            (compsfn (lambda (str pred _action)
                       (let* ((completion-ignore-case (helm-set-case-fold-search))
+                             ;; Use a copy of metadata to avoid accumulation of
+                             ;; adjustment in metadata (This is not needed in
+                             ;; emacs-31+, it has been fixed in emacsbug
+                             ;; #74718). This also avoid the flex adjustment fn
+                             ;; reusing the previous sort fn.
+                             (md (copy-sequence metadata))
                              (comps (completion-all-completions
                                      str
                                      (if (functionp collection)
@@ -2105,18 +2274,21 @@ Also `helm-completion-style' settings have no effect here,
                                        collection)
                                      pred
                                      (or point 0)
-                                     (or (and (listp metadata) metadata)
+                                     (or (and (consp md) md)
                                          (setq metadata '(metadata)))))
                              (last-data (last comps))
                              (sort-fn (unless nosort
                                         (completion-metadata-get
-                                         metadata 'display-sort-function)))
+                                         md 'display-sort-function)))
+                             (affix (completion-metadata-get
+                                     md 'affixation-function))
                              all)
-                        (when (cdr last-data)
-                          (setcdr last-data nil))
-                        (setq all (copy-sequence comps))
-                        (if (and sort-fn (> (length str) 0))
-                            (funcall sort-fn all)
+                        (when (cdr last-data) (setcdr last-data nil))
+                        (setq all (if (and sort-fn (> (length str) 0))
+                                      (funcall sort-fn comps)
+                                    comps))
+                        (if affix
+                            (helm-completion--decorate all nil affix nil)
                           all)))))
       ;; Ensure circular objects are removed.
       (complete-with-action t compsfn helm-pattern predicate))))

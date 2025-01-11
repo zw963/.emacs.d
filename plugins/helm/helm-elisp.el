@@ -238,27 +238,27 @@ If `helm-turn-on-show-completion' is nil do nothing."
                             (eq (char-before) ?\#)))))))
     (save-excursion
       (goto-char beg)
-      (if (or
-           ;; Complete on all symbols in non--lisp modes (logs mail etc..)
-           (not (memq major-mode '(emacs-lisp-mode
-                                   lisp-interaction-mode
-                                   inferior-emacs-lisp-mode)))
-           (not (or (funcall fn-sym-p)
-                    (and (eq (char-before) ?\')
-                         (save-excursion
-                           (forward-char (if (funcall fn-sym-p) -2 -1))
-                           (skip-syntax-backward " " (pos-bol))
-                           (memq (symbol-at-point)
-                                 helm-lisp-quoted-function-list)))
-                    (eq (char-before) ?\())) ; no paren before str.
-           ;; Looks like we are in a let statement.
-           (condition-case nil
-               (progn (up-list -2) (forward-char 1)
-                      (eq (char-after) ?\())
-             (error nil)))
-          (lambda (sym)
-            (or (boundp sym) (fboundp sym) (symbol-plist sym)))
-        #'fboundp))))
+      (cond ((or
+              ;; Complete on all symbols in non--lisp modes (logs mail etc..)
+              (not (memq major-mode '(emacs-lisp-mode
+                                      lisp-interaction-mode
+                                      inferior-emacs-lisp-mode)))
+              (not (or (funcall fn-sym-p)
+                       (and (eq (char-before) ?\')
+                            (save-excursion
+                              (forward-char (if (funcall fn-sym-p) -2 -1))
+                              (skip-syntax-backward " " (pos-bol))
+                              (memq (symbol-at-point)
+                                    helm-lisp-quoted-function-list)))
+                       (eq (char-before) ?\())) ; no paren before str.
+              ;; Looks like we are in a let statement.
+              (condition-case nil
+                  (progn (up-list -2) (forward-char 1)
+                         (eq (char-after) ?\())
+                (error nil)))
+             (lambda (sym)
+               (or (boundp sym) (fboundp sym) (symbol-plist sym))))
+            (t #'fboundp)))))
 
 (defun helm-thing-before-point (&optional limits regexp)
   "Return symbol name before point.
@@ -298,6 +298,15 @@ Return a cons (beg . end)."
     (when (and pos (< (point) pos))
       (push-mark pos t t))))
 
+(defconst helm-lisp-completion-re-chars-classes
+  '(":xdigit:" ":word:" ":upper:"
+    ":unibyte:" ":space:" ":punct:"
+    ":print:" ":nonascii:" ":ascii:"
+    ":multibyte:" ":lower:"
+    ":graph:" ":digit:" ":cntrl:"
+    ":blank:" ":alpha:" ":alnum:")
+  "Table of Char Classes for regexps.")
+
 ;;;###autoload
 (defun helm-lisp-completion-at-point ()
   "Preconfigured Helm for Lisp symbol completion at point."
@@ -306,11 +315,16 @@ Return a cons (beg . end)."
          (beg        (car (helm-bounds-of-thing-before-point)))
          (end        (point))
          (pred       (and beg (helm-lisp-completion--predicate-at-point beg)))
+         (re-class-p (and (eq 'string (syntax-ppss-context (syntax-ppss (point))))
+                          (save-excursion
+                            (re-search-backward "\\[:[[:alpha:]]*" (pos-bol) t))))
          (loc-vars   (and (fboundp 'elisp--local-variables)
                           (ignore-errors
                             (mapcar #'symbol-name (elisp--local-variables)))))
-         (glob-syms  (and target pred (all-completions target obarray pred)))
-         (candidates (append loc-vars glob-syms))
+         (glob-syms  (and target pred (not re-class-p) (all-completions target obarray pred)))
+         (candidates (if re-class-p
+                         helm-lisp-completion-re-chars-classes
+                       (append loc-vars glob-syms)))
          (helm-quit-if-no-candidate t)
          (helm-execute-action-at-once-if-one t)
          (enable-recursive-minibuffers t))
@@ -327,6 +341,9 @@ Return a cons (beg . end)."
                       :nomark t
                       :match-part (lambda (c) (car (split-string c)))
                       :fuzzy-match helm-lisp-fuzzy-completion
+                      :popup-info (lambda (c) (helm-get-first-line-documentation
+                                               (if (string-match "\\`:[[:alpha:]]+:\\'" c)
+                                                   c (intern-soft c))))
                       :persistent-help (helm-lisp-completion-persistent-help)
                       :filtered-candidate-transformer
                       #'helm-lisp-completion-transformer
@@ -336,8 +353,7 @@ Return a cons (beg . end)."
                                    0.01 nil
                                    #'helm-insert-completion-at-point
                                    beg end candidate))))
-           :input (if helm-lisp-fuzzy-completion
-                      target (concat target " "))
+           :input target
            :resume 'noresume
            :truncate-lines t
            :buffer "*helm lisp completion*"
@@ -358,17 +374,21 @@ other window according to the value of
       (helm-elisp-show-help "Toggle show help for the symbol")))
 
 (defun helm-elisp--show-help-1 (candidate &optional name)
-  (helm-acase (intern-soft candidate)
-    ((guard (and (fboundp it) (boundp it)))
+  (helm-acase (if (member candidate helm-lisp-completion-re-chars-classes)
+                  candidate
+                (intern-soft candidate))
+    ((guard* (stringp it))
+     (helm-describe-re-char-classes it))
+    ((guard* (and (fboundp it) (boundp it)))
      (if (member name `(,helm-describe-function-function
                         ,helm-describe-variable-function))
          (funcall (intern (format "helm-%s" name)) it)
        ;; When there is no way to know what to describe
        ;; prefer describe-function.
        (helm-describe-function it)))
-    ((guard (fboundp it)) (helm-describe-function it))
-    ((guard (boundp it))  (helm-describe-variable it))
-    ((guard (facep it))   (helm-describe-face it))))
+    ((guard* (fboundp it)) (helm-describe-function it))
+    ((guard* (boundp it))  (helm-describe-variable it))
+    ((guard* (facep it))   (helm-describe-face it))))
 
 (defun helm-elisp-show-help (candidate &optional name)
   "Show full help for the function CANDIDATE.
@@ -392,15 +412,26 @@ the same time to variable and a function."
 (defun helm-lisp-completion-transformer (candidates _source)
   "Helm candidates transformer for Lisp completion."
   (cl-loop for c in candidates
-           for sym = (intern c)
+           for sym = (if (string-match "\\`:[[:alpha:]]+:\\'" c)
+                         c (intern-soft c))
            for annot = (helm-acase sym
-                         ((guard (commandp it))     " (Com)")
-                         ((guard (class-p it))      " (Class)")
-                         ((guard (cl-generic-p it)) " (Gen)")
-                         ((guard (fboundp it))      " (Fun)")
-                         ((guard (boundp it))       " (Var)")
-                         ((guard (facep it))        " (Face)"))
-           collect (cons (concat c (helm-make-separator c) annot) c) into lst
+                         ((guard* (stringp it))      "<reg> ")
+                         ((guard* (commandp it))     "<com> ")
+                         ((guard* (class-p it))      "<cla> ")
+                         ((guard* (cl-generic-p it)) "<gen> ")
+                         ((guard* (fboundp it))      "<fun> ")
+                         ((guard* (keywordp it))     "<kwd> ")
+                         ((guard* (boundp it))       "<var> ")
+                         ((guard* (facep it))        "<fac> ")
+                         ((guard* (helm-group-p it)) "<grp> ")
+                         (t                         "      "))
+           collect (cons (concat (helm-aand
+                                  (propertize
+                                   annot 'face 'helm-completions-annotations)
+                                  (propertize " " 'display it))
+                                 c)
+                         c)
+           into lst
            finally return (sort lst #'helm-generic-sort-fn)))
 
 ;;;###autoload
@@ -413,21 +444,23 @@ Argument NAME allows specifiying what function to use to display
 documentation when SYM name is the same for function and variable."
   (let ((doc (condition-case _err
                  (helm-acase sym
-                   ((guard (class-p it))
+                   ((guard* (stringp it))
+                    (cadr (split-string (helm-describe-re-char-classes-1 it) "\n")))
+                   ((guard* (class-p it))
                     (cl--class-docstring (cl--find-class it)))
-                   ((guard (and (fboundp it) (boundp it)))
+                   ((guard* (and (fboundp it) (boundp it)))
                     (if (string= name "describe-variable")
                         (documentation-property it 'variable-documentation t)
                       (documentation it t)))
-                   ((guard (custom-theme-p it))
+                   ((guard* (custom-theme-p it))
                     (documentation-property it 'theme-documentation t))
-                   ((guard (and (helm-group-p it) (not (fboundp it))))
+                   ((guard* (and (helm-group-p it) (not (fboundp it))))
                     (documentation-property it 'group-documentation t))
-                   ((guard (fboundp it))
+                   ((guard* (fboundp it))
                     (documentation it t))
-                   ((guard (boundp it))
+                   ((guard* (boundp it))
                     (documentation-property it 'variable-documentation t))
-                   ((guard (facep it)) (face-documentation it)))
+                   ((guard* (facep it)) (face-documentation it)))
                (void-function "Void function -- Not documented"))))
     (if (and doc (not (string= doc ""))
              ;; `documentation' return "\n\n(args...)"
@@ -440,9 +473,8 @@ documentation when SYM name is the same for function and variable."
         ;; <https://debbugs.gnu.org/70163>.
         (truncate-string-to-width
          (helm-acase (split-string (substitute-command-keys doc) "\n")
-           ((guard (and (string= (car it) "") (cdr it)))
-            (cadr guard))
-           (t (car it)))
+           ((dst* (l &rest args))
+            (if (string= l "") (cadr args) l)))
          end-column nil nil t)
       (if (or (symbol-function sym) (boundp sym) (facep sym) (helm-group-p sym))
           "Not documented"
@@ -748,16 +780,16 @@ is only used to test DEFAULT."
 (defun helm-info-lookup-fallback-source (candidate)
   (cl-multiple-value-bind (fn src-name)
       (helm-acase (helm-symbolify candidate)
-        ((guard (class-p it))
+        ((guard* (class-p it))
          (list #'helm-describe-function
                "Describe class"))
-        ((guard (cl-generic-p it))
+        ((guard* (cl-generic-p it))
          (list #'helm-describe-function
                "Describe generic function"))
-        ((guard (fboundp it))
+        ((guard* (fboundp it))
          (list #'helm-describe-function
                "Describe function"))
-        ((guard (facep it))
+        ((guard* (facep it))
          (list #'helm-describe-face
                "Describe face"))
         (t
@@ -820,74 +852,6 @@ a string, i.e. the `symbol-name' of any existing symbol."
           :buffer "*helm apropos*"
           :preselect (and default (concat "^\\_<" (regexp-quote default) "\\_>"))
           :truncate-lines t)))
-
-
-;;; Advices
-;;
-;;
-(defvar ad-advised-functions)
-(defvar ad-advice-classes)
-(declare-function ad-make-single-advice-docstring "advice")
-(declare-function ad-get-advice-info-field "advice")
-(declare-function ad-advice-set-enabled "advice")
-(declare-function ad-advice-set-enabled "advice")
-(declare-function ad-advice-enabled "advice")
-
-(defvar helm-source-advice
-  (helm-build-sync-source "Function Advice"
-    :init (lambda () (require 'advice))
-    :candidates 'helm-advice-candidates
-    :action (helm-make-actions "Toggle Enable/Disable" 'helm-advice-toggle)
-    :persistent-action 'helm-advice-persistent-action
-    :nomark t
-    :multiline t
-    :persistent-help "Toggle describe function / C-u C-j: Toggle advice"))
-
-(defun helm-advice-candidates ()
-  (cl-loop for fname in ad-advised-functions
-           for function = (intern fname)
-           append
-           (cl-loop for class in ad-advice-classes append
-                    (cl-loop for advice in (ad-get-advice-info-field function class)
-                             for enabled = (ad-advice-enabled advice)
-                             collect
-                             (cons (format
-                                    "%s %s %s"
-                                    (if enabled "Enabled " "Disabled")
-                                    (propertize fname 'face 'font-lock-function-name-face)
-                                    (ad-make-single-advice-docstring advice class nil))
-                                   (list function class advice))))))
-
-(defun helm-advice-persistent-action (func-class-advice)
-  (if current-prefix-arg
-      (helm-advice-toggle func-class-advice)
-    (describe-function (car func-class-advice))))
-
-(defun helm-advice-toggle (func-class-advice)
-  (cl-destructuring-bind (function _class advice) func-class-advice
-    (cond ((ad-advice-enabled advice)
-           (ad-advice-set-enabled advice nil)
-           (message "Disabled"))
-          (t
-           (ad-advice-set-enabled advice t)
-           (message "Enabled")))
-    (ad-activate function)
-    (and helm-in-persistent-action
-         (helm-advice-update-current-display-string))))
-
-(defun helm-advice-update-current-display-string ()
-  (helm-edit-current-selection
-    (let ((newword (cond ((looking-at "Disabled") "Enabled")
-                         ((looking-at "Enabled")  "Disabled"))))
-      (when newword
-        (delete-region (point) (progn (forward-word 1) (point)))
-        (insert newword)))))
-
-;;;###autoload
-(defun helm-manage-advice ()
-  "Preconfigured `helm' to disable/enable function advices."
-  (interactive)
-  (helm-other-buffer 'helm-source-advice "*helm advice*"))
 
 
 ;;; Locate elisp library

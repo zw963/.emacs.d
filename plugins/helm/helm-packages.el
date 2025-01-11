@@ -207,14 +207,28 @@ Arg PACKAGES is a list of strings."
 ;;
 (defun helm-packages-transformer (candidates _source)
   "Transformer function for `helm-packages'."
-  (cl-loop for c in candidates
+  (cl-loop with lgst_arch = (cl-loop for (arch . _) in package-archives
+                                     maximize (length arch))
+           for c in candidates
            for sym = (intern-soft c)
            for archive = (assq sym package-archive-contents)
            for id = (package-get-descriptor sym)
-           for provider = (and archive (package-desc-archive (cadr archive)))
-           for status = (and id (package-desc-status id))
-           for version = (and id (mapconcat #'number-to-string (package-desc-version id) "."))
-           for description = (and id (package-desc-summary id))
+           for provider = (if archive
+                              (package-desc-archive (cadr archive))
+                            (and (assq sym package--builtins) "emacs"))
+           for status = (if id
+                            (package-desc-status id)
+                          (and (assq sym package--builtins) "Built-in"))
+           for version = (if id
+                             (mapconcat #'number-to-string (package-desc-version id) ".")
+                           (or (helm-aand (assq sym package--builtins)
+                                          (aref (cdr it) 0)
+                                          (package-version-join it))
+                               "---"))
+           for description = (if id
+                                 (package-desc-summary id)
+                               (helm-aand (assq sym package--builtins)
+                                          (aref (cdr it) 2)))
            for disp = (format "%s%s%s%s%s%s%s%s%s"
                               ;; Package name.
                               (propertize
@@ -226,9 +240,7 @@ Arg PACKAGES is a list of strings."
                                  (t 'font-lock-keyword-face))
                                'match-part c)
                               ;; Separator.
-                              (make-string (1+ (- (helm-in-buffer-get-longest-candidate)
-                                                  (length c)))
-                                           ? )
+                              (helm-make-separator c)
                               ;; Package status.
                               (propertize
                                (or status "")
@@ -237,15 +249,15 @@ Arg PACKAGES is a list of strings."
                                        ("disabled" 'font-lock-property-name-face)
                                        (t 'default)))
                               ;; Separator.
-                              (make-string (1+ (- 10 (length status))) ? )
+                              (helm-make-separator status 10)
                               ;; Package provider.
                               (or provider "")
                               ;; Separator.
-                              (make-string (1+ (- 10 (length provider))) ? )
+                              (helm-make-separator provider lgst_arch)
                               ;; Package version.
                               (or version "")
                               ;; Separator.
-                              (make-string (1+ (- 20 (length version))) ? )
+                              (helm-make-separator version 20)
                               ;; Package description.
                               (if description
                                   (propertize description 'face 'font-lock-warning-face)
@@ -264,10 +276,41 @@ Arg PACKAGES is a list of strings."
 
 (defun helm-finder--list-matches (key)
   (let* ((id (intern key))
-	 (packages (gethash id finder-keywords-hash)))
-    (unless packages
+         (built-in (gethash id finder-keywords-hash))
+	 (exts (cl-loop for p in package-archive-contents
+                        for sym = (car p)
+                        when (package--has-keyword-p
+                              (package-get-descriptor sym)
+                              (list key))
+                        collect sym)))
+    (unless (or exts built-in)
       (error "No packages matching key `%s'" key))
-    packages))
+    (nconc exts built-in)))
+
+(defun helm-finder-packages-from-keyword (candidate)
+  (if (string-match "\\.el$" candidate)
+      (finder-commentary candidate)
+    (helm :sources
+          (helm-make-source "packages" 'helm-packages-class
+            :header-name (lambda (name) (format "%s (%s)" name candidate))
+            :init (lambda ()
+                    (helm-init-candidates-in-buffer
+                        'global (helm-fast-remove-dups
+                                 (helm-finder--list-matches candidate))))
+            :filtered-candidate-transformer
+            (list #'helm-packages-transformer
+                  (lambda (candidates _source)
+                    (sort candidates #'helm-generic-sort-fn)))
+            :action-transformer
+            (lambda (actions candidate)
+              (if (package-installed-p candidate)
+                  actions
+                (append actions
+                        '(("Install packages(s)"
+                           . helm-packages-install)))))
+            :action '(("Describe package" . helm-packages-describe)
+                      ("Visit homepage" . helm-packages-visit-homepage)))
+          :buffer "*helm finder results*")))
 
 (defun helm-package--upgradeable-packages (&optional include-builtins)
   ;; Initialize the package system to get the list of package
@@ -284,13 +327,13 @@ Arg PACKAGES is a list of strings."
              for pkg = (assq sym package-archive-contents)
              for cversion = (and pkg (package-desc-version desc))
              for available = (and pkg (not (package-disabled-p sym cversion)) pkg)
-             when (or (and available
-                           (or (and include-builtins (not cversion))
-                               (and cversion
-                                    (version-list-<
-                                     cversion
-                                     (package-desc-version (cadr available))))))
-                      (and (fboundp 'package-vc-p) (package-vc-p desc)))
+             ;; Exclude packages installed with package-vc (issue#2692).
+             when (and available
+                       (or (and include-builtins (not cversion))
+                           (and cversion
+                                (version-list-<
+                                 cversion
+                                 (package-desc-version (cadr available))))))
              collect sym)))
 
 ;;;###autoload
@@ -359,32 +402,36 @@ to avoid errors with outdated packages no more availables."
           :buffer "*helm packages*")))
 
 ;;;###autoload
-(defun helm-finder ()
-  "Helm interface to find packages by keywords with `finder'."
-  (interactive)
+(defun helm-finder (&optional arg)
+  "Helm interface to find packages by keywords with `finder'.
+To have more actions on packages, use `helm-packages'."
+  (interactive "P")
+  (when arg (package-refresh-contents))
+  (package-initialize) ; needed to feed package-archive-contents.
   (helm :sources
         (helm-build-in-buffer-source "helm finder"
-          :data (mapcar #'car finder-known-keywords)
+          :data (cl-loop for p in package-archive-contents
+                         for sym = (car p)
+                         for desc = (package-get-descriptor sym)
+                         nconc (copy-sequence (package-desc--keywords desc)) into keywords
+                         finally return (helm-fast-remove-dups keywords :test 'equal))
           :filtered-candidate-transformer
-          (lambda (candidates _source)
-            (cl-loop for cand in candidates
-                     for desc = (assoc-default (intern-soft cand) finder-known-keywords)
-                     for sep = (helm-make-separator cand)
-                     for disp = (helm-aand (propertize desc 'face 'font-lock-warning-face)
-                                           (propertize " " 'display (concat sep it))
-                                           (concat cand it))
-                     collect (cons disp cand)))
-          :action (lambda (c)
-                    (if (string-match "\\.el$" c)
-                        (finder-commentary c)
-                      (helm :sources
-                            (helm-make-source "packages" 'helm-packages-class
-                              :init (lambda ()
-                                      (helm-init-candidates-in-buffer
-                                          'global (helm-finder--list-matches c)))
-                              :filtered-candidate-transformer #'helm-packages-transformer-1
-                              :action '(("Describe package" . helm-packages-describe)))
-                            :buffer "*helm finder results*"))))
+          (list
+           (lambda (candidates _source)
+             (cl-loop for cand in candidates
+                      for desc = (or (assoc-default (intern-soft cand) finder-known-keywords)
+                                     cand)
+                      for sep = (helm-make-separator cand)
+                      for disp = (helm-aand (propertize desc 'face 'font-lock-warning-face)
+                                            (propertize " " 'display (concat sep it))
+                                            (concat cand it))
+                      collect (cons disp cand)))
+           (lambda (candidates _source)
+                    (sort candidates #'helm-generic-sort-fn)))
+          :action (helm-make-actions
+                   "Packages from keyword" 'helm-finder-packages-from-keyword)
+          :persistent-action 'ignore
+          :persistent-help "Do nothing")
         :buffer "*helm finder*"))
 
 (provide 'helm-packages)

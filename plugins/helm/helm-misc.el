@@ -176,22 +176,6 @@
     :action 'helm-timezone-actions
     :filtered-candidate-transformer 'helm-time-zone-transformer))
 
-;;; Commands
-;;
-(defun helm-call-interactively (cmd-or-name)
-  "Execute CMD-OR-NAME as Emacs command.
-It is added to `extended-command-history'.
-`helm-current-prefix-arg' is used as the command's prefix argument."
-  (setq extended-command-history
-        (cons (helm-stringify cmd-or-name)
-              (delete (helm-stringify cmd-or-name) extended-command-history)))
-  (let ((current-prefix-arg helm-current-prefix-arg)
-        (cmd (helm-symbolify cmd-or-name)))
-    (if (stringp (symbol-function cmd))
-        (execute-kbd-macro (symbol-function cmd))
-      (setq this-command cmd)
-      (call-interactively cmd))))
-
 ;;; Minibuffer History
 ;;
 ;;
@@ -333,27 +317,27 @@ This mode is enabled by `helm-mode', so there is no need to enable it directly."
   "Preconfigured `helm' to show world time.
 Default action change TZ environment variable locally to emacs."
   (interactive)
-  (helm-other-buffer 'helm-source-time-world "*helm world time*"))
+  (helm :sources 'helm-source-time-world :buffer "*helm world time*"))
 
 ;;;###autoload
 (defun helm-insert-latex-math ()
   "Preconfigured helm for latex math symbols completion."
   (interactive)
-  (helm-other-buffer 'helm-source-latex-math "*helm latex*"))
+  (helm :sources 'helm-source-latex-math :buffer "*helm latex*"))
 
 ;;;###autoload
 (defun helm-ratpoison-commands ()
   "Preconfigured `helm' to execute ratpoison commands."
   (interactive)
-  (helm-other-buffer 'helm-source-ratpoison-commands
-                     "*helm ratpoison commands*"))
+  (helm :sources 'helm-source-ratpoison-commands
+        :buffer "*helm ratpoison commands*"))
 
 ;;;###autoload
 (defun helm-stumpwm-commands()
   "Preconfigured helm for stumpwm commands."
   (interactive)
-  (helm-other-buffer 'helm-source-stumpwm-commands
-                     "*helm stumpwm commands*"))
+  (helm :sources 'helm-source-stumpwm-commands
+        :buffer "*helm stumpwm commands*"))
 
 ;;;###autoload
 (defun helm-minibuffer-history ()
@@ -392,32 +376,33 @@ Default action change TZ environment variable locally to emacs."
     (insert elm)))
 
 ;;;###autoload
-(defun helm-outline ()
+(defun helm-outline (&optional arg)
   "Basic helm navigation tool for outline buffers."
-  (interactive)
-  (helm :sources (helm-build-sync-source "helm outline"
-                 :candidates
-                 (lambda ()
-                   (with-helm-current-buffer
-                     (save-excursion
-                       (goto-char (point-min))
-                       (cl-loop while (re-search-forward outline-regexp nil t)
-                                for beg = (match-beginning 0)
-                                for end = (progn
-                                            (outline-end-of-heading) (point))
-                                collect
-                                (cons (buffer-substring beg end) beg)))))
-                 :action (lambda (pos)
-                           (helm-goto-char pos)
-                           (helm-highlight-current-line)))
-        :preselect (save-excursion
-                     (when (condition-case _err
-                               (outline-back-to-heading)
-                             (error nil))
-                       (regexp-quote
-                        (buffer-substring
-                         (point) (progn (outline-end-of-heading) (point))))))
-        :buffer "*helm outline*"))
+  (interactive "P")
+  (let ((outline-regexp (if arg (read-regexp "Outline regexp") outline-regexp)))
+    (helm :sources (helm-build-sync-source "helm outline"
+                     :candidates
+                     (lambda ()
+                       (with-helm-current-buffer
+                         (save-excursion
+                           (goto-char (point-min))
+                           (cl-loop while (re-search-forward outline-regexp nil t)
+                                    for beg = (match-beginning 0)
+                                    for end = (progn
+                                                (outline-end-of-heading) (point))
+                                    collect
+                                    (cons (buffer-substring beg end) beg)))))
+                     :action (lambda (pos)
+                               (helm-goto-char pos)
+                               (helm-highlight-current-line)))
+          :preselect (save-excursion
+                       (when (condition-case _err
+                                 (outline-back-to-heading)
+                               (error nil))
+                         (regexp-quote
+                          (buffer-substring
+                           (point) (progn (outline-end-of-heading) (point))))))
+          :buffer "*helm outline*")))
 
 (provide 'helm-misc)
 

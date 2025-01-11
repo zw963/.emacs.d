@@ -1,10 +1,11 @@
-;;; helm-ls-git.el --- list git files. -*- lexical-binding: t -*-
+;;; helm-ls-git.el --- The git project manager for helm. -*- lexical-binding: t -*-
 
 ;; Copyright (C) 2012 ~ 2023 Thierry Volpiatto
 
 ;; Package-Requires: ((helm "3.9.5") (emacs "25.3"))
 ;; URL: https://github.com/emacs-helm/helm-ls-git
 ;; Version: 1.9.4
+;; Keywords: helm, convenience, vc, files, buffers, completion, diff, log, git
 
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -1365,7 +1366,7 @@ object will be passed git rebase i.e. git rebase -i <hash>."
     :candidate-transformer 'helm-ls-git-branches-transformer
     :follow 'never
     :action-transformer (lambda (actions candidate)
-                          (cond ((string-match "\\`[*] ?(?detached\\|(.*)" candidate)
+                          (cond ((string-match "\\`\\* (.*" candidate)
                                  (append
                                   actions
                                   '(("Git rebase continue" .

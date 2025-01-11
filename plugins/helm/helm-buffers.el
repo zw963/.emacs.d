@@ -125,8 +125,34 @@ can add your own abbreviation here."
 
 (defcustom helm-buffers-maybe-switch-to-tab nil
   "Switch to buffer in its tab when non nil.
-This has no effect when `tab-bar-mode' is not available."
-  :type 'boolean)
+Setting this change `tab-bar-tab-name-function' to `tab-bar-tab-name-all'.
+Do not use `setq' to set this variable.
+
+This variable takes effect only when `tab-bar-mode' is available (emacs-27.1+)."
+  :type 'boolean
+  :set (lambda (var val)
+         ;; We should be able to retrieve all buffers assigned to a tab whatever
+         ;; the value used for `tab-bar-tab-name-function', unfortunately this
+         ;; is not the case, it seems the alist contains the buffer names only
+         ;; when `tab-bar-tab-name-all' is used and set globally. Then when the
+         ;; mode-line/header-line is rebuilded some code (probably C code in
+         ;; `force-mode-line-update' or elsewhare) changes the alist so just
+         ;; let-binding `tab-bar-tab-name-function' is not enough. This is
+         ;; reproductible when we have more than one window visible and we turn
+         ;; on `tab-bar-mode', the alist is showing only the first buffer of
+         ;; window-list omitting the others, however when starting with only one
+         ;; window, calling `tab-bar-mode' and splitting window afterward the
+         ;; alist is updated. Looks it is a bug or a limitation of
+         ;; `tab-bar-mode'.
+         (set var val)
+         (if val
+             (customize-set-variable
+              'tab-bar-tab-name-function
+              #'tab-bar-tab-name-all)
+           (let* ((sym 'tab-bar-tab-name-function)
+                  (standard-value (eval (car (get sym 'standard-value)) t)))
+              (unless (equal standard-value (symbol-value sym))
+                (set sym standard-value))))))
 
 (defcustom helm-buffer-list-reorder-fn #'helm-buffers-reorder-buffer-list
   "A function in charge of ordering the initial buffer list.
@@ -946,15 +972,14 @@ If REGEXP-FLAG is given use `query-replace-regexp'."
   "Run switch to other frame action from `helm-source-buffers-list'."
   'helm-buffer-switch-to-buffer-other-frame)
 
-(defun helm-buffers-switch-to-buffer-other-tab (_candidate)
-  (when (fboundp 'switch-to-buffer-other-tab)
-    (let ((bufs (helm-marked-candidates)))
-      (cl-loop for buf in bufs
-               do (switch-to-buffer-other-tab buf)))))
+(defun helm-buffers-switch-buffers-in-tab (_candidate)
+  "Display marked buffers in a new tab.
+See `helm-buffers-switch-buffers-in-tab-1' for more infos."
+  (helm-buffers-switch-buffers-in-tab-1 (helm-marked-candidates)))
 
 (helm-make-command-from-action helm-buffers-switch-to-buffer-new-tab
   "Run switch to buffer in other tab action from `helm-source-buffers-list'."
-  'helm-buffers-switch-to-buffer-other-tab
+  'helm-buffers-switch-buffers-in-tab
   (cl-assert (fboundp 'tab-bar-mode) nil "Tab-bar-mode not available"))
 
 (defun helm-buffer-switch-buffers (_candidate)

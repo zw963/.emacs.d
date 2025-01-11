@@ -317,23 +317,32 @@ If a prefix arg is given split windows vertically."
 (declare-function tab-bar-switch-to-tab "tab-bar.el")
 (declare-function tab-bar-tab-name-all "tab-bar.el")
 
+(defun helm-buffers-maybe-switch-to-buffer-in-tab (buffer fallback-fn)
+  "Switch to BUFFER in its tab if possible, otherwise call FALLBACK-FN."
+  (let* (;; Normally `helm-buffers-maybe-switch-to-tab' custom set function
+         ;; bounded `tab-bar-tab-name-function' to `tab-bar-tab-name-all'
+         ;; but in case user bounded this with setq ensure it works
+         ;; at least partially by let-bounding it here.
+         (tab-bar-tab-name-function #'tab-bar-tab-name-all)
+         (tabs (tab-bar-tabs))
+         (tab-names (mapcar (lambda (tab)
+                              (cdr (assq 'name tab)))
+                            tabs))
+         (bname (buffer-name (get-buffer buffer)))
+         (tab (helm-buffers--get-tab-from-name bname tabs)))
+    (if (helm-buffers--buffer-in-tab-p bname tab-names)
+        (progn
+          (tab-bar-switch-to-tab (alist-get 'name tab))
+          (select-window (get-buffer-window bname)))
+      (funcall fallback-fn buffer))))
+
 (defun helm-buffers-switch-to-buffer-or-tab (buffer)
   "Switch to BUFFER in its tab if some."
   (if (and (fboundp 'tab-bar-mode)
            helm-buffers-maybe-switch-to-tab
            tab-bar-mode)
-      (let* ((tab-bar-tab-name-function #'tab-bar-tab-name-all)
-             (tabs (tab-bar-tabs))
-             (tab-names (mapcar (lambda (tab)
-                                  (cdr (assq 'name tab)))
-                                tabs))
-             (bname (buffer-name (get-buffer buffer)))
-             (tab (helm-buffers--get-tab-from-name bname tabs)))
-        (if (helm-buffers--buffer-in-tab-p bname tab-names)
-            (progn
-              (tab-bar-switch-to-tab (alist-get 'name tab))
-              (select-window (get-buffer-window bname)))
-          (switch-to-buffer buffer)))
+      (helm-buffers-maybe-switch-to-buffer-in-tab
+       buffer #'switch-to-buffer)
     (switch-to-buffer buffer)))
 
 (defun helm-buffers--get-tab-from-name (tab-name tabs)
@@ -342,9 +351,36 @@ If a prefix arg is given split windows vertically."
            when (member tab-name (split-string (cdr (assq 'name tab)) ", " t))
            return tab))
 
-(defun helm-buffers--buffer-in-tab-p (buffer-name tab-names)
+(defun helm-buffers-switch-buffers-in-tab-1 (buffers)
+  "Display BUFFERS in a new tab.
+If only one buffer in BUFFERS, try to switch to it in its
+tab if some, otherwise, display it in a new tab.
+When a double prefix arg is given (C-u C-u), display each buffer of BUFFERS in
+new tabs. When a single buffer is given, a single prefix arg will force
+displaying buffer in a new tab even if it is already present in a tab.
+When there is more than one buffer in BUFFERS a single prefix arg display the
+buffers vertically according to `helm-window-show-buffers-function'."
+  (when (fboundp 'switch-to-buffer-other-tab)
+    (if (cdr buffers)
+        (if (equal helm-current-prefix-arg '(16))
+            (cl-loop for b in buffers
+                     do (switch-to-buffer-other-tab b))
+          (switch-to-buffer-other-tab (car buffers))
+          (helm-window-show-buffers buffers))
+      (if helm-current-prefix-arg
+          (switch-to-buffer-other-tab (car buffers))
+        (helm-buffers-maybe-switch-to-buffer-in-tab
+         (car buffers) #'switch-to-buffer-other-tab)))))
+
+(defun helm--get-tab-names ()
+  (let ((tab-bar-tab-name-function #'tab-bar-tab-name-all))
+    (mapcar (lambda (tab)
+              (cdr (assq 'name tab)))
+            (tab-bar-tabs))))
+
+(defun helm-buffers--buffer-in-tab-p (buffer-name &optional tab-names)
   "Check if BUFFER-NAME is in TAB-NAMES list."
-  (cl-loop for name in tab-names
+  (cl-loop for name in (or tab-names (helm--get-tab-names))
            ;; Buf names are separated with "," in TAB-NAMES
            ;; e.g. '("tab-bar.el" "*scratch*, helm-buffers.el").
            thereis (member buffer-name (split-string name ", " t))))
@@ -698,6 +734,18 @@ readable format,see `helm-file-human-size'."
                               (helm-file-human-size total)
                             total)))
 
+(defun helm-format-time-string (time)
+  "Format the time value TIME.
+If year of TIME is inferior to current year
+use \"%b %e  %Y\" otherwise use \"%b %e %H:%M\"."
+  (let ((current-year (nth 5 (decode-time)))
+        (year (nth 5 (decode-time time)))
+        (fmt-opt '("%b %e %H:%M"
+                   "%b %e  %Y")))
+    (if (< year current-year)
+        (format-time-string (nth 1 fmt-opt) time)
+      (format-time-string (nth 0 fmt-opt) time))))
+
 (cl-defun helm-file-attributes
     (file &key type links uid gid access-time modif-time
             status size mode gid-change inode device-num dired human-size
@@ -743,12 +791,10 @@ you have in `file-attributes'."
                           :uid         uid
                           :gid         gid
                           :access-time (if string
-                                           (format-time-string
-                                            "%Y-%m-%d %R" access-time)
+                                           (helm-format-time-string access-time)
                                          access-time)
                           :modif-time  (if string
-                                           (format-time-string
-                                            "%Y-%m-%d %R" modif-time)
+                                           (helm-format-time-string modif-time)
                                          modif-time)
                           :status      (if string
                                            (format-time-string
@@ -760,7 +806,7 @@ you have in `file-attributes'."
                           :inode       inode
                           :device-num  device-num)))
              (perms (cl-getf all :mode))
-             (modes (helm-split-mode-file-attributes perms)))
+             (modes (helm-split-mode-file-attributes perms nil t)))
         (cond (type        (cl-getf all :type))
               (links       (cl-getf all :links))
               (uid         (cl-getf all :uid))
@@ -773,7 +819,8 @@ you have in `file-attributes'."
               (gid-change  (cl-getf all :gid-change))
               (inode       (cl-getf all :inode))
               (device-num  (cl-getf all :device-num))
-              (dired       (helm-file-attributes-dired-line all human-size))
+              (dired       (helm-file-attributes-dired-line
+                            all human-size octal))
               (human-size (helm-file-human-size (cl-getf all :size)))
               (mode-type  (cl-getf modes :mode-type))
               (mode-owner (cl-getf modes :user))
@@ -782,10 +829,10 @@ you have in `file-attributes'."
               (octal      (cl-getf modes :octal))
               (t          (append all modes))))))
 
-(defun helm-file-attributes-dired-line (all &optional human-size)
+(defun helm-file-attributes-dired-line (all &optional human-size show-octal)
   (format "%s %s %s:%s %s %s"
    (helm-split-mode-file-attributes
-    (cl-getf all :mode) t)
+    (cl-getf all :mode) t show-octal)
    (number-to-string (cl-getf all :links))
    (cl-getf all :uid)
    (cl-getf all :gid)
@@ -794,7 +841,7 @@ you have in `file-attributes'."
      (int-to-string (cl-getf all :size)))
    (cl-getf all :modif-time)))
 
-(defun helm-split-mode-file-attributes (modes &optional string)
+(defun helm-split-mode-file-attributes (modes &optional string show-octal)
   "Split MODES in a list of modes.
 MODES is same as what (nth 8 (file-attributes \"foo\")) would return."
   (if (string-match "\\`\\(.\\)\\(...\\)\\(...\\)\\(...\\)\\'" modes)
@@ -802,9 +849,11 @@ MODES is same as what (nth 8 (file-attributes \"foo\")) would return."
              (user  (match-string 2 modes))
              (group (match-string 3 modes))
              (other (match-string 4 modes))
-             (octal (helm-ff-numeric-permissions (list user group other))))
+             (octal (and show-octal
+                         (helm-ff-numeric-permissions
+                          (list user group other)))))
         (if string
-            (mapconcat 'identity (list type user group other octal) " ")
+            (mapconcat 'identity (list type user group other (or octal "")) "")
           (list :mode-type type :user user
                 :group group :other other
                 :octal octal)))
@@ -889,16 +938,16 @@ Optional arguments START, END and FACE are only here for debugging purpose."
         ;; `helm-highlight-matches-around-point-max-lines' is
         ;; compared as a number by other clauses and return an error.
         (never (cl-return-from helm-highlight-current-line))
-        ((guard (consp it))
-         (setq start-match (save-excursion (forward-line (- (car it))) (pos-bol))
-               end-match   (save-excursion (forward-line (cdr it)) (pos-bol))))
-        ((guard (or (null it) (zerop it)))
+        ((dst* (x . y))
+         (setq start-match (save-excursion (forward-line (- x)) (pos-bol))
+               end-match   (save-excursion (forward-line y) (pos-bol))))
+        ((guard* (or (null it) (zerop it)))
          (setq start-match start
                end-match   end))
-        ((guard (< it 0))
+        ((guard* (< it 0))
          (setq start-match (save-excursion (forward-line it) (pos-bol))
                end-match   start))
-        ((guard (> it 0))
+        ((guard* (> it 0))
          (setq start-match start
                end-match   (save-excursion (forward-line it) (pos-bol)))))
       (catch 'empty-line
@@ -999,12 +1048,12 @@ Assume regexp is a pcre based regexp."
 (add-hook 'helm-after-action-hook 'helm-match-line-cleanup-pulse)
 (add-hook 'helm-after-persistent-action-hook 'helm-match-line-update)
 
-;;; Popup buffer-name or filename in grep/moccur/imenu-all.
+;;; Popup-info
 ;;
 (defvar helm--show-help-echo-timer nil)
 (defvar helm--maybe-show-help-echo-overlay nil)
 (defface helm-tooltip
-  `((t :background "Goldenrod"
+  '((t :background "Goldenrod"
        :foreground "black"))
   "Face used by `helm-tooltip-show'."
   :group 'helm-grep-faces)
@@ -1042,30 +1091,36 @@ Assume regexp is a pcre based regexp."
             (run-with-idle-timer
              1 nil
              (lambda ()
-               (save-selected-window
-                 (with-helm-window
-                   ;; Use helm-grep-fname prop instead of help-echo as help-echo
-                   ;; maybe used by mouse overlay after resume.
-                   (let ((pos (save-excursion (end-of-visual-line) (point))))
-                     (helm-aif (and popup-info-fn
-                                    (funcall popup-info-fn (helm-get-selection)))
-                       (helm-tooltip-show
-                        (concat " " it)
-                        pos)))))))))))
+               ;; We may have an error (wrong-type-argument window-live-p nil)
+               ;; when switching to help window, the error may occur in the
+               ;; small lap of time where the helm-window is deleted and the
+               ;; help buffer not already displayed.
+               (ignore-error wrong-type-argument
+                 (save-selected-window
+                   (with-helm-window
+                     (let ((pos (save-excursion (end-of-visual-line) (point)))
+                           (str (and popup-info-fn
+                                     (funcall popup-info-fn (helm-get-selection)))))
+                       (when (and str (not (string= str "")))
+                         (helm-tooltip-show
+                          (concat " " str)
+                          pos))))))))))))
 
 ;;;###autoload
 (define-minor-mode helm-popup-tip-mode
     "Show additional informations in a popup tip at end of line.
 
-When the mode is enabled, popup showup when the source the source
+When the mode is enabled, popup showup when the source
 has a `popup-info' attribute which define a specific function for
 this source to fetch infos on candidate."
   :global t
   (if helm-popup-tip-mode
       (progn
         (add-hook 'helm-move-selection-after-hook 'helm-maybe-show-help-echo)
+        (add-hook 'helm-help-mode-after-hook 'helm-maybe-show-help-echo)
         (add-hook 'helm-cleanup-hook 'helm-cancel-help-echo-timer))
     (remove-hook 'helm-move-selection-after-hook 'helm-maybe-show-help-echo)
+    (remove-hook 'helm-help-mode-after-hook 'helm-maybe-show-help-echo)
     (remove-hook 'helm-cleanup-hook 'helm-cancel-help-echo-timer)))
 
 (defun helm-open-file-with-default-tool (file)
