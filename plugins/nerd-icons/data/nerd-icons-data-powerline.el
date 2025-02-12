@@ -21,7 +21,7 @@
 ;;; Commentary:
 
 ;; powerline
-;; from Nerd Font Version: 3.1.1
+;; from Nerd Font Version: 3.3.0
 
 ;;; Code:
 
@@ -52,6 +52,7 @@
     ("nf-ple-ice_waveform_mirrored" . "\xe0ca")
     ("nf-ple-left_half_circle_thick" . "\xe0b6")
     ("nf-ple-left_half_circle_thin" . "\xe0b7")
+    ("nf-ple-left_hard_divider_inverse" . "\xe0d7")
     ("nf-ple-lego_block_facing" . "\xe0d0")
     ("nf-ple-lego_block_sideways" . "\xe0d1")
     ("nf-ple-lego_separator" . "\xe0ce")
@@ -64,6 +65,7 @@
     ("nf-ple-pixelated_squares_small_mirrored" . "\xe0c5")
     ("nf-ple-right_half_circle_thick" . "\xe0b4")
     ("nf-ple-right_half_circle_thin" . "\xe0b5")
+    ("nf-ple-right_hard_divider_inverse" . "\xe0d6")
     ("nf-ple-trapezoid_top_bottom" . "\xe0d2")
     ("nf-ple-trapezoid_top_bottom_mirrored" . "\xe0d4")
     ("nf-ple-upper_left_triangle" . "\xe0bc")

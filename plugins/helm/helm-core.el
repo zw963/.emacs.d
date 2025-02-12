@@ -1,11 +1,11 @@
 ;;; helm-core.el --- Development files for Helm  -*- lexical-binding: t -*-
 
-;; Copyright (C) 2022 ~ 2023  Thierry Volpiatto
+;; Copyright (C) 2022 ~ 2025  Thierry Volpiatto
 
 ;; Author: Thierry Volpiatto <thievol@posteo.net>
 ;; URL: https://emacs-helm.github.io/helm/
-;; Version: 4.0
-;; Package-Requires: ((emacs "25.1") (async "1.9.8"))
+;; Version: 4.0.1
+;; Package-Requires: ((emacs "25.1") (async "1.9.9"))
 
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -542,6 +542,8 @@ Default to Helm group when group is not defined in source."
 This is a format spec where %d will be replaced by the candidate
 number.
 
+This is useful when `helm-display-line-numbers-mode' is turned on.
+
 NOTE: `setq' have no effect until you restart Emacs, use
 customize for immediate effect."
   :group 'helm
@@ -553,6 +555,8 @@ customize for immediate effect."
 
 This is a format spec where %d will be replaced by the candidate
 number.
+
+This is useful when `helm-display-line-numbers-mode' is turned on.
 
 NOTE: `setq' have no effect until you restart Emacs, use
 customize for immediate effect."

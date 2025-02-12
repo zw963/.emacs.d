@@ -21,14 +21,18 @@
 ;;; Commentary:
 
 ;; sucicon
-;; from Nerd Font Version: 3.1.1
+;; from Nerd Font Version: 3.3.0
 
 ;;; Code:
 
 (defvar nerd-icons/sucicon-alist
   '(
+    ("nf-custom-ada" . "\xe6b5")
     ("nf-custom-asm" . "\xe6ab")
+    ("nf-custom-astro" . "\xe6b3")
+    ("nf-custom-bazel" . "\xe63a")
     ("nf-custom-c" . "\xe61e")
+    ("nf-custom-chuck" . "\xe6b6")
     ("nf-custom-common_lisp" . "\xe6b0")
     ("nf-custom-cpp" . "\xe61d")
     ("nf-custom-crystal" . "\xe62f")
@@ -38,6 +42,7 @@
     ("nf-custom-elm" . "\xe62c")
     ("nf-custom-emacs" . "\xe632")
     ("nf-custom-fennel" . "\xe6af")
+    ("nf-custom-firebase" . "\xe657")
     ("nf-custom-folder" . "\xe5ff")
     ("nf-custom-folder_config" . "\xe5fc")
     ("nf-custom-folder_git" . "\xe5fb")
@@ -53,12 +58,15 @@
     ("nf-custom-neovim" . "\xe6ae")
     ("nf-custom-orgmode" . "\xe633")
     ("nf-custom-play_arrow" . "\xe602")
+    ("nf-custom-prettier" . "\xe6b4")
     ("nf-custom-puppet" . "\xe631")
     ("nf-custom-purescript" . "\xe630")
+    ("nf-custom-ruby" . "\xe605")
     ("nf-custom-scheme" . "\xe6b1")
     ("nf-custom-toml" . "\xe6b2")
     ("nf-custom-v_lang" . "\xe6ac")
     ("nf-custom-vim" . "\xe62b")
+    ("nf-custom-vitruvian" . "\xe6b7")
     ("nf-custom-windows" . "\xe62a")
     ("nf-seti-apple" . "\xe635")
     ("nf-seti-argdown" . "\xe636")
@@ -207,7 +215,7 @@
     ("nf-seti-swift" . "\xe699")
     ("nf-seti-terraform" . "\xe69a")
     ("nf-seti-tex" . "\xe69b")
-    ("nf-seti-text" . "\xe612")
+    ("nf-seti-text" . "\xe64e")
     ("nf-seti-time_cop" . "\xe641")
     ("nf-seti-todo" . "\xe69c")
     ("nf-seti-tsconfig" . "\xe69d")

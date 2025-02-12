@@ -1,6 +1,6 @@
 ;;; helm-buffers.el --- helm support for buffers. -*- lexical-binding: t -*-
 
-;; Copyright (C) 2012 ~ 2023 Thierry Volpiatto 
+;; Copyright (C) 2012 ~ 2025 Thierry Volpiatto
 
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -25,14 +25,12 @@
 (require 'helm-regexp)
 (require 'helm-help)
 (require 'helm-occur)
+(require 'helm-x-icons)
 
 (declare-function helm-comp-read "helm-mode")
 (declare-function helm-browse-project "helm-files")
 (declare-function helm-ff-switch-to-shell "helm-files")
-(declare-function all-the-icons-icon-for-file "ext:all-the-icons.el")
-(declare-function all-the-icons-octicon "ext:all-the-icons.el")
 
-(defvar all-the-icons-mode-icon-alist)
 (defvar dired-buffers)
 (defvar org-directory)
 (defvar helm-ff-default-directory)
@@ -178,7 +176,7 @@ you want to keep the recentest order when narrowing candidates."
 Don't use `setq' to set this."
   :type 'boolean
   :set (lambda (var val)
-         (if (require 'all-the-icons nil t)
+         (if (require helm-x-icons-provider nil t)
              (set var val)
            (set var nil))))
 
@@ -459,14 +457,16 @@ The list is reordered with `helm-buffer-list-reorder-fn'."
     (let* ((buf-fname (buffer-file-name (get-buffer buf-name)))
            (ext (if buf-fname (helm-file-name-extension buf-fname) ""))
            (bmode (with-current-buffer buf-name major-mode))
+           (icon-alist (helm-x-icons-resolve-alist 'mode))
            (icon (when helm-buffers-show-icons
-                   (helm-aif (assq bmode all-the-icons-mode-icon-alist)
-                       (apply (cadr it) (cddr it))
+                   (helm-aif (assq bmode icon-alist)
+                       (and helm-x-icons-provider
+                            (apply (cadr it) (cddr it)))
                      (cond ((eq type 'dired)
-                            (all-the-icons-octicon "file-directory"))
+                            (helm-x-icons-generic "file-directory"))
                            (buf-fname
-                            (all-the-icons-icon-for-file buf-name))
-                           (t (all-the-icons-octicon "star" :v-adjust 0.0))))))
+                            (helm-x-icons-icon-for-file buf-name))
+                           (t (helm-x-icons-generic "star" :v-adjust 0.0))))))
            (buf-name (propertize buf-name 'face face1
                                  'help-echo help-echo
                                  'type type)))

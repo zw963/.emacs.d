@@ -1,6 +1,6 @@
 ;;; helm-mode.el --- Enable helm completion everywhere. -*- lexical-binding: t -*-
 
-;; Copyright (C) 2012 ~ 2023 Thierry Volpiatto 
+;; Copyright (C) 2012 ~ 2025 Thierry Volpiatto
 
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -34,6 +34,9 @@
 (defvar helm--locate-library-cache)
 (defvar completion-lazy-hilit) ; Emacs-30 only.
 (defvar eww-bookmarks)
+(defvar helm-info--files-cache)
+(defvar helm-info--files-doc-cache)
+(defvar Info-current-file)
 
 ;; No warnings in Emacs built --without-x
 (declare-function x-file-dialog "xfns.c")
@@ -51,6 +54,8 @@
 (declare-function print-coding-system-briefly "mul-diag.el")
 (declare-function color-rgb-to-hex "color.el")
 (declare-function find-library-name "find-func.el")
+(declare-function helm-info-file-doc "helm-info")
+(declare-function Info-find-file "info")
 
 (defgroup helm-mode nil
   "Enable helm completion."
@@ -1057,7 +1062,10 @@ that use `helm-comp-read'.  See `helm-M-x' for example."
                 (category . charset)))
     (man . (metadata
             (popup-info-function . helm-completion-man-popup-info)
-            (category . man))))
+            (category . man)))
+    (info . (metadata
+             (affixation-function . helm-completion-info-file-affixation)
+             (category . info))))
   "Extra metadatas for completing-read.
 
 It is used to add `affixation-function' or `annotation-function' if original
@@ -1107,6 +1115,10 @@ FLAGS is a list of variables to renitialize to nil when exiting or quitting.")
     ("package-install" . package)
     ("package-vc-install" . package)
     ("package-vc-checkout" . package)
+    ("package-vc-log-incoming" . package)
+    ("package-vc-prepare-patch" . package)
+    ("package-vc-rebuild" . package)
+    ("package-vc-upgrade" . package)
     ("describe-package" . package)
     ("load-theme" . theme)
     ("describe-theme" . theme)
@@ -1123,6 +1135,7 @@ FLAGS is a list of variables to renitialize to nil when exiting or quitting.")
     ("universal-coding-system-argument" . coding-system)
     ("read-color" . color)
     ("list-charset-chars" . charset)
+    ("info-display-manual" . info)
     ;; Emacs-30 only
     ("eww" . eww-help))
   "An alist to specify metadata category by command.
@@ -1167,9 +1180,11 @@ should be specified as a string and the category as a symbol.")
                      (propertize
                       (symbol-name major-mode) 'face 'helm-completions-detailed)))
              (size (helm-buffer-size buf))
-             (max-len helm-buffer-max-length)
+             (max-len (helm-acase helm-buffer-max-length
+                        ((guard* (numberp it)) it)
+                        (t 20)))
              (bname (truncate-string-to-width
-                     comp helm-buffer-max-length nil nil
+                     comp max-len nil nil
                      helm-buffers-end-truncated-string))
              (suffix (format "%s%s%s%s%s `%s'"
                              (make-string (1+ (- max-len (length bname))) ? )
@@ -1371,6 +1386,7 @@ is used."
                        (propertize " " 'display (concat sep it)))))))
 
 (defun helm-completion-library-affixation (_comps)
+  ;; We share here the same cache as `helm-locate-library'.
   (require 'helm-elisp)
   (lambda (comp)
     ;; Because find-library-include-other-files default to t, we have all the
@@ -1389,7 +1405,7 @@ is used."
                                helm--locate-library-doc-cache))))
         (list comp
               ""
-              (helm-aand (propertize doc 'face 'font-lock-warning-face)
+              (helm-aand (propertize doc 'face 'helm-completions-detailed)
                          (propertize " " 'display (concat sep it))))))))
 
 (defun helm-completion-eww-affixation (_completions)
@@ -1406,6 +1422,46 @@ is used."
                                    'face 'helm-completions-detailed)
                        (propertize " " 'display (concat it sep)))
             ""))))
+
+(defun helm-completion-info-file-affixation (_completions)
+  ;; We share here the same cache as `helm-info'.
+  (require 'info)
+  (require 'helm-info)
+  (lambda (comp)
+    (let* ((sep (helm-make-separator comp))
+           (prefix "")
+           (file (or
+                  ;; The `info-display-manual' favours `Info-mode'
+                  ;; buffers. However, each buffer like that may be opened from
+                  ;; a file that has not been installed and is not visible to a
+                  ;; `Info-find-file'. Retrieve the such a file name from the
+                  ;; buffer, and use it to scan for affixation, however don't
+                  ;; cache the result in `helm-info--files-cache' to avoid using
+                  ;; wrong file. For example, the latter can happen after a
+                  ;; development version of info file has been opened.
+                  (let ((manual-re (concat "\\(?:/\\|\\`\\)" comp
+                                           "\\(?:\\.\\|\\'\\)"))
+                        (case-fold-search t))
+                    (cl-loop for buffer in (buffer-list) thereis
+                             (with-current-buffer buffer
+                               (when (and (derived-mode-p 'Info-mode)
+		                          (stringp Info-current-file)
+		                          (string-match
+                                           manual-re Info-current-file))
+                                 (setq prefix "*")
+	                         Info-current-file))))
+                  (assoc-default comp helm-info--files-cache)
+                  (helm-aif (Info-find-file comp t)
+                      (prog1 it (push (cons comp it) helm-info--files-cache)))))
+           (summary (or (gethash file helm-info--files-doc-cache)
+                        (puthash file (helm-info-file-doc file)
+                                 helm-info--files-doc-cache))))
+      (list comp
+            (helm-aand (propertize prefix 'face 'helm-completions-detailed)
+                       (propertize " " 'display (format "%-2s" it)))
+            (helm-aand (propertize summary 'face 'helm-completions-detailed)
+                       (propertize " " 'display (concat sep it)))))))
+
 
 ;;; Completing read handlers
 ;;

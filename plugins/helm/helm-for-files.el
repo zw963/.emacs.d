@@ -1,6 +1,6 @@
 ;;; helm-for-files.el --- helm-for-files and related. -*- lexical-binding: t -*-
 
-;; Copyright (C) 2012 ~ 2023 Thierry Volpiatto 
+;; Copyright (C) 2012 ~ 2025 Thierry Volpiatto
 
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -119,7 +119,17 @@ Be aware that a nil value will make tramp display very slow."
   ((init :initform (lambda ()
                      (require 'recentf)
                      (when helm-turn-on-recentf (recentf-mode 1))))
-   (candidates :initform (lambda () recentf-list))
+   (candidates :initform (lambda ()
+                           ;; Previously we were using directly `recentf-list'
+                           ;; which is unsafe when the transformer makes changes
+                           ;; directly on the elements of the list (props were
+                           ;; added to the elements of `recentf-list' and saved
+                           ;; like this, as a result the recentf file could not
+                           ;; be read at startup), until now it was working by
+                           ;; chance because the display candidate was
+                           ;; let-bounded before being modified.
+                           (cl-loop for file in recentf-list
+                                    collect (substring-no-properties file))))
    (pattern-transformer :initform 'helm-recentf-pattern-transformer)
    (match-part :initform (lambda (candidate)
                            (if (or helm-ff-transformer-show-only-basename
@@ -156,6 +166,10 @@ small.")
 ;;; Files in current dir
 ;;
 ;;
+;; Function `helm-highlight-files' is used in type `helm-type-file'. Ensure that
+;; the definition is available for clients, should they need it.
+;; See https://github.com/bbatsov/helm-projectile/issues/184.
+;;;###autoload
 (defun helm-highlight-files (files _source)
   "A basic transformer for helm files sources.
 Colorize only symlinks, directories and files."
@@ -171,7 +185,8 @@ Colorize only symlinks, directories and files."
                           (helm-basename i) (abbreviate-file-name i))
            for isremote = (or (file-remote-p i)
                               (helm-file-on-mounted-network-p i))
-           ;; Call file-attributes only if:
+           ;; file-attributes is too slow on remote files,
+           ;; so call it only if:
            ;; - file is not remote
            ;; - helm-for-files--tramp-not-fancy is nil and file is remote AND
            ;; connected. (Bug#1679)
@@ -180,31 +195,42 @@ Colorize only symlinks, directories and files."
                                     (file-remote-p i nil t)))
                            (car (file-attributes i)))
            collect
-           (cond ((and (null type) isremote) (cons disp i))
-                 ((stringp type)
-                  (cons (propertize disp
-                                    'face 'helm-ff-symlink
-                                    'match-part (funcall mp-fn disp)
-                                    'help-echo (expand-file-name i))
-                        i))
-                 ((eq type t)
-                  (cons (propertize disp
-                                    'face 'helm-ff-directory
-                                    'match-part (funcall mp-fn disp)
-                                    'help-echo (expand-file-name i))
-                        i))
-                 (t (let* ((ext (helm-file-name-extension disp))
-                           (disp (propertize disp
-                                             'face 'helm-ff-file
-                                             'match-part (funcall mp-fn disp)
-                                             'help-echo (expand-file-name i))))
+           (cond (;; No fancy display on remote files with basic predicates.
+                  (and (null type) isremote) (cons disp i))
+                 (;; Symlinks
+                  (stringp type)
+                  (add-text-properties 0 (length disp) `(face helm-ff-symlink
+                                                         match-part ,(funcall mp-fn disp)
+                                                         help-echo ,(expand-file-name i))
+                                       disp)
+                  (cons (helm-ff-prefix-filename disp i) i))
+                 (;; Dotted dirs
+                  (and (eq type t) (helm-ff-dot-file-p i))
+                  (add-text-properties 0 (length disp) `(face helm-ff-dotted-directory
+                                                         match-part ,(funcall mp-fn disp)
+                                                         help-echo ,(expand-file-name i))
+                                       disp)
+                  (cons (helm-ff-prefix-filename disp i) i))
+                 (;; Dirs
+                  (eq type t)
+                  (add-text-properties 0 (length disp) `(face helm-ff-directory
+                                                         match-part ,(funcall mp-fn disp)
+                                                         help-echo ,(expand-file-name i))
+                                       disp)
+                  (cons (helm-ff-prefix-filename disp i) i))
+                 (t ;; Files.
+                  (add-text-properties 0 (length disp) `(face helm-ff-file
+                                                         match-part ,(funcall mp-fn disp)
+                                                         help-echo ,(expand-file-name i))
+                                       disp)
+                  (helm-aif (helm-file-name-extension disp)
                       (when (condition-case _err
-                                (string-match (format "\\.\\(%s\\)$" ext) disp)
+                                (string-match (format "\\.\\(%s\\)\\'" it) disp)
                               (invalid-regexp nil))
                         (add-face-text-property
                          (match-beginning 1) (match-end 1)
-                         'helm-ff-file-extension nil disp))
-                      (cons disp i))))))
+                         'helm-ff-file-extension t disp)))
+                  (cons (helm-ff-prefix-filename disp i) i)))))
 
 (defclass helm-files-in-current-dir-source (helm-source-sync helm-type-file)
   ((candidates :initform (lambda ()
@@ -219,6 +245,10 @@ Colorize only symlinks, directories and files."
                                (helm-basename candidate) candidate)))
    (fuzzy-match :initform t)
    (migemo :initform t)))
+
+(cl-defmethod helm--setup-source :after ((source helm-files-in-current-dir-source))
+  (setf (slot-value source 'filtered-candidate-transformer)
+        '(helm-ff-sort-candidates helm-highlight-files)))
 
 (defvar helm-source-files-in-current-dir
   (helm-make-source "Files from Current Directory"

@@ -1,6 +1,6 @@
 ;;; helm-files.el --- helm file browser and related. -*- lexical-binding: t -*-
 
-;; Copyright (C) 2012 ~ 2023 Thierry Volpiatto 
+;; Copyright (C) 2012 ~ 2025 Thierry Volpiatto
 
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -35,6 +35,7 @@
 (require 'filenotify)
 (require 'image-mode)
 (require 'image-dired)
+(require 'helm-x-icons)
 
 (declare-function find-library-name "find-func.el" (library))
 (declare-function w32-shell-execute "ext:w32fns.c" (operation document &optional parameters show-flag))
@@ -87,16 +88,11 @@
 (declare-function dired-async-processes "ext:dired-async.el")
 (declare-function dired-async-mode-line-message "ext:dired-async.el")
 (declare-function dired-async--modeline-mode "ext:dired-async.el")
-(declare-function all-the-icons-icon-for-file "ext:all-the-icons.el")
-(declare-function all-the-icons-octicon "ext:all-the-icons.el")
-(declare-function all-the-icons-match-to-alist "ext:all-the-icons.el")
-(declare-function all-the-icons-material "ext:all-the-icons.el")
 (declare-function helm-adaptive-sort "ext:helm-adaptive.el")
 (declare-function wfnames-setup-buffer "ext:wfnames.el")
 (declare-function svg-lib-progress-bar "ext:svg-lib")
 (declare-function svg-lib-tag "ext:svg-lib")
 
-(defvar all-the-icons-dir-icon-alist)
 (defvar term-char-mode-point-at-process-mark)
 (defvar term-char-mode-buffer-read-only)
 (defvar recentf-list)
@@ -382,8 +378,18 @@ printers for you."
 (defcustom helm-ff-transformer-show-only-basename t
   "Show only basename of candidates in `helm-find-files'.
 This can be toggled at anytime from `helm-find-files' with \
-\\<helm-find-files-map>\\[helm-ff-run-toggle-basename]."
+\\<helm-find-files-map>\\[helm-ff-run-toggle-basename].  Note
+that even when non nil, the dotted directories on top i.e. \".\"
+and \"..\" are still displayed as full path when
+`helm-ff-show-dot-file-path' is non nil."
   :type 'boolean)
+
+(defcustom helm-ff-show-dot-file-path nil
+  "Show full path of dotted directories when non nil."
+  :type 'boolean
+  :set (lambda (var val)
+	 (set-default var val)
+         (clrhash helm-ff--list-directory-cache)))
 
 (defcustom helm-ff-signal-error-on-dot-files t
   "Signal error when file is `.' or `..' on file deletion when non-nil.
@@ -863,7 +869,7 @@ want to use it, helm is still providing
    "Relsymlink file(s) `M-Y, C-u to follow'" 'helm-find-files-relsymlink
    "Hardlink file(s) `M-H, C-u to follow'" 'helm-find-files-hardlink
    "Compress file(s) to archive `M-c'" 'helm-find-files-compress-to
-   "Compress or uncompress file(s) `M-z'" 'helm-ff-compress-marked-files
+   "Compress or uncompress file(s) `M-Z'" 'helm-ff-compress-marked-files
    "Change mode on file(s) `M-M'" 'helm-ff-chmod
    "Find file other window `C-c o'" 'helm-find-files-other-window
    "Find file other frame `C-c C-o'" 'find-file-other-frame
@@ -3034,7 +3040,9 @@ hitting C-j on \"..\"."
       (with-helm-window
         (when (re-search-forward
                (format helm-ff-last-expanded-candidate-regexp
-                       (concat (regexp-quote presel) "$"))
+                       ;; The space at eol may contain a display property
+                       ;; e.g. "-> symlink truename".
+                       (concat (regexp-quote presel) " ?$"))
                nil t)
           (forward-line 0)
           (helm-mark-current-line)))
@@ -4142,8 +4150,8 @@ returned prefixed with its icon or unchanged."
                  (if helm-ff-icon-mode
                      (helm-acase (match-string 1 disp)
                        ("mailto:"
-                        (all-the-icons-octicon "mail"))
-                       (t (all-the-icons-octicon "link-external")))
+                        (helm-x-icons-generic "mail"))
+                       (t (helm-x-icons-generic "link-external")))
                    (propertize
                     " " 'display
                     (propertize "[@]" 'face 'helm-ff-prefix))))
@@ -4153,8 +4161,8 @@ returned prefixed with its icon or unchanged."
            (setq prefix-new
                  (if helm-ff-icon-mode
                      (if (string-match "/\\'" disp)
-                         (all-the-icons-material "create_new_folder")
-                       (all-the-icons-material "note_add"))
+                         (helm-x-icons-generic "create_new_folder")
+                       (helm-x-icons-generic "note_add"))
                    (propertize
                     " " 'display
                     (propertize "[+]" 'face 'helm-ff-prefix))))
@@ -4250,7 +4258,8 @@ If SKIP-BORING-CHECK is non nil don't filter boring files."
                    ;; Filename with cntrl chars e.g. foo^J
                    (replace-regexp-in-string
                     "[[:cntrl:]]" "?"
-                    (if (or reverse urlp) file basename))))
+                    (if (or reverse urlp (and dot helm-ff-show-dot-file-path))
+                        file basename))))
          (len (length disp))
          (backup (backup-file-name-p disp)))
     (when (string-match "/\\'" file)
@@ -4381,9 +4390,14 @@ If SKIP-BORING-CHECK is non nil don't filter boring files."
                    (add-face-text-property 0 len-abbrev 'helm-ff-truename t abbrev)
                    ;; Colorize extension only on truename.
                    (add-face-text-property 0 len 'helm-ff-symlink nil disp)
-                   ;; As we use match-on-real we can use this safely,
-                   ;; abbrev will not be matched.
-                   (cons (concat (helm-ff-prefix-filename disp file) " -> " abbrev)
+                   (cons (concat (helm-ff-prefix-filename disp file)
+                                 ;; Displaying this in a space with display prop
+                                 ;; allows retrieving the candidate with
+                                 ;; `helm-ff-retrieve-last-expanded'.  If we put
+                                 ;; the display prop on the whole candidate
+                                 ;; `helm-fuzzy-highlight-matches' don't match
+                                 ;; properly.
+                                 (propertize " " 'display (concat " -> " abbrev)))
                          file)))
                 ;; A directory.
                 ((eq t type)
@@ -4427,17 +4441,17 @@ If SKIP-BORING-CHECK is non nil don't filter boring files."
                        file))))))))
 
 (defun helm-ff-get-icon (disp file)
-  "Get icon from all-the-icons for FILE.
+  "Get icon from `helm-x-icons-provider' for FILE.
 Arg DISP is the display part of the candidate.
 Arg FILE is the real part of candidate, a filename with no props."
   (when helm-ff-icon-mode
     (let ((icon (helm-acond (;; Non symlink directories.
                              (helm-ff--is-dir-from-disp disp)
-                             (helm-aif (all-the-icons-match-to-alist
+                             (helm-aif (helm-x-icons-match-to-alist
                                         (helm-basename file)
-                                        all-the-icons-dir-icon-alist)
+                                        'dir)
                                  (apply (car it) (cdr it))
-                               (all-the-icons-octicon "file-directory")))
+                               (helm-x-icons-generic "file-directory")))
                             (;; All files, symlinks may be symlink directories.
                              (helm-ff--is-file-from-disp disp)
                              ;; Detect symlink directories. We must call
@@ -4447,8 +4461,8 @@ Arg FILE is the real part of candidate, a filename with no props."
                              (if (and (memq it '(helm-ff-symlink
                                                  helm-ff-dotted-symlink-directory))
                                       (file-directory-p file))
-                                 (all-the-icons-octicon "file-symlink-directory")
-                               (all-the-icons-icon-for-file (helm-basename file)))))))
+                                 (helm-x-icons-generic "file-symlink-directory")
+                               (helm-x-icons-icon-for-file (helm-basename file)))))))
       (when icon (concat icon " ")))))
 
 (defun helm-ff--is-dir-from-disp (disp)
@@ -4473,13 +4487,13 @@ Arg FILE is the real part of candidate, a filename with no props."
 
 ;;;###autoload
 (define-minor-mode helm-ff-icon-mode
-    "Display icons from `all-the-icons' package in HFF when enabled."
+    "Display icons from `helm-x-icons-provider' package in HFF when enabled."
   :global t
   :group 'helm-files
   (when helm-ff-icon-mode
-    (unless (require 'all-the-icons nil t)
+    (unless (require helm-x-icons-provider nil t)
       (setq helm-ff-icon-mode nil)
-      (message "All The Icons package is not installed")))
+      (message "No suitable Icons package found")))
   (clrhash helm-ff--list-directory-cache))
 
 (defun helm-find-files-action-transformer (actions candidate)
@@ -6710,7 +6724,7 @@ be existing directories."
                                  (propertize c 'face 'helm-history-deleted))))
            when disp
            collect (cons (if helm-ff-icon-mode
-                             (concat (all-the-icons-icon-for-file
+                             (concat (helm-x-icons-icon-for-file
                                       (helm-basename elm))
                                      " " disp)
                            disp)

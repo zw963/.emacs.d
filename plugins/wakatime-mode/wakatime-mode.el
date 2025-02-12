@@ -142,12 +142,12 @@ the wakatime subprocess occurs."
       (executable-find "wakatime"))
     (t program)))
 
-(defun wakatime-client-command (savep)
+(defun wakatime-client-command (savep &optional file)
   "Return client command executable and arguments.
    Set SAVEP to non-nil for write action."
   (format "%s--entity %s --plugin \"%s/%s\" --time %.2f%s%s"
     (if (s-blank wakatime-cli-path) "wakatime-cli " (format "%s " wakatime-cli-path))
-    (shell-quote-argument (buffer-file-name (current-buffer)))
+    (shell-quote-argument (or file (buffer-file-name (current-buffer))))
     wakatime-user-agent
     wakatime-version
     (float-time)
@@ -159,6 +159,9 @@ the wakatime subprocess occurs."
   (let*
     (
       (command (wakatime-client-command savep))
+      (coding-system-for-read
+       (unless (eq coding-system-for-read 'auto-save-coding)
+       coding-system-for-read))
       (process
         (start-process
           "Shell"
@@ -182,9 +185,9 @@ the wakatime subprocess occurs."
                (cond
                  ((= exit-status 103) (error "WakaTime Error (%s) Config file parse error. Check your ~/.wakatime.cfg file." exit-status))
                  ((= exit-status 104) (error "WakaTime Error (%s) Invalid API Key. Set your api key with: (custom-set-variables '(wakatime-api-key \"XXXX\"))" exit-status))
-                 ((= exit-status 105) (error "WakaTime Error (%s) Unknown wakatime-cli error. Please check your ~/.wakatime.log file and open a new issue at https://github.com/wakatime/wakatime-mode" exit-status))
-                 ((= exit-status 106) (error "WakaTime Error (%s) Malformed heartbeat error. Please check your ~/.wakatime.log file and open a new issue at https://github.com/wakatime/wakatime-mode" exit-status))
-                 (t (error "WakaTime Error (%s) Make sure this command runs in a Terminal: %s" exit-status (wakatime-client-command nil)))
+                 ((= exit-status 105) (error "WakaTime Error (%s) Unknown wakatime-cli error. Please check your ~/.wakatime/wakatime.log file and open a new issue at https://github.com/wakatime/wakatime-mode" exit-status))
+                 ((= exit-status 106) (error "WakaTime Error (%s) Malformed heartbeat error. Please check your ~/.wakatime/wakatime.log file and open a new issue at https://github.com/wakatime/wakatime-mode" exit-status))
+                 (t (error "WakaTime Error (%s) Make sure this command runs in a Terminal: %s" exit-status (wakatime-client-command nil ,(buffer-file-name (current-buffer)))))
                )
              )
            )
@@ -197,16 +200,12 @@ the wakatime subprocess occurs."
 
 (defun wakatime-ping ()
   "Send ping notice to WakaTime."
-  (when (and
-         (buffer-file-name (current-buffer))
-         (not (auto-save-file-name-p (buffer-file-name (current-buffer)))))
+  (when (buffer-file-name (current-buffer))
     (wakatime-call nil)))
 
 (defun wakatime-save ()
   "Send save notice to WakaTime."
-  (when (and
-         (buffer-file-name (current-buffer))
-         (not (auto-save-file-name-p (buffer-file-name (current-buffer)))))
+  (when (buffer-file-name (current-buffer))
     (wakatime-call t)))
 
 (defun wakatime-bind-hooks ()

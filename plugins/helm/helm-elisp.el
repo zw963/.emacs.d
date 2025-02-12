@@ -1,6 +1,6 @@
 ;;; helm-elisp.el --- Elisp symbols completion for helm. -*- lexical-binding: t -*-
 
-;; Copyright (C) 2012 ~ 2023 Thierry Volpiatto
+;; Copyright (C) 2012 ~ 2025 Thierry Volpiatto
 
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -883,6 +883,7 @@ new libraries are found, however when a library update its
 headers and the description change you can reset the caches with
 a prefix arg."
   (interactive "P")
+  (require 'helm-mode)
   (let (done)
     (when arg
       (setq helm--locate-library-cache nil)
@@ -916,7 +917,7 @@ a prefix arg."
                        for disp = (and path
                                        (if (and doc
                                                 (or completions-detailed helm-completions-detailed))
-                                           (helm-aand (propertize doc 'face 'font-lock-warning-face)
+                                           (helm-aand (propertize doc 'face 'helm-completions-detailed)
                                                       (propertize " " 'display (concat sep it))
                                                       (concat bn it))
                                          bn))
