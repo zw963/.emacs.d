@@ -5019,17 +5019,6 @@ file."
            (cons (lambda (_candidate)
                    (funcall insert-in-minibuffer (concat candidate "#/")))
                  'never-split))
-          ;; File doesn't exists and basename starts with ".." or "  ",
-          ;; Start a recursive search for directories.
-          ((and (not (file-exists-p candidate))
-                (not (file-remote-p candidate))
-                (string-match-p "\\`\\([.]\\|\\s-\\)\\{2\\}[^/]+"
-                                (helm-basename candidate)))
-           ;; As soon as the final "/" is added the job is passed
-           ;; to `helm-ff-auto-expand-to-home-or-root'.
-           (cons (lambda (_candidate)
-                   (funcall insert-in-minibuffer (concat candidate "/")))
-                 'never-split))
           ;; File is not existing and have no basedir, typically when
           ;; user hit C-k (minibuffer is empty) and then write foo and
           ;; hit C-j. This make clear that when no basedir, helm will
@@ -5349,6 +5338,11 @@ image file in `helm-ff-image-dired-thumbnails-cache'."
     (helm :sources
           (helm-make-source
               "Recursive directories" 'helm-locate-subdirs-source
+            :header-name
+            (lambda (name)
+              (format "%s from `%s'"
+                      name
+                      (abbreviate-file-name helm-ff-default-directory)))
             :basedir (if (string-match-p
                           "\\`es" helm-locate-recursive-dirs-command)
                          directory

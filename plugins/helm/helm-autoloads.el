@@ -6,6 +6,213 @@
 ;;; Code:
 
 
+;;;### (autoloads nil "async" "async.el" (0 0 0 0))
+;;; Generated autoloads from async.el
+
+(autoload 'async-start-process "async" "\
+Start the executable PROGRAM asynchronously named NAME.  See `async-start'.
+PROGRAM is passed PROGRAM-ARGS, calling FINISH-FUNC with the
+process object when done.  If FINISH-FUNC is nil, the future
+object will return the process object when the program is
+finished.  Set DEFAULT-DIRECTORY to change PROGRAM's current
+working directory.
+
+\(fn NAME PROGRAM FINISH-FUNC &rest PROGRAM-ARGS)")
+
+(autoload 'async-start "async" "\
+Execute START-FUNC (often a lambda) in a subordinate Emacs process.
+When done, the return value is passed to FINISH-FUNC.  Example:
+
+    (async-start
+       ;; What to do in the child process
+       (lambda ()
+         (message \"This is a test\")
+         (sleep-for 3)
+         222)
+
+       ;; What to do when it finishes
+       (lambda (result)
+         (message \"Async process done, result should be 222: %s\"
+                  result)))
+
+If you call `async-send' from a child process, the message will
+be also passed to the FINISH-FUNC.  You can test RESULT to see if
+it is a message by using `async-message-p'.  If nil, it means
+this is the final result.  Example of the FINISH-FUNC:
+
+    (lambda (result)
+      (if (async-message-p result)
+          (message \"Received a message from child process: %s\" result)
+        (message \"Async process done, result: %s\" result)))
+
+If FINISH-FUNC is nil or missing, a future is returned that can
+be inspected using `async-get', blocking until the value is
+ready.  Example:
+
+    (let ((proc (async-start
+                   ;; What to do in the child process
+                   (lambda ()
+                     (message \"This is a test\")
+                     (sleep-for 3)
+                     222))))
+
+        (message \"I'm going to do some work here\") ;; ....
+
+        (message \"Waiting on async process, result should be 222: %s\"
+                 (async-get proc)))
+
+If you don't want to use a callback, and you don't care about any
+return value from the child process, pass the `ignore' symbol as
+the second argument (if you don't, and never call `async-get', it
+will leave *emacs* process buffers hanging around):
+
+    (async-start
+     (lambda ()
+       (delete-file \"a remote file on a slow link\" nil))
+     \\='ignore)
+
+Special case:
+If the output of START-FUNC is a string with properties
+e.g. (buffer-string) RESULT will be transformed in a list where the
+car is the string itself (without props) and the cdr the rest of
+properties, this allows using in FINISH-FUNC the string without
+properties and then apply the properties in cdr to this string (if
+needed).
+Properties handling special objects like markers are returned as
+list to allow restoring them later.
+See <https://github.com/jwiegley/emacs-async/issues/145> for more infos.
+
+Note: Even when FINISH-FUNC is present, a future is still
+returned except that it yields no value (since the value is
+passed to FINISH-FUNC).  Call `async-get' on such a future always
+returns nil.  It can still be useful, however, as an argument to
+`async-ready' or `async-wait'.
+
+\(fn START-FUNC &optional FINISH-FUNC)")
+
+(register-definition-prefixes "async" '("async-"))
+
+;;;***
+
+;;;### (autoloads nil "async-bytecomp" "async-bytecomp.el" (0 0 0
+;;;;;;  0))
+;;; Generated autoloads from async-bytecomp.el
+
+(autoload 'async-byte-recompile-directory "async-bytecomp" "\
+Compile all *.el files in DIRECTORY asynchronously.
+All *.elc files are systematically deleted before proceeding.
+
+\(fn DIRECTORY &optional QUIET)")
+
+(defvar async-bytecomp-package-mode nil "\
+Non-nil if Async-Bytecomp-Package mode is enabled.
+See the `async-bytecomp-package-mode' command
+for a description of this minor mode.
+Setting this variable directly does not take effect;
+either customize it (see the info node `Easy Customization')
+or call the function `async-bytecomp-package-mode'.")
+
+(custom-autoload 'async-bytecomp-package-mode "async-bytecomp" nil)
+
+(autoload 'async-bytecomp-package-mode "async-bytecomp" "\
+Byte compile asynchronously packages installed with package.el.
+
+Async compilation of packages can be controlled by
+`async-bytecomp-allowed-packages'.
+NOTE: Use this mode only if you install/upgrade etc... your packages
+synchronously, if you use a package manager like helm-package.el which
+by default is async you don't need this.
+
+This is a global minor mode.  If called interactively, toggle the
+`Async-Bytecomp-Package mode' mode.  If the prefix argument is positive,
+enable the mode, and if it is zero or negative, disable the mode.
+
+If called from Lisp, toggle the mode if ARG is `toggle'.  Enable the
+mode if ARG is nil, omitted, or is a positive number.  Disable the mode
+if ARG is a negative number.
+
+To check whether the minor mode is enabled in the current buffer,
+evaluate `(default-value \\='async-bytecomp-package-mode)'.
+
+The mode's hook is called both when the mode is enabled and when it is
+disabled.
+
+\(fn &optional ARG)" t)
+
+(autoload 'async-byte-compile-file "async-bytecomp" "\
+Byte compile Lisp code FILE asynchronously.
+
+Same as `byte-compile-file' but asynchronous.
+
+\(fn FILE)" t)
+
+(register-definition-prefixes "async-bytecomp" '("async-"))
+
+;;;***
+
+;;;### (autoloads nil "async-package" "async-package.el" (0 0 0 0))
+;;; Generated autoloads from async-package.el
+
+(register-definition-prefixes "async-package" '("async-p"))
+
+;;;***
+
+;;;### (autoloads nil "dired-async" "dired-async.el" (0 0 0 0))
+;;; Generated autoloads from dired-async.el
+
+(defvar dired-async-mode nil "\
+Non-nil if Dired-Async mode is enabled.
+See the `dired-async-mode' command
+for a description of this minor mode.
+Setting this variable directly does not take effect;
+either customize it (see the info node `Easy Customization')
+or call the function `dired-async-mode'.")
+
+(custom-autoload 'dired-async-mode "dired-async" nil)
+
+(autoload 'dired-async-mode "dired-async" "\
+Do dired actions asynchronously.
+
+This is a global minor mode.  If called interactively, toggle the
+`Dired-Async mode' mode.  If the prefix argument is positive, enable the
+mode, and if it is zero or negative, disable the mode.
+
+If called from Lisp, toggle the mode if ARG is `toggle'.  Enable the
+mode if ARG is nil, omitted, or is a positive number.  Disable the mode
+if ARG is a negative number.
+
+To check whether the minor mode is enabled in the current buffer,
+evaluate `(default-value \\='dired-async-mode)'.
+
+The mode's hook is called both when the mode is enabled and when it is
+disabled.
+
+\(fn &optional ARG)" t)
+
+(autoload 'dired-async-do-copy "dired-async" "\
+Run ‘dired-do-copy’ asynchronously.
+
+\(fn &optional ARG)" t)
+
+(autoload 'dired-async-do-symlink "dired-async" "\
+Run ‘dired-do-symlink’ asynchronously.
+
+\(fn &optional ARG)" t)
+
+(autoload 'dired-async-do-hardlink "dired-async" "\
+Run ‘dired-do-hardlink’ asynchronously.
+
+\(fn &optional ARG)" t)
+
+(autoload 'dired-async-do-rename "dired-async" "\
+Run ‘dired-do-rename’ asynchronously.
+
+\(fn &optional ARG)" t)
+
+(register-definition-prefixes "dired-async" '("dired-async-"))
+
+;;;***
+
 ;;;### (autoloads nil "helm-adaptive" "helm-adaptive.el" (0 0 0 0))
 ;;; Generated autoloads from helm-adaptive.el
 
@@ -23,18 +230,18 @@ or call the function `helm-adaptive-mode'.")
 Toggle adaptive sorting in all sources.
 
 This is a global minor mode.  If called interactively, toggle the
-`Helm-Adaptive mode' mode.  If the prefix argument is positive,
-enable the mode, and if it is zero or negative, disable the mode.
+`Helm-Adaptive mode' mode.  If the prefix argument is positive, enable
+the mode, and if it is zero or negative, disable the mode.
 
-If called from Lisp, toggle the mode if ARG is `toggle'.  Enable
-the mode if ARG is nil, omitted, or is a positive number.
-Disable the mode if ARG is a negative number.
+If called from Lisp, toggle the mode if ARG is `toggle'.  Enable the
+mode if ARG is nil, omitted, or is a positive number.  Disable the mode
+if ARG is a negative number.
 
 To check whether the minor mode is enabled in the current buffer,
 evaluate `(default-value \\='helm-adaptive-mode)'.
 
-The mode's hook is called both when the mode is enabled and when
-it is disabled.
+The mode's hook is called both when the mode is enabled and when it is
+disabled.
 
 \(fn &optional ARG)" t)
 
@@ -50,6 +257,9 @@ Useful when you have a old or corrupted
 ;;;### (autoloads nil "helm-bookmark" "helm-bookmark.el" (0 0 0 0))
 ;;; Generated autoloads from helm-bookmark.el
 
+(autoload 'helm-bookmark-import-eww-bookmarks "helm-bookmark" "\
+Import EWW bookmarks into bookmark-alist." t)
+
 (autoload 'helm-bookmarks "helm-bookmark" "\
 Preconfigured `helm' for bookmarks." t)
 
@@ -58,7 +268,7 @@ Preconfigured `helm' for bookmarks (filtered by category).
 Optional source `helm-source-bookmark-addressbook' is loaded only
 if external addressbook-bookmark package is installed." t)
 
-(register-definition-prefixes "helm-bookmark" '("bmkext-jump-" "bookmark" "helm-"))
+(register-definition-prefixes "helm-bookmark" '("bmk" "bookmark" "helm-"))
 
 ;;;***
 
@@ -149,6 +359,8 @@ See `helm-define-multi-key'.
 
 (function-put 'helm-multi-key-defun 'lisp-indent-function 2)
 
+(function-put 'helm-multi-key-defun 'doc-string-elt 2)
+
 (autoload 'helm-define-key-with-subkeys "helm-core" "\
 Define in MAP a KEY and SUBKEY to COMMAND.
 
@@ -176,7 +388,7 @@ on exit.
 For any other key pressed, run their assigned command as defined
 in MAP and then exit the loop running EXIT-FN, if specified.
 
-If DELAY an integer is specified exit after DELAY seconds.
+If DELAY is specified the command expires after DELAY seconds.
 
 NOTE: SUBKEY and OTHER-SUBKEYS bindings support only char syntax
 and vectors, so don't use strings to define them.  While defining
@@ -366,20 +578,12 @@ Preconfigured Helm to complete file name at point.
 
 (autoload 'helm-lisp-indent "helm-elisp" nil t)
 
-(autoload 'helm-lisp-completion-or-file-name-at-point "helm-elisp" "\
-Preconfigured Helm to complete Lisp symbol or filename at point.
-Filename completion happens if string start after or between a
-double quote." t)
-
 (autoload 'helm-apropos "helm-elisp" "\
 Preconfigured Helm to describe commands, functions, variables and faces.
 In non interactives calls DEFAULT argument should be provided as
 a string, i.e. the `symbol-name' of any existing symbol.
 
 \(fn DEFAULT)" t)
-
-(autoload 'helm-manage-advice "helm-elisp" "\
-Preconfigured `helm' to disable/enable function advices." t)
 
 (autoload 'helm-locate-library "helm-elisp" "\
 Preconfigured helm to locate elisp libraries.
@@ -427,18 +631,18 @@ or call the function `helm-epa-mode'.")
 Enable helm completion on gpg keys in epa functions.
 
 This is a global minor mode.  If called interactively, toggle the
-`Helm-Epa mode' mode.  If the prefix argument is positive, enable
-the mode, and if it is zero or negative, disable the mode.
+`Helm-Epa mode' mode.  If the prefix argument is positive, enable the
+mode, and if it is zero or negative, disable the mode.
 
-If called from Lisp, toggle the mode if ARG is `toggle'.  Enable
-the mode if ARG is nil, omitted, or is a positive number.
-Disable the mode if ARG is a negative number.
+If called from Lisp, toggle the mode if ARG is `toggle'.  Enable the
+mode if ARG is nil, omitted, or is a positive number.  Disable the mode
+if ARG is a negative number.
 
 To check whether the minor mode is enabled in the current buffer,
 evaluate `(default-value \\='helm-epa-mode)'.
 
-The mode's hook is called both when the mode is enabled and when
-it is disabled.
+The mode's hook is called both when the mode is enabled and when it is
+disabled.
 
 \(fn &optional ARG)" t)
 
@@ -521,21 +725,21 @@ or call the function `helm-ff-icon-mode'.")
 (custom-autoload 'helm-ff-icon-mode "helm-files" nil)
 
 (autoload 'helm-ff-icon-mode "helm-files" "\
-Display icons from `all-the-icons' package in HFF when enabled.
+Display icons from `helm-x-icons-provider' package in HFF when enabled.
 
 This is a global minor mode.  If called interactively, toggle the
-`Helm-Ff-Icon mode' mode.  If the prefix argument is positive,
-enable the mode, and if it is zero or negative, disable the mode.
+`Helm-Ff-Icon mode' mode.  If the prefix argument is positive, enable
+the mode, and if it is zero or negative, disable the mode.
 
-If called from Lisp, toggle the mode if ARG is `toggle'.  Enable
-the mode if ARG is nil, omitted, or is a positive number.
-Disable the mode if ARG is a negative number.
+If called from Lisp, toggle the mode if ARG is `toggle'.  Enable the
+mode if ARG is nil, omitted, or is a positive number.  Disable the mode
+if ARG is a negative number.
 
 To check whether the minor mode is enabled in the current buffer,
 evaluate `(default-value \\='helm-ff-icon-mode)'.
 
-The mode's hook is called both when the mode is enabled and when
-it is disabled.
+The mode's hook is called both when the mode is enabled and when it is
+disabled.
 
 \(fn &optional ARG)" t)
 
@@ -635,6 +839,12 @@ Called with a prefix arg force reloading cache.
 ;;;### (autoloads nil "helm-for-files" "helm-for-files.el" (0 0 0
 ;;;;;;  0))
 ;;; Generated autoloads from helm-for-files.el
+
+(autoload 'helm-highlight-files "helm-for-files" "\
+A basic transformer for helm files sources.
+Colorize only symlinks, directories and files.
+
+\(fn FILES SOURCE)")
 
 (autoload 'helm-for-files "helm-for-files" "\
 Preconfigured `helm' for opening files.
@@ -756,13 +966,27 @@ With a prefix argument \\[universal-argument], set REFRESH to
 non-nil.
 
 Optional parameter REFRESH, when non-nil, re-evaluates
-`helm-default-info-index-list'.  If the variable has been
-customized, set it to its saved value.  If not, set it to its
-standard value. See `custom-reevaluate-setting' for more.
+`helm-default-info-index-list' and clears caches (see below).
+If the variable has been customized, set it to its saved value.
+If not, set it to its standard value.  See
+`custom-reevaluate-setting' for more.
 
 REFRESH is useful when new Info files are installed.  If
 `helm-default-info-index-list' has not been customized, the new
 Info files are made available.
+
+When `completions-detailed' or `helm-completions-detailed' is non
+nil, a description of Info files is provided.  The Info files are
+partially cached in the variables `helm-info--files-cache' and
+`helm-info--files-docs-cache'.  TIP: You can make these vars
+persistent for faster start with the psession package, using
+\\[psession-make-persistent-variable].
+
+NOTE: The caches affect as well `info-dislpay-manual' when
+`helm-mode' is enabled and `completions-detailed' is non nil.
+When new Info files are installed, for example a library update
+changed Info dir node entry, you can reset the caches with
+a prefix arg.
 
 \(fn &optional REFRESH)" t)
 
@@ -775,6 +999,20 @@ Preconfigured `helm' for searching info at point." t)
 
 ;;;### (autoloads nil "helm-lib" "helm-lib.el" (0 0 0 0))
 ;;; Generated autoloads from helm-lib.el
+
+(autoload 'helm-add-to-list "helm-lib" "\
+Add or move ELM to the value of VAR at INDEX unless already here.
+
+If ELM is member of var value and at index INDEX, return var value
+unchanged, if INDEX value is different move ELM at this `nth' INDEX value.
+If ELM is not present in list add it at `nth' INDEX.
+
+If REPLACE is non nil replace element at INDEX by ELM.
+
+Do not use this function in helm code, use `helm-append-at-nth'
+instead.  It is meant to be used in config files only.
+
+\(fn VAR ELM INDEX &optional REPLACE)")
 
 (register-definition-prefixes "helm-lib" '("helm-" "with-helm-"))
 
@@ -814,7 +1052,9 @@ Where db_path is a filename matched by
 
 (autoload 'helm-man-woman "helm-man" "\
 Preconfigured `helm' for Man and Woman pages.
-With a prefix arg reinitialize the cache.
+With a prefix ARG reinitialize the cache.  To have a popup
+showing a basic description of selected candidate, turn on
+`helm-popup-tip-mode'.
 
 \(fn ARG)" t)
 
@@ -842,18 +1082,18 @@ This mode is enabled by `helm-mode', so there is no need to enable it directly.
 
 This is a global minor mode.  If called interactively, toggle the
 `Helm-Minibuffer-History mode' mode.  If the prefix argument is
-positive, enable the mode, and if it is zero or negative, disable
-the mode.
+positive, enable the mode, and if it is zero or negative, disable the
+mode.
 
-If called from Lisp, toggle the mode if ARG is `toggle'.  Enable
-the mode if ARG is nil, omitted, or is a positive number.
-Disable the mode if ARG is a negative number.
+If called from Lisp, toggle the mode if ARG is `toggle'.  Enable the
+mode if ARG is nil, omitted, or is a positive number.  Disable the mode
+if ARG is a negative number.
 
 To check whether the minor mode is enabled in the current buffer,
 evaluate `(default-value \\='helm-minibuffer-history-mode)'.
 
-The mode's hook is called both when the mode is enabled and when
-it is disabled.
+The mode's hook is called both when the mode is enabled and when it is
+disabled.
 
 \(fn &optional ARG)" t)
 
@@ -872,6 +1112,11 @@ Preconfigured helm for stumpwm commands." t)
 
 (autoload 'helm-minibuffer-history "helm-misc" "\
 Preconfigured `helm' for `minibuffer-history'." t)
+
+(autoload 'helm-outline "helm-misc" "\
+Basic helm navigation tool for outline buffers.
+
+\(fn &optional ARG)" t)
 
 (register-definition-prefixes "helm-misc" '("helm-"))
 
@@ -1002,6 +1247,9 @@ Keys description:
 
 - COERCE: See coerce in `helm-source'.
 
+- RAW-CANDIDATE: Do not unquote the unknown candidate coming from helm-pattern
+  when non nil. 
+
 - GROUP: See group in `helm-source'.
 
 Any prefix args passed during `helm-comp-read' invocation will be recorded
@@ -1010,7 +1258,7 @@ in `helm-current-prefix-arg', otherwise if prefix args were given before
 That means you can pass prefix args before or after calling a command
 that use `helm-comp-read'.  See `helm-M-x' for example.
 
-\(fn PROMPT COLLECTION &key TEST INITIAL-INPUT DEFAULT PRESELECT (BUFFER \"*Helm Completions*\") MUST-MATCH FUZZY REVERSE-HISTORY (REQUIRES-PATTERN 0) (HISTORY nil SHISTORY) RAW-HISTORY INPUT-HISTORY (CASE-FOLD helm-comp-read-case-fold-search) (PERSISTENT-ACTION nil) (PERSISTENT-HELP \"DoNothing\") (MODE-LINE helm-comp-read-mode-line) HELP-MESSAGE (KEYMAP helm-comp-read-map) (NAME \"Helm Completions\") HEADER-NAME CANDIDATES-IN-BUFFER GET-LINE DIACRITICS MATCH-PART MATCH-DYNAMIC EXEC-WHEN-ONLY-ONE QUIT-WHEN-NO-CAND (VOLATILE t) SORT FC-TRANSFORMER HIST-FC-TRANSFORMER (MARKED-CANDIDATES helm-comp-read-use-marked) NOMARK (ALISTP t) (CANDIDATE-NUMBER-LIMIT helm-candidate-number-limit) MULTILINE ALLOW-NEST COERCE (GROUP \\='helm))")
+\(fn PROMPT COLLECTION &key TEST INITIAL-INPUT DEFAULT PRESELECT (BUFFER \"*Helm Completions*\") MUST-MATCH FUZZY REVERSE-HISTORY (REQUIRES-PATTERN 0) (HISTORY nil SHISTORY) RAW-HISTORY INPUT-HISTORY (CASE-FOLD helm-comp-read-case-fold-search) (PERSISTENT-ACTION nil) (PERSISTENT-HELP \"DoNothing\") (MODE-LINE helm-comp-read-mode-line) HELP-MESSAGE (KEYMAP helm-comp-read-map) (NAME \"Helm Completions\") HEADER-NAME CANDIDATES-IN-BUFFER (GET-LINE #\\='buffer-substring) DIACRITICS MATCH-PART MATCH-DYNAMIC EXEC-WHEN-ONLY-ONE QUIT-WHEN-NO-CAND (VOLATILE t) SORT FC-TRANSFORMER HIST-FC-TRANSFORMER (MARKED-CANDIDATES helm-comp-read-use-marked) NOMARK (ALISTP t) (CANDIDATE-NUMBER-LIMIT helm-candidate-number-limit) MULTILINE ALLOW-NEST COERCE RAW-CANDIDATE (GROUP \\='helm) POPUP-INFO)")
 
 (autoload 'helm-read-file-name "helm-mode" "\
 Read a file name with helm completion.
@@ -1043,7 +1291,10 @@ Keys description:
 
 - FUZZY: Enable fuzzy matching when non-nil (Enabled by default).
 
-- MARKED-CANDIDATES: When non--nil return a list of marked candidates.
+- MARKED-CANDIDATES: When non--nil return a list of marked candidates
+                     otherwise a single filename is returned.
+
+- ALL-MARKED: Allow marking several dummy candidates.
 
 - NOMARK: When non--nil don't allow marking candidates.
 
@@ -1057,7 +1308,7 @@ Keys description:
 - MODE-LINE: A mode line message, default is
              `helm-read-file-name-mode-line-string'.
 
-\(fn PROMPT &key (NAME \"Read File Name\") INITIAL-INPUT (BUFFER \"*Helm file completions*\") TEST NORET (CASE-FOLD helm-file-name-case-fold-search) PRESELECT HISTORY MUST-MATCH (FUZZY t) DEFAULT MARKED-CANDIDATES (CANDIDATE-NUMBER-LIMIT helm-ff-candidate-number-limit) NOMARK (ALISTP t) (PERSISTENT-ACTION-IF \\='helm-find-files-persistent-action-if) (PERSISTENT-HELP \"Hit1 Expand Candidate, Hit2 or (C-u) Find file\") (MODE-LINE helm-read-file-name-mode-line-string))")
+\(fn PROMPT &key (NAME \"Read File Name\") INITIAL-INPUT (BUFFER \"*Helm file completions*\") TEST NORET (CASE-FOLD helm-file-name-case-fold-search) PRESELECT HISTORY MUST-MATCH (FUZZY t) DEFAULT MARKED-CANDIDATES ALL-MARKED (CANDIDATE-NUMBER-LIMIT helm-ff-candidate-number-limit) NOMARK (ALISTP t) (PERSISTENT-ACTION-IF \\='helm-find-files-persistent-action-if) (PERSISTENT-HELP \"Hit1 Expand Candidate, Hit2 or (C-u) Find file\") (MODE-LINE helm-read-file-name-mode-line-string))")
 
 (defvar helm-mode nil "\
 Non-nil if Helm mode is enabled.
@@ -1214,7 +1465,13 @@ to avoid errors with outdated packages no more availables.
 
 \(fn &optional ARG)" t)
 
-(register-definition-prefixes "helm-packages" '("helm-packages-"))
+(autoload 'helm-finder "helm-packages" "\
+Helm interface to find packages by keywords with `finder'.
+To have more actions on packages, use `helm-packages'.
+
+\(fn &optional ARG)" t)
+
+(register-definition-prefixes "helm-packages" '("helm-"))
 
 ;;;***
 
@@ -1309,23 +1566,26 @@ or call the function `helm-top-poll-mode'.")
 Refresh automatically helm top buffer once enabled.
 
 This is a global minor mode.  If called interactively, toggle the
-`Helm-Top-Poll mode' mode.  If the prefix argument is positive,
-enable the mode, and if it is zero or negative, disable the mode.
+`Helm-Top-Poll mode' mode.  If the prefix argument is positive, enable
+the mode, and if it is zero or negative, disable the mode.
 
-If called from Lisp, toggle the mode if ARG is `toggle'.  Enable
-the mode if ARG is nil, omitted, or is a positive number.
-Disable the mode if ARG is a negative number.
+If called from Lisp, toggle the mode if ARG is `toggle'.  Enable the
+mode if ARG is nil, omitted, or is a positive number.  Disable the mode
+if ARG is a negative number.
 
 To check whether the minor mode is enabled in the current buffer,
 evaluate `(default-value \\='helm-top-poll-mode)'.
 
-The mode's hook is called both when the mode is enabled and when
-it is disabled.
+The mode's hook is called both when the mode is enabled and when it is
+disabled.
 
 \(fn &optional ARG)" t)
 
 (autoload 'helm-top "helm-sys" "\
-Preconfigured `helm' for top command." t)
+Preconfigured `helm' for top command.
+When prefix arg ARG is non nil toggle auto updating mode `helm-top-poll-mode'.
+
+\(fn &optional ARG)" t)
 
 (autoload 'helm-list-emacs-process "helm-sys" "\
 Preconfigured `helm' for Emacs process." t)
@@ -1379,21 +1639,25 @@ or call the function `helm-popup-tip-mode'.")
 (custom-autoload 'helm-popup-tip-mode "helm-utils" nil)
 
 (autoload 'helm-popup-tip-mode "helm-utils" "\
-Show help-echo informations in a popup tip at end of line.
+Show additional informations in a popup tip at end of line.
+
+When the mode is enabled, popup showup when the source
+has a `popup-info' attribute which define a specific function for
+this source to fetch infos on candidate.
 
 This is a global minor mode.  If called interactively, toggle the
-`Helm-Popup-Tip mode' mode.  If the prefix argument is positive,
-enable the mode, and if it is zero or negative, disable the mode.
+`Helm-Popup-Tip mode' mode.  If the prefix argument is positive, enable
+the mode, and if it is zero or negative, disable the mode.
 
-If called from Lisp, toggle the mode if ARG is `toggle'.  Enable
-the mode if ARG is nil, omitted, or is a positive number.
-Disable the mode if ARG is a negative number.
+If called from Lisp, toggle the mode if ARG is `toggle'.  Enable the
+mode if ARG is nil, omitted, or is a positive number.  Disable the mode
+if ARG is a negative number.
 
 To check whether the minor mode is enabled in the current buffer,
 evaluate `(default-value \\='helm-popup-tip-mode)'.
 
-The mode's hook is called both when the mode is enabled and when
-it is disabled.
+The mode's hook is called both when the mode is enabled and when it is
+disabled.
 
 \(fn &optional ARG)" t)
 
@@ -1408,7 +1672,23 @@ it is disabled.
 
 ;;;***
 
-;;;### (autoloads nil nil ("helm-easymenu.el" "helm.el") (0 0 0 0))
+;;;### (autoloads nil "helm-x-icons" "helm-x-icons.el" (0 0 0 0))
+;;; Generated autoloads from helm-x-icons.el
+
+(register-definition-prefixes "helm-x-icons" '("helm-x-icons-"))
+
+;;;***
+
+;;;### (autoloads nil "smtpmail-async" "smtpmail-async.el" (0 0 0
+;;;;;;  0))
+;;; Generated autoloads from smtpmail-async.el
+
+(register-definition-prefixes "smtpmail-async" '("async-smtpmail-"))
+
+;;;***
+
+;;;### (autoloads nil nil ("async_init.el" "helm-easymenu.el" "helm.el")
+;;;;;;  (0 0 0 0))
 
 ;;;***
 
