@@ -251,6 +251,7 @@ When non nil this disable `helm-move-to-line-cycle-in-source'."
     (define-key map (kbd "C-c f") 'helm-ls-git-run-fetch)
     (define-key map (kbd "M-e") 'helm-ls-git-run-switch-to-shell)
     (define-key map (kbd "C-c i") 'helm-ls-git-status-toggle-ignored)
+    (define-key map (kbd "C-c M") 'helm-ls-git-persistent-merge-branches)
     map))
 
 (defvar helm-ls-git-status-map
@@ -462,6 +463,10 @@ and launch git-grep from there.
 
 See docstring of `helm-ls-git-ls-switches'.
 
+*** Show/disable icons in ls-git source
+
+Icons are displayed like in `helm-find-files' when `helm-ff-icon-mode' is enabled.
+
 ** Commands
 *** List files source
 
@@ -576,15 +581,15 @@ See docstring of `helm-ls-git-ls-switches'.
            with untracking = (member "-o" helm-ls-git-ls-switches)
            for file in candidates
            for abs = (expand-file-name file root)
-           for disp = (if (and helm-ff-transformer-show-only-basename
-                               (not (string-match "[.]\\{1,2\\}\\'" file)))
-                          (helm-basename file) file)
+           for fname = (if (and helm-ff-transformer-show-only-basename
+                                (not (string-match "[.]\\{1,2\\}\\'" file)))
+                           (helm-basename file) file)
+           for disp = (propertize (if untracking (concat "? " fname) fname)
+                                  'face (if untracking
+                                            'helm-ls-git-untracked-face
+                                          'helm-ff-file))
            collect
-           (cons (propertize (if untracking (concat "? " disp) disp)
-                             'face (if untracking
-                                       'helm-ls-git-untracked-face
-                                     'helm-ff-file))
-                 abs)))
+           (cons (helm-ff-prefix-filename disp abs) abs)))
 
 (defun helm-ls-git-sort-fn (candidates _source)
   "Transformer for sorting candidates."
@@ -1204,7 +1209,12 @@ object will be passed git rebase i.e. git rebase -i <hash>."
         (if (= (process-file "git" nil nil nil "merge" branch) 0)
             (progn (message "Branch %s merged successfully into %s" branch current)
                    (helm-ls-git-revert-buffers-in-project))
-          (message "failed to merge branch %s" branch))))))
+          (message "failed to merge branch %s" branch)))
+      (when helm-in-persistent-action (helm-force-update)))))
+
+(helm-make-persistent-command-from-action helm-ls-git-persistent-merge-branches
+    "Merge branches without quitting."
+  'merge-branches 'helm-ls-git-branches-merge)
 
 (defvar helm-ls-git-create-branch-source
   (helm-build-dummy-source "Create branch"
@@ -1666,8 +1676,8 @@ object will be passed git rebase i.e. git rebase -i <hash>."
                               ("Stash (C-c z)" . helm-ls-git-stash)
                               ("Stash snapshot (C-c Z)" . helm-ls-git-stash-snapshot))
                             1)))
-          ;; Modified and staged
-          ((string-match "^M+ +" disp)
+          ;; Modified or renamed and staged
+          ((string-match "^[MR]+ +" disp)
            (append actions (helm-append-at-nth
                             mofified-actions
                             '(("Commit staged file(s)"
