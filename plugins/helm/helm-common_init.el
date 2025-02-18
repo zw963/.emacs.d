@@ -67,13 +67,6 @@
  '(helm-imenu-fuzzy-match t)
  )
 
-;; (require 'nerd-icons)
-;; (custom-set-variables
-;;  '(helm-x-icons-provider 'all-the-icons)
-;;  '(helm-ff-icon-mode t)
-;;  )
-;; (helm-ff-icon-mode t)
-
 (require 'nerd-icons)
 (require 'helm-x-icons)
 (with-eval-after-load 'helm-x-icons
@@ -82,10 +75,6 @@
   (helm-ff-icon-mode 1))
 
 (add-to-list 'helm-imenu-all-buffer-assoc  '(enh-ruby-mode . js2-mode))
-
-;; (require 'helm-icons)
-;; (setq helm-icons-provider 'nerd-icons)
-;; (helm-icons-enable)
 
 (provide 'helm-common_init)
 ;;; helm-common_init.el ends here
