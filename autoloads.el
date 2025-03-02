@@ -35,11 +35,10 @@
 (add-to-list 'auto-mode-alist '("\\.jsx$" . web-mode))
 (add-to-list 'auto-mode-alist '("\\.wxml$" . web-mode))
 
+;; (autoload 'yaml-mode "yaml-mode" nil t)
 (add-hook 'yaml-ts-mode-hook 'display-line-numbers-mode)
 (add-hook 'yaml-ts-mode-hook 'display-fill-column-indicator-mode)
 (add-to-list 'auto-mode-alist '("\\.\\(e?ya?\\|ra\\)ml\\'" . yaml-ts-mode))
-(add-to-list 'auto-mode-alist '("\\.yml\\.j2" . yaml-ts-mode))
-(add-to-list 'auto-mode-alist '("\\.yml" . yaml-ts-mode))
 (add-to-list 'auto-mode-alist '("Procfile\\|Procfile.dev\\'" . yaml-ts-mode))
 (add-to-list 'auto-mode-alist '("Procfile.options\\|Procfile.dev.options\\'" . yaml-ts-mode))
 
@@ -81,9 +80,6 @@
 
 (autoload 'slim-mode "slim-mode" nil t)
 (add-to-list 'auto-mode-alist '("\\.slim\\'" . slim-mode))
-
-;; (autoload 'yaml-mode "yaml-mode" nil t)
-(add-to-list 'auto-mode-alist '("\\.\\(e?ya?\\|ra\\)ml\\'" . yaml-ts-mode))
 
 (with-eval-after-load 'slim-mode
   (require 'tailwindcss_init))

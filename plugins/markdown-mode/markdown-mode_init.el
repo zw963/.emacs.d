@@ -24,6 +24,8 @@
             (define-key markdown-mode-map [(meta p)] 'window-move-down)
             (define-key edit-indirect-mode-map (kbd "C-c C-c") #'format-buffer)
             (whitespace-mode -1)
+            (display-line-numbers-mode)
+            (display-fill-column-indicator-mode)
             ))
 
 (provide 'markdown-mode_init)
