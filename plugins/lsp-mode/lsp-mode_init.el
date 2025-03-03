@@ -56,6 +56,9 @@
 
   (when (featurep 'treemacs) (save-selected-window (treemacs-select-window)))
 
+  (define-key lsp-signature-mode-map "M-n" nil)
+  (define-key lsp-signature-mode-map "M-p" nil)
+
   (lsp-deferred)
   )
 

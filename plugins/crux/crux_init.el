@@ -95,6 +95,9 @@
 (global-set-key [(meta p)] 'window-move-down) ;光标位置不变，窗口向下移动两行
 ;; (require 'window-move-hack_init)
 
+;; iedit 如果被 require, 会和这个快捷键造成冲突。
+(global-set-key [(control meta \;)] 'comment-box)
+
 (crux-reopen-as-root-mode 1)
 
 (defun split-window-below-then-switch-to (&optional size)
