@@ -110,6 +110,7 @@
 (require 'shackle_init)
 (require 'popper_init)
 (require 'nerd-icons_init)
+(require 'eee_init)
 
 (add-hook 'prog-mode-hook 'display-line-numbers-mode)
 (add-hook 'sgml-mode-hook 'display-line-numbers-mode)
