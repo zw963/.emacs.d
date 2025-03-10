@@ -88,3 +88,8 @@
 (setq lua-indent-level 2)
 (add-to-list 'auto-mode-alist '("\\.lua$" . lua-mode))
 (add-to-list 'interpreter-mode-alist '("lua" . lua-mode))
+
+(autoload 'llvm-mode "llvm-mode" nil t)
+(add-to-list 'auto-mode-alist (cons "\\.ll\\'" 'llvm-mode))
+(autoload 'tablegen-mode "tablegen-mode" nil t)
+(add-to-list 'auto-mode-alist (cons (purecopy "\\.td\\'")  'tablegen-mode))
