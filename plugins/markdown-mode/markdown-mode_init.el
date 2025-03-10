@@ -9,7 +9,7 @@
       markdown-coding-system 'utf-8
       markdown-gfm-uppercase-checkbox t
       markdown-gfm-use-electric-backquote nil
-      markdown-hide-urls t
+      ;; markdown-hide-urls t
       )
 
 (add-to-list 'auto-mode-alist '("\\.markdown$" . gfm-mode))
@@ -27,6 +27,7 @@
             (whitespace-mode -1)
             (display-line-numbers-mode)
             (display-fill-column-indicator-mode)
+            (markdown-toggle-url-hiding)
             ))
 
 (provide 'markdown-mode_init)

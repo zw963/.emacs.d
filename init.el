@@ -117,7 +117,6 @@
 (add-hook 'feature-mode-hook 'display-line-numbers-mode)
 (add-hook 'markdown-mode-hook 'display-line-numbers-mode)
 
-
 ;; emacs 29 support
 ;; 打开这个的话，如果两个 window/frame 打开同一个 buffer
 ;; 总是会自作聪明的同步两个 window/frame 光标所在位置。
