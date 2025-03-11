@@ -106,7 +106,21 @@
 ;;  '(font-lock-comment-face ((t (:slant italic :family "Victor Mono" :height 140)))))
 
 ;; (load-my-fonts)
-(require 'cnfonts_init)
+;; (require 'cnfonts_init)
+
+(defun my-better-hybird-font ()
+  ;; 设置混合字体
+  (dolist (param '(
+                   ;; (font . "yaheiInconsolata-15")
+                   ;; (font . "Sarasa Mono SC Nerd-15")
+                   ;; (font . "YaHei Monaco Hybird:style=Regular-15")
+                   (font . "JetBrains Maple Mono")
+                   ))
+    (add-to-list 'default-frame-alist param)
+    (add-to-list 'initial-frame-alist param)
+    ))
+
+(my-better-hybird-font)
 
 (provide 'fonts_init)
 

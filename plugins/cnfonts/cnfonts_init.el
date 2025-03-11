@@ -51,18 +51,6 @@
 ;;     (set-fontset-font t 'symbol (font-spec :family "Noto Color Emoji") nil 'prepend)
 ;;     ))
 
-;; (defun my-better-hybird-font ()
-;;   ;; 设置混合字体
-;;   (dolist (param '(
-;;                    ;; (font . "yaheiInconsolata-15")
-;;                    ;; (font . "Sarasa Mono SC Nerd-15")
-;;                    ;; (font . "YaHei Monaco Hybird:style=Regular-15")
-;;                    (font . "SHS Monaco Adjusted Medium:style=Medium-14")
-;;                    ))
-;;     (add-to-list 'default-frame-alist param)
-;;     (add-to-list 'initial-frame-alist param)
-;;     ))
-
 ;; ;; 获取当前使用的字体：(face-attribute 'default :font)
 ;; ;; (set-frame-font "Fira Code")
 ;; ;; (set-frame-font "Inconsolata")
