@@ -54,6 +54,7 @@
 (require 'symbol-overlay_init)
 (require 'iedit_init) ;; 确保放到 symbol-overlay 后面
 (require 'color-rg_init)
+;; (require 'eee_init) ;; 这个打开，覆盖 color-rg 的 Ctrl + Alt + R
 (require 'markdown-mode_init)
 (require 'easy-kill_init)
 (require 'burly_init)
@@ -110,7 +111,6 @@
 (require 'shackle_init)
 (require 'popper_init)
 (require 'nerd-icons_init)
-(require 'eee_init)
 
 (add-hook 'prog-mode-hook 'display-line-numbers-mode)
 (add-hook 'sgml-mode-hook 'display-line-numbers-mode)
