@@ -56,7 +56,7 @@
 (require 'color-rg_init)
 ;; (require 'eee_init) ;; 这个打开，覆盖 color-rg 的 Ctrl + Alt + R
 (require 'markdown-mode_init)
-(require 'easy-kill_init)
+;; (require 'easy-kill_init)
 (require 'burly_init)
 (require 'sis_init)
 (require 'page-break-lines_init)
