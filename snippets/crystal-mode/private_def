@@ -1,0 +1,6 @@
+# -*- mode: snippet -*-
+# name: crystal private def
+# key: pd
+# condition: (yas-use-region-p)
+# --
+private def ${1:meth}`(def)`

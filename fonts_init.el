@@ -106,7 +106,7 @@
 ;;  '(font-lock-comment-face ((t (:slant italic :family "Victor Mono" :height 140)))))
 
 ;; (load-my-fonts)
-;; (require 'cnfonts_init)
+(require 'cnfonts_init)
 
 (defun my-better-hybird-font ()
   ;; 设置混合字体
@@ -120,7 +120,7 @@
     (add-to-list 'initial-frame-alist param)
     ))
 
-(my-better-hybird-font)
+;; (my-better-hybird-font)
 
 (provide 'fonts_init)
 
