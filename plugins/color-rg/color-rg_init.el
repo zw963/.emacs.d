@@ -23,7 +23,8 @@
             (define-key color-rg-mode-map [(f3)] 'color-rg-switch-to-edit-mode)
             ))
 
-;; 默认搜索当前目录下文件，可以
+;; 默认搜索当前目录下文件，可以按下 o 在上一级目录搜索。
+;; 按下 O 在项目根目录下搜索。
 (global-set-key [(control meta r)] 'color-rg-search-input)
 
 (provide 'color-rg_init)
