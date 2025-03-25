@@ -15,11 +15,11 @@
                                       ))
   )
 
-(require 'atomic-chrome)
-(setq atomic-chrome-default-major-mode 'markdown-mode)
-(setq atomic-chrome-buffer-open-style 'frame)
-;; (setq atomic-chrome-extension-type-list '(ghost-text))
-(atomic-chrome-start-server)
+;; (require 'atomic-chrome)
+;; (setq atomic-chrome-default-major-mode 'markdown-mode)
+;; (setq atomic-chrome-buffer-open-style 'frame)
+;; ;; (setq atomic-chrome-extension-type-list '(ghost-text))
+;; (atomic-chrome-start-server)
 
 (provide 'edit-server_init)
 ;;;  edit-server_init.el ends here
