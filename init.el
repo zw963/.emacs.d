@@ -32,17 +32,19 @@
 (require 'beyond-compare_init)
 ;; (require 'ido_init)
 
-(require 'flx_init)
+;; (require 'flx_init)
+;; (require 'fussy_init); 放到 flx_init 后面
+(require 'hotfuzz_init)
 (require 'company_init)
 (require 'helm_init)
 (require 'helm-bindings_init) ; 和 ivy_init 冲突， 二者选其一.
 ;; (require 'ivy_init)
-(require 'prescient_init) ;; 这个必须放在 ivy_init 或 company_init 后面.
+;; (require 'prescient_init) ;; 这个必须放在 ivy_init 或 company_init 后面.
 
 (require 'yasnippet_init)
 (require 'wgrep_init)
 (require 'quickrun_init)
-;; (require 'amx_init) ;; 似乎运行 dap-debug 时出错?
+(require 'amx_init) ;; 似乎运行 dap-debug 时出错?
 (require 'spatial-navigate_init)
 
 (require 'vterm_init)

@@ -1198,13 +1198,13 @@ COMMAND can also be a list of commands to ignore.
 A hidden second arg defaults to t, but if nil is explicitly
 passed for this arg, it tells amx *not* to ignore COMMAND,
 reversing the effect of a previous `amx-ignore'. "
-  (declare (advertised-calling-convention (command) nil))
   (interactive
    (list
     (let ((amx-temp-prompt-string "Ignore command: "))
       (amx-completing-read
        amx-cache
        :predicate (lambda (cmd) (not (amx-command-ignored-p cmd)))))))
+  (declare (advertised-calling-convention (command) nil))
   (unless (listp command)
     (setq command (list command)))
   (cl-loop
@@ -1257,7 +1257,7 @@ reversing the effect of a previous `amx-ignore'. "
 ;; TODO: These are redundant with the keymap functions I wrote. DRY it
 ;; out.
 (defun amx-extract-commands-from-keymap (keymap)
-  (let ((commands nil))
+  (let (commands)
     (amx-parse-keymap keymap commands)
     commands))
 
