@@ -1,7 +1,7 @@
 ;;; quickrun.el --- Run commands quickly  -*- lexical-binding: t; -*-
 
 ;; Copyright (C) 2017 by Syohei YOSHIDA
-;; Copyright (C) 2020-2022 by Jen-Chieh Shen
+;; Copyright (C) 2020-2025 by Jen-Chieh Shen
 
 ;; Author: Syohei YOSHIDA <syohex@gmail.com>
 ;; Maintainer: Jen-Chieh Shen <jcs090218@gmail.com>
@@ -85,12 +85,21 @@
   :type 'boolean
   :group 'quickrun)
 
+(defcustom quickrun-output-only nil
+  "If non-nil, omit the header and footer from the output."
+  :type 'boolean
+  :group 'quickrun)
+
 (defconst quickrun--buffer-name "*quickrun*")
 (defvar quickrun--executed-file nil)
 (defvar quickrun--remove-files nil)
 (defvar quickrun--compile-only-flag nil)
 (defvar quickrun--original-buffer nil)
 (defvar quickrun--original-outputter nil)
+
+(defun quickrun-2str (obj)
+  "Convert OBJ to string."
+  (format "%s" obj))
 
 (defmacro quickrun--awhen (test &rest body)
   "Anaphoric when.  If TEST is non-nil, do BODY (include `it')."
@@ -190,8 +199,7 @@ FMT and ARGS passed `message'."
   (image-mode))
 
 ;;
-;; language command parameters
-;;
+;;; language command parameters
 
 (defvar quickrun--language-alist
   '(("asm/masm" . ((:command . "ml")
@@ -212,6 +220,8 @@ FMT and ARGS passed `message'."
                    (:exec . ("%c -f elf64 %o %s -o %e.o" "ld -o %e %e.o" "%e %a"))
                    (:remove . ("%e" "%e.o"))
                    (:description . "Compile Assembly file with nasm and execute")))
+    ("applescript" . ((:command . "osascript")
+                      (:description . "Run apple script")))
 
     ("c/gcc" . ((:command . "gcc")
                 (:exec    . ("%c -x c %o -o %e %s" "%e %a"))
@@ -302,9 +312,19 @@ FMT and ARGS passed `message'."
     ("php" . ((:command . "php") (:compile-only . "%c -l %s")
               (:description . "Run PHP script")))
 
-    ("emacs" . ((:command . "emacs")
-                (:exec    . "%c -q --no-site-file --batch -l %s")
-                (:description . "Run Elisp as script file")))
+    ("elisp/emacs" . ((:command . "emacs")
+                      (:exec    . "%c -q --no-site-file --batch -l %s")
+                      (:description . "Run Elisp as script file")))
+    ("elisp/eask" . ((:command . "eask load")
+                     (:exec    . "%c %s")
+                     (:description . "Run Elisp as script file through Eask (local scope)")))
+    ("elisp/eask-g" . ((:command . "eask load")
+                       (:exec    . "%c %s -g")
+                       (:description . "Run Elisp as script file through Eask (global scope)")))
+    ("elisp/eask-c" . ((:command . "eask load")
+                       (:exec    . "%c %s -c")
+                       (:description . "Run Elisp as script file through Eask (configuration scope)")))
+
     ("lisp/clisp" . ((:command . "clisp")
                      (:description . "Run Lisp file with clisp")))
     ("lisp/sbcl" . ((:command . "sbcl")
@@ -328,23 +348,23 @@ FMT and ARGS passed `message'."
                               (:description . "Run Clojure file with clj-env-dir")))
 
     ("javascript/node" . ((:command . "node")
-                          (:description . "Run Javascript file with node.js")))
+                          (:description . "Run JavaScript file with Node.js")))
     ("javascript/v8" . ((:command . "v8")
-                        (:description . "Run Javascript file with v8")))
+                        (:description . "Run JavaScript file with v8")))
     ("javascript/js" . ((:command . "js")
-                        (:description . "Run Javascript file with js(Rhino)")))
+                        (:description . "Run JavaScript file with js(Rhino)")))
     ("javascript/jrunscript" . ((:command . "jrunscript")
-                                (:description . "Run Javascript file with jrunscript")))
+                                (:description . "Run JavaScript file with jrunscript")))
     ("javascript/phantomjs" . ((:command . "phantomjs")
-                               (:description . "Run Javascript file with phantomjs")))
+                               (:description . "Run JavaScript file with phantomjs")))
     ("javascript/cscript" . ((:command . "cscript")
                              (:exec . "%c //e:jscript %o %s %a")
                              (:cmdopt . "//Nologo")
-                             (:description . "Run Javascript file with cscript")))
+                             (:description . "Run JavaScript file with cscript")))
     ("javascript/deno" . ((:command . "deno")
-                          (:exec . "%c run %s")
+                          (:exec . "%c run -A %s")
                           (:compile-only . "%c compile %s")
-                          (:description . "Run Javascript file with deno")))
+                          (:description . "Run JavaScript file with deno")))
 
     ("coffee" . ((:command . "coffee")
                  (:compile-only . "coffee --print %s")
@@ -364,7 +384,7 @@ FMT and ARGS passed `message'."
                          (:remove  . ("%n.js"))
                          (:description . "Run TypeScript script")))
     ("typescript/deno" . ((:command . "deno")
-                          (:exec . "%c run %s")
+                          (:exec . "%c run -A %s")
                           (:compile-only . "%c compile %s")
                           (:compile-conf . ((:compilation-mode . nil) (:mode . js-mode)))
                           (:remove  . ("%n.js"))
@@ -512,9 +532,16 @@ FMT and ARGS passed `message'."
             (:tempfile . nil)
             (:remove "%n")
             (:description . "Compile and run V programs")))
-    ("applescript" . ((:command . "osascript")
-                      (:description . "Run apple script"))))
 
+    ("zig" . ((:command     . "zig")
+              (:exec        . "%c run %s")
+              (:description . "Run zig file with Zig program")))
+    ("zig/build" . ((:command     . "zig")
+                    (:exec        . "%c build run")
+                    (:description . "Run zig file with built-in package manager")))
+    ("nix" . ((:command . "nix")
+              (:exec    . "%c eval --file %s")
+              (:description . "Evaluate the Nix expression file"))))
   "List of each programming languages information.
 Parameter form is (\"language\" . parameter-alist).  parameter-alist has
 5 keys and those values , :command, :exec, :remove.
@@ -535,7 +562,8 @@ See explanation of quickrun--template-place-holders
 if you set your own language configuration.")
 
 (defvar quickrun-file-alist
-  '(("\\.c\\'" . "c")
+  '(("\\.\\(scpt\\|applescript\\)\\'" . "applescript")
+    ("\\.c\\'" . "c")
     ("\\.\\(cpp\\|cxx\\|C\\|cc\\)\\'" . "c++")
     ("\\.m\\'" . "objc")
     ("\\.cs\\'" . "c#")
@@ -544,7 +572,7 @@ if you set your own language configuration.")
     ("\\.rb\\'" . "ruby")
     ("\\.py\\'" . "python")
     ("\\.php\\'" . "php")
-    ("\\.\\(el\\|elisp\\)\\'" . "emacs")
+    ("\\.\\(el\\|elisp\\)\\'" . "elisp")
     ("\\.\\(lisp\\|lsp\\)\\'" . "lisp")
     ("\\.\\(scm\\|scheme\\)\\'" . "scheme")
     ("\\.st\\'" . "st/gst")
@@ -586,64 +614,66 @@ if you set your own language configuration.")
     ("\\.kt\\'" . "kotlin")
     ("\\.cr\\'" . "crystal")
     ("\\.v\\'" . "v")
-    ("\\.\\(scpt\\|applescript\\)\\'" . "applescript"))
+    ("\\.zig\\'" . "zig"))
   "Alist of (file-regexp . key)")
 
 (defvar quickrun--major-mode-alist
-  '((c-mode . "c")
-    (c++-mode . "c++")
-    (objc-mode . "objc")
-    (csharp-mode . "c#")
-    ((perl-mode cperl-mode) . "perl")
-    (perl6-mode . "perl6")
-    (ruby-mode . "ruby")
-    (python-mode . "python")
-    (php-mode . "php")
-    (emacs-lisp-mode . "emacs")
-    (lisp-mode . "lisp")
-    (scheme-mode . "scheme")
-    (smalltalk-mode . "st/gst")
-    (racket-mode . "racket")
+  '((applescript-mode                            . "applescript")
+    (c-mode                                      . "c")
+    (c++-mode                                    . "c++")
+    (objc-mode                                   . "objc")
+    (csharp-mode                                 . "c#")
+    ((perl-mode cperl-mode)                      . "perl")
+    (perl6-mode                                  . "perl6")
+    (ruby-mode                                   . "ruby")
+    (python-mode                                 . "python")
+    ((php-mode php-ts-mode phps-mode)            . "php")
+    (emacs-lisp-mode                             . "elisp")
+    (lisp-mode                                   . "lisp")
+    (scheme-mode                                 . "scheme")
+    (smalltalk-mode                              . "st/gst")
+    (racket-mode                                 . "racket")
     ((javascript-mode js-mode js2-mode js3-mode) . "javascript")
-    (clojure-mode . "clojure")
-    (erlang-mode . "erlang")
-    ((ocaml-mode tuareg-mode) . "ocaml")
-    (fsharp-mode . "fsharp")
-    (go-mode . "go")
-    (io-mode . "io")
-    (lua-mode . "lua")
-    (haskell-mode . "haskell")
-    (java-mode . "java")
-    (d-mode . "d")
-    (fortran-mode . "fortran")
-    (markdown-mode . "markdown")
-    (coffee-mode . "coffee")
-    (jsx-mode . "jsx")
-    (typescript-mode . "typescript")
-    (scala-mode . "scala")
-    (groove-mode . "groovy")
-    (haml-mode . "haml")
-    (sass-mode . "sass")
-    ((less-mode less-css-mode) . "less")
-    (sh-mode . "shellscript")
-    (awk-mode . "awk")
-    (rust-mode . "rust")
-    (dart-mode . "dart/checked")
-    (elixir-mode . "elixir")
-    (tcl-mode . "tcl")
-    (swift-mode . "swift")
-    ((asm-mode nasm-mode masm-mode) . "asm")
-    (ats-mode . "ats")
-    (ess-mode . "r")
-    (nim-mode . "nim")
-    (nimscript-mode . "nimscript")
-    (fish-mode . "fish")
-    (julia-mode . "julia")
-    (gnuplot-mode . "gnuplot")
-    (kotlin-mode . "kotlin")
-    (crystal-mode . "crystal")
-    (v-mode . "v")
-    (applescript-mode . "applescript"))
+    (clojure-mode                                . "clojure")
+    (erlang-mode                                 . "erlang")
+    ((ocaml-mode tuareg-mode)                    . "ocaml")
+    (fsharp-mode                                 . "fsharp")
+    (go-mode                                     . "go")
+    (io-mode                                     . "io")
+    (lua-mode                                    . "lua")
+    (haskell-mode                                . "haskell")
+    (java-mode                                   . "java")
+    (d-mode                                      . "d")
+    (fortran-mode                                . "fortran")
+    (markdown-mode                               . "markdown")
+    (coffee-mode                                 . "coffee")
+    (jsx-mode                                    . "jsx")
+    (typescript-mode                             . "typescript")
+    (scala-mode                                  . "scala")
+    (groove-mode                                 . "groovy")
+    (haml-mode                                   . "haml")
+    (sass-mode                                   . "sass")
+    ((less-mode less-css-mode)                   . "less")
+    (sh-mode                                     . "shellscript")
+    (awk-mode                                    . "awk")
+    (rust-mode                                   . "rust")
+    (rustic-mode                                 . "rust")
+    (dart-mode                                   . "dart/checked")
+    (elixir-mode                                 . "elixir")
+    (tcl-mode                                    . "tcl")
+    (swift-mode                                  . "swift")
+    ((asm-mode nasm-mode masm-mode)              . "asm")
+    (ats-mode                                    . "ats")
+    (ess-mode                                    . "r")
+    (nim-mode                                    . "nim")
+    (nimscript-mode                              . "nimscript")
+    (fish-mode                                   . "fish")
+    (julia-mode                                  . "julia")
+    (gnuplot-mode                                . "gnuplot")
+    (kotlin-mode                                 . "kotlin")
+    (crystal-mode                                . "crystal")
+    (v-mode                                      . "v")
+    (zig-mode                                    . "zig"))
   "Alist of major-mode and langkey")
 
 (defun quickrun--decide-file-type (filename)
@@ -668,8 +698,8 @@ if you set your own language configuration.")
              (format "not found [%s] language information" lang))))
 
 ;;
-;; Compile Only
-;;
+;;; Compile Only
+
 (defun quickrun--check-using-compilation-mode (compile-conf)
   "Not documented."
   (if (not compile-conf)
@@ -682,7 +712,9 @@ if you set your own language configuration.")
 (defun quickrun--pop-to-buffer (buf cb)
   "Not documented."
   (let ((win (selected-window)))
-    (switch-to-buffer-other-window buf)
+    (pop-to-buffer buf
+                   `((display-buffer-in-direction)
+                     (dedicated . t)))
     (funcall cb)
     (unless quickrun-focus-p
       (select-window win))))
@@ -702,8 +734,8 @@ if you set your own language configuration.")
              (quickrun--awhen (assoc-default :mode compile-conf)
                (funcall it)
                (quickrun--pop-to-buffer
-                (current-buffer) (lambda () (read-only-mode +1)))
-               (read-only-mode +1)))
+                (current-buffer) (lambda () (read-only-mode 1)))
+               (read-only-mode 1)))
            (quickrun--remove-temp-files)))))
 
 (defun quickrun--compilation-finish-func (_buffer _str)
@@ -711,8 +743,8 @@ if you set your own language configuration.")
   (quickrun--remove-temp-files))
 
 ;;
-;; Execute
-;;
+;;; Execute
+
 (defvar quickrun--timeout-timer nil)
 (defvar quickrun--run-in-shell nil)
 
@@ -752,6 +784,34 @@ if you set your own language configuration.")
       (insert output)
       (ansi-color-apply-on-region start (point)))))
 
+(defun quickrun--get-timestamp ()
+  "Return timestamp for quickrun buffer."
+  (substring (current-time-string) 0 19))
+
+(defun quickrun--insert-header (process)
+  "Insert header to PROCESS buffer."
+  (unless quickrun-output-only
+    (with-current-buffer (process-buffer process)
+      (let ((inhibit-read-only t)
+            (time (quickrun--get-timestamp)))
+        (insert "-*- mode: quickrun-; default-directory: \""
+                default-directory
+                "\" -*-\n")
+        (insert "Quickrun started at " time "\n\n")))))
+
+(defun quickrun--insert-footer (process code)
+  "Insert footer to PROCESS buffer with exit CODE."
+  (unless quickrun-output-only
+    (with-current-buffer (process-buffer process)
+      (let ((inhibit-read-only t)
+            (time (quickrun--get-timestamp)))
+        (insert "\n\n")
+        (if (zerop code)
+            (insert "Quickrun finished at " time "\n")
+          (insert "Quickrun exited abnormally with code "
+                  (quickrun-2str code)
+                  " at " time "\n"))))))
+
 (defun quickrun--exec (cmd-lst src mode)
   "Not documented."
   (if quickrun--run-in-shell
@@ -768,7 +828,8 @@ if you set your own language configuration.")
         (when (eq outputter 'quickrun--default-outputter)
           (set-process-filter process #'quickrun--default-filter))
         (set-process-sentinel process
-                              (quickrun--make-sentinel rest-cmds outputter src mode))))))
+                              (quickrun--make-sentinel rest-cmds outputter src mode))
+        (quickrun--insert-header process)))))
 
 (defvar quickrun--eshell-buffer-name "*eshell-quickrun*")
 (defvar quickrun--shell-last-command)
@@ -801,7 +862,7 @@ if you set your own language configuration.")
               (setq rerun-p t))))
       (unless rerun-p
         (quickrun--eshell-finish)
-        (read-only-mode +1)
+        (read-only-mode 1)
         (use-local-map quickrun--eshell-map)))))
 
 (defun quickrun--insert-command (cmd-str)
@@ -882,7 +943,7 @@ if you set your own language configuration.")
                       (process-name process)
                       quickrun-timeout-seconds)))
     (quickrun--remove-temp-files)
-    (quickrun--pop-to-buffer buf (lambda () (read-only-mode +1)))))
+    (quickrun--pop-to-buffer buf (lambda () (read-only-mode 1)))))
 
 (defun quickrun--remove-temp-files ()
   "Remove temporary files."
@@ -910,13 +971,12 @@ if you set your own language configuration.")
 
 (define-derived-mode quickrun--mode nil "Quickrun"
   "Major mode for Quickrun execution process."
-  (read-only-mode +1)
+  (read-only-mode 1)
   (setq-local truncate-lines quickrun-truncate-lines)
   (use-local-map quickrun--mode-map))
 
 ;;
-;; Predefined outputter
-;;
+;;; Predefined outputter
 
 (defvar quickrun--defined-outputter-symbol
   '((message  . quickrun--outputter-message)
@@ -1032,11 +1092,11 @@ if you set your own language configuration.")
         (let ((quickrun--original-buffer origbuf))
           (read-only-mode -1)
           (funcall outputter-func)
-          (read-only-mode +1))))))
+          (read-only-mode 1))))))
 
 (defun quickrun--apply-compilation-mode (input-file mode)
   "Not documented."
-  (when (not (string= input-file quickrun--executed-file))
+  (unless (string= input-file quickrun--executed-file)
     (save-excursion
       (goto-char (point-min))
       (let ((case-fold-search nil))
@@ -1053,7 +1113,7 @@ if you set your own language configuration.")
       (read-only-mode -1))
     (quickrun--default-outputter)
     (goto-char (point-min))
-    (read-only-mode +1)))
+    (read-only-mode 1)))
 
 (defun quickrun--make-sentinel (rest-commands outputter-func input orig-mode)
   "Not documented."
@@ -1062,9 +1122,10 @@ if you set your own language configuration.")
     (setq quickrun-option-outputter outputter-func)
     (when (memq (process-status process) '(exit signal))
       (and quickrun--timeout-timer (cancel-timer quickrun--timeout-timer))
-      (delete-process process)
       (let* ((exit-status (process-exit-status process))
              (is-success (zerop exit-status)))
+        (quickrun--insert-footer process exit-status)
+        (delete-process process)
         (cond ((and is-success rest-commands)
                (quickrun--exec rest-commands input orig-mode))
               (t
@@ -1081,8 +1142,8 @@ if you set your own language configuration.")
                (quickrun--remove-temp-files)))))))
 
 ;;
-;; Composing command
-;;
+;;; Composing command
+
 (defconst quickrun--template-place-holders
   '("%c" "%o" "%s" "%S" "%a" "%d" "%n" "%N" "%e" "%E")
   "A list of place holders of each language parameter.
@@ -1211,18 +1272,18 @@ Place holders are beginning with '%' and replaced by:
         (setq str (replace-regexp-in-string holder rep str t))))))
 
 ;;
-;; initialize
-;;
+;;; initialize
 
 (defconst quickrun--support-languages
-  '("c" "c++" "objc" "c#" "perl" "perl6" "ruby" "python" "php" "emacs" "lisp" "scheme" "st"
-    "racket" "javascript" "clojure" "erlang" "ocaml" "fsharp" "go" "io" "haskell" "java"
-    "d" "markdown" "coffee" "scala" "groovy" "sass" "less" "shellscript" "awk"
-    "lua" "rust" "dart" "elixir" "tcl" "jsx" "typescript" "fortran" "haml"
-    "swift" "ats" "r" "nim" "nimscript" "fish" "julia" "gnuplot" "kotlin" "crystal" "v"
-    "applescript" "asm")
+  '("asm" "applescript"
+    "c" "c++" "objc" "c#" "perl" "perl6" "ruby" "python" "php" "elisp" "lisp"
+    "scheme" "st" "racket" "javascript" "clojure" "erlang" "ocaml" "fsharp"
+    "go" "io" "haskell" "java" "d" "markdown" "coffee" "scala" "groovy" "sass"
+    "less" "shellscript" "awk" "lua" "rust" "dart" "elixir" "tcl" "jsx"
+    "typescript" "fortran" "haml" "swift" "ats" "r" "nim" "nimscript" "fish"
+    "julia" "gnuplot" "kotlin" "crystal" "v" "zig")
   "Programming languages and Markup languages supported as default
-by quickrun.el. But you can register your own command for some languages")
+by quickrun.el.  But you can register your own command for some languages")
 
 (defvar quickrun--command-key-table
   (make-hash-table :test 'equal))
@@ -1309,6 +1370,7 @@ by quickrun.el. But you can register your own command for some languages")
     ("c" . ,(quickrun--c-compiler))
     ("c++" . ,(quickrun--c++-compiler))
     ("c#" . ("dotnet" "mono"))
+    ("elisp" . ("emacs" "eask" "eask-g" "eask-c"))
     ("fortran" . ("gfortran"))
     ("javascript" . ("node" "v8" "js" "jrunscript" "cscript" "deno"))
     ("ruby" . ("ruby" "mruby"))
@@ -1318,7 +1380,8 @@ by quickrun.el. But you can register your own command for some languages")
     ("typescript" . ("tsc" "deno"))
     ("markdown" . ("Markdown.pl" "kramdown" "bluecloth" "redcarpet" "pandoc"))
     ("clojure" . ("jark" "clj-env-dir"))
-    ("go" . ("go" "gccgo")))
+    ("go" . ("go" "gccgo"))
+    ("zig" . ("zig" "build")))
   "Candidates of language which has some compilers or interpreters.")
 
 (defun quickrun--init-command-key-table ()
@@ -1349,8 +1412,8 @@ by quickrun.el. But you can register your own command for some languages")
               (file-name-nondirectory buffer-file))))))
 
 ;;
-;; main
-;;
+;;; main
+
 ;;;###autoload
 (defun quickrun (&rest plist)
   "Run commands quickly for current buffer.
@@ -1522,7 +1585,6 @@ With double prefix argument(C-u C-u), run in compile-only-mode."
   (let* ((orig-src quickrun--executed-file)
          (cmd-key (quickrun--command-key orig-src)))
     (quickrun--set-default-directory cmd-key)
-    (quickrun--kill-quickrun-buffer)
     (unless (local-variable-p 'quickrun--last-cmd-key)
       (make-local-variable 'quickrun--last-cmd-key))
     (setq quickrun--last-cmd-key cmd-key)
@@ -1571,8 +1633,7 @@ With double prefix argument(C-u C-u), run in compile-only-mode."
     (remove-hook 'after-save-hook 'quickrun--without-focus t)))
 
 ;;
-;; helm/anything interface
-;;
+;;; helm/anything interface
 
 (defconst helm-quickrun--actions
   '(("Run this cmd-key" . quickrun--helm-action-default)
