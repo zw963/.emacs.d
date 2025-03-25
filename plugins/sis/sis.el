@@ -1,9 +1,9 @@
-;;; sis.el --- Less manual switch for native or OS input source (input method). -*- lexical-binding: t; -*-
+;;; sis.el --- Minimize manual input source (input method) switching -*- lexical-binding: t; -*-
 
 ;; URL: https://github.com/laishulu/emacs-smart-input-source
 ;; Created: March 27th, 2020
 ;; Keywords: convenience
-;; Package-Requires: ((emacs "25.1") (terminal-focus-reporting "0.0"))
+;; Package-Requires: ((emacs "27.1"))
 ;; Version: 1.0
 
 ;; This file is not part of GNU Emacs.
@@ -22,8 +22,9 @@
 ;; along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 ;;; Commentary:
-;; This package enables less manual switch for native or OS input source (input
-;; method). For more information see the README in the GitHub repo.
+;; This package Minimize manual input source (input method) switching.
+;;
+;;For more information see the README in the GitHub repo.
 
 ;;; Code:
 (require 'subr-x)
@@ -47,8 +48,11 @@ Should accept a string which is the id of the input source.")
 (defvar sis-english-source "com.apple.keylayout.US"
   "Input source for english.")
 
-(defvar sis-other-pattern "\\cc"
-  "Pattern to identify a character as other lang.")
+(defvar sis-other-pattern
+  "[\u4E00-\u9FFF\u3400-\u4DBF\u3000-\u303F\uFF00-\uFFEF]"
+  "Pattern to identify a character as other lang.
+
+Default value is CJK characters and punctuations.")
 
 (defvar sis-other-source "com.sogou.inputmethod.sogou.pinyin"
   "Input source for other lang.")
@@ -88,14 +92,13 @@ Each trigger should be a cons cell: (cons FN DETECTOR).
   - args: nil
   - return:
     - nil: left the determination to later detectors.
-    - 'english: english context.
-    - 'other: other language context.
+    - \\='english: english context.
+    - \\='other: other language context.
 
 Example of adding a trigger:
-#+begin_src elisp
-(add-to-list 'sis-respect-minibuffer-triggers
-             (cons 'org-roam-node-find (lambda () 'other)))
-#+end_src
+
+  (add-to-list \\='sis-respect-minibuffer-triggers
+               (cons \\='org-roam-node-find (lambda () \\='other)))
 
 If no trigger returns a none-nil result, english will be used as default.")
 
@@ -128,8 +131,8 @@ Set after the modes may have no effect.")
 
 Possible values:
 nil: dynamic context
-'english: English context
-'other: other language context.")
+\\='english: English context
+\\='other: other language context.")
 
 (defvar sis-context-detectors
   (list (lambda (&rest _) sis-context-fixed)
@@ -148,8 +151,8 @@ Each detector should:
   - fore-detect: which is the result of (sis--fore-detect-chars).
 - return one of the following values:
   - nil: left the determination to later detectors.
-  - 'english: English context.
-  - 'other: other language context.")
+  - \\='english: English context.
+  - \\='other: other language context.")
 
 (defvar sis-context-aggressive-line t
   "Aggressively detect context across blank lines.")
@@ -159,8 +162,8 @@ Each detector should:
   "Hooks trigger the set of input source following context.")
 
 (defvar sis-context-triggers
-  '(('+org/insert-item-below 'sis--context-line nil)
-    ('+org/insert-item-above 'sis--context-line nil))
+  (list '('+org/insert-item-below 'sis--context-line nil)
+        '('+org/insert-item-above 'sis--context-line nil))
   "Commands trigger the set of input source following context.
 
 Each trigger should be a list: (FN PRE-FN-DETECTOR POST-FN-DETECTOR).
@@ -169,14 +172,14 @@ Each trigger should be a list: (FN PRE-FN-DETECTOR POST-FN-DETECTOR).
   - args: none
   - return:
     - nil: left the determination to later detectors.
-    - 'english: English context.
-    - 'other: other language context.
+    - \\='english: English context.
+    - \\='other: other language context.
 - POST-FN-DETECTOR:
   - args: none
   - return:
     - nil: left the determination to later detectors.
-    - 'english: English context.
-    - 'other: other language context.
+    - \\='english: English context.
+    - \\='other: other language context.
 Input source will be switched to (or (PRE-FN-DETECTOR) (POST-FN-DETECTOR)) after
 FN is invoked.")
 
@@ -216,11 +219,11 @@ autocomplete rendering a large area with the region background.")
 Possible values:
 0: don't delete space
 1: delete 1 space if exists
-'zero: always ensure no space
-'one: always ensure one space
+\\='zero: always ensure no space
+\\='one: always ensure one space
 custom function: the cursor will be moved to the beginning of the inline region,
-                   and the function will be called with an argument which is the
-                   end position of the leading whitespaces in the inline region.")
+                 and the function will be called with an argument which is the
+                 end position of the leading whitespaces in the inline region.")
 
 (defvar sis-inline-tighten-tail-rule 'one
   "Rule to delete tail spaces.
@@ -228,8 +231,8 @@ custom function: the cursor will be moved to the beginning of the inline region,
 Possible values:
 0: don't delete space
 1: delete 1 space if exists
-'zero: always ensure no space
-'one: always ensure one space
+\\='zero: always ensure no space
+\\='one: always ensure one space
 custom function: the cursor will be moved to the end of the inline region, and
                    the function will be called with an argument which is the
                    beginning of the tailing whitespaces in the inline region.")
@@ -259,6 +262,7 @@ custom function: the cursor will be moved to the end of the inline region, and
 (declare-function evil-operator-state-p
                   "ext:evil-states.el" (&optional state) t)
 (declare-function company--active-p "ext:company.el" () t)
+(declare-function company-complete-selection "ext:company.el" () t)
 (declare-function mac-input-source "ext:macfns.c" (&optional SOURCE FORMAT) t)
 (declare-function mac-select-input-source "ext:macfns.c"
                   (SOURCE &optional SET-KEYBOARD-LAYOUT-OVERRIDE-P) t)
@@ -268,7 +272,7 @@ custom function: the cursor will be moved to the end of the inline region, and
 (defvar evil-normal-state-map)
 
 (defun sis--do-nothing-advice (&rest _)
-    "Advice to make existing function do nothing.")
+  "Advice to make existing function do nothing.")
 
 (defun sis--original-advice (fn &rest args)
   "Advice to override existing advice on FN with ARGS."
@@ -305,7 +309,7 @@ meanings as `string-match-p'."
 
 (defun sis--init-ism ()
   "Init input source manager."
-  ;; `sis-do-get'and `sis-do-set' takes the first precedence.
+  ;; `sis-do-get' and `sis-do-set' takes the first precedence.
 
   ;; external ism
   (when (stringp sis-external-ism)
@@ -316,11 +320,11 @@ meanings as `string-match-p'."
   (unless (and (functionp sis-do-get)
                (functionp sis-do-set))
     (cond
-     ((and (string= (window-system) "mac")
+     ((and (member (window-system) (list 'ns 'mac))
            (fboundp 'mac-input-source))
       ;; EMP
       (setq sis--ism 'emp))
-     ((and (string= (window-system) "w32")
+     ((and (equal (window-system) 'w32)
            (fboundp 'w32-get-ime-open-status))
       ;; w32, input sources are fixed
       (setq sis-english-source nil)
@@ -411,7 +415,7 @@ meanings as `string-match-p'."
 (defun sis--update-state (source)
   "Update input source state.
 
-SOURCE should be 'english or 'other."
+SOURCE should be \\='english or \\='other."
 
   (setq sis--previous sis--current)
   (setq sis--current source)
@@ -452,37 +456,37 @@ SOURCE should be 'english or 'other."
   (sis--set (or sis--for-buffer 'english)))
 
 (defun sis--set-english ()
-  "Function to set input source to `english'."
+  "Function to set input source to \\='english."
   (sis--set 'english))
 
 (defun sis--set-other ()
-  "Function to set input source to `other'."
+  "Function to set input source to \\='other."
   (sis--set 'other))
 
 ;;;###autoload
 (defun sis-set-english ()
-  "Command to set input source to `english'."
+  "Command to set input source to \\='english."
   (interactive)
   (setq sis--for-buffer-locked nil)
   (sis--set-english))
 
 ;;;###autoload
 (defun sis-set-other ()
-  "Command to set input source to `other'."
+  "Command to set input source to \\='other."
   (interactive)
   (setq sis--for-buffer-locked nil)
   (sis--set-other))
 
 ;;;###autoload
 (defun sis-switch ()
-  "Switch input source between english and other."
+  "Switch input source between \\='english and \\='other."
   (interactive)
   (setq sis--for-buffer-locked nil)
   (cond
-   (; current is english
+   (; current is \\='english
     (eq sis--current 'english)
     (sis--set-other))
-   (; current is other
+   (; current is \\='other
     (eq sis--current 'other)
     (sis--set-english))))
 
@@ -492,11 +496,13 @@ SOURCE should be 'english or 'other."
 
 Run after the modes may have no effect.
 ENGLISH-SOURCE: ENGLISH input source, nil means default,
-                ignored by ISM-TYPE of 'fcitx, 'fcitx5, 'native, 'w32.
+                ignored by ISM-TYPE of \\='fcitx, \\='fcitx5, \\='native,
+                \\='w32.
 OTHER-SOURCE: OTHER language input source, nil means default,
-              ignored by ISM-TYPE of 'fcitx, 'fcitx5, 'w32.
-TYPE: TYPE can be 'native, 'w32, 'emp, 'macism, 'im-select, 'fcitx, 'fcitx5, 'ibus.
-      nil TYPE fits both 'emp and 'macism."
+              ignored by ISM-TYPE of \\='fcitx, \\='fcitx5, \\='w32.
+TYPE: TYPE can be \\='native, \\='w32, \\='emp, \\='macism, \\='im-select,
+      \\='fcitx, \\='fcitx5,\\='ibus.
+      nil TYPE fits both \\='emp and \\='macism."
   (when english-source
     (setq sis-english-source english-source))
   (when other-source
@@ -521,24 +527,30 @@ TYPE: TYPE can be 'native, 'w32, 'emp, 'macism, 'im-select, 'fcitx, 'fcitx5, 'ib
     ;; because evil will make a buffer local one
     (advice-add 'activate-input-method :filter-return
                 (lambda (res)
-                  (sis--update-state (sis--normalize-to-lang current-input-method))
+                  (sis--update-state (sis--normalize-to-lang
+                                      current-input-method))
                   res))
     ;; Don't use `input-method-deactivate-hook',
     ;; because evil will make a buffer local one
     (advice-add 'deactivate-input-method :filter-return
                 (lambda (res)
-                  (sis--update-state (sis--normalize-to-lang current-input-method))
+                  (sis--update-state (sis--normalize-to-lang
+                                      current-input-method))
                   res))
     (setq sis-do-get (lambda() current-input-method))
     (setq sis-do-set #'activate-input-method))
    (; for builtin supoort, use the default do-get and do-set
     (memq ism-type (list nil 'emp 'w32 'macism 'im-select))
-    ; for WSL/Windows Subsystem for Linux, use the default do-get, set do-set
-    (if (eq system-type 'gnu/linux)
-        (setq sis-do-set (lambda(source)
-            (sis--ensure-dir
-              (make-process :name "set-input-source" :command (list sis--ism source) :connection-type 'pipe ))))
-    t))
+
+    (; for WSL/Windows Subsystem for Linux, use the default do-get, set do-set
+     if (eq system-type 'gnu/linux)
+     (setq sis-do-set
+           (lambda(source)
+             (sis--ensure-dir
+              (make-process :name "set-input-source"
+                            :command (list sis--ism source)
+                            :connection-type 'pipe ))))
+     t))
    (; fcitx and fcitx5, use the default do-get, set do-set
     (memq ism-type (list 'fcitx 'fcitx5))
     (unless sis-english-source
@@ -626,6 +638,9 @@ TYPE: TYPE can be 'native, 'w32, 'emp, 'macism, 'im-select, 'fcitx, 'fcitx5, 'ib
 ;;
 ;; Following codes are mainly about cursor color mode
 ;;
+(defun sis--reset-default-cursor-color (&rest _)
+    "Reset default cursor color to nil."
+    (setq sis-default-cursor-color nil))
 
 (defun sis--set-cursor-color-advice (color)
   "Advice for FN of `set-cursor-color' with COLOR.
@@ -678,11 +693,15 @@ way."
     ;; auto refresh input source
     (unless (eq sis-external-ism 'native)
       (sis--try-enable-auto-refresh-mode))
+    (add-hook 'enable-theme-functions #'sis--reset-default-cursor-color)
+    (add-hook 'disable-theme-functions #'sis--reset-default-cursor-color)
     (advice-add 'set-cursor-color :filter-args #'sis--set-cursor-color-advice)
     (add-hook 'sis-change-hook #'sis--update-cursor-color))
    (; turn off the mode
     (not sis-global-cursor-color-mode)
     (sis--try-disable-auto-refresh-mode)
+    (remove-hook 'enable-theme-functions #'sis--reset-default-cursor-color)
+    (remove-hook 'disable-theme-functions #'sis--reset-default-cursor-color)
     (advice-remove 'set-cursor-color #'sis--set-cursor-color-advice)
     (remove-hook 'sis-change-hook #'sis--update-cursor-color))))
 
@@ -696,7 +715,7 @@ way."
 (defvar sis--prefix-handle-stage 'normal
   "Processing state of the prefix key.
 
-Possible values: 'normal, 'prefix, 'sequence.")
+Possible values: \\='normal, \\='prefix, \\='sequence.")
 
 (defvar sis--buffer-before-prefix nil
   "Current buffer before prefix.")
@@ -761,9 +780,9 @@ Possible values: 'normal, 'prefix, 'sequence.")
 (defun sis--prefix-override-recap-do ()
   "Recap prefix key override."
   (add-to-ordered-list
-     'emulation-mode-map-alists
-     'sis--prefix-override-map-alist
-     sis--prefix-override-order))
+   'emulation-mode-map-alists
+   'sis--prefix-override-map-alist
+   sis--prefix-override-order))
 
 (defun sis--prefix-override-recap-advice (fn &rest args)
   "Advice for FN of `prefix-override-recap-triggers' with ARGS."
@@ -783,26 +802,9 @@ Possible values: 'normal, 'prefix, 'sequence.")
                 unread-command-events)))
 
 (defun sis--respect-focus-change-advice ()
-  "Advice for `after-focus-change-function'.
-
-Only used for graphic display."
-  (when (display-graphic-p)
-    (if (frame-focus-state)
-        (sis--respect-focus-in-handler)
-      (sis--respect-focus-out-handler))))
-
-(defun sis--respect-focus-in-advice (_)
-  "Advice for `handle-focus-in'.
-
-Only used for `terminal-focus-reporting'."
-  (unless (display-graphic-p)
-    (sis--respect-focus-in-handler)))
-
-(defun sis--respect-focus-out-advice (_)
-  "Advice for `handle-focus-out'.
-
-Only used for `terminal-focus-reporting'."
-  (unless (display-graphic-p)
+  "Advice for `after-focus-change-function'."
+  (if (frame-focus-state)
+      (sis--respect-focus-in-handler)
     (sis--respect-focus-out-handler)))
 
 (defun sis--respect-focus-out-handler ()
@@ -1022,7 +1024,7 @@ Only used for `terminal-focus-reporting'."
                 #'sis--original-advice)
     (when sis-respect-evil-normal-escape
       (define-key evil-normal-state-map
-        (kbd "<escape>") #'sis-set-english))))
+                  (kbd "<escape>") #'sis-set-english))))
 
 ;;;###autoload
 (define-minor-mode sis-global-respect-mode
@@ -1030,7 +1032,8 @@ Only used for `terminal-focus-reporting'."
 
 - Respect start: start this mode with specific input source.
 - Respect ~evil~: switch to English when leaving ~evil~ ~insert~ mode.
-- Respect prefix key: switch to English for ~C-c~/ ~C-x~/ ~C-h~.
+- Respect prefix key: switch to English for \\[Control-c] / \\[Control-x] /
+  \\[Control-h].
 - Respect buffer: restore buffer input source when it regain focus."
   :global t
   :init-value nil
@@ -1056,20 +1059,8 @@ Only used for `terminal-focus-reporting'."
        (add-hook 'minibuffer-setup-hook #'sis--minibuffer-setup-handler)
        (add-hook 'minibuffer-exit-hook #'sis--minibuffer-exit-handler)
 
-       (unless (boundp 'after-focus-change-function)
-         (setq after-focus-change-function (lambda ())))
-
        (advice-add 'after-focus-change-function :after
                    #'sis--respect-focus-change-advice)
-
-       ;; enable terminal focus event
-       (unless (display-graphic-p)
-         (require 'terminal-focus-reporting)
-         (terminal-focus-reporting-mode t)
-         (advice-add 'handle-focus-in :after
-                     #'sis--respect-focus-in-advice)
-         (advice-add 'handle-focus-out :after
-                     #'sis--respect-focus-out-advice))
 
        (dolist (trigger sis-respect-go-english-triggers)
          (advice-add trigger :before #'sis--respect-go-english-advice))
@@ -1085,7 +1076,7 @@ Only used for `terminal-focus-reporting'."
                 ,(let ((keymap (make-sparse-keymap)))
                    (dolist (prefix sis-prefix-override-keys)
                      (define-key keymap
-                       (kbd prefix) #'sis--prefix-override-handler))
+                                 (kbd prefix) #'sis--prefix-override-handler))
                    keymap))))
 
        (setq sis--prefix-override-map-enable t)
@@ -1114,10 +1105,6 @@ Only used for `terminal-focus-reporting'."
     ;; for preserving buffer input source
     (advice-remove 'after-focus-change-function
                    #'sis--respect-focus-change-advice)
-    (advice-remove 'handle-focus-in
-                   #'sis--respect-focus-in-advice)
-    (advice-remove 'handle-focus-out
-                   #'sis--respect-focus-out-advice)
 
     (dolist (trigger sis-respect-go-english-triggers)
       (advice-remove trigger #'sis--respect-go-english-advice))
@@ -1168,10 +1155,10 @@ Only used for `terminal-focus-reporting'."
   )
 
 (defun sis--back-detect-chars ()
-  "Detect char backward by two steps.
+  "Detect char backward by two step.
 
-  First backward skip blank in the current line,
-  then backward skip blank across lines."
+  Step 1: backward skip blank in the current line.
+  Step 2: backward skip blank across lines."
   (save-excursion
     (skip-chars-backward sis-blank-pattern)
     (let ((to (point))
@@ -1297,9 +1284,10 @@ If POSITION is not provided, then default to be the current position."
 ;;;###autoload
 (define-minor-mode sis-context-mode
   "Switch input source smartly according to context."
+  :global nil
   :init-value nil
   (cond
-   (; turn of the mode
+   (; turn on the mode
     sis-context-mode
     (sis--ensure-ism
      (dolist (hook sis-context-hooks)
@@ -1331,16 +1319,19 @@ If POSITION is not provided, then default to be the current position."
            (advice-add (eval trigger-fn) :around (intern advice-name)))))))
    (; turn off the mode
     (not sis-context-mode)
-    (dolist (hook sis-context-hooks)
-      (remove-hook hook #'sis-context nil))
+    (dolist (buf (buffer-list))
+      (with-current-buffer buf
+        (dolist (hook sis-context-hooks)
+          (remove-hook hook #'sis-context nil))))
     (dolist (trigger sis-context-triggers)
-      (let ((trigger-fn (eval (nth 0 trigger)))
+      (let ((trigger-fn (eval (nth 0 trigger))))
         ;; delete advices with property of 'sis--context-trigger-advice
-        (advice-mapc
-         (lambda (advice _)
-           (when (get (intern advice) 'sis--context-trigger-advice)
-             (advice-remove trigger-fn advice))
-           trigger-fn))))))))
+        (advice-mapc (lambda (advice _)
+                       (when (get advice 'sis--context-trigger-advice)
+                         (advice-remove trigger-fn advice)
+                         (unintern advice nil)))
+                     trigger-fn)))
+    (setq sis--context-triggers-adviced nil))))
 
 ;;;###autoload
 (define-globalized-minor-mode
@@ -1462,9 +1453,9 @@ START: start position of the inline region."
    (overlay-put sis--inline-overlay 'keymap
                 (let ((keymap (make-sparse-keymap)))
                   (define-key keymap (kbd "RET")
-                    #'sis--inline-ret-check-to-deactivate)
+                              #'sis--inline-ret-check-to-deactivate)
                   (define-key keymap (kbd "<return>")
-                    #'sis--inline-ret-check-to-deactivate)
+                              #'sis--inline-ret-check-to-deactivate)
                   keymap))
    (add-hook 'post-command-hook #'sis--inline-fly-check-deactivate nil t)
    (sis--set sis--inline-lang))
@@ -1539,26 +1530,26 @@ START: start position of the inline region."
      (; inline english region
       (eq sis--inline-lang 'english)
       (sis-set-other))
-      ;; [other lang][blank inline overlay]^
-      ;; [overlay with trailing blank]^
-      ;; (when (or (and (= back-to (sis--inline-overlay-start))
-      ;;               (sis--other-p back-char))
-      ;;          (and (> back-to (sis--inline-overlay-start))
-      ;;               (< back-to (sis--inline-overlay-end))
-      ;;               (< back-to (point))))
-      ;;  (sis-set-other)))
+     ;; [other lang][blank inline overlay]^
+     ;; [overlay with trailing blank]^
+     ;; (when (or (and (= back-to (sis--inline-overlay-start))
+     ;;               (sis--other-p back-char))
+     ;;          (and (> back-to (sis--inline-overlay-start))
+     ;;               (< back-to (sis--inline-overlay-end))
+     ;;               (< back-to (point))))
+     ;;  (sis-set-other)))
 
      (; inline other lang region
       (eq sis--inline-lang 'other)
       (sis-set-english)))
-      ;; [not-other][blank inline overlay]^
-      ;; [overlay with trailing blank]^
-      ;; (when (or (and (= back-to (sis--inline-overlay-start))
-      ;;                (sis--not-other-p back-char))
-      ;;           (and (> back-to (sis--inline-overlay-start))
-      ;;                (< back-to (sis--inline-overlay-end))
-      ;;                (< back-to (point))))
-      ;;   (sis-set-english))))
+    ;; [not-other][blank inline overlay]^
+    ;; [overlay with trailing blank]^
+    ;; (when (or (and (= back-to (sis--inline-overlay-start))
+    ;;                (sis--not-other-p back-char))
+    ;;           (and (> back-to (sis--inline-overlay-start))
+    ;;                (< back-to (sis--inline-overlay-end))
+    ;;                (< back-to (point))))
+    ;;   (sis-set-english))))
 
     ;; only tighten for none-blank inline region
     (when (and (<= (point) (sis--inline-overlay-end))
@@ -1613,8 +1604,7 @@ START: start position of the inline region."
               (insert-char ?\s))
              (; handled by custom function
               (functionp sis-inline-tighten-head-rule)
-              (funcall sis-inline-tighten-head-rule tighten-fore-to))
-             ))))))
+              (funcall sis-inline-tighten-head-rule tighten-fore-to))))))))
   (delete-overlay sis--inline-overlay)
   (setq sis--inline-overlay nil)
   (pcase sis--inline-lang
