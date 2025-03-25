@@ -123,6 +123,16 @@ displayed. It can be an integer or a float number. nil means no limit."
                  (const :tag "Disable" nil))
   :group 'doom-modeline)
 
+(defcustom doom-modeline-spc-face-overrides nil
+  "Property list of face attributes for whitespace in the modeline.
+
+These face attributes override any attributes for spacing produced by
+`doom-modeline-spc', `doom-modeline-wspc', and `doom-modeline-vspc'.
+
+See `defface' for possible attributes and values in this property list."
+  :type 'plist
+  :group 'doom-modeline)
+
 (defcustom doom-modeline-project-detection 'auto
   "How to detect the project root.
 
@@ -154,6 +164,7 @@ Given ~/Projects/FOSS/emacs/lisp/comint.el
   relative-from-project => emacs/lisp/comint.el
   relative-to-project => lisp/comint.el
   file-name => comint.el
+  file-name-with-project => FOSS|comint.el
   buffer-name => comint.el<2> (uniquify buffer name)"
   :type '(choice (const auto)
                  (const truncate-upto-project)
@@ -166,6 +177,7 @@ Given ~/Projects/FOSS/emacs/lisp/comint.el
                  (const relative-from-project)
                  (const relative-to-project)
                  (const file-name)
+                 (const file-name-with-project)
                  (const buffer-name))
   :group'doom-modeline)
 
@@ -231,6 +243,29 @@ It respects option `doom-modeline-icon'."
 
 It respects option `doom-modeline-icon' and option `doom-modeline-time-icon'."
   :type 'boolean
+  :group 'doom-modeline)
+
+(defcustom doom-modeline-time-analogue-clock t
+  "Whether to draw an analogue clock SVG as the live time icon.
+It respects the option `doom-modeline-icon', option `doom-modeline-time-icon',
+and option `doom-modeline-time-live-icon'."
+  :type 'boolean
+  :group 'doom-modeline)
+
+(defcustom doom-modeline-time-clock-minute-resolution 1
+  "The clock will be updated every this many minutes, truncated.
+See `doom-modeline-time-analogue-clock'."
+  :type 'natnum
+  :group 'doom-modeline)
+
+(defcustom doom-modeline-time-clock-size 0.7
+  "Size of the analogue clock drawn, either in pixels or as a proportional height.
+An integer value is used as the diameter of clock in pixels.
+A floating point value sets the diameter of the clock realtive to
+`doom-modeline-height'.
+
+Only relevant when `doom-modeline-time-analogue-clock' is non-nil, which see."
+  :type 'number
   :group 'doom-modeline)
 
 (defcustom doom-modeline-unicode-fallback nil
@@ -445,8 +480,37 @@ in the given order."
   :type '(alist :key-type symbol :value-type sexp)
   :group 'doom-modeline)
 
-(defcustom doom-modeline-checker-simple-format t
-  "If non-nil, only display one number for checker information if applicable."
+(defcustom doom-modeline-vcs-icon t
+  "Whether display the icon of vcs segment.
+
+It respects option `doom-modeline-icon'."
+  :type 'boolean
+  :group 'doom-modeline)
+
+(defcustom doom-modeline-vcs-max-length 15
+  "The maximum displayed length of the branch name of version control."
+  :type 'integer
+  :group 'doom-modeline)
+
+(defcustom doom-modeline-vcs-display-function #'doom-modeline-vcs-name
+  "The function to display the branch name."
+  :type 'function
+  :group 'doom-modeline)
+
+(defcustom doom-modeline-check-icon t
+  "Whether display the icon of check segment.
+
+It respects option `doom-modeline-icon'."
+  :type 'boolean
+  :group 'doom-modeline)
+
+(define-obsolete-variable-alias
+  'doom-modeline-checker-simple-format
+  'doom-modeline-check-simple-format
+  "4.2.0")
+
+(defcustom doom-modeline-check-simple-format nil
+  "If non-nil, only display one number for check information if applicable."
   :type 'boolean
   :group 'doom-modeline)
 
@@ -455,9 +519,11 @@ in the given order."
   :type 'integer
   :group 'doom-modeline)
 
-(defcustom doom-modeline-vcs-max-length 12
-  "The maximum displayed length of the branch name of version control."
-  :type 'integer
+(defcustom doom-modeline-project-name (bound-and-true-p project-mode-line)
+  "Whether display the project name.
+
+Non-nil to display in the mode-line."
+  :type 'boolean
   :group 'doom-modeline)
 
 (defcustom doom-modeline-workspace-name t
@@ -586,7 +652,7 @@ Groups' names list in `gnus-newsrc-alist'`"
 (defcustom doom-modeline-irc t
   "Whether display the irc notifications.
 
-It requires `circe' or `erc' package."
+It requires either `circe' , `erc' or `rcirc' package."
   :type 'boolean
   :group 'doom-modeline)
 
@@ -595,9 +661,22 @@ It requires `circe' or `erc' package."
   :type 'boolean
   :group 'doom-modeline)
 
-(defcustom doom-modeline-irc-stylize 'identity
-  "Function to stylize the irc buffer names."
-  :type 'function
+(defcustom doom-modeline-irc-stylize #'doom-modeline-shorten-irc
+  "Which function to call to stylize IRC buffer names.
+
+Buffer names are stylized using the selected `function'.
+By default buffer names are shortened, you may want to disable or call
+your own function.
+The function must accept `buffer-name' and return `shortened-name'."
+  :type '(radio (function-item :tag "Shorten"
+                               :format "%t: %v\n %h"
+                               doom-modeline-shorten-irc)
+                (function-item
+                 :tag "Leave unchanged"
+                 :format "%t: %v\n"
+                 identity)
+                (function
+                 :tag "Other function"))
   :group 'doom-modeline)
 
 (defcustom doom-modeline-battery t
@@ -634,6 +713,11 @@ If nil, display only if the mode line is active."
 (defcustom doom-modeline-buffer-file-truename-function #'identity
   "The function to handle `buffer-file-truename'."
   :type 'function
+  :group 'doom-modeline)
+
+(defcustom doom-modeline-k8s-show-namespace t
+  "Whether to show the current Kubernetes context's default namespace."
+  :type 'boolean
   :group 'doom-modeline)
 
 
@@ -725,22 +809,22 @@ This applies to `anzu', `evil-substitute', `iedit' etc."
 
 (defface doom-modeline-debug
   '((t (:inherit (doom-modeline font-lock-doc-face) :slant normal)))
-  "Face for debug-level messages in the mode-line. Used by vcs, checker, etc."
+  "Face for debug-level messages in the mode-line. Used by vcs, check, etc."
   :group 'doom-modeline-faces)
 
 (defface doom-modeline-info
   '((t (:inherit (doom-modeline success))))
-  "Face for info-level messages in the mode-line. Used by vcs, checker, etc."
+  "Face for info-level messages in the mode-line. Used by vcs, check, etc."
   :group 'doom-modeline-faces)
 
 (defface doom-modeline-warning
   '((t (:inherit (doom-modeline warning))))
-  "Face for warnings in the mode-line. Used by vcs, checker, etc."
+  "Face for warnings in the mode-line. Used by vcs, check, etc."
   :group 'doom-modeline-faces)
 
 (defface doom-modeline-urgent
   '((t (:inherit (doom-modeline error))))
-  "Face for errors in the mode-line. Used by vcs, checker, etc."
+  "Face for errors in the mode-line. Used by vcs, check, etc."
   :group 'doom-modeline-faces)
 
 (defface doom-modeline-notification
@@ -805,6 +889,11 @@ Also see the face `doom-modeline-unread-number'."
   "Face for the replace state tag in evil indicator."
   :group 'doom-modeline-faces)
 
+(defface doom-modeline-evil-user-state
+  '((t (:inherit doom-modeline-warning)))
+  "Face for the replace state tag in evil indicator."
+  :group 'doom-modeline-faces)
+
 (defface doom-modeline-overwrite
   '((t (:inherit doom-modeline-urgent)))
   "Face for overwrite indicator."
@@ -848,6 +937,41 @@ Also see the face `doom-modeline-unread-number'."
 (defface doom-modeline-boon-off-state
   '((t (:inherit (doom-modeline mode-line))))
   "Face for the off state tag in boon indicator."
+  :group 'doom-modeline-faces)
+
+(defface doom-modeline-meow-normal-state
+  '((t (:inherit doom-modeline-evil-normal-state)))
+  "Face for the normal state in meow-edit indicator."
+  :group 'doom-modeline-faces)
+
+(defface doom-modeline-meow-insert-state
+  '((t (:inherit doom-modeline-evil-insert-state)))
+  "Face for the insert state in meow-edit indicator."
+  :group 'doom-modeline-faces)
+
+(defface doom-modeline-meow-beacon-state
+  '((t (:inherit doom-modeline-evil-visual-state)))
+  "Face for the beacon state in meow-edit indicator."
+  :group 'doom-modeline-faces)
+
+(defface doom-modeline-meow-motion-state
+  '((t (:inherit doom-modeline-evil-motion-state)))
+  "Face for the motion state in meow-edit indicator."
+  :group 'doom-modeline-faces)
+
+(defface doom-modeline-meow-keypad-state
+  '((t (:inherit doom-modeline-evil-operator-state)))
+  "Face for the keypad state in meow-edit indicator."
+  :group 'doom-modeline-faces)
+
+(defface doom-modeline-project-name
+  '((t (:inherit (doom-modeline font-lock-comment-face italic))))
+  "Face for the project name."
+  :group 'doom-modeline-faces)
+
+(defface doom-modeline-workspace-name
+  '((t (:inherit (doom-modeline-emphasis bold))))
+  "Face for the workspace name."
   :group 'doom-modeline-faces)
 
 (defface doom-modeline-persp-name
@@ -941,6 +1065,7 @@ Also see the face `doom-modeline-unread-number'."
 
 (defvar mode-line-right-align-edge)
 
+(declare-function doom-modeline-shorten-irc "doom-modeline-segments")
 (declare-function face-remap-remove-relative "face-remap")
 (declare-function ffip-project-root "ext:find-file-in-project")
 (declare-function project-root "project")
@@ -1012,8 +1137,8 @@ used as an advice to window creation functions."
         (redisplay t))))
   (advice-add #'fit-window-to-buffer :before #'doom-modeline-redisplay))
 
-;; For `flychecker-color-mode-line'
-(with-eval-after-load 'flychecker-color-mode-line
+;; For `flycheck-color-mode-line'
+(with-eval-after-load 'flycheck-color-mode-line
   (defvar flycheck-color-mode-line-face-to-color)
   (setq flycheck-color-mode-line-face-to-color 'doom-modeline))
 
@@ -1211,7 +1336,7 @@ Throws an error if it doesn't exist."
 (defun doom-modeline-set-modeline (key &optional default)
   "Set the modeline format. Does nothing if the modeline KEY doesn't exist.
 If DEFAULT is non-nil, set the default mode-line for all buffers."
-  (when-let ((modeline (doom-modeline key)))
+  (when-let* ((modeline (doom-modeline key)))
     (setf (if default
               (default-value 'mode-line-format)
             mode-line-format)
@@ -1227,16 +1352,16 @@ If DEFAULT is non-nil, set the default mode-line for all buffers."
 
 (defsubst doom-modeline-spc ()
   "Whitespace."
-  (propertize " " 'face (doom-modeline-face)))
+  (propertize " " 'face (doom-modeline-spc-face)))
 
 (defsubst doom-modeline-wspc ()
   "Wide Whitespace."
-  (propertize "  " 'face (doom-modeline-face)))
+  (propertize "  " 'face (doom-modeline-spc-face)))
 
 (defsubst doom-modeline-vspc ()
   "Thin whitespace."
   (propertize " "
-              'face (doom-modeline-face)
+              'face (doom-modeline-spc-face)
               'display '((space :relative-width 0.5))))
 
 (defun doom-modeline-face (&optional face inactive-face)
@@ -1244,19 +1369,24 @@ If DEFAULT is non-nil, set the default mode-line for all buffers."
 IF FACE is nil, `mode-line' face will be used.
 If INACTIVE-FACE is nil, `mode-line-inactive' face will be used."
   (if (doom-modeline--active)
-      (or (and (facep face) face)
-          (and (facep 'mode-line-active) 'mode-line-active)
-          'mode-line)
-    (or (and (facep face) `(:inherit (mode-line-inactive ,face)))
-        (and (facep inactive-face) inactive-face)
-        'mode-line-inactive)))
+      (or (and (facep face) `(:inherit (doom-modeline ,face)))
+          (and (facep 'mode-line-active) '(:inherit (doom-modeline mode-line-active)))
+          '(:inherit (doom-modeline mode-line)))
+    (or (and (facep inactive-face) `(:inherit (doom-modeline ,inactive-face)))
+        '(:inherit (doom-modeline mode-line-inactive)))))
+
+(defun doom-modeline-spc-face ()
+  "Apply `doom-modeline-spc-face-overrides' to `doom-modeline-face'."
+  (append
+   `(:inherit ,(doom-modeline-face))
+   doom-modeline-spc-face-overrides))
 
 (defun doom-modeline-string-pixel-width (str)
-    "Return the width of STR in pixels."
-    (if (fboundp 'string-pixel-width)
-        (string-pixel-width str)
-      (* (string-width str) (window-font-width nil 'mode-line)
-         (if (display-graphic-p) 1.05 1.0))))
+  "Return the width of STR in pixels."
+  (if (fboundp 'string-pixel-width)
+      (string-pixel-width str)
+    (* (string-width str) (window-font-width nil 'mode-line)
+       (if (display-graphic-p) 1.05 1.0))))
 
 (defun doom-modeline--font-height ()
   "Calculate the actual char height of the mode-line."
@@ -1294,12 +1424,12 @@ So convert the face \":family XXX :height XXX :inherit XXX\" to
 See https://github.com/seagle0128/doom-modeline/issues/301."
   (when icon
     (if (doom-modeline-icon-displayable-p)
-        (when-let ((props (get-text-property 0 'face icon)))
+        (when-let* ((props (get-text-property 0 'face icon)))
           (when (listp props)
             (cl-destructuring-bind (&key family height inherit &allow-other-keys) props
               (propertize icon 'face `(:inherit (doom-modeline ,(or face inherit props))
-                                       :family  ,(or family "")
-                                       :height  ,(or height 1.0))))))
+                                                :family  ,(or family "")
+                                                :height  ,(or height 1.0))))))
       (propertize icon 'face `(:inherit (doom-modeline ,face))))))
 
 (defun doom-modeline-icon (icon-set icon-name unicode text &rest args)
@@ -1345,9 +1475,15 @@ ARGS is same as `nerd-icons-octicon' and others."
 
 (defun doom-modeline-display-text (text)
   "Display TEXT in mode-line."
-  (if (doom-modeline--active)
-      text
-    (propertize text 'face 'mode-line-inactive)))
+  (let ((text (string-replace "%" "%%" text)))
+    (if (doom-modeline--active)
+        text
+      (propertize text 'face `(:inherit (mode-line-inactive
+                                         ,(get-text-property 0 'face text)))))))
+
+(defun doom-modeline-vcs-name ()
+  "Display the vcs name."
+  (and vc-mode (cadr (split-string (string-trim vc-mode) "^[A-Z]+[-:]+"))))
 
 (defun doom-modeline--create-bar-image (face width height)
   "Create the bar image.
@@ -1427,12 +1563,22 @@ Return nil if no project was found."
               (projectile-project-root))
              ((and (memq doom-modeline-project-detection '(auto project))
                    (fboundp 'project-current))
-              (when-let ((project (project-current)))
+              (when-let* ((project (project-current)))
                 (expand-file-name
                  (if (fboundp 'project-root)
                      (project-root project)
                    (car (with-no-warnings
                           (project-roots project)))))))))))
+
+(doom-modeline-add-variable-watcher
+ 'doom-modeline-project-detection
+ (lambda (_sym val op _where)
+   (when (eq op 'set)
+     (setq doom-modeline-project-detection val)
+     (dolist (buf (buffer-list))
+       (with-current-buffer buf
+         (setq doom-modeline--project-root nil)
+         (and buffer-file-name (revert-buffer t t)))))))
 
 (defun doom-modeline-project-p ()
   "Check if the file is in a project."
@@ -1469,7 +1615,7 @@ Return `default-directory' if no project was found."
             ('auto
              (if (doom-modeline-project-p)
                  (doom-modeline--buffer-file-name buffer-file-name buffer-file-truename 'shrink 'shrink 'hide)
-               (propertize "%b" 'face 'doom-modeline-buffer-file)))
+               (propertize (buffer-name) 'face 'doom-modeline-buffer-file)))
             ('truncate-upto-project
              (doom-modeline--buffer-file-name buffer-file-name buffer-file-truename 'shrink))
             ('truncate-from-project
@@ -1491,11 +1637,16 @@ Return `default-directory' if no project was found."
             ('file-name
              (propertize (file-name-nondirectory buffer-file-name)
                          'face 'doom-modeline-buffer-file))
+            ('file-name-with-project
+             (format "%s|%s"
+                     (propertize (file-name-nondirectory
+                                  (directory-file-name (file-local-name (doom-modeline-project-root))))
+                                 'face 'doom-modeline-project-dir)
+                     (propertize (file-name-nondirectory buffer-file-name)
+                                 'face 'doom-modeline-buffer-file)))
             ((or 'buffer-name _)
-             (propertize "%b" 'face 'doom-modeline-buffer-file)))))
-    (propertize (if (string-empty-p file-name)
-                    (propertize "%b" 'face 'doom-modeline-buffer-file)
-                  file-name)
+             (propertize (buffer-name) 'face 'doom-modeline-buffer-file)))))
+    (propertize file-name
                 'mouse-face 'mode-line-highlight
                 'help-echo (concat buffer-file-truename
                                    (unless (string= (file-name-nondirectory buffer-file-truename)
@@ -1510,7 +1661,7 @@ Return `default-directory' if no project was found."
 If TRUNCATE-TAIL is t also truncate the parent directory of the file."
   (let ((dirs (shrink-path-prompt (file-name-directory true-file-path))))
     (if (null dirs)
-        (propertize "%b" 'face 'doom-modeline-buffer-file)
+        (propertize (buffer-name) 'face 'doom-modeline-buffer-file)
       (let ((dirname (car dirs))
             (basename (cdr dirs)))
         (concat (propertize (concat dirname
@@ -1526,7 +1677,7 @@ If TRUNCATE-TAIL is t also truncate the parent directory of the file."
 If INCLUDE-PROJECT is non-nil, the project path will be included."
   (let ((root (file-local-name (doom-modeline-project-root))))
     (if (null root)
-        (propertize "%b" 'face 'doom-modeline-buffer-file)
+        (propertize (buffer-name) 'face 'doom-modeline-buffer-file)
       (let ((relative-dirs (file-relative-name (file-name-directory true-file-path)
                                                (if include-project (concat root "../") root))))
         (and (equal "./" relative-dirs) (setq relative-dirs ""))
@@ -1562,8 +1713,8 @@ Example:
     (concat
      ;; Project root parent
      (unless hide-project-root-parent
-       (when-let (root-path-parent
-                  (file-name-directory (directory-file-name project-root)))
+       (when-let* ((root-path-parent
+                    (file-name-directory (directory-file-name project-root))))
          (propertize
           (if (and truncate-project-root-parent
                    (not (string-empty-p root-path-parent))
@@ -1577,12 +1728,12 @@ Example:
       'face 'doom-modeline-project-dir)
      ;; relative path
      (propertize
-      (when-let (relative-path (file-relative-name
-                                (or (file-name-directory
-                                     (if doom-modeline-buffer-file-true-name
-                                         true-file-path file-path))
-                                    "./")
-                                project-root))
+      (when-let* ((relative-path (file-relative-name
+                                  (or (file-name-directory
+                                       (if doom-modeline-buffer-file-true-name
+                                           true-file-path file-path))
+                                      "./")
+                                  project-root)))
         (if (string= relative-path "./")
             ""
           (if truncate-project-relative-path

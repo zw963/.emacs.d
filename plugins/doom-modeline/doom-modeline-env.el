@@ -119,14 +119,14 @@ Example:
      \\='(\"--version\")
      (lambda (line)
         (message (doom-modeline-parser--ruby line)))"
-  (when-let ((proc (ignore-errors
-                     (apply 'start-process
-                            ;; Flaten process-args into a single list so we can handle
-                            ;; variadic length args
-                            (append
-                             (list "doom-modeline-env" nil prog)
-                             args))))
-             (parser callback))
+  (when-let* ((proc (ignore-errors
+                      (apply 'start-process
+                             ;; Flaten process-args into a single list so we can handle
+                             ;; variadic length args
+                             (append
+                              (list "doom-modeline-env" nil prog)
+                              args))))
+              (parser callback))
     (set-process-filter proc
                         (lambda (_proc line)
                           (ignore-errors
@@ -268,7 +268,7 @@ PARSER should be a function for parsing COMMAND's output line-by-line, to
 
 ;;;###autoload (autoload 'doom-modeline-env-setup-elixir "doom-modeline-env")
 (doom-modeline-def-env elixir
-  :hooks   'elixir-mode-hook
+  :hooks   '(elixir-mode-hook elixir-ts-mode-hook)
   :command (lambda () (list (or doom-modeline-env-elixir-executable "elixir") "--version"))
   :parser  (lambda (line) (cadr (split-string line))))
 
