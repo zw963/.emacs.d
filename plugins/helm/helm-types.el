@@ -1,8 +1,8 @@
 ;;; helm-types.el --- Helm types classes and methods. -*- lexical-binding: t -*-
 
-;; Copyright (C) 2015 ~ 2020  Thierry Volpiatto 
+;; Copyright (C) 2015 ~ 2025  Thierry Volpiatto
 
-;; Author: Thierry Volpiatto 
+;; Author: Thierry Volpiatto
 ;; URL: http://github.com/emacs-helm/helm
 
 ;; This program is free software; you can redistribute it and/or modify
@@ -34,7 +34,10 @@
 
 
 ;;  Files
-(defclass helm-type-file (helm-source) ()
+(defclass helm-type-file (helm-source)
+  ((completing-file-name
+    :initarg :completing-file-name :initform t
+    :documentation "Flag to notify we are completing filenames."))
   "A class to define helm type file.")
 
 (cl-defmethod helm-source-get-action-from-type ((object helm-type-file))

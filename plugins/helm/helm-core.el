@@ -4,7 +4,7 @@
 
 ;; Author: Thierry Volpiatto <thievol@posteo.net>
 ;; URL: https://emacs-helm.github.io/helm/
-;; Version: 4.0.1
+;; Version: 4.0.2
 ;; Package-Requires: ((emacs "25.1") (async "1.9.9"))
 
 ;; This program is free software; you can redistribute it and/or modify
@@ -42,6 +42,9 @@
 (declare-function helm-quit-and-find-file "helm-utils.el")
 (declare-function linum-mode "linum.el")
 (declare-function minibuffer-depth-setup "mb-depth.el")
+(declare-function transient--delete-window "ext:transient" ())
+(declare-function transient--preserve-window-p "ext:transient"
+                  (&optional nohide))
 
 (defvar helm-marked-buffer-name)
 (defvar display-buffer-function)
@@ -282,14 +285,14 @@ Arg OTHER-SUBKEYS should be an alist composed of (command . short-key) where
 command is another command than COMMAND bound to short-key.
 
 A PROMPT can be used to describe bindings of COMMAND and OTHER-SUBKEYS.
- 
+
 Return an anonymous interactive command to use with
 `helm-define-key-with-subkeys'."
   (lambda ()
     (interactive)
     (let (timer)
       (call-interactively command)
-      (unless (or defining-kbd-macro executing-kbd-macro) 
+      (unless (or defining-kbd-macro executing-kbd-macro)
         (unwind-protect
              (progn
                (when delay
@@ -638,13 +641,13 @@ If t, then Helm does not pop-up a new window."
   :type 'string)
 
 (defcustom helm-save-configuration-functions
-  '(set-window-configuration . current-window-configuration)
+  '(set-window-configuration . helm-current-window-configuration)
   "Functions used to restore or save configurations for frames and windows.
 Specified as a pair of functions, where car is the restore
 function and cdr is the save function.
 
 To save and restore frame configuration, set this variable to
-\\='(set-frame-configuration . current-frame-configuration)
+\\='(set-frame-configuration . helm-current-frame-configuration)
 
 NOTE: This may not work properly with own-frame minibuffer
 settings.  Older versions saves/restores frame configuration, but
@@ -1699,7 +1702,7 @@ and creating a new one at each session, see `helm-display-buffer-reuse-frame'.
 Normally you don't have to use this, it have been made to workaround
 slow frame popup in Emacs-26, to workaround this slowness in Emacs-26 use instead
 
-#+begin_src elisp 
+#+begin_src elisp
     (when (= emacs-major-version 26)
       (setq x-wait-for-event-timeout nil))
 #+end_src
@@ -3028,7 +3031,7 @@ HISTORY args see `helm'."
               ;; When non-nil (the default) the current active
               ;; minibuffer is used in new frame, which is not what we
               ;; want in helm when starting from an active minibuffer,
-              ;; either a helm minibuffer or something line M-:. 
+              ;; either a helm minibuffer or something line M-:.
               (and ori--minibuffer-follows-selected-frame
                    (setq minibuffer-follows-selected-frame
                          (unless (or helm--nested
@@ -3372,6 +3375,14 @@ frame configuration as per `helm-save-configuration-functions'."
                          ;; side-effects, not for x-focus-frame.
                          ((symbol-function 'x-focus-frame) #'ignore))
                  (select-frame-set-input-focus frame))))))
+
+(defun helm-current-window-configuration ()
+  "Like `current-window-configuration' but deal with Transient incompatibility.
+See https://github.com/magit/transient/discussions/361 for details."
+  (when (and (window-live-p (bound-and-true-p transient--window))
+             (not (transient--preserve-window-p)))
+    (transient--delete-window))
+  (current-window-configuration))
 
 (defun helm-split-window-default-fn (window)
   "Default function to split windows before displaying `helm-buffer'.
@@ -4716,7 +4727,8 @@ useful when the order of the candidates is meaningful, e.g. with
          (host    (and file-comp (get-text-property
                                   (max 0 (1- (length display))) 'host display)))
          (regex   (helm--maybe-get-migemo-pattern pattern diacritics))
-         (mpart   (get-text-property 0 'match-part display))
+         ;; Match prop at end, because at 0 we might have an icon.
+         (mpart   (get-text-property (1- (length display)) 'match-part display))
          (mp      (cond ((and mpart (string= display mpart)) nil)
                         (mpart)
                         ;; FIXME: This may be wrong when match-on-real
@@ -4727,7 +4739,7 @@ useful when the order of the candidates is meaningful, e.g. with
          (count   0)
          beg-str end-str)
     ;; Happens when matching empty lines (^$), in this case there is nothing to
-    ;; highlight. 
+    ;; highlight.
     (if (string= mpart "")
         candidate
       (when host (setq pattern (cadr (split-string pattern ":"))))
@@ -4791,7 +4803,7 @@ to the matching method in use.  When DIACRITICS is specified, ignore
 diacritics, see `char-fold-to-regexp' for more infos."
   (if (string= pattern "")
       ;; Empty pattern, do nothing.  This is needed when this function
-      ;; is used outside of helm-fuzzy-highlight-matches like in *buffers-list. 
+      ;; is used outside of helm-fuzzy-highlight-matches like in *buffers-list.
       candidate
     ;; Else start highlighting.
     (helm-fuzzy-default-highlight-match-1 candidate pattern diacritics file-comp)))
@@ -4828,7 +4840,7 @@ REGEXP should be generated from a pattern which is a list like
 Such pattern may be build with
 `helm-completion--flex-transform-pattern' function, and the regexp
 with `completion-pcm--pattern->regex'.  For commodity,
-`helm--fuzzy-flex-pattern-to-regexp' is used to build such regexp. 
+`helm--fuzzy-flex-pattern-to-regexp' is used to build such regexp.
 
 Function extracted from `completion-pcm--hilit-commonality' in
 emacs-27 to provide such scoring in emacs<27."
@@ -5349,7 +5361,8 @@ specified as respectively `helm-cand-num' and `helm-cur-source'."
          start end
          `(mouse-face highlight
                       keymap ,map
-                      help-echo ,(helm-acase (get-text-property start 'help-echo)
+                      ;; At 0 we might have an icon, so match at end.
+                      help-echo ,(helm-acase (get-text-property (1- end) 'help-echo)
                                    ((guard* (stringp it))
                                     (concat it "\nmouse-1: select candidate\nmouse-3: menu actions"))
                                    (t "mouse-1: select candidate\nmouse-3: menu actions")))))
@@ -5684,11 +5697,11 @@ If action buffer is selected, back to the Helm buffer."
                            ;; If `helm-show-action-window-other-window' is non nil
                            ;; we should have now two windows displaying
                            ;; helm-buffer, delete the one that was handling
-                           ;; previously action buffer. 
+                           ;; previously action buffer.
                            (when (helm--show-action-window-other-window-p)
                              (delete-window it))
                            ;; Resize window on horizontal split, though for some
-                           ;; reasons only 'above' needs to be resized. 
+                           ;; reasons only 'above' needs to be resized.
                            (when (memq helm-show-action-window-other-window '(below above))
                              (window-resize (get-buffer-window helm-buffer) delta))
                            (kill-buffer helm-action-buffer)
@@ -7140,7 +7153,7 @@ unless FORCE-LONGEST is non nil."
       buf)))
 
 (defun helm--get-longest-len-in-buffer ()
-  "Return length of the longest line in buffer." 
+  "Return length of the longest line in buffer."
   (save-excursion
     (goto-char (point-min))
     (let ((max 0)

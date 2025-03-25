@@ -199,7 +199,7 @@ You can save these buffers with \\<helm-buffer-map>\\[helm-buffer-save-persisten
 If you want to save all these buffers, you can mark them with \\[helm-buffers-mark-similar-buffers]
 and save them with \\[helm-buffer-save-persistent].  You can also do this in one step with
 \\[helm-buffer-run-save-some-buffers].  Note that you will not be asked for confirmation.
-  
+
 *** Meaning of colors and prefixes for buffers
 
 Remote buffers are prefixed with '@'.
@@ -345,7 +345,7 @@ again with fuzzy sorting and no more with sorting methods previously selected.
 
 You can use these sort functions only on files or directory,
 see [[Filter out files or directories][Filter out files or directories]].
- 
+
 *** Find file at point
 
 Helm uses `ffap' partially or completely to find file at point depending on the
@@ -1069,7 +1069,7 @@ of candidates soon after.
 
 If you enter \":\" directly after \"/\" or \"|\" you will have completion on tramp methods,
 hitting `\\[helm-execute-persistent-action]' or `right' on a method will insert it in minibuffer.
- 
+
 When connection fails, be sure to delete your TRAMP connection with M-x
 `helm-delete-tramp-connection' before retrying.
 
@@ -1137,12 +1137,13 @@ this will prevent splitting the name and create multiple files.
 
 *** Change mode on files (chmod)
 
-When running `\\<helm-find-files-map>\\[helm-ff-run-chmod]' on
-marked files, you can enter the new mode in prompt but you can
-also use the first marked file as model to use it as default.
-For example you can mark a file with mode 777 and mark other
-files with mode 664, press 'RET' and answer 'y', all marked files
-will be changed to 777.
+When running `\\<helm-find-files-map>\\[helm-ff-run-chmod]' on marked
+files, you can enter the new mode in prompt but you can also use the
+first marked file as model to use it as default.  For example you can
+mark a file with mode 777 and mark other files with mode 664, press
+'RET' and answer 'y', all marked files will be changed to 777.  To see
+the default mode and eventually edit it use 'M-n'.  You can use numeric
+mode or letters, see 'chmod' man page for more infos.
 
 NOTE: Another way to change modes on files in helm-find-files is
 running `\\<helm-find-files-map>\\[helm-ff-run-switch-to-shell]' and use 'chmod' directly.
@@ -2039,9 +2040,22 @@ leaving Helm.
 (defvar helm-bookmark-help-message
   "* Helm bookmark name
 
-When `helm-bookmark-use-icon' is non nil and `all-the-icons'
-package is installed icons before candidates will be displayed.
- 
+** Tips
+
+*** Display bookmarks with Icons
+
+When `helm-bookmark-use-icon' is non nil and you have a
+`helm-x-icons-provider' either `all-the-icons' or `nerd-icons' package
+is installed icons before candidates will be displayed.
+
+*** Reset bookmark position
+
+When using `helm-filtered-bookmarks' you can modify your bookmark
+position by resetting it, to do this, jump to your bookmark, move point
+to the new location, then call again `helm-filtered-bookmarks' and find
+your current bookmark, yank its name in minibuffer with `\\<helm-map>\\[helm-yank-selection]'
+switch to the \"Set bookmark\" source and hit RET.
+
 ** Commands
 \\<helm-bookmark-map>
 |Keys|Description
@@ -2075,7 +2089,7 @@ But you can also pass an argument or more after \"candidate_file\" like this:
 
 **** Use placeholders in extra arguments
 
-placeholder for file without extension: \\@ 
+placeholder for file without extension: \\@
 placeholder for incremental number:     \\#
 
 \"candidate_file\" will be added at \"%s\" and \\@ but without extension.

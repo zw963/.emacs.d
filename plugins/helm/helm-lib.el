@@ -1,8 +1,8 @@
 ;;; helm-lib.el --- Helm routines. -*- lexical-binding: t -*-
 
-;; Copyright (C) 2015 ~ 2020  Thierry Volpiatto
+;; Copyright (C) 2015 ~ 2025  Thierry Volpiatto
 
-;; Author: Thierry Volpiatto 
+;; Author: Thierry Volpiatto
 ;; URL: http://github.com/emacs-helm/helm
 
 ;; This program is free software; you can redistribute it and/or modify
@@ -323,7 +323,7 @@ the leading `-' char."
         (unless package--initialized (package-initialize 'no-activate))
         (or (cadr (assq pkg-name package-alist))
             (cadr (assq pkg-name package-archive-contents))))
-      
+
       (defun package-upgrade (name)
         "Upgrade package NAME if a newer version exists."
         (let* ((package (if (symbolp name)
@@ -351,17 +351,7 @@ object."
           (dolist (elc (directory-files-recursively
                         (package-desc-dir pkg-desc) "\\.elc\\'"))
             (delete-file elc))
-          (package--compile pkg-desc)))
-
-      (defun package--dependencies (pkg)
-        "Return a list of all dependencies PKG has.
-This is done recursively."
-        ;; Can we have circular dependencies?  Assume "nope".
-        (let* ((desc (cadr (assq pkg package-archive-contents)))
-               (deps (and desc (mapcar #'car (package-desc-reqs desc)))))
-          (when deps
-            (delete-dups
-             (apply #'nconc deps (mapcar #'package--dependencies deps)))))))))
+          (package--compile pkg-desc))))))
 
 ;;; Provide `help--symbol-class' not available in emacs-27
 ;;
@@ -399,10 +389,10 @@ This is done recursively."
         object
       (let ((vec (string-to-vector object)))
         (unless (multibyte-string-p object)
-	  (dotimes (i (length vec))
-	    (let ((k (aref vec i)))
-	      (when (> k 127)
-	        (setf (aref vec i) (+ k ?\M-\C-@ -128))))))
+          (dotimes (i (length vec))
+            (let ((k (aref vec i)))
+              (when (> k 127)
+                (setf (aref vec i) (+ k ?\M-\C-@ -128))))))
         vec))))
 
 (defun helm-proper-list-p (obj)
@@ -558,8 +548,11 @@ KEYLIST can be any object that will be compared with `equal' or
 an expression starting with special symbol `guard*' which is then
 evaluated.  Once evaluated the symbol `guard' is bound to the
 returned value that can be used in the cdr of clause.  When
-KEYLIST match EXPR or `guard*' sexp evaluation is non-nil, BODY is
-executed and `helm-acase' exits with its value.
+KEYLIST match EXPR or `guard*' sexp evaluation is non-nil, BODY
+is executed and `helm-acase' exits with its value.
+Note:
+`guard*' sexp should not be a single symbol to eval, e.g. (guard* foo)
+in such cases you should use (guard* (progn foo)).
 
 KEYLIST can also be a list starting with special symbol `dst*'
 followed by an expression suitable for `cl-destructuring-bind'.
@@ -2217,87 +2210,6 @@ flex or helm-flex completion style if present."
           styles '(helm)
           (if (memq wflex completion-styles)
               1 0)))))))
-
-(defun helm-dynamic-completion (collection predicate &optional point metadata nomode styles)
-  "Build a completion function for `helm-pattern' in COLLECTION.
-
-Only the elements of COLLECTION that satisfy PREDICATE are considered.
-
-Argument POINT is the same as in `completion-all-completions' and
-is meaningful only when using some kind of `completion-at-point'.
-
-The return value is a list of completions that may be sorted by
-the sort function provided by the completion-style in
-use (emacs-27 only), otherwise (emacs-26) the sort function has
-to be provided if needed either with an FCT function in source or
-by passing the sort function with METADATA
-E.g.: \\='((metadata (display-sort-function . foo))).
-Candidates can be modified by passing an affixation-function in METADATA.
-
-If you don't want the sort fn provided by style to kick
-in (emacs-27) you can use as metadata value the symbol `nosort'.
-
-Example:
-
-    (helm :sources (helm-build-sync-source \"test\"
-                     :candidates (helm-dynamic-completion
-                                  \\='(foo bar baz foab)
-                                  \\='symbolp)
-                     :match-dynamic t)
-          :buffer \"*helm test*\")
-
-When argument NOMODE is non nil don't use `completion-styles' as
-specified in `helm-completion-styles-alist' for specific modes.
-
-When STYLES is specified use these `completion-styles', see
-`helm--prepare-completion-styles'.
-
-Also `helm-completion-style' settings have no effect here,
-`emacs' being used inconditionally as value."
-  (lambda ()
-    (let* (;; Force usage of emacs style otherwise
-           ;; helm--prepare-completion-styles will reset
-           ;; completion-styles to default value i.e. (basic partial
-           ;; emacs22).
-           (helm-completion-style 'emacs)
-           (completion-styles
-            (with-helm-current-buffer
-              (helm--prepare-completion-styles nomode styles)))
-           (completion-flex-nospace t)
-           (nosort (eq metadata 'nosort))
-           (compsfn (lambda (str pred _action)
-                      (let* ((completion-ignore-case (helm-set-case-fold-search))
-                             ;; Use a copy of metadata to avoid accumulation of
-                             ;; adjustment in metadata (This is not needed in
-                             ;; emacs-31+, it has been fixed in emacsbug
-                             ;; #74718). This also avoid the flex adjustment fn
-                             ;; reusing the previous sort fn.
-                             (md (copy-sequence metadata))
-                             (comps (completion-all-completions
-                                     str
-                                     (if (functionp collection)
-                                         (funcall collection str pred t)
-                                       collection)
-                                     pred
-                                     (or point 0)
-                                     (or (and (consp md) md)
-                                         (setq metadata '(metadata)))))
-                             (last-data (last comps))
-                             (sort-fn (unless nosort
-                                        (completion-metadata-get
-                                         md 'display-sort-function)))
-                             (affix (completion-metadata-get
-                                     md 'affixation-function))
-                             all)
-                        (when (cdr last-data) (setcdr last-data nil))
-                        (setq all (if (and sort-fn (> (length str) 0))
-                                      (funcall sort-fn comps)
-                                    comps))
-                        (if affix
-                            (helm-completion--decorate all nil affix nil)
-                          all)))))
-      ;; Ensure circular objects are removed.
-      (complete-with-action t compsfn helm-pattern predicate))))
 
 (defun helm-guess-filename-at-point ()
   (with-helm-current-buffer

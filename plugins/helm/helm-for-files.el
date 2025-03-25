@@ -21,6 +21,8 @@
 (require 'helm-external)
 (require 'helm-bookmark)
 
+(defvar recentf-list)
+
 (defcustom helm-multi-files-toggle-locate-binding "C-c p"
   "Default binding to switch back and forth locate in `helm-multi-files'."
   :group 'helm-files
@@ -97,6 +99,7 @@ Be aware that a nil value will make tramp display very slow."
 ;;
 ;;
 (defvar helm-recentf--basename-flag nil)
+(defvar helm-recentf-cache nil)
 
 (defun helm-recentf-pattern-transformer (pattern)
   (let ((pattern-no-flag (replace-regexp-in-string " -b" "" pattern)))
@@ -118,22 +121,23 @@ Be aware that a nil value will make tramp display very slow."
 (defclass helm-recentf-source (helm-source-sync helm-type-file)
   ((init :initform (lambda ()
                      (require 'recentf)
-                     (when helm-turn-on-recentf (recentf-mode 1))))
-   (candidates :initform (lambda ()
-                           ;; Previously we were using directly `recentf-list'
-                           ;; which is unsafe when the transformer makes changes
-                           ;; directly on the elements of the list (props were
-                           ;; added to the elements of `recentf-list' and saved
-                           ;; like this, as a result the recentf file could not
-                           ;; be read at startup), until now it was working by
-                           ;; chance because the display candidate was
-                           ;; let-bounded before being modified.
-                           (helm-copy-sequence recentf-list)))
+                     (when helm-turn-on-recentf (recentf-mode 1))
+                     ;; Use a copy of not recentf-list itself but the of its
+                     ;; elements to not corrupt them with text props.
+                     (setq helm-recentf-cache (helm-copy-sequence recentf-list))))
+   (candidates :initform 'helm-recentf-cache)
    (pattern-transformer :initform 'helm-recentf-pattern-transformer)
    (match-part :initform (lambda (candidate)
                            (if (or helm-ff-transformer-show-only-basename
                                    helm-recentf--basename-flag)
                                (helm-basename candidate) candidate)))
+   ;; When real candidate is equal to display it gets corrupted with the text
+   ;; properties added by the transformer, so ensure to strip out properties
+   ;; before passing the candidate to action otherwise recentf will save the
+   ;; candidate passed to find-file with the properties and corrupt
+   ;; recentf-list. This happen when abbreviate-file-name is passed to a
+   ;; candidate with no leading "~" e.g. "/foo" bug#2709.
+   (coerce :initform 'substring-no-properties)
    (migemo :initform t)
    (persistent-action :initform 'helm-ff-kill-or-find-buffer-fname)))
 
@@ -162,25 +166,32 @@ small.")
                    :fuzzy-match val)))))
 
 
-;;; Files in current dir
+;;; Transformer for helm-type-file
 ;;
 ;;
+(defvar helm-sources-for-files-no-basename '("Recentf" "File Cache"))
+
 ;; Function `helm-highlight-files' is used in type `helm-type-file'. Ensure that
 ;; the definition is available for clients, should they need it.
 ;; See https://github.com/bbatsov/helm-projectile/issues/184.
 ;;;###autoload
-(defun helm-highlight-files (files _source)
+(defun helm-highlight-files (files source)
   "A basic transformer for helm files sources.
 Colorize only symlinks, directories and files."
   (cl-loop with mp-fn = (or (assoc-default
                              'match-part (helm-get-current-source))
                             'identity)
+           with sname = (helm-get-attr 'name source)
            for i in files
-           for disp = (if (and helm-ff-transformer-show-only-basename
-                               (not (helm-ff-dot-file-p i))
-                               (not (and helm--url-regexp
-                                         (string-match helm--url-regexp i)))
-                               (not (string-match helm-ff-url-regexp i)))
+           for disp = (if (or (and (not helm-ff-show-dot-file-path)
+                                   (helm-ff-dot-file-p i))
+                              (and helm-ff-transformer-show-only-basename
+                                   (not (member sname
+                                                helm-sources-for-files-no-basename))
+                                   (not (helm-ff-dot-file-p i))
+                                   (not (and helm--url-regexp
+                                             (string-match helm--url-regexp i)))
+                                   (not (string-match helm-ff-url-regexp i))))
                           (helm-basename i) (abbreviate-file-name i))
            for isremote = (or (file-remote-p i)
                               (helm-file-on-mounted-network-p i))
@@ -231,6 +242,10 @@ Colorize only symlinks, directories and files."
                          'helm-ff-file-extension t disp)))
                   (cons (helm-ff-prefix-filename disp i) i)))))
 
+
+;;; Files in current dir
+;;
+;;
 (defclass helm-files-in-current-dir-source (helm-source-sync helm-type-file)
   ((candidates :initform (lambda ()
                            (with-helm-current-buffer
@@ -243,15 +258,24 @@ Colorize only symlinks, directories and files."
                                    helm-recentf--basename-flag)
                                (helm-basename candidate) candidate)))
    (fuzzy-match :initform t)
+   (popup-info :initform (lambda (candidate)
+                           (unless (helm-ff-dot-file-p candidate)
+                             (helm-file-attributes
+                              candidate
+                              :dired t :human-size t :octal nil))))
    (migemo :initform t)))
 
 (cl-defmethod helm--setup-source :after ((source helm-files-in-current-dir-source))
-  (setf (slot-value source 'filtered-candidate-transformer)
-        '(helm-ff-sort-candidates helm-highlight-files)))
+  (helm-aif (slot-value source 'filtered-candidate-transformer)
+      (setf (slot-value source 'filtered-candidate-transformer)
+            (append '(helm-ff-sort-candidates) (helm-mklist it)))))
 
 (defvar helm-source-files-in-current-dir
   (helm-make-source "Files from Current Directory"
-      'helm-files-in-current-dir-source))
+      'helm-files-in-current-dir-source
+    :header-name (lambda (_name)
+                   (format "Files from `%s'"
+                           (abbreviate-file-name (helm-default-directory))))))
 
 ;;;###autoload
 (defun helm-for-files ()
@@ -263,7 +287,6 @@ Run all sources defined in `helm-for-files-preferred-list'."
     (setq helm-source-buffers-list
           (helm-make-source "Buffers" 'helm-source-buffers)))
   (helm :sources helm-for-files-preferred-list
-        :ff-transformer-show-only-basename nil
         :buffer "*helm for files*"
         :truncate-lines helm-buffers-truncate-lines))
 
@@ -320,7 +343,6 @@ searching for is already found."
         'helm-multi-files-toggle-to-locate))
     (unwind-protect
          (helm :sources sources
-               :ff-transformer-show-only-basename nil
                :buffer "*helm multi files*"
                :truncate-lines helm-buffers-truncate-lines)
       (define-key helm-map (kbd helm-multi-files-toggle-locate-binding)

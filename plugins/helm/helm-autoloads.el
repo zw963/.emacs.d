@@ -157,6 +157,13 @@ Same as `byte-compile-file' but asynchronous.
 
 ;;;***
 
+;;;### (autoloads nil "async-test" "async-test.el" (0 0 0 0))
+;;; Generated autoloads from async-test.el
+
+(register-definition-prefixes "async-test" '("async-test-"))
+
+;;;***
+
 ;;;### (autoloads nil "dired-async" "dired-async.el" (0 0 0 0))
 ;;; Generated autoloads from dired-async.el
 
@@ -756,6 +763,8 @@ image file in `helm-ff-image-dired-thumbnails-cache'." t)
 
 (autoload 'helm-projects-history "helm-files" "\
 Jump to project already visisted with `helm-browse-project'.
+Prefix arg allows browsing files recursively under a project not handled
+by git or hg, otherwise it has no effect.
 
 \(fn &optional ARG)" t)
 
@@ -1233,7 +1242,7 @@ Keys description:
 
 - GET-LINE: Specify the :get-line slot of `helm-source-in-buffer', has no effect
   when CANDIDATES-IN-BUFFER is nil.
- 
+
 - MATCH-PART: Allow matching only one part of candidate.
   See match-part documentation in `helm-source'.
 
@@ -1248,7 +1257,7 @@ Keys description:
 - COERCE: See coerce in `helm-source'.
 
 - RAW-CANDIDATE: Do not unquote the unknown candidate coming from helm-pattern
-  when non nil. 
+  when non nil.
 
 - GROUP: See group in `helm-source'.
 
@@ -1309,6 +1318,45 @@ Keys description:
              `helm-read-file-name-mode-line-string'.
 
 \(fn PROMPT &key (NAME \"Read File Name\") INITIAL-INPUT (BUFFER \"*Helm file completions*\") TEST NORET (CASE-FOLD helm-file-name-case-fold-search) PRESELECT HISTORY MUST-MATCH (FUZZY t) DEFAULT MARKED-CANDIDATES ALL-MARKED (CANDIDATE-NUMBER-LIMIT helm-ff-candidate-number-limit) NOMARK (ALISTP t) (PERSISTENT-ACTION-IF \\='helm-find-files-persistent-action-if) (PERSISTENT-HELP \"Hit1 Expand Candidate, Hit2 or (C-u) Find file\") (MODE-LINE helm-read-file-name-mode-line-string))")
+
+(autoload 'helm-dynamic-completion "helm-mode" "\
+Build a completion function for `helm-pattern' in COLLECTION.
+
+Only the elements of COLLECTION that satisfy PREDICATE are considered.
+
+Argument POINT is the same as in `completion-all-completions' and
+is meaningful only when using some kind of `completion-at-point'.
+
+The return value is a list of completions that may be sorted by
+the sort function provided by the completion-style in
+use (emacs-27 only), otherwise (emacs-26) the sort function has
+to be provided if needed either with an FCT function in source or
+by passing the sort function with METADATA
+E.g.: \\='((metadata (display-sort-function . foo))).
+Candidates can be modified by passing an affixation-function in METADATA.
+
+If you don't want the sort fn provided by style to kick
+in (emacs-27) you can use as metadata value the symbol `nosort'.
+
+Example:
+
+    (helm :sources (helm-build-sync-source \"test\"
+                     :candidates (helm-dynamic-completion
+                                  \\='(foo bar baz foab)
+                                  \\='symbolp)
+                     :match-dynamic t)
+          :buffer \"*helm test*\")
+
+When argument NOMODE is non nil don't use `completion-styles' as
+specified in `helm-completion-styles-alist' for specific modes.
+
+When STYLES is specified use these `completion-styles', see
+`helm--prepare-completion-styles'.
+
+Also `helm-completion-style' settings have no effect here,
+`emacs' being used inconditionally as value.
+
+\(fn COLLECTION PREDICATE &optional POINT METADATA NOMODE STYLES)")
 
 (defvar helm-mode nil "\
 Non-nil if Helm mode is enabled.
@@ -1679,6 +1727,76 @@ disabled.
 
 ;;;***
 
+;;;### (autoloads nil "nerd-icons" "nerd-icons.el" (0 0 0 0))
+;;; Generated autoloads from nerd-icons.el
+
+(autoload 'nerd-icons-install-fonts "nerd-icons" "\
+Helper function to download and install the latests fonts based on OS.
+The provided Nerd Font is Symbols Nerd Font Mono.
+When PFX is non-nil, ignore the prompt and just install
+
+\(fn &optional PFX)" t)
+
+(autoload 'nerd-icons-insert "nerd-icons" "\
+Interactive icon insertion function.
+When Prefix ARG is non-nil, insert the propertized icon.
+When GLYPH-SET is non-nil, limit the candidates to the icon set matching it.
+
+\(fn &optional ARG GLYPH-SET)" t)
+
+(autoload 'nerd-icons-icon-for-dir "nerd-icons" "\
+Get the formatted icon for DIR.
+ARG-OVERRIDES should be a plist containining `:height',
+`:v-adjust' or `:face' properties like in the normal icon
+inserting functions.
+
+\(fn DIR &rest ARG-OVERRIDES)")
+
+(autoload 'nerd-icons-icon-for-file "nerd-icons" "\
+Get the formatted icon for FILE.
+ARG-OVERRIDES should be a plist containining `:height',
+`:v-adjust' or `:face' properties like in the normal icon
+inserting functions.
+
+\(fn FILE &rest ARG-OVERRIDES)")
+
+(autoload 'nerd-icons-icon-for-extension "nerd-icons" "\
+Get the formatted icon for EXT.
+ARG-OVERRIDES should be a plist containining `:height',
+`:v-adjust' or `:face' properties like in the normal icon
+inserting functions.
+
+\(fn EXT &rest ARG-OVERRIDES)")
+
+(autoload 'nerd-icons-icon-for-mode "nerd-icons" "\
+Get the formatted icon for MODE.
+ARG-OVERRIDES should be a plist containining `:height',
+`:v-adjust' or `:face' properties like in the normal icon
+inserting functions.
+
+\(fn MODE &rest ARG-OVERRIDES)")
+
+(autoload 'nerd-icons-icon-for-url "nerd-icons" "\
+Get the formatted icon for URL.
+If an icon for URL isn't found in `nerd-icons-url-alist', a globe is used.
+ARG-OVERRIDES should be a plist containining `:height',
+`:v-adjust' or `:face' properties like in the normal icon
+inserting functions.
+
+\(fn URL &rest ARG-OVERRIDES)")
+
+(autoload 'nerd-icons-icon-for-buffer "nerd-icons" "\
+Get the formatted icon for the current buffer.
+
+This function prioritises the use of the buffers file extension to
+discern the icon when its `major-mode' matches its auto mode,
+otherwise it will use the buffers `major-mode' to decide its
+icon.")
+
+(register-definition-prefixes "nerd-icons" '("nerd-icons-"))
+
+;;;***
+
 ;;;### (autoloads nil "smtpmail-async" "smtpmail-async.el" (0 0 0
 ;;;;;;  0))
 ;;; Generated autoloads from smtpmail-async.el
@@ -1687,8 +1805,8 @@ disabled.
 
 ;;;***
 
-;;;### (autoloads nil nil ("async_init.el" "helm-easymenu.el" "helm.el")
-;;;;;;  (0 0 0 0))
+;;;### (autoloads nil nil ("helm-easymenu.el" "helm.el" "nerd-icons-data.el"
+;;;;;;  "nerd-icons-faces.el") (0 0 0 0))
 
 ;;;***
 

@@ -72,7 +72,7 @@ The last option must be the one preceding pattern i.e \"-r\" or
 The option \"-N\" may not be available on old locate versions, it is needed on
 latest systems as locate send quoted filenames, it is BTW enabled by default, if
 this option is not recognized on your system, remove it.
- 
+
 You will be able to pass other options such as \"-b\" or \"l\"
 during Helm invocation after entering pattern only when multi
 matching, not when fuzzy matching.
@@ -377,9 +377,7 @@ See also `helm-locate'."
 Sort is done on basename of CANDIDATES."
   (helm-fuzzy-matching-default-sort-fn-1 candidates nil t))
 
-(defclass helm-locate-override-inheritor (helm-type-file) ())
-
-(defclass helm-locate-source (helm-source-async helm-locate-override-inheritor)
+(defclass helm-locate-source (helm-source-async helm-type-file)
   ((init :initform 'helm-locate-initial-setup)
    (candidates-process :initform 'helm-locate-init)
    (requires-pattern :initform 3)
@@ -389,7 +387,7 @@ Sort is done on basename of CANDIDATES."
    (redisplay :initform (progn helm-locate-fuzzy-sort-fn))))
 
 ;; Override helm-type-file class keymap.
-(cl-defmethod helm--setup-source :after ((source helm-locate-override-inheritor))
+(cl-defmethod helm--setup-source :after ((source helm-locate-source))
   (setf (slot-value source 'keymap) helm-locate-map)
   (setf (slot-value source 'group) 'helm-locate))
 
@@ -428,8 +426,11 @@ Sort is done on basename of CANDIDATES."
                                      candidate
                                      directory))
                            0)
-                  (error "Failed to create locatedb file `%s'" candidate)))))
-    (cl-loop for p in helm-locate-project-list
+                  (error "Failed to create locatedb file `%s'" candidate))))
+         (projects (cl-loop for p in helm-locate-project-list
+                            when (file-directory-p p)
+                            collect p)))
+    (cl-loop for p in projects
              for db = (expand-file-name
                        helm-ff-locate-db-filename
                        (file-name-as-directory p))
@@ -460,7 +461,7 @@ Sort is done on basename of CANDIDATES."
                 (guard* (string-match-p "\\`es" it))
                 (format it (replace-regexp-in-string
                             "/" "\\\\\\\\" (helm-get-attr 'basedir))
-	                (helm-get-attr 'subdir)))
+                     (helm-get-attr 'subdir)))
                (;; Locate
                 (guard* (string-match-p "\\`locate" it))
                 ;; Try to use a locale DB if some.
@@ -493,7 +494,7 @@ With a prefix arg refresh the database in each project."
   (helm-locate-set-command)
   (cl-assert (and (string-match-p "\\`locate" helm-locate-command)
                   (executable-find "updatedb"))
-             nil "Unsupported locate version")
+             nil "Unsupported locate program")
   (let ((dbs (helm-locate-find-dbs-in-projects update)))
     (if dbs
         (helm-locate-with-db dbs)

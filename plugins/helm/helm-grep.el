@@ -298,7 +298,7 @@ value used in `helm-grep-ag-command'.
 
 Note also that by default the \"--\" option is always used, you don't
 need to add it here.
- 
+
 You probably don't need to use this unless you know what you are
 doing."
   :type '(repeat string))
@@ -930,11 +930,11 @@ RESET non-nil means rewind to the first match.
 This is the `next-error-function' for `helm-grep-mode'."
   (interactive "p")
   (goto-char (cond (reset (point-min))
-		   ((and (< argp 0) helm-current-error)
+                  ((and (< argp 0) helm-current-error)
                     (line-beginning-position))
-		   ((and (> argp 0) helm-current-error)
+                  ((and (> argp 0) helm-current-error)
                     (line-end-position))
-		   ((point))))
+                  ((point))))
   (let ((fun (if (> argp 0)
                  #'next-single-property-change
                #'previous-single-property-change)))
@@ -1643,7 +1643,7 @@ returns if available with current AG version."
         (cmd-line (helm-grep-ag-prepare-cmd-line
                    ;; NOTE Encode directory name and pattern,
                    ;; or it may not work with Chinese and maybe other non-utf8
-                   ;; characters on MSWindows systems issue#2677 and issue#2678. 
+                   ;; characters on MSWindows systems issue#2677 and issue#2678.
                    (encode-coding-string helm-pattern locale-coding-system)
                    (or (file-remote-p directory 'localname)
                        (encode-coding-string directory locale-coding-system))
