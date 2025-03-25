@@ -1,9 +1,8 @@
-;;; lsp-awk.el --- AWK client -*- lexical-binding: t; -*-
+;;; lsp-futhark.el --- lsp-mode futhark integration    -*- lexical-binding: t; -*-
 
-;; Copyright (C) 2023 emacs-lsp maintainers
+;; Copyright (C) 2024 lsp-mode maintainers
 
-;; Author: Konstantin Kharlamov <Hi-Angel@yandex.ru>
-;; Keywords: languages lsp awk
+;; Keywords: languages
 
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -19,31 +18,25 @@
 ;; along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 ;;; Commentary:
-;;
-;; LSP client for AWK language.
-;;
+
+;; Client for the futhark language server.
 
 ;;; Code:
 
 (require 'lsp-mode)
 
-(defgroup lsp-awk nil
-  "LSP support for AWK."
+(defgroup lsp-futhark nil
+  "LSP support for Futhark, using futhark lsp"
   :group 'lsp-mode
-  :link '(url-link "https://github.com/Beaglefoot/awk-language-server"))
-
-(defcustom lsp-awk-executable '("awk-language-server")
-  "Command to run the AWK language server."
-  :group 'lsp-awk
-  :risky t
-  :type '(repeat string))
+  :link '(url-link "https://github.com/diku-dk/futhark/tree/master/src/Futhark/LSP")
+  :package-version `(lsp-mode . "9.0.1"))
 
 (lsp-register-client
- (make-lsp-client
-  :new-connection (lsp-stdio-connection (lambda () lsp-awk-executable))
-  :activation-fn (lsp-activate-on "awk")
-  :priority -1
-  :server-id 'awkls))
+ (make-lsp-client :new-connection (lsp-stdio-connection '("futhark" "lsp"))
+                  :activation-fn (lsp-activate-on "futhark")
+                  :server-id 'futhark))
 
-(provide 'lsp-awk)
-;;; lsp-awk.el ends here
+(lsp-consistency-check lsp-futhark)
+
+(provide 'lsp-futhark)
+;;; lsp-futhark.el ends here

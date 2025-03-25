@@ -1,9 +1,9 @@
-;;; lsp-awk.el --- AWK client -*- lexical-binding: t; -*-
+;;; lsp-fennel.el --- lsp-mode for the fennel-ls -*- lexical-binding: t; -*-
 
-;; Copyright (C) 2023 emacs-lsp maintainers
+;; Copyright (C) 2024 Merrick Luo
 
-;; Author: Konstantin Kharlamov <Hi-Angel@yandex.ru>
-;; Keywords: languages lsp awk
+;; Author: Merrick Luo
+;; Keywords: languages
 
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -19,31 +19,30 @@
 ;; along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 ;;; Commentary:
-;;
-;; LSP client for AWK language.
-;;
+
+;; LSP client for fennel-ls - an language server for fennel.
 
 ;;; Code:
 
 (require 'lsp-mode)
 
-(defgroup lsp-awk nil
-  "LSP support for AWK."
+(defgroup lsp-fennel nil
+  "LSP support for the fennel-ls language server."
   :group 'lsp-mode
-  :link '(url-link "https://github.com/Beaglefoot/awk-language-server"))
+  :link '(url-link "https://git.sr.ht/~xerool/fennel-ls"))
 
-(defcustom lsp-awk-executable '("awk-language-server")
-  "Command to run the AWK language server."
-  :group 'lsp-awk
-  :risky t
-  :type '(repeat string))
+;; TODO: consider find in luarocks install location
+(defun lsp-fennel--ls-command ()
+  (executable-find "fennel-ls"))
 
 (lsp-register-client
  (make-lsp-client
-  :new-connection (lsp-stdio-connection (lambda () lsp-awk-executable))
-  :activation-fn (lsp-activate-on "awk")
-  :priority -1
-  :server-id 'awkls))
+  :new-connection (lsp-stdio-connection #'lsp-fennel--ls-command)
+  :activation-fn (lsp-activate-on "fennel")
+  :priority -2
+  :server-id 'fennel-ls))
 
-(provide 'lsp-awk)
-;;; lsp-awk.el ends here
+(lsp-consistency-check lsp-fennel)
+
+(provide 'lsp-fennel)
+;;; lsp-fennel.el ends here

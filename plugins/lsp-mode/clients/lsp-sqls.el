@@ -71,7 +71,7 @@ Depending on `lsp-sqls-workspace-config-path'."
 
   (if lsp-sqls-connections
       (lsp--set-configuration `(:sqls (:connections ,(apply #'vector lsp-sqls-connections))))
-    (when-let ((config-json-path (cond
+    (when-let* ((config-json-path (cond
                                   ((equal lsp-sqls-workspace-config-path "workspace")
                                    ".sqls/config.json")
                                   ((equal lsp-sqls-workspace-config-path "root")
@@ -143,6 +143,14 @@ use the current region if set, otherwise the entire buffer."
     "workspace/executeCommand"
     (list :command "showConnections" :timeout lsp-sqls-timeout))))
 
+(defun lsp-sql-show-tables (&optional _command)
+  "Show tables."
+  (interactive)
+  (lsp-sqls--show-results
+   (lsp-request
+    "workspace/executeCommand"
+    (list :command "showTables" :timeout lsp-sqls-timeout))))
+
 (defun lsp-sql-switch-database (&optional _command)
   "Switch database."
   (interactive)
@@ -176,6 +184,7 @@ use the current region if set, otherwise the entire buffer."
                                        ("showDatabases" #'lsp-sql-show-databases)
                                        ("showSchemas" #'lsp-sql-show-schemas)
                                        ("showConnections" #'lsp-sql-show-connections)
+                                       ("showTables" #'lsp-sql-show-tables)
                                        ("switchDatabase" #'lsp-sql-switch-database)
                                        ("switchConnections" #'lsp-sql-switch-connection))
                   :server-id 'sqls
