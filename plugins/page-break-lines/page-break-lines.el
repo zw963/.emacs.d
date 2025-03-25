@@ -5,7 +5,7 @@
 ;; Author: Steve Purcell <steve@sanityinc.com>
 ;; URL: https://github.com/purcell/page-break-lines
 ;; Package-Version: 0.15
-;; Package-Requires: ((emacs "24.4"))
+;; Package-Requires: ((emacs "25.1"))
 ;; Keywords: convenience, faces
 
 ;; This program is free software; you can redistribute it and/or modify
@@ -118,31 +118,27 @@ horizontal line of `page-break-lines-char' characters."
 If the buffer inside WINDOW has `page-break-lines-mode' enabled,
 its display table will be modified as necessary."
   (with-current-buffer (window-buffer window)
-    (with-selected-window window
-      (if page-break-lines-mode
-          (progn
-            (unless buffer-display-table
-              (setq buffer-display-table (make-display-table)))
-            (let ((default-height (face-attribute 'default :height nil 'default)))
-              (set-face-attribute 'page-break-lines nil :height default-height)
-              (let* ((cwidth (char-width page-break-lines-char))
-                     (wwidth-pix (- (window-width nil t)
-                                    (if (and (bound-and-true-p display-line-numbers)
-                                             (fboundp 'line-number-display-width))
-                                        (line-number-display-width t)
-                                      0)))
-                     (width (- (/ wwidth-pix (frame-char-width) cwidth)
-                               (if (display-graphic-p) 0 1)))
-                     (width (if page-break-lines-max-width
-                                (min width page-break-lines-max-width)
-                              width))
-                     (glyph (make-glyph-code page-break-lines-char 'page-break-lines))
-                     (new-display-entry (vconcat (make-list width glyph))))
-                (unless (equal new-display-entry (elt buffer-display-table ?\^L))
-                  (aset buffer-display-table ?\^L new-display-entry)))))
-        (when (and (apply 'derived-mode-p page-break-lines-modes)
-                   buffer-display-table)
-          (aset buffer-display-table ?\^L nil))))))
+    (if page-break-lines-mode
+        (progn
+          (unless buffer-display-table
+            (setq buffer-display-table (make-display-table)))
+          (let ((default-height (face-attribute 'default :height (window-frame window) 'default)))
+            (set-face-attribute 'page-break-lines nil :height default-height)
+            (let* ((char-relative-width (if (fboundp 'string-pixel-width)
+                                            (/ (float (string-pixel-width (make-string 100 page-break-lines-char)))
+                                               (string-pixel-width (make-string 100 ?a)))
+                                          (char-width page-break-lines-char)))
+                   (width (floor (max 0 (window-max-chars-per-line window)) char-relative-width))
+                   (width (if page-break-lines-max-width
+                              (min width page-break-lines-max-width)
+                            width))
+                   (glyph (make-glyph-code page-break-lines-char 'page-break-lines))
+                   (new-display-entry (vconcat (make-list width glyph))))
+              (unless (equal new-display-entry (elt buffer-display-table ?\^L))
+                (aset buffer-display-table ?\^L new-display-entry)))))
+      (when (and (apply 'derived-mode-p page-break-lines-modes)
+                 buffer-display-table)
+        (aset buffer-display-table ?\^L nil)))))
 
 (defun page-break-lines--update-display-tables  (&optional frame)
   "Function called for updating display table in windows of FRAME."
