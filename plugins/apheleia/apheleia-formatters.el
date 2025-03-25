@@ -24,7 +24,7 @@
   '((astyle . ("astyle" (apheleia-formatters-locate-file
                          "--options" ".astylerc")))
     (asmfmt . ("asmfmt"))
-    (bean-format . ("bean-format"))
+    (bean-format . ("bean-format" input))
     (beautysh . ("beautysh"
                  (apheleia-formatters-indent
                   "--tab" "--indent-size" 'sh-basic-offset)
@@ -34,7 +34,14 @@
               (apheleia-formatters-fill-column "--line-length")
               "-"))
     (brittany . ("brittany"))
-    (buildifier . ("buildifier"))
+    (buildifier . ("buildifier" "-type"
+                   (cond
+                    ((eq major-mode 'bazel-workspace-mode) "workspace")
+                    ((eq major-mode 'bazel-module-mode) "module")
+                    ((eq major-mode 'bazel-build-mode) "build")
+                    (t "auto")
+                    )))
+    (biome . ("apheleia-npx" "biome" "format" "--stdin-file-path" filepath))
     (caddyfmt . ("caddy" "fmt" "-"))
     (clang-format . ("clang-format"
                      "-assume-filename"
@@ -42,6 +49,7 @@
                          (apheleia-formatters-mode-extension)
                          ".c")))
     (cljfmt . ("cljfmt" "fix" "-"))
+    (cljstyle . ("cljstyle" "pipe"))
     (cmake-format . ("cmake-format" "-"))
     (crystal-tool-format . ("crystal" "tool" "format" "-"))
     (css-beautify "css-beautify" "--file" "-" "--end-with-newline"
@@ -61,8 +69,10 @@
     (dprint . ("dprint" "fmt" "--stdin" filepath))
     (elm-format . ("elm-format" "--yes" "--stdin"))
     (fish-indent . ("fish_indent"))
-    (fourmolu . ("fourmolu"))
+    (fourmolu . ("fourmolu" "--stdin-input-file" filepath))
     (gawk . ("gawk" "-f" "-" "--pretty-print=-"))
+    (gdformat . ("gdformat" "-"))
+    (gleam . ("gleam" "format" "--stdin"))
     (gofmt . ("gofmt"))
     (gofumpt . ("gofumpt"))
     (goimports . ("goimports"))
@@ -91,11 +101,12 @@
     (ktlint . ("ktlint" "--log-level=none" "--stdin" "-F" "-"))
     (latexindent . ("latexindent" "--logfile=/dev/null"))
     (mix-format . ("apheleia-from-project-root"
-                   ".formatter.exs" "mix" "format" "-"))
+                   ".formatter.exs" "apheleia-mix-format" filepath))
     (nixfmt . ("nixfmt"))
     (ocamlformat . ("ocamlformat" "-" "--name" filepath
                     "--enable-outside-detected-project"))
-    (ormolu . ("ormolu"))
+    (ocp-indent . ("ocp-indent"))
+    (ormolu . ("ormolu" "--stdin-input-file" filepath))
     (perltidy . ("perltidy" "--quiet" "--standard-error-output"
                  (apheleia-formatters-indent "-t" "-i")
                  (apheleia-formatters-fill-column "-l")))
@@ -125,6 +136,10 @@
     (prettier-json
      . ("apheleia-npx" "prettier" "--stdin-filepath" filepath
         "--parser=json"
+        (apheleia-formatters-js-indent "--use-tabs" "--tab-width")))
+    (prettier-json-stringify
+     . ("apheleia-npx" "prettier" "--stdin-filepath" filepath
+        "--parser=json-stringify"
         (apheleia-formatters-js-indent "--use-tabs" "--tab-width")))
     (prettier-markdown
      . ("apheleia-npx" "prettier" "--stdin-filepath" filepath
@@ -158,7 +173,7 @@
     (python3-json
      . ("python3" "-m" "json.tool"
         (apheleia-formatters-indent "--tab" "--indent")))
-    (rubocop . ("rubocop" "--stdin" filepath "--auto-correct"
+    (rubocop . ("rubocop" "--stdin" filepath "-a"
                 "--stderr" "--format" "quiet" "--fail-level" "fatal"))
     (ruby-standard . ("standardrb" "--stdin" filepath "--fix" "--stderr"
                       "--format" "quiet" "--fail-level" "fatal"))
@@ -175,6 +190,9 @@
                    "--fix" "--fix-only"
                    "--stdin-filename" filepath
                    "-"))
+    (snakefmt . ("snakefmt"
+                 (apheleia-formatters-fill-column "--line-length")
+                 "-"))
     (shfmt . ("shfmt"
               "-filename" filepath
               "-ln" (cl-case (bound-and-true-p sh-shell)
@@ -194,6 +212,8 @@
     (rustfmt . ("rustfmt" "--quiet" "--emit" "stdout"))
     (terraform . ("terraform" "fmt" "-"))
     (treefmt . ("treefmt" "--stdin" filepath))
+    (typstyle . ("typstyle"))
+    (vfmt . ("v" "fmt"))
     (xmllint . ("xmllint" "--format" "-"))
     (yapf . ("yapf"))
     (yq-csv . ("yq" "--prettyPrint" "--no-colors"
@@ -210,7 +230,8 @@
                (apheleia-formatters-indent nil "--indent")))
     (yq-yaml . ("yq" "--prettyPrint" "--no-colors" "--no-doc"
                 "--input-format" "yaml" "--output-format" "yaml"
-                (apheleia-formatters-indent nil "--indent"))))
+                (apheleia-formatters-indent nil "--indent")))
+    (zig-fmt . ("zig" "fmt" "--stdin")))
   "Alist of code formatting commands.
 The keys may be any symbols you want, and the values are shell
 commands, lists of strings and symbols, or a function symbol.
@@ -315,10 +336,14 @@ rather than using this system."
     (elm-mode . elm-format)
     (emacs-lisp-mode . lisp-indent)
     (fish-mode . fish-indent)
+    (gdscript-mode . gdformat)
+    (gdscript-ts-mode . gdformat)
+    (gleam-ts-mode . gleam)
     (go-mode . gofmt)
     (go-ts-mode . gofmt)
     (graphql-mode . prettier-graphql)
-    (haskell-mode . brittany)
+    (haskell-mode . fourmolu)
+    (haskell-ts-mode . fourmolu)
     (hcl-mode . hclfmt)
     (html-mode . prettier-html)
     (html-ts-mode . prettier-html)
@@ -343,6 +368,7 @@ rather than using this system."
     ;; try imposing a standard by default
     (nasm-mode . asmfmt)
     (nix-mode . nixfmt)
+    (nix-ts-mode . nixfmt)
     (perl-mode . perltidy)
     (php-mode . phpcs)
     (purescript-mode . purs-tidy)
@@ -354,6 +380,7 @@ rather than using this system."
     (rustic-mode . rustfmt)
     (rust-mode . rustfmt)
     (rust-ts-mode . rustfmt)
+    (snakemake-mode . snakefmt)
     (scss-mode . prettier-scss)
     (sql-mode . pgformatter)
     (svelte-mode . prettier-svelte)
@@ -364,10 +391,15 @@ rather than using this system."
     (tuareg-mode . ocamlformat)
     (typescript-mode . prettier-typescript)
     (typescript-ts-mode . prettier-typescript)
+    (typst-mode . typstyle)
+    (typst-ts-mode . typstyle)
+    (v-mode . vfmt)
     (web-mode . prettier)
     (yaml-mode . prettier-yaml)
     (yaml-ts-mode . prettier-yaml)
-    (yang-mode . pyang))
+    (yang-mode . pyang)
+    (zig-mode . zig-fmt)
+    (zig-ts-mode . zig-fmt))
   "Alist mapping major mode names to formatters to use in those modes.
 This determines what formatter to use in buffers without a
 setting for `apheleia-formatter'. The keys are major mode
@@ -539,6 +571,9 @@ NO-QUERY, and CONNECTION-TYPE."
   (ignore name noquery connection-type)
   (let* ((run-on-remote (and (eq apheleia-remote-algorithm 'remote)
                              remote))
+	 ;; Resolve the formatter executable's path to ensure it's
+	 ;; found
+	 (command (cons (executable-find (car command) run-on-remote) (cdr command)))
          (stderr-file (apheleia--make-temp-file run-on-remote "apheleia"))
          (args
           (append
@@ -1059,17 +1094,22 @@ purposes."
   ;; resolve for the whole formatting process (for example
   ;; `apheleia--current-process').
   (with-current-buffer buffer
-    (when-let ((exec-path
-                (append `(,(expand-file-name
-                            "scripts/formatters"
-                            (file-name-directory
-                             (file-truename
-                              ;; Borrowed with love from Magit
-                              (let ((load-suffixes '(".el")))
-                                (locate-library "apheleia"))))))
-                        exec-path))
-               (ctx
-                (apheleia--formatter-context formatter command remote stdin)))
+    (when-let* ((script-dir (expand-file-name
+                             "scripts/formatters"
+                             (file-name-directory
+                              (file-truename
+                               ;; Borrowed with love from Magit
+                               (let ((load-suffixes '(".el")))
+                                 (locate-library "apheleia"))))))
+                ;; Gotta set both `exec-path' and the PATH env-var,
+                ;; the former is for Emacs itself while the latter is
+                ;; for subprocesses of the proc we start.
+                (exec-path (cons script-dir exec-path))
+                (process-environment
+                 (cons (concat "PATH=" script-dir ":" (getenv "PATH"))
+                       process-environment))
+                (ctx
+                 (apheleia--formatter-context formatter command remote stdin)))
       (if (executable-find (apheleia-formatter--arg1 ctx)
                            (eq apheleia-remote-algorithm 'remote))
           (apheleia--execute-formatter-process
@@ -1157,7 +1197,7 @@ For more implementation detail, see
     (setq-local indent-line-function
                 (buffer-local-value 'indent-line-function buffer))
     (setq-local lisp-indent-function
-		(buffer-local-value 'lisp-indent-function buffer))
+                (buffer-local-value 'lisp-indent-function buffer))
     (setq-local indent-tabs-mode
                 (buffer-local-value 'indent-tabs-mode buffer))
     (goto-char (point-min))
