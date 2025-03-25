@@ -32,9 +32,9 @@
 (require 'beyond-compare_init)
 ;; (require 'ido_init)
 
-;; (require 'flx_init)
-;; (require 'fussy_init); 放到 flx_init 后面
-(require 'hotfuzz_init)
+(require 'flx_init)
+(require 'fussy_init); 放到 flx_init 后面
+;; (require 'hotfuzz_init)
 (require 'company_init)
 (require 'helm_init)
 (require 'helm-bindings_init) ; 和 ivy_init 冲突， 二者选其一.
