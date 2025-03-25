@@ -1,6 +1,6 @@
 ;;; dap-mode.el --- Debug Adapter Protocol mode      -*- lexical-binding: t; -*-
 
-;; Copyright (C) 2019-2024  emacs-lsp maintainers
+;; Copyright (C) 2019-2025  emacs-lsp maintainers
 
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -18,7 +18,7 @@
 ;; Author: Ivan Yonchovski <yyoncho@gmail.com>
 ;; Keywords: languages, debug
 ;; URL: https://github.com/emacs-lsp/dap-mode
-;; Package-Requires: ((emacs "27.1") (dash "2.18.0") (lsp-mode "6.0") (bui "1.1.0") (f "0.20.0") (s "1.12.0") (lsp-treemacs "0.1") (posframe "0.7.0") (ht "2.3") (lsp-docker "1.0.0"))
+;; Package-Requires: ((emacs "28.1") (dash "2.18.0") (lsp-mode "6.0") (bui "1.1.0") (f "0.20.0") (s "1.12.0") (lsp-treemacs "0.1") (posframe "0.7.0") (ht "2.3") (lsp-docker "1.0.0"))
 ;; Version: 0.8
 
 ;;; Commentary:
@@ -790,12 +790,13 @@ will be reversed."
       (dap--send-message
        (dap--make-request "source" (list :sourceReference sourceReference))
        (dap--resp-handler
-        (-lambda ((&hash "body" (&hash "content" content)))
-          (switch-to-buffer (generate-new-buffer sourceReferenceKey))
-          (insert content)
-          (goto-char (point-min))
-          (forward-line (1- line))
-          (forward-char column))
+        (-lambda ((&hash "body" body))
+          (let ((content (if body (gethash "content" body) "")))
+            (switch-to-buffer (generate-new-buffer sourceReferenceKey))
+            (insert content)
+            (goto-char (point-min))
+            (forward-line (1- line))
+            (forward-char column)))
         (lambda (errmsg)
           (message "No source code for %s. Cursor at %s:%s. Error: %s." name line column errmsg)))
        debug-session))))
