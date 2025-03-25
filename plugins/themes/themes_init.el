@@ -3,7 +3,7 @@
 ;; popular themes: https://emacsthemes.com/popular/index.html
 
 (setq custom-theme-directory (expand-file-name "plugins/themes"))
-(load-theme 'vscode-dark-plus t)
+;; (load-theme 'vscode-dark-plus t)
 
 ;; (load-theme 'borland-blue t)
 
@@ -11,6 +11,10 @@
 ;; (setq zenburn-scale-org-headlines t)
 ;; (setq zenburn-scale-outline-headlines t)
 ;; (load-theme 'zenburn t)
+(require 'modus-themes)
+;; (load-theme 'modus-operandi-tinted t)
+(load-theme 'modus-operandi-deuteranopia t)
+;; (load-theme 'modus-operandi-tritanopia t)
 
 ;; (require ' doom-ayu-moonlight-theme)
 ;; (load-theme 'doom-ayu-moonlight t)
