@@ -1,12 +1,12 @@
 ;;; crux.el --- A Collection of Ridiculously Useful eXtensions -*- lexical-binding: t -*-
 ;;
-;; Copyright © 2015-2021 Bozhidar Batsov
+;; Copyright © 2015-2025 Bozhidar Batsov
 ;;
 ;; Author: Bozhidar Batsov <bozhidar@batsov.dev>
 ;; URL: https://github.com/bbatsov/crux
-;; Version: 0.4.0
+;; Version: 0.6.0-snapshot
 ;; Keywords: convenience
-;; Package-Requires: ((seq "1.11"))
+;; Package-Requires: ((emacs "26.1"))
 
 ;; This file is not part of GNU Emacs.
 
@@ -37,6 +37,7 @@
 (require 'thingatpt)
 (require 'seq)
 (require 'tramp)
+(require 'subr-x)
 
 (declare-function dired-get-file-for-visit "dired")
 (declare-function org-element-property "org-element")
@@ -167,7 +168,7 @@ When in dired mode, open file under the cursor.
 With a prefix ARG always prompt for command to use."
   (interactive "P")
   (let* ((current-file-name
-          (if (eq major-mode 'dired-mode)
+          (if (derived-mode-p 'dired-mode)
               (dired-get-file-for-visit)
             buffer-file-name))
          (open (pcase system-type
@@ -224,7 +225,7 @@ If the process in that buffer died, ask to restart."
                              (apply crux-shell-func (list crux-shell-buffer-name)))
                            (format "*%s*" crux-shell-buffer-name))
   (when (and (null (get-buffer-process (current-buffer)))
-             (not (eq major-mode 'eshell-mode)) ; eshell has no process
+             (not (derived-mode-p 'eshell-mode)) ; eshell has no process
              (y-or-n-p "The process has died.  Do you want to restart it? "))
     (kill-buffer-and-window)
     (crux-visit-shell-buffer)))
@@ -384,8 +385,7 @@ there's a region, all lines that region covers will be duplicated."
                (region (buffer-substring-no-properties beg end)))
     (dotimes (_i arg)
       (goto-char end)
-      (unless (use-region-p)
-        (newline))
+      (newline)
       (insert region)
       (setq end (point)))
     (goto-char (+ origin (* (length region) arg) arg))))
@@ -403,8 +403,7 @@ there's a region, all lines that region covers will be duplicated."
     (setq end (line-end-position))
     (dotimes (_ arg)
       (goto-char end)
-      (unless (use-region-p)
-        (newline))
+      (newline)
       (insert region)
       (setq end (point)))
     (goto-char (+ origin (* (length region) arg) arg))))
@@ -413,14 +412,23 @@ there's a region, all lines that region covers will be duplicated."
 (defun crux-rename-file-and-buffer ()
   "Rename current buffer and if the buffer is visiting a file, rename it too."
   (interactive)
-  (let ((filename (buffer-file-name)))
-    (if (not (and filename (file-exists-p filename)))
-        (rename-buffer (read-from-minibuffer "New name: " (buffer-name)))
-      (let* ((new-name (read-file-name "New name: " (file-name-directory filename)))
-             (containing-dir (file-name-directory new-name)))
+  (when-let* ((filename (buffer-file-name))
+              (new-name (or (read-file-name "New name: " (file-name-directory filename) nil 'confirm)))
+              (containing-dir (file-name-directory new-name)))
+    ;; make sure the current buffer is saved and backed by some file
+    (when (or (buffer-modified-p) (not (file-exists-p filename)))
+      (if (y-or-n-p "Can't move file before saving it.  Would you like to save it now?")
+          (save-buffer)))
+    (if (get-file-buffer new-name)
+        (message "There already exists a buffer named %s" new-name)
+      (progn
         (make-directory containing-dir t)
         (cond
-         ((vc-backend filename) (vc-rename-file filename new-name))
+         ((vc-backend filename)
+          ;; vc-rename-file seems not able to cope with remote filenames?
+          (let ((vc-filename (if (tramp-tramp-file-p filename) (tramp-file-local-name filename) filename))
+                (vc-new-name (if (tramp-tramp-file-p new-name) (tramp-file-local-name filename) new-name)))
+            (vc-rename-file vc-filename vc-new-name)))
          (t
           (rename-file filename new-name t)
           (set-visited-file-name new-name t t)))))))
@@ -444,7 +452,7 @@ there's a region, all lines that region covers will be duplicated."
 
 ;;;###autoload
 (defun crux-copy-file-preserve-attributes (visit)
-    "Copy the current file-visiting buffer's file to a destination.
+  "Copy the current file-visiting buffer's file to a destination.
 
 This function prompts for the new file's location and copies it
 similar to cp -p. If the new location is a directory, and the
@@ -460,41 +468,37 @@ to not created it, nothing will be done.
 
 When invoke with C-u, the newly created file will be visited.
 "
-    (interactive "p")
-    (let ((current-file (buffer-file-name)))
-      (when current-file
-        (let* ((new-file (read-file-name "Copy file to: "))
-               (abs-path (expand-file-name new-file))
-               (create-dir-prompt "%s is a non-existent directory, create it? ")
-               (is-dir? (string-match "/" abs-path (1- (length abs-path))))
-               (dir-missing? (and is-dir? (not (file-exists-p abs-path))))
-               (create-dir? (and is-dir?
-                                 dir-missing?
-                                 (y-or-n-p
-                                  (format create-dir-prompt new-file))))
-               (destination (concat (file-name-directory abs-path)
-                                    (file-name-nondirectory current-file))))
-          (unless (and is-dir? dir-missing? (not create-dir?))
-            (when (and is-dir? dir-missing? create-dir?)
-              (make-directory abs-path))
-            (condition-case nil
-                (progn
-                  (copy-file current-file abs-path nil t t t)
-                  (message "Wrote %s" destination)
-                  (when visit
-                    (find-file-other-window destination)))
-              (file-already-exists
-               (when (y-or-n-p (format "%s already exists, overwrite? " destination))
-                 (copy-file current-file abs-path t t t t)
-                 (message "Wrote %s" destination)
-                 (when visit
-                   (find-file-other-window destination))))))))))
+  (interactive "P")
+  (when-let ((current-file (buffer-file-name)))
+    (let* ((input-dest (expand-file-name (read-file-name "Copy file to: ")))
+           (input-dest-is-dir? (or (file-directory-p input-dest)
+                                   (string-match "/" input-dest (1- (length input-dest)))))
+           (dest-file (if input-dest-is-dir?
+                          (expand-file-name (file-name-nondirectory current-file) input-dest)
+                        input-dest))
+           (dest-dir (file-name-directory dest-file))
+           (dest-dir-missing? (not (file-directory-p dest-dir)))
+           (create-dir? (and dest-dir-missing?
+                             (y-or-n-p
+                              (format "%s is a non-existent directory, create it? " dest-dir))))
+           (dest-file-exists? (file-regular-p dest-file))
+           (overwrite-dest-file? (and dest-file-exists?
+                                      (y-or-n-p
+                                       (format "%s already exists, overwrite? " dest-file)))))
+      (unless (or (and dest-dir-missing? (not create-dir?))
+                  (and dest-file-exists? (not overwrite-dest-file?)))
+        (when (and dest-dir-missing? create-dir?)
+          (make-directory dest-dir t))
+        (copy-file current-file dest-file overwrite-dest-file? t t t)
+        (message "Wrote %s" dest-file)
+        (when visit
+          (find-file-other-window dest-file))))))
 
 ;;;###autoload
 (defun crux-view-url ()
   "Open a new buffer containing the contents of URL."
   (interactive)
-  (let* ((default (if (eq major-mode 'org-mode)
+  (let* ((default (if (derived-mode-p 'org-mode)
                       (org-element-property :raw-link (org-element-context))
                     (thing-at-point-url-at-point)))
          (url (read-from-minibuffer "URL: " default)))
@@ -554,7 +558,9 @@ See `file-attributes' for more info."
         (remote-host (file-remote-p default-directory 'host))
         (remote-localname (file-remote-p filename 'localname)))
     (find-alternate-file (format "/%s:root@%s:%s"
-                                 (or remote-method "sudo")
+                                 (or remote-method (if (executable-find "doas")
+                                                       "doas"
+                                                     "sudo"))
                                  (or remote-host "localhost")
                                  (or remote-localname filename)))))
 
@@ -571,7 +577,9 @@ buffer is not visiting a file."
             (remote-host (file-remote-p default-directory 'host))
             (remote-localname (file-remote-p default-directory 'localname)))
         (find-file (format "/%s:root@%s:%s"
-                           (or remote-method "sudo")
+                           (or remote-method (if (executable-find "doas")
+                                                 "doas"
+                                               "sudo"))
                            (or remote-host "localhost")
                            (or remote-localname
                                (read-file-name "Find file (as root): ")))))
@@ -589,7 +597,7 @@ buffer is not visiting a file."
 Meant to be used as `find-file-hook'.
 See also `crux-reopen-as-root-mode'."
   (unless (or (tramp-tramp-file-p buffer-file-name)
-              (equal major-mode 'dired-mode)
+              (derived-mode-p 'dired-mode)
               (not (file-exists-p (file-name-directory buffer-file-name)))
               (file-writable-p buffer-file-name)
               (crux-file-owned-by-user-p buffer-file-name))
@@ -701,10 +709,10 @@ Doesn't mess with special buffers."
 ;;;###autoload
 (defun crux-find-user-custom-file ()
   "Edit the `custom-file', in another window."
-    (interactive)
-    (if custom-file
-        (find-file-other-window custom-file)
-      (message "No custom file found.")))
+  (interactive)
+  (if custom-file
+      (find-file-other-window custom-file)
+    (message "No custom file found.")))
 
 ;;;###autoload
 (defun crux-find-shell-init-file ()
@@ -722,6 +730,30 @@ Doesn't mess with special buffers."
     (if (> (length candidates) 1)
         (find-file-other-window (completing-read "Choose shell init file: " candidates))
       (find-file-other-window (car candidates)))))
+
+;;;###autoload
+(defun crux-find-current-directory-dir-locals-file (find-2)
+  "Edit the `.dir-locals.el' file for the current buffer in another window.
+If prefix arg FIND-2 is set then edit the `.dir-locals-2.el' file instead
+of `.dir-locals.el'.
+
+Scans parent directories if the file does not exist in
+the default directory of the current buffer.  If not found, create a new,
+empty buffer in the current buffer's default directory, or if there is no
+such directory, in the user's home directory."
+  (interactive "P")
+  (let* ((prefix (if (eq system-type 'ms-dos) "_" "."))
+         (file (concat prefix (if find-2 "dir-locals-2" "dir-locals") ".el"))
+         (starting-dir (or (when (and default-directory
+                                      (file-readable-p default-directory))
+                             default-directory)
+                           (file-truename "~/")))
+         (found-dir (or (locate-dominating-file starting-dir file) starting-dir))
+         (found-file (concat found-dir file)))
+    (find-file-other-window found-file)
+    (if (file-exists-p found-file)
+        (message "Editing existing file %s" found-file)
+      (message "Editing new file %s" found-file))))
 
 ;;;###autoload
 (defun crux-upcase-region (beg end)
@@ -796,6 +828,16 @@ and the entire buffer (in the absense of a region)."
       (if mark-active
           (list (region-beginning) (region-end))
         (list (line-beginning-position) (line-beginning-position 2))))))
+
+(defmacro crux-with-region-or-sexp-or-line (func)
+  "When called with no active region, call FUNC on current sexp/string, or line."
+  `(defadvice ,func (before with-region-or-sexp-or-line activate compile)
+     (interactive
+      (cond
+       (mark-active (list (region-beginning) (region-end)))
+       ((in-string-p) (flatten-list (bounds-of-thing-at-point 'string)))
+       ((thing-at-point 'list) (flatten-list (bounds-of-thing-at-point 'list)))
+       (t (list (line-beginning-position) (line-beginning-position 2)))))))
 
 (defmacro crux-with-region-or-point-to-eol (func)
   "When called with no active region, call FUNC from the point to the end of line."
