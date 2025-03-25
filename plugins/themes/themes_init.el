@@ -13,8 +13,11 @@
 ;; (load-theme 'zenburn t)
 (require 'modus-themes)
 ;; (load-theme 'modus-operandi-tinted t)
-(load-theme 'modus-operandi-deuteranopia t)
-;; (load-theme 'modus-operandi-tritanopia t)
+;; (load-theme 'modus-operandi-deuteranopia t)
+(load-theme 'modus-vivendi-tritanopia t)
+
+;; (require 'nano-theme)
+;; (load-theme 'nano-dark t)
 
 ;; (require ' doom-ayu-moonlight-theme)
 ;; (load-theme 'doom-ayu-moonlight t)

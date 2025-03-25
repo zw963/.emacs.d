@@ -11,11 +11,11 @@
 (flx-rs-load-dyn)
 (advice-add 'flx-score :override #'flx-rs-score)
 
-(require 'company-fuzzy)
-(setq company-fuzzy-sorting-backend 'flx-rs
-      company-require-match nil
-      company-fuzzy-prefix-on-top nil
-      company-fuzzy-trigger-symbols '("." "->" "<" "\"" "'" "@"))
+;; (require 'company-fuzzy)
+;; (setq company-fuzzy-sorting-backend 'flx-rs
+;;       company-require-match nil
+;;       company-fuzzy-prefix-on-top nil
+;;       company-fuzzy-trigger-symbols '("." "->" "<" "\"" "'" "@"))
 
 (provide 'flx_init)
 
