@@ -1,12 +1,12 @@
 ;;; auto-compile.el --- Automatically compile Emacs Lisp libraries  -*- lexical-binding:t -*-
 
-;; Copyright (C) 2008-2024 Jonas Bernoulli
+;; Copyright (C) 2008-2025 Jonas Bernoulli
 
 ;; Author: Jonas Bernoulli <emacs.auto-compile@jonas.bernoulli.dev>
 ;; Homepage: https://github.com/emacscollective/auto-compile
 ;; Keywords: compile convenience lisp
 
-;; Package-Version: 2.0.3
+;; Package-Version: 2.0.5
 ;; Package-Requires: ((emacs "26.1"))
 
 ;; SPDX-License-Identifier: GPL-3.0-or-later
@@ -168,9 +168,9 @@ variant `auto-compile-on-save-mode'.  Also see the related
 
 ;;;###autoload
 (define-globalized-minor-mode auto-compile-on-save-mode
-  auto-compile-mode turn-on-auto-compile-mode)
+  auto-compile-mode auto-compile-mode--turn-on)
 
-(defun turn-on-auto-compile-mode ()
+(defun auto-compile-mode--turn-on ()
   (when (eq major-mode 'emacs-lisp-mode)
     (auto-compile-mode 1)))
 
@@ -299,7 +299,7 @@ non-nil."
 (defun auto-compile-use-mode-line-set (_ignored value)
   "Set `auto-compile-use-mode-line' and modify `mode-line-format'.
 VALUE is the element in `mode-line-format' after which our
-element is inserted. _IGNORED is of no relevance."
+element is inserted.  _IGNORED is of no relevance."
   (setq-default auto-compile-use-mode-line value)
   (auto-compile-modify-mode-line value))
 
@@ -545,7 +545,7 @@ Command `auto-compile-byte-compile' sets this buffer local
 variable to t after failing to compile a source file being
 visited in a buffer (or when variable `auto-compile-visit-failed'
 is non-nil for all files being compiled) causing it to try again
-when being called again. Command `toggle-auto-compile' will also
+when being called again.  Command `toggle-auto-compile' will also
 pretend the byte code file exists.")
 
 (defvar auto-compile-file-buffer nil)
