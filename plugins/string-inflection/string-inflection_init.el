@@ -5,7 +5,7 @@
   (interactive)
   (cond
    ;; for ruby
-   ((member major-mode '(ruby-mode enh-ruby-mode))
+   ((member major-mode '(ruby-mode enh-ruby-mode crystal-mode))
     (string-inflection-ruby-style-cycle))
    ;; for emacs-lisp-mode
    ((eq major-mode 'emacs-lisp-mode)

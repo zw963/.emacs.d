@@ -1,5 +1,5 @@
 (require 'expand-region)
-(global-set-key (kbd "M-h") 'er/expand-region)
+(global-set-key (kbd "C-M-h") 'er/expand-region)
 (setq expand-region-contract-fast-key "u")
 
 (provide 'expand-region_init)
