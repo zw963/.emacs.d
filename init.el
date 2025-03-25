@@ -19,7 +19,7 @@
 (require 'back-button_init)
 (require 'winum_init)
 (require 'which-key_init)
-;;(require 'anzu_init)
+(require 'anzu_init)
 (require 'beacon_init)
 (require 'avy_init)
 (require 'doom-modeline_init)
