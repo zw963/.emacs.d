@@ -7,7 +7,8 @@
 ;; Keywords: files
 ;; Version: 0.0.1
 ;; Created: 25th February 2014
-;; Package-requires: ((dash "2.5.0") (dired-hacks-utils "0.0.1"))
+;; Package-Requires: ((dash "2.5.0") (dired-hacks-utils "0.0.1") (emacs "24.3"))
+;; URL: https://github.com/Fuco1/dired-hacks
 
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -56,7 +57,7 @@
 
 ;; Here's a list of available interactive functions.  You can read
 ;; more about each one by using the built-in documentation facilities
-;; of emacs.  It is adviced to place bindings for these into a
+;; of Emacs.  It is adviced to place bindings for these into a
 ;; convenient prefix key map, for example C-,
 
 ;; * `dired-subtree-insert'
@@ -127,13 +128,13 @@ depth---that creates the prefix."
 
 (defcustom dired-subtree-cycle-depth 3
   "Default depth expanded by `dired-subtree-cycle'."
-  :type 'integer
+  :type 'natnum
   :group 'dired-subtree)
 
 (defcustom dired-subtree-ignored-regexp
   (concat "^" (regexp-opt vc-directory-exclusion-list) "$")
   "Matching directories will not be expanded in `dired-subtree-cycle'."
-  :type 'string
+  :type 'regexp
   :group 'dired-subtree)
 
 (defgroup dired-subtree-faces ()
@@ -190,7 +191,7 @@ depth---that creates the prefix."
   (mapc 'dired-subtree--remove-overlay ovs))
 
 (defun dired-subtree--cleanup-overlays ()
-  "Remove the `nil' values from `dired-subtree-overlays'."
+  "Remove the nil values from `dired-subtree-overlays'."
   (setq dired-subtree-overlays
         (--remove (not (overlay-buffer it)) dired-subtree-overlays)))
 
@@ -277,7 +278,7 @@ If no SUBTREES are specified, use `dired-subtree-overlays'."
   (save-excursion (dired-unmark 1)))
 
 (defun dired-subtree--dired-line-is-directory-or-link-p ()
-  "Return non-nil if line under point is a directory or symlink"
+  "Return non-nil if line under point is a directory or symlink."
   ;; We've replaced `file-directory-p' with the regexp test to
   ;; speed up filters over TRAMP.  So long as dired/ls format
   ;; doesn't change, we're good.
@@ -495,7 +496,7 @@ Return a string suitable for insertion in `dired' buffer."
       (save-excursion
         (insert listing)
         (setq end (+ (point) 2)))
-      (newline)
+      (insert "\n")
       (setq beg (point))
       (let ((inhibit-read-only t))
         (remove-text-properties (1- beg) beg '(dired-filename)))
@@ -540,6 +541,7 @@ Return a string suitable for insertion in `dired' buffer."
       (goto-char beg)
       (dired-move-to-filename)
       (read-only-mode 1)
+      (when (bound-and-true-p dired-filter-mode) (dired-filter-mode 1))
       (run-hooks 'dired-subtree-after-insert-hook))))
 
 ;;;###autoload
@@ -765,7 +767,7 @@ Optional argument means return a file name relative to `default-directory'."
 ;; Since the tree-inserted directory is not in the dired-subdir-alist,
 ;; we need to guard against nil.
 (defun dired-get-subdir ()
-  ;;"Return the subdir name on this line, or nil if not on a headerline."
+  "Return the subdir name on this line, or nil if not on a headerline."
   ;; Look up in the alist whether this is a headerline.
   (save-excursion
     (let ((cur-dir (dired-current-directory)))

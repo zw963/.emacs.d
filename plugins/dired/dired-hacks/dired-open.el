@@ -7,7 +7,8 @@
 ;; Keywords: files
 ;; Version: 0.0.1
 ;; Created: 14th February 2014
-;; Package-requires: ((dash "2.5.0") (dired-hacks-utils "0.0.1"))
+;; Package-Requires: ((dash "2.5.0") (dired-hacks-utils "0.0.1") (emacs "24"))
+;; URL: https://github.com/Fuco1/dired-hacks
 
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -24,14 +25,14 @@
 
 ;;; Commentary:
 
-;; While emacs already has the `auto-mode-alist', this is often
+;; While Emacs already has the `auto-mode-alist', this is often
 ;; insufficient.  Many times, you want to open media files, pdfs or
 ;; other documents with an external application.  There's remedy for
 ;; that too, namely `dired-guess-shell-alist-user', but that is still
 ;; not as convenient as just hitting enter.
 
 ;; This package adds a mechanism to add "hooks" to `dired-find-file'
-;; that will run before emacs tries its own mechanisms to open the
+;; that will run before Emacs tries its own mechanisms to open the
 ;; file, thus enabling you to launch other application or code and
 ;; suspend the default behaviour.
 
@@ -80,17 +81,16 @@
 (defcustom dired-open-functions '(dired-open-by-extension dired-open-subdir)
   "List of functions to try to open a file.
 
-Each function should accept no argument and should retrieve the
+Each function should accept no arguments and should retrieve the
 filename and/or other context by itself.  Each function should
 return non-nil value if it succeeded in opening the file."
   :type 'hook
   :group 'dired-open)
 
-(defcustom dired-open-find-file-function 'dired-find-file
+(defcustom dired-open-find-file-function #'dired-find-file
   "A function that will be used if none of the `dired-open-functions' succeeded."
   :type 'function
   :group 'dired-open)
-
 
 (defcustom dired-open-extensions nil
   "Alist of extensions mapping to a programs to run them in.
@@ -111,8 +111,8 @@ The filename is passed as the only argument to the function."
   :group 'dired-open)
 
 (defcustom dired-open-use-nohup t
-  "If non-nil, use nohup(1) to keep external processes opened
-even if emacs process is terminated.
+  "If non-nil, use nohup to keep external processes alive.
+See man page `nohup(1)'.
 
 This only affects the built-in handlers."
   :type 'boolean
@@ -120,7 +120,7 @@ This only affects the built-in handlers."
 
 (defcustom dired-open-query-before-exit t
   "If non-nil, ask the user if they want to kill any external
-processes started by `dired-open-file' when they exit emacs.
+processes started by `dired-open-file' when they exit Emacs.
 
 This only affects the built-in handlers."
   :type 'boolean
@@ -163,9 +163,8 @@ string as well."
   (interactive)
   (if (executable-find "xdg-open")
       (let ((file (ignore-errors (dired-get-file-for-visit))))
-        (start-process "dired-open" nil
-                       "xdg-open" (file-truename file)))
-    nil))
+        (call-process-shell-command (concat "xdg-open '" (file-truename file) "'"))
+    nil)))
 
 (defun dired-open-by-extension ()
   "Open a file according to its extension.

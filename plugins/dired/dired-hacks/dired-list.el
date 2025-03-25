@@ -6,7 +6,8 @@
 ;; Maintainer: Matúš Goljer <matus.goljer@gmail.com>
 ;; Version: 0.0.1
 ;; Created: 14th February 2014
-;; Package-requires: ((dash "2.10.0"))
+;; URL: https://github.com/Fuco1/dired-hacks
+;; Package-Requires: ((dash "2.10.0") (emacs "24.3") (dired-hacks-utils "0.0.1"))
 ;; Keywords: files
 
 ;; This program is free software; you can redistribute it and/or
@@ -24,11 +25,11 @@
 
 ;;; Commentary:
 
-;; Produce a file listing with a shell incantation and make a dired
+;; Produce a file listing with a shell incantation and make a Dired
 ;; out of it!
 
 ;; This package provides one principal function, `dired-list' which
-;; can be used to produce dired buffers from shell programs outputing
+;; can be used to produce Dired buffers from shell programs outputing
 ;; text roughly in the format of `la -ls'.
 
 ;; For most standard output formats the default filter and sentinel
@@ -45,7 +46,7 @@
 
 ;;   C-h f dired-list RET
 
-;; in emacs.
+;; in Emacs.
 
 ;; In addition to the generic interface this package implements common
 ;; listings (patches and extensions welcome!), these are:
@@ -66,6 +67,14 @@
 (require 'grep)
 (require 'find-dired)
 
+; TODO: this will become obsolete in 30.1, because -N always comes with --dired flag
+(defcustom dired-list-use-N-flag t
+  "Non-nil means the --literal flag will be used.
+
+GNU coreutils ls version 8.25 no longer uses --literal (-N) flag as default."
+  :type 'boolean
+  :group 'dired-list)
+
 (defun dired-list-align-size-column ()
   "Align the filesize column."
   (beginning-of-line)
@@ -82,7 +91,9 @@
           (insert (make-string (- 12 width) ? )))))))
 
 (defun dired-list-default-filter (proc string)
-  "Filter the output of the process to make it suitable for `dired-mode'.
+  "Filter the output of process PROC to make it suitable for `dired-mode'.
+
+STRING is the currently processed chunk of process output.
 
 This filter assumes that the input is in the format of `ls -l'."
   (let ((buf (process-buffer proc))
@@ -124,7 +135,9 @@ This filter assumes that the input is in the format of `ls -l'."
       (delete-process proc))))
 
 (defun dired-list-default-sentinel (proc state)
-  "Update the status/modeline after the process finishes."
+  "Update the status/modeline after the process PROC finishes.
+
+STATE is the final state."
   (let ((buf (process-buffer proc))
         (inhibit-read-only t))
     (if (buffer-name buf)
@@ -160,14 +173,14 @@ DIR is the default directory of the resulting `dired' buffer.
 BUFFER-NAME is name of the created buffer.  If such buffer
 exists, it is erased first.
 
-CMD is a sh(1) invocation to produce output for dired to process.
+CMD is a sh(1) invocation to produce output for Dired to process.
 It should be in the format similar to `ls -l'.
 
 Optional argument REVERT-FUNCTION is used to revert (bound to
 \\[revert-buffer]) the buffer.
 
 Optional argument FILTER is a function used to post-process the
-process's output after it was inserted to dired buffer.
+process's output after it was inserted to Dired buffer.
 
 Optional argument SENTINEL is a function called on each change of
 state of the buffer's process."
@@ -235,7 +248,9 @@ state of the buffer's process."
 
 ;;;###autoload
 (defun dired-list-hg-locate (dir)
-  "List all files in DIR managed by mercurial and display results as a `dired' buffer."
+  "List all files in DIR managed by mercurial.
+
+Display results as a `dired' buffer."
   (interactive "DDirectory: ")
   (dired-list dir
               (concat "hg locate " dir)
@@ -246,15 +261,29 @@ state of the buffer's process."
 (defun dired-list-locate (needle)
   "Locate(1) all files matching NEEDLE and display results as a `dired' buffer."
   (interactive "sLocate: ")
-  (dired-list "/"
-              (concat "locate " needle)
-              (concat "locate " (shell-quote-argument needle) " -0 | xargs -I '{}' -0 ls -ld '{}' &")
-              `(lambda (ignore-auto noconfirm) (dired-list-locate ,needle))))
+  (let ((locate (or (bound-and-true-p locate-command) "locate")))
+    (dired-list "/"
+                (concat locate " "  needle)
+                (concat locate " " (shell-quote-argument needle) " -0 | xargs -I '{}' -0 ls -ld '{}' &")
+                `(lambda (ignore-auto noconfirm) (dired-list-locate ,needle)))))
+
+(defun dired-list-git-annex-find (dir query)
+  "Return files from git annex at DIR matching QUERY.
+
+Display results as a `dired' buffer."
+  (interactive "DDirectory: \nsQuery: ")
+  (dired-list dir
+              (concat "git annex find " dir)
+              (concat "git annex find " query
+                      (format " --print0 | xargs -I '{}' -0 ls -d%s %s '{}' &"
+                              (if dired-list-use-N-flag "N" "")
+                              dired-listing-switches))
+              `(lambda (ignore-auto noconfirm) (dired-list-git-annex-find ,dir ,query))))
 
 
 ;; taken from grep.el/rgrep
-(defun dired-list--get-ignored-stuff ()
-  "Return an argument to find which ignores uninteresting directories and files.
+(defun dired-list--get-ignored-stuff (dir)
+  "Return find subcommand to ignore uninteresting dirs and files in DIR.
 
 Directories are taken form `grep-find-ignored-directories', files
 are taken from `grep-find-ignored-files'."
@@ -265,15 +294,15 @@ are taken from `grep-find-ignored-files'."
                 ;; we should use shell-quote-argument here
                 " -path "
                 (mapconcat
-                 #'(lambda (ignore)
-                     (cond ((stringp ignore)
-                            (shell-quote-argument
-                             (concat "*/" ignore)))
-                           ((consp ignore)
-                            (and (funcall (car ignore) dir)
-                                 (shell-quote-argument
-                                  (concat "*/"
-                                          (cdr ignore)))))))
+                 (lambda (ignore)
+                   (cond ((stringp ignore)
+                          (shell-quote-argument
+                           (concat "*/" ignore)))
+                         ((consp ignore)
+                          (and (funcall (car ignore) dir)
+                               (shell-quote-argument
+                                (concat "*/"
+                                        (cdr ignore)))))))
                  grep-find-ignored-directories
                  " -o -path ")
                 " "
@@ -285,13 +314,13 @@ are taken from `grep-find-ignored-files'."
                 ;; we should use shell-quote-argument here
                 " -name "
                 (mapconcat
-                 #'(lambda (ignore)
-                     (cond ((stringp ignore)
-                            (shell-quote-argument ignore))
-                           ((consp ignore)
-                            (and (funcall (car ignore) dir)
-                                 (shell-quote-argument
-                                  (cdr ignore))))))
+                 (lambda (ignore)
+                   (cond ((stringp ignore)
+                          (shell-quote-argument ignore))
+                         ((consp ignore)
+                          (and (funcall (car ignore) dir)
+                               (shell-quote-argument
+                                (cdr ignore))))))
                  grep-find-ignored-files
                  " -o -name ")
                 " "
@@ -300,17 +329,18 @@ are taken from `grep-find-ignored-files'."
 
 ;;;###autoload
 (defun dired-list-find-file (dir cmd)
-  "Run find(1) on DIR.
+  "Run find(1) on DIR with find command CMD.
 
 By default, directories matching `grep-find-ignored-directories'
 and files matching `grep-find-ignored-files' are ignored.
 
 If called with raw prefix argument \\[universal-argument], no
 files will be ignored."
-  (interactive (let ((base-cmd (concat "find . "
-                                  (if current-prefix-arg "" (dired-list--get-ignored-stuff))
-                                  " -ls &")))
-                 (list (read-directory-name "Directory: " nil nil t)
+  (interactive (let* ((dir (read-directory-name "Directory: " nil nil t))
+                      (base-cmd (concat "find . "
+                                        (if current-prefix-arg "" (dired-list--get-ignored-stuff dir))
+                                        " -ls &")))
+                 (list dir
                        (read-from-minibuffer
                         "Find command: "
                         (cons base-cmd (string-match-p "-ls &" base-cmd))))))
@@ -325,8 +355,7 @@ files will be ignored."
 
 ;;;###autoload
 (defun dired-list-find-name (dir pattern)
-  "Search DIR recursively for files matching the globbing pattern PATTERN,
-and run dired on those files.
+  "Search DIR recursively for files matching the globbing pattern PATTERN.
 
 PATTERN is a shell wildcard (not an Emacs regexp) and need not be quoted.
 
@@ -338,15 +367,18 @@ files will be ignored."
   (interactive "DDirectory: \nsPattern: ")
   (dired-list dir
               (concat "find " dir ": " pattern)
-              (concat "find . " (if current-prefix-arg "" (dired-list--get-ignored-stuff)) " -name " (shell-quote-argument pattern) " -ls &")
+              (concat "find . " (if current-prefix-arg "" (dired-list--get-ignored-stuff dir)) " -name " (shell-quote-argument pattern) " -ls &")
               `(lambda (ignore-auto noconfirm) (dired-list-find-name ,dir ,pattern))))
 
 (defun dired-list-grep (dir regexp)
-  "Recursively find files in DIR containing regexp REGEXP and start Dired on output."
+  "Recursively find files in DIR containing regexp REGEXP.
+
+Start Dired on output.  The rows are added as grep streams output
+to the sentinel."
   (interactive "DDirectory: \nsRegexp: \n")
   (dired-list dir
               (concat "find grep " dir ": " regexp)
-              (concat "find . " (dired-list--get-ignored-stuff)
+              (concat "find . " (dired-list--get-ignored-stuff dir)
                       " \\( -type f -exec " grep-program " " find-grep-options
                       " -e " (shell-quote-argument regexp) " {} \\; \\) -ls &")
               `(lambda (ignore-auto noconfirm) (dired-list-find-grep ,dir ,regexp))))

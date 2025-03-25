@@ -1,16 +1,16 @@
-;;; diredc.el --- Extensions for dired -*- lexical-binding: t -*-
+;;; diredc.el --- Midnight Commander features (plus) for dired -*- lexical-binding: t -*-
 
-;; Copyright © 2020, Boruch Baum <boruch_baum@gmx.com>
+;; Copyright © 2020-2024, Boruch Baum <boruch_baum@gmx.com>
 
 ;; Author/Maintainer: Boruch Baum <boruch_baum@gmx.com>
 ;; Homepage: https://github.com/Boruch-Baum/emacs-diredc
-;; License: GPL3+
+;; SPDX-License-Identifier: GPL-3.0-or-later
 ;; Keywords: files
 ;; Package: diredc
-;; Package-Version: 1.0
-;; Package-Requires: ((emacs "26.1"))
+;; Version: 1.6
+;; Package-Requires: ((emacs "26.1") (key-assist "1.0"))
 ;;
-;;   (emacs "24.1") for: split-window-right, window-normalize-frame
+;;   (emacs "24.1") for: split-window-right
 ;;   (emacs "24.3") for: lexical-binding, user-error, cl-lib, defvar-local
 ;;   (emacs "24.4") for: advice-remove
 ;;   (emacs "25.1") for: save-mark-and-excursion
@@ -18,24 +18,24 @@
 
 ;; This file is NOT part of GNU Emacs.
 
-;; This is free software: you can redistribute it and/or modify it
-;; under the terms of the GNU General Public License as published by
-;; the Free Software Foundation, either version 3 of the License, or
-;; (at your option) any later version.
+;; This is free software: you can redistribute it and/or modify it under
+;; the terms of the GNU General Public License as published by the Free
+;; Software Foundation, either version 3 of the License, or (at your
+;; option) any later version.
 
-;; This software is distributed in the hope that it will be useful,
-;; but WITHOUT ANY WARRANTY; without even the implied warranty of
-;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-;; GNU General Public License for more details.
+;; This software is distributed in the hope that it will be useful, but
+;; WITHOUT ANY WARRANTY; without even the implied warranty of
+;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General
+;; Public License for more details.
 
-;; You should have received a copy of the GNU General Public License
-;; along with this software.  If not, see <https://www.gnu.org/licenses/>.
+;; You should have received a copy of the GNU General Public License along
+;; with this software. If not, see <https://www.gnu.org/licenses/>.
 
 ;;
 ;;; Commentary:
 ;;
-;; This package extends `dired' with features found in almost all
-;; 'file managers', and also some unique features:
+;; This package extends and configures `dired' with features found in
+;; almost all 'file managers', and also some unique features:
 ;;
 ;;   * Resilient dedicated dual-pane frame.
 ;;     * similar look to 'midnight commander'.
@@ -45,18 +45,28 @@
 ;;     * backward, forward, or to a direct history entry
 ;;   * File quick-preview mode
 ;;     * inspired by, and similar to, midnight commander's "C-x q"
+;;     * customizable exclusion criteria to suppress undesirable files
+;;       (eg. binaries)
+;;     * optionally view magit status buffers for repository roots
 ;;   * Current file's supplemental information in minibuffer (optional)
 ;;     * eg. output from 'getfattr', 'getfacl', 'stat', 'exif'.
 ;;   * Multiple panel views
 ;;     * inspired by, and similar to, midnight commander's "M-t"
 ;;       * superior configurability
 ;;       * directly choose a specific panel view, or toggle to next
+;;   * Extensive and easy-to-use sort options
+;;     * including options not in 'ls': sort by chmod, owner, group
+;;   * Swap panels (use "M-u")
+;;     * inspired by, and similar to, midnight commander's "C-u"
+;;       * a TRUE and complete swap (including history entries)
 ;;   * Trash management
 ;;     * per xfreedesktop standard
 ;;     * restore trashed files to their original locations
 ;;     * empty the trash, along with its administrative overhead
 ;;     * view trash summary information
 ;;   * Navigate 'up' n parent directories
+;;   * Launch persistent asynchronous processes for files
+;;     * Processes will survive even after exiting Emacs.
 ;;   * Quick shell window
 ;;     * choose your default shell / terminal emulation mode
 ;;     * choose your default shell program
@@ -66,16 +76,24 @@
 ;;       * $f1, $f2  current dired file in this/other pane
 ;;       * $t1, $t2  tagged elements in this other pane
 ;;         * as a shell array variable, if supported by the shell
+;;       * $INSIDE_DIREDC  value of variable 'diredc--version'
 ;;   * Bookmark support
 ;;   * Edit dired buffers (really `wdired-mode', not `diredc')
 ;;   * Set both panels to same directory (use "=" or "C-u =")
 ;;     * inspired by 'midnight commander's "M-i"
+;;   * Fontify filenames based upon their names or extensions
+;;     * fontify 'executable' suffix symbol
+;;   * Optional "drilled-down" view of "sparse" paths (use "}", "{")
+;;     * ie. ./paths/with/only/single/entries
+;;     * Uses a 'diredc'-patched version of external package
+;;       'dired-collapse' (https://github.com/Fuco1/dired-hacks)
+;;       pending pull-request merges.
 ;;
 ;; Bonus customization features
 ;;   * Customize colors for chmod bits (font-lock)
 ;;   * toggle display of "hidden" or "undesirable" files (dired-omit mode)
-;;   * auto-refresh buffers (auto-revert-mode)
 ;;   * highlight current line (hl-line-mode)
+;;     * current buffer highlights with a unique face.
 ;;   * don't wrap long lines (toggle-truncate-lines)
 ;;   * to disable:
 ;;     * option 1: M-x customize-variable diredc-bonus-configuration
@@ -84,77 +102,131 @@
 ;;
 ;;; Dependencies (all are already part of Emacs):
 ;;
-;;   auto-revert -- for auto-revert-mode
 ;;   dired       -- ... (doh) ...
 ;;   dired-x     -- for dired-guess-default, dired-omit-mode
 ;;   dired-aux   -- for dired-compress-files
+;;   help-mode   -- for help button widget
 ;;   hl-line     -- for hl-line-mode
+;;   subr        -- for string-match-p
 ;;   term        -- for term-line-mode, term-send-input
 ;;   view        -- for view-mode
 ;;
 ;; Suggested (not part of Emacs):
 ;;
-;;   popup       -- for popup-menu*
-
+;;   popup          -- for popup-menu*
+;;   key-assist     -- for key-assist
 ;;
 ;;; Installation:
 ;;
 ;; 1) Evaluate or load this file.
 ;;
-;; 2) M-x diredc, or S-<f11> if that keybinding  is available.
+;; 2) I recommend defining a global keybinding for function `diredc',
+;;    with a preference for Shift-F11, as follows:
+;;
+;;      (global-set-key (kbd "S-<f11>") 'diredc)
+;;
+;;    An alternative or additional option would be:
+;;
+;;      (global-set-key [remap dired-other-frame] 'diredc)
+
 
 ;;
 ;;; Operation:
 ;;
 ;; Running `diredc' an initial time creates and selects a frame named
-;; `diredc' with two side-by-side `dired' windows / buffers. Repeating
-;; the command will return you to your prior frame / window / buffer.
-;; Subsequent use of the command continues to toggle back and forth
-;; to/from the named `diredc' frame. Navigation from one `dired' panel
-;; to another can be accomplished using '<TAB>' or 'S-<TAB>'. As long
-;; as you are in `diredc' mode, navigating to new directories should
-;; not accumulate additional `dired' buffers and your direcory
-;; navigation history for each panel should be remembered. If ever you
-;; find that the frame configuration has become botched, or you
-;; somehow accumulate or have lost `dired' buffers, Run M-x
-;; `diredc-recover'. You can also cleanly kill all `dired' buffers and
-;; the `diredc' frame using `C-q' (M-x `diredc-quit'). And, if you
-;; want to use `dired' without the `diredc' features, run M-x
-;; `diredc-mode' to toggle the mode off.
+;; `diredc' with two side-by-side `dired' windows / buffers. Repeating the
+;; command will return you to your prior frame / window / buffer.
+;; Subsequent use of the command continues to toggle back and forth to/from
+;; the named `diredc' frame.
 ;;
-;; As mentioned above, each `dired' panel now 'remembers' its
-;; navigation history. The history can be traversed sequentially
-;; backward 'C-<left>' or forward 'C-<right>' without losing elements,
-;; and can be viewed and traversed non-sequentially using 'C-u /'. Use
-;; '/' to directly navigate to a directory not 'nearby'.
+;; In addition to the usual Emacs keybinding help, diredc provides two
+;; combination keybinding cheat-sheets and command launchers, both using
+;; optional dependency package `key-assist'. You can also interactively
+;; call M-x `key-assist' <RET> <RET> to view an exhaustive `dired'
+;; keybinding listing. A separate `key-assist' is provided for
+;; trash-related functions because it also displays the current trash state
+;; statistics.
+;;
+;;     h                        `diredc-key-assist'
+;;     C-<delete> ?             `diredc-trash-key-assist'
+;;     ?                        `diredc-summary'
+;;     C-h m                    `describe-mode'
+;;
+;; Navigation from one `dired' panel to another can be accomplished using
+;; '<TAB>' or 'S-<TAB>'. As long as you are in `diredc' mode, navigating to
+;; new directories should not accumulate additional `dired' buffers and
+;; your directory navigation history for each panel should be remembered.
+;; If ever you find that the frame configuration has become botched, or you
+;; somehow accumulate or have lost `dired' buffers, Run M-x
+;; `diredc-recover'. You can also cleanly kill all `dired' buffers and the
+;; `diredc' frame using `C-q' (M-x `diredc-quit'). And, if you want to use
+;; `dired' without the `diredc' features, run M-x `diredc-mode' to toggle
+;; the mode off.
+;;
+;; As mentioned above, each `dired' panel now 'remembers' its navigation
+;; history. The history can be traversed sequentially backward 'C-<left>'
+;; or forward 'C-<right>' without losing elements, and can be viewed and
+;; traversed non-sequentially using 'C-u /'. Use '/' to directly navigate
+;; to a directory not 'nearby'.
 ;;
 ;; A 'file preview' mode can be entered or exited using 'C-x q' (M-x
-;; `diredc-browse-mode'). In that mode, whenever a `dired' buffer's
-;; POINT is on a file's line, that file will be opened on the other
-;; pane, in read-only emacs `view-mode' (see there for the navigation
-;; and other features of that mode). The `view-mode' buffer is deleted
-;; automatically when you either disable the mode or you move point to
-;; another line in the `dired' buffer. Use '<TAB>' or 'S-<TAB>' to
-;; navigate between the `dired' buffer window and the file preview
-;; window.
+;; `diredc-browse-mode'). In that mode, whenever a `dired' buffer's POINT
+;; is on a file's line, that file will be opened on the other pane, in
+;; read-only emacs `view-mode' (see there for the navigation and other
+;; features of that mode). The `view-mode' buffer is deleted automatically
+;; when you either disable the mode or you move point to another line in
+;; the `dired' buffer. Use '<TAB>' or 'S-<TAB>' to navigate between the
+;; `dired' buffer window and the file preview window. There are several
+;; options for excluding undesirable files (eg. binaries) from preview; see
+;; the mode's docstring for details.
 ;;
-;; The traditional `dired' operations that 'find' or 'open' a file
-;; should do so to a separate frame, most likely the one from which
-;; you came to the `diredc' frame.
+;; The 'file preview' mode can also be configured to display the
+;; `magit-status' of a repository's root directory. See customization
+;; variable `diredc-browse-magit'.
 ;;
-;; The display format of `dired' buffers can be "hot-swapped" using
-;; 'M-t' (M-x `diredc-display-toggle'). Use 'C-u M't' to select from
-;; available display formats, and customize the list using defcustom
-;; variable `diredc-display--listing-switches-list'. Four views are
-;; provided by default, all long-format but with different file
-;; block-sizes (byte, Kb, Mb), and several other differences.
+;; The traditional `dired' operations that 'find' or 'open' a file should
+;; do so to a separate frame, most likely the one from which you came to
+;; the `diredc' frame.
+;;
+;; The traditional `dired' feature to perform arbitrary asynchronous
+;; operations on a file or set of files has been enhanced to make those
+;; processes persistent, to survive even after exiting Emacs. Thus, with
+;; the default keybinding, you can press '&' <RET> and have the selected
+;; file(s) launched in the system-default external application. Do be
+;; advised, though, that this comes at the expense of losing the processes'
+;; *Async Shell Command* buffer and its log of STDOUT / STDERR for the
+;; processes. The former, non-persistent behavior can be opted for at
+;; run-time by prefixing the command with a SPACE (eg. " foo") or for the
+;; default command simply enter just a SPACE. The former, non-persistent
+;; behavior can be made default by modifying variable
+;; `diredc-async-processes-are-persistent'.
+;;
+;; Pressing RETURN on files that you don't want opened in Emacs,
+;; doesn't. Pre-existing 'dired' variable
+;; 'dired-guess-shell-alist-user' is used as reference, and pressing
+;; RETURN runs on the selected file the first associated executable in
+;; that list. If you really do want to find the find in Emacs, press
+;; C-u RETURN instead.
+;;
+;; The display format of `dired' buffers can be "hot-swapped" using 'M-t'
+;; (M-x `diredc-display-toggle'). Use 'C-u M't' to select from available
+;; display formats, and customize the list using defcustom variable
+;; `diredc-display--listing-switches-list'. Four views are provided by
+;; default, all long-format but with different file block-sizes (byte, Kb,
+;; Mb), and several other differences.
+;;
+;; The traditional `dired' sort feature has been greatly enhanced with a
+;; clearer UI and many more sorting options.
+;;
+;; The `diredc' buffers themselves can also be "hot-swapped", using 'M-u'
+;; (M-x `diredc-swap-windows').
 ;;
 ;; While emacs does have a native defcustom variable
-;; `delete-by-moving-to-trash' to control whether to "really" delete
-;; files, `diredc' allows one or more trashed items to be restored,
-;; allows the trash to be emptied, and conveniently present trash
-;; statistics. Here are the relevant commands and their default
-;; keybindings. See each's docstring for more details:
+;; `delete-by-moving-to-trash' to control whether to "really" delete files,
+;; `diredc' allows one or more trashed items to be restored, allows the
+;; trash to be emptied, and conveniently present trash statistics. Here are
+;; the relevant commands and their default keybindings. See each's
+;; docstring for more details:
 ;;
 ;;     C-<delete> SPC           `diredc-trash-toggle'
 ;;     C-<delete> <insertchar>  `diredc-trash-toggle'
@@ -171,35 +243,33 @@
 ;;
 ;;     C-k                      `diredc-trash-quick-delete'
 ;;
-;;     C-<delete> ?             `diredc-trash-assistant'
+;;     C-<delete> ?             `diredc-trash-key-assist'
 ;;
-;; A limitation in `dired' is its inability to natively present a
-;; file's supplemental information, such as its possible extended
-;; access control list or extended file attributes. `diredc' allows
-;; this and more to be presented in the minibuffer echo area as you
-;; navigate a `diredc' buffer. Use M-x `diredc-show-more-file-info' to
-;; toggle through the default possibilities, or customize the
-;; `diredc-show-more-file-info-list' to present the metadata of your
-;; choice.
+;; A limitation in `dired' is its inability to natively present a file's
+;; supplemental information, such as its possible extended access control
+;; list or extended file attributes. `diredc' allows this and more to be
+;; presented in the minibuffer echo area as you navigate a `diredc' buffer.
+;; Use M-x `diredc-show-more-file-info' to toggle through the default
+;; possibilities, or customize the `diredc-show-more-file-info-list' to
+;; present the metadata of your choice.
 ;;
-;;     C-c i     `diredc-show-more-file-info'
+;;     C-c ?     `diredc-show-more-file-info'
 ;;
 ;; `diredc' brings bookmarks to dired:
 ;;
-;;     C-c b a   `diredc-bookmark-add'
-;;     C-c b j   `diredc-bookmark-jump'
-;;     C-c b e   `diredc-bookmark-edit'
+;;     C-c + a   `diredc-bookmark-add'
+;;     C-c + j   `diredc-bookmark-jump'
+;;     C-c + e   `diredc-bookmark-edit'
 ;;
-;; Emacs has a nifty mode to "edit" a `dired' buffer, bringing the
-;; power of emacs to the application of renaming files. `diredc' just
-;; gives you the little bit of extra help with convenient keybindings
-;; `E' and `e' to enter the mode. If you're happy with your edits, you
-;; apply them and exit the mode with `C-c C-c', or abort your editing
-;; session with `C-c C-k'.
+;; Emacs has a nifty mode to "edit" a `dired' buffer, bringing the power of
+;; emacs to the application of renaming files. `diredc' just gives you the
+;; little bit of extra help with convenient keybindings `E' and `e' to
+;; enter the mode. If you're happy with your edits, you apply them and exit
+;; the mode with `C-c C-c', or abort your editing session with `C-c C-k'.
 ;;
-;; The `diredc-shell' command opens up any type of emacs shell or
-;; terminal emulator window and pre-seeds it with useful `dired'
-;; values (see section 'Extra Features', below).
+;; The `diredc-shell' command opens up any type of emacs shell or terminal
+;; emulator window and pre-seeds it with useful `dired' values (see section
+;; 'Extra Features', below).
 ;;
 ;;     '         `diredc-shell'
 ;;     C-c !     `diredc-shell'
@@ -212,61 +282,62 @@
 ;;; Configuration
 ;;
 ;; You can browse and edit this mode's list of `defcustom's using "M-x
-;; `customize-group' diredc", but there isn't too much to be found
-;; there. Separately, you might want to redefine the default
-;; keybindings, but otherwise there is nothing really important about
-;; `diredc' itself to configure.
+;; `customize-group' diredc", but there isn't too much to be found there.
+;; Separately, you might want to redefine the default keybindings, but
+;; otherwise there is nothing really important about `diredc' itself to
+;; configure.
 ;;
 ;; `dired' mode itself, however, is a complex and highly configurable
-;; package that has been under development for over 25 years. That's a
-;; long time for options to accumulate and for opinions to multiply.
-;; The `diredc' developer (ahem: me) has considerately imposed his
-;; preferences upon you by default, in a way trivial to over-ride. If
-;; you don't want them, toggle the value of defcustom
-;; `diredc-bonus-configuration' to nil, an the settings will revert
-;; upon selecting new buffers. The bonus customization features are
-;; listed above, in the 'Commentary' section, or you could peek at the
-;; source code of function `diredc-bonus-configuration'.
+;; package that has been under development for over 25 years. That's a long
+;; time for options to accumulate and for opinions to multiply. The
+;; `diredc' developer (ahem: me) has considerately imposed his preferences
+;; upon you by default, in a way trivial to over-ride. If you don't want
+;; them, toggle the value of defcustom `diredc-bonus-configuration' to nil,
+;; an the settings will revert upon selecting new buffers. The bonus
+;; customization features are listed above, in the 'Commentary' section, or
+;; you could peek at the source code of function
+;; `diredc-bonus-configuration'.
 ;;
 ;; The colorization for each buffer's selected line is set as part of
 ;; `diredc-bonus-configuration', but because it's controlled by
-;; `hl-line-mode'; you can independently toggle the feature
-;; per-buffer, and you can change the highlighting colors using "M-x
-;; `customize-face' hl-line". The colorization of the chmod bits are
-;; also set as part of `diredc-bonus-configuration'; you can find
-;; their definitions and edit them using  "M-x
-;; `customize-group' diredc".
+;; `hl-line-mode'; you can independently toggle the feature per-buffer, and
+;; you can change the highlighting colors using "M-x `customize-face'" for
+;; faces `hl-line' and `diredc-hl-current-buffer'. The colorization of the
+;; chmod bits are also set as part of `diredc-bonus-configuration'; you can
+;; find their definitions and edit them using "M-x `customize-group'
+;; diredc".
 
+;;
 ;;; Extra Features:
 ;;
-;; *] Navigating to a parent directory with `dired-up-directory'
-;;    (default: `^') can use the prefix-argument to navigate multiple
-;;    levels in one operation.
+;; *] Navigating to a parent directory with `dired-up-directory' (default:
+;;    `^') can use the prefix-argument to navigate multiple levels in one
+;;    operation.
 ;;
 ;; *] Use `dired-hist-change-directory' (default: `/') to jump to a
 ;;    location not nearby without losing the current dired buffer's
 ;;    history.
 ;;
-;; *] Use the `prefix-argument' with `diredc-hist-change-directory' to
-;;    have `diredc-hist-select' display all elements of the Dired
-;;    buffer's history and allow you to jump directly to any of them.
+;; *] Use the `prefix-argument' with `diredc-hist-change-directory' to have
+;;    `diredc-hist-select' display all elements of the Dired buffer's
+;;    history and allow you to jump directly to any of them.
 ;;
 ;; *] Use `diredc-hist-duplicate' (default: `=') to either navigate to
-;;    another `dired' buffer to your current one's directory, or with
-;;    the `prefix-argument' to navigate your current `dired' buffer to
+;;    another `dired' buffer to your current one's directory, or with the
+;;    `prefix-argument' to navigate your current `dired' buffer to
 ;;    another's directory.
 ;;
 ;; *] Modify data structure `diredc-recover-schemes' to apply your own
 ;;    custom recovery strategies. Share them for others' benefit!
 ;;
-;; *) Use `diredc-trash-quick-delete' (default: `C-k') on a POINT or a
+;; *] Use `diredc-trash-quick-delete' (default: `C-k') on a POINT or a
 ;;    REGION to quick-delete the selected files. Use the prefix-arg to
 ;;    toggle between "trashing" or deleting.
 ;;
-;; *] When `diredc-hist-mode' is disabled, the following functions
-;;    continue to operate, but without updating the history records,
-;;    so you can use them as your default `dired' functions even if
-;;    you don't always want to use `diredc-hist-mode'.
+;; *] When `diredc-hist-mode' is disabled, the following functions continue
+;;    to operate, but without updating the history records, so you can use
+;;    them as your default `dired' functions even if you don't always want
+;;    to use `diredc-hist-mode'.
 ;;
 ;;      `diredc-hist-change-directory'
 ;;      `diredc-hist-up-directory'
@@ -275,8 +346,8 @@
 ;;      `diredc-hist-find-file-other-window'
 ;;      `diredc-hist-find-alternate-file'
 ;;
-;; *] `diredc' passes to the shell/terminal-emulator instance the
-;;    following shell variables:
+;; *] `diredc' passes to the shell/terminal-emulator instance the following
+;;    shell variables:
 ;;
 ;;      $d1 - this `diredc' windows's directory name
 ;;      $d2 - directory name of other visible `diredc' window
@@ -285,33 +356,39 @@
 ;;      $t1 - this `diredc' window's list of tagged file names
 ;;      $t2 - list of tagged file names  of other visible `diredc' window
 ;;
-;;    If the selected shell supports array variables, then $t1 and $t2
-;;    will be set as such; Otherwise, elements will be quoted and
-;;    delimited with a space.
-
+;;    If the selected shell supports array variables, then $t1 and $t2 will
+;;    be set as such; Otherwise, elements will be quoted and delimited with
+;;    a space.
+;;
 ;; *) universal fallback guess shell command(s)
+;;
+;; *] Use `diredc-collapse-mode' (default: `{' or `}') to view that
+;;    single file at the bottom of a "sparse" path, ie.
+;;    ./path/with/only/single/entry. This feature respects
+;;    `dired-omit-mode'.
 
 ;;
-;;; Compatability
+;;; Feedback:
 ;;
-;; This package has been tested under debian linux emacs version 26.1.
-;; The main compatability issue to be aware of is that this suite
-;; needs to modify[1] a single line in function
+;; It's best to contact me by opening an 'issue' on the program's github
+;; repository (see above) or, distant second-best, by direct e-mail.
+;;
+;; Code contributions are welcome and github starring is appreciated.
+;;
+
+;;
+;;; Compatibility
+;;
+;; This package has been tested under debian linux emacs version 26
+;; and 27. The main compatibility issue to be aware of is that this
+;; suite needs to modify[1] a single line in function
 ;; `dired-internal-no-select' of the standard emacs file `dired.el'
 ;; This was accomplished by advising a wrapper function
 ;; `diredc--advice--dired-internal-noselect' around the original. If
 ;; that function ever changes, that advice function and this suite
 ;; will need to account for that.
 ;;
-;; [1] emacs bug #44023:
-;;     https://debbugs.gnu.org/cgi/bugreport.cgi?bug=44023"
-
-;;
-;; Known limitations
-;;
-;; *] Line highlighting of the non-selected `diredc' buffer is limited
-;;    by package `hl-line' to be the same face as that of the selected
-;;    buffer.
+;; [1] emacs bug #44023: https://debbugs.gnu.org/cgi/bugreport.cgi?bug=44023"
 
 
 ;;
@@ -324,22 +401,195 @@
 (require 'dired-x)   ; dired-guess-default, dired-omit-mode
 (require 'term)      ; term-line-mode, term-send-input
 (require 'view)      ; view-mode
+(require 'help-mode) ; help-xref button
 
 ;;
 ;;; Suggested
-;; (require 'popup)  ; popup-menu*
+(require 'popup nil t)
+(declare-function popup-menu* "ext:popup.el")
+
+(require 'key-assist nil t)
+(declare-function key-assist                 "ext:key-assist.el")
+(declare-function key-assist--get-keybinding "ext:key-assist.el")
+
+
+;;
+;;; Forked Code:
+
+;; Upstream: https://github.com/Fuco1/dired-hacks/blob/master/dired-collapse.el
+;; Author: Matúš Goljer <matus.goljer@gmail.com>
+;; Copyright: ©2017-2024, Matúš Goljer
+;; License:  GPL 3
+;; Fork purpose:
+;; * Apply mode globally
+;;   https://github.com/Fuco1/dired-hacks/pull/209
+;; * Support `dired-omit-mode'
+;;   https://github.com/Fuco1/dired-hacks/pull/210
+;; * Remove dependencies
+;;   https://github.com/Fuco1/dired-hacks/pull/211
+;; * Avoid using function 'length' on lists
+;;   https://github.com/Fuco1/dired-hacks/pull/212
+;; * Apply overlay optionally
+;;   https://github.com/Fuco1/dired-hacks/pull/213
+;; * Use custom shadow face
+;;   For me, 'shadow alters the :foreground property, which conflicts
+;;   with other `diredc' font-lock features, so we guarantee a face
+;;   that only alters the :background property, and only subtly.
+
+(defgroup diredc-collapse ()
+  "Collapse unique nested paths in Diredc listings."
+  :group 'diredc
+  :prefix "diredc-collapse-")
+
+(defcustom diredc-collapse-remote nil
+  "If non-nil, enable `diredc-collapse' in remote (TRAMP) buffers."
+  :type 'boolean
+  :package-version '(diredc . "1.4")
+  :group 'diredc-collapse)
+
+(defcustom diredc-collapse-fontify nil
+  "If non-nil, fontify with a shaded overlay."
+  :type 'boolean
+  :package-version '(diredc . "1.4")
+  :group 'diredc-collapse)
+
+(defface diredc-collapse-shadow-face
+  ;; ref: https://emacs.stackexchange.com/questions/69050
+  (list (list t (list :background
+    (let*
+      ((fg (or (color-values (face-attribute 'default :foreground))
+               '(0 0 0)))           ; (color-values "black")
+       (bg (or (color-values (face-attribute 'default :background))
+               '(58853 58853 58853))) ; (color-values "white")
+       (fg-factor 0.92)
+       (bg-factor (- 1.0 fg-factor)))
+     (apply 'format
+       (cons "#%02x%02x%02x"
+         (mapcar
+           (lambda (n)
+             (ash (truncate (+ (* (nth n fg) bg-factor)
+                               (* (nth n bg) fg-factor)))
+                  -8))
+           '(0 1 2))))))))
+  "Slightly adjust the background color of collapsed `diredc' entries.")
+
+(defvar diredc-collapse-mode nil
+  "Whether `diredc' extensions to `dired' are globally enabled.
+
+Don't ever set this variable directly! Instead, evaluate function
+`diredc-mode'.")
+
+(defun diredc-collapse-mode (&optional arg)
+  "Toggle collapsing of unique nested paths in Diredc buffers.
+Interactively, toggle the mode. From Lisp, with ARG positive or NIL,
+turn the mode on; Otherwise, turn it off."
+  (interactive)
+  (cond
+    ((called-interactively-p 'interactive)
+      (setq diredc-collapse-mode (not diredc-collapse-mode)))
+    (arg
+     (setq diredc-collapse-mode (if (< 0 arg) t nil)))
+    (t
+     (setq diredc-collapse-mode t)))
+  (cond
+   (diredc-collapse-mode
+    (add-hook 'dired-after-readin-hook         'diredc-collapse 90)
+    (add-hook 'dired-subtree-after-insert-hook 'diredc-collapse 90)
+    (add-hook 'dired-omit-mode-hook            'diredc-collapse 90))
+   (t ; ie. not diredc-collapse-mode
+    (remove-hook 'dired-after-readin-hook 'diredc-collapse)
+    (remove-hook 'dired-subtree-after-insert-hook 'diredc-collapse)
+    (remove-hook 'dired-omit-mode-hook 'diredc-collapse)))
+  (diredc--revert-all)
+  (let (message-log-max)
+    (message "Diredc-collapse-mode %s." (if diredc-collapse-mode "enabled" "disabled"))))
+
+(defun diredc-collapse--replace-file (file)
+  "Replace file on the current line with FILE."
+  (delete-region (line-beginning-position) (1+ (line-end-position)))
+  (insert "  ")
+  (insert-directory file dired-listing-switches nil nil)
+  (forward-line -1)
+  (dired-align-file (line-beginning-position) (1+ (line-end-position)))
+  (when-let (replaced-file (dired-get-filename nil t))
+    (when (file-remote-p replaced-file)
+      (while (search-forward (dired-current-directory) (line-end-position) t)
+        (replace-match "")))))
+
+(defun diredc-collapse--create-ov (&optional to-eol)
+  "Create the shadow overlay which marks the collapsed path.
+
+If TO-EOL is non-nil, extend the overlay over the whole
+filename (for example when the final directory is empty)."
+  (save-excursion
+    (dired-move-to-filename)
+    (let* ((beg (point))
+           (end (save-excursion
+                  (dired-move-to-end-of-filename)
+                  (if to-eol
+                      (point)
+                    (1+ (search-backward "/")))))
+           (ov (make-overlay beg end)))
+      (overlay-put ov 'face 'diredc-collapse-shadow-face)
+      ov)))
+
+(defun diredc-collapse ()
+  "Collapse unique nested paths in diredc listings."
+  (when (or (not (file-remote-p default-directory)) diredc-collapse-remote)
+    (let (;; dired-hide-details-mode hides details by assigning a
+          ;; special invisibility text property to them, while
+          ;; diredc-collapse requires all the details. So we disable
+          ;; invisibility here temporarily.
+          (buffer-invisibility-spec nil)
+          (inhibit-read-only t)
+          (rgx (and dired-omit-mode (dired-omit-regexp))))
+      (save-excursion
+        (goto-char (point-min))
+        (while (not (eobp))
+          (when-let ((filename-no-dir (dired-get-filename 'no-dir t)))
+            (when (and (looking-at-p dired-re-dir)
+                       (not (member filename-no-dir (list "." "..")))
+                       (not (eolp)))
+              (let ((path (dired-get-filename nil t))
+                    entry-1 entry-2 files)
+                (while (and (file-directory-p path)
+                            (file-accessible-directory-p path)
+                            (setq files (directory-files path
+                                                         'full
+                                                         directory-files-no-dot-files-regexp))
+                            (or (not dired-omit-mode)
+                                (setq files (cl-remove-if
+                                              (lambda(f)
+                                                (string-match rgx (file-name-nondirectory f)))
+                                              files)))
+                            (setq entry-1 (pop files))
+                            (not (setq entry-2 (pop files))))
+                  (setq path entry-1))
+                (if (and (not files)
+                         (equal path (dired-get-filename nil t)))
+                    (when diredc-collapse-fontify
+                      (diredc-collapse--create-ov 'to-eol))
+                  (setq path (s-chop-prefix (dired-current-directory) path))
+                  (when (string-match-p "/" path)
+                    (let ((default-directory (dired-current-directory))
+                          bound)
+                      (diredc-collapse--replace-file path)
+                      ;; fix alignment of single-digit hard-link columns
+                      (and (not dired-hide-details-mode)
+                           (setq bound (dired-move-to-filename))
+                           (goto-char (pos-bol))
+                           (re-search-forward "[^ ] " bound t)
+                           (looking-at "[0-9] ")
+                           (insert " ")))
+                    (dired-insert-set-properties (line-beginning-position) (line-end-position))
+                    (when diredc-collapse-fontify
+                      (diredc-collapse--create-ov (not entry-1))))))))
+          (forward-line 1))
+        (dired--align-all-files)))))
 
 
 ;;
 ;;; Keymaps:
-
-;; Being pushy in a considerate kind of way, set up the default global
-;; keybinding only if the user hasn't already set one and the
-;; keybinding isn't already being used.
-(when (and (not (where-is-internal 'diredc global-map))
-           (not (lookup-key global-map (kbd "S-<f11>"))))
-  (global-set-key (kbd "S-<f11>") 'diredc))
-(global-set-key [remap dired-other-frame] 'diredc)
 
 (defun diredc--create-keymap ()
   "Internal function for `diredc'. Create a new symbol `diredc-mode' keymap.
@@ -348,6 +598,8 @@ Returns a keymap."
     (set-keymap-parent map dired-mode-map)
     (define-key map (kbd "C-q")       'diredc-exit) ; defalias diredc-quit
     (define-key map (kbd "q")         'diredc-do-not-quit-window)
+    (define-key map (kbd "?")         'diredc-summary)
+    (define-key map (kbd "h")         'diredc-key-assist)
     (define-key map "\t"              'diredc-other-window)
     (define-key map (kbd "<backtab>") 'diredc-other-window) ; No directionality
     (define-key map [remap dired-find-file]
@@ -362,19 +614,22 @@ Returns a keymap."
     (define-key map (kbd "C-<left>")  'diredc-hist-previous-directory)
     (define-key map (kbd "C-<right>") 'diredc-hist-next-directory)
     (define-key map (kbd "=")         'diredc-hist-duplicate)
+    (define-key map (kbd "M-u")       'diredc-swap-windows)
     (define-key map (kbd "C-x q")     'diredc-browse-mode)
     (define-key map (kbd "M-t")       'diredc-display-toggle)
-    (define-key map (kbd "C-c i")     'diredc-show-more-file-info)
-    (define-key map (kbd "C-c b a")   'diredc-bookmark-add)
-    (define-key map (kbd "C-c b j")   'diredc-bookmark-jump)
-    (define-key map (kbd "C-c b e")   'diredc-bookmark-edit)
-    (define-key map (kbd "C-c b v")   'diredc-vc-jump) ; TODO: Not certain I want this...
-    (define-key map (kbd "E")         'wdired-change-to-wdired-mode)
-    (define-key map (kbd "e")         'wdired-change-to-wdired-mode)
+    (define-key map (kbd "C-c ?")     'diredc-show-more-file-info)
+    (define-key map (kbd "C-c + a")   'diredc-bookmark-add)
+    (define-key map (kbd "C-c + j")   'diredc-bookmark-jump)
+    (define-key map (kbd "C-c + e")   'diredc-bookmark-edit)
+;   (define-key map (kbd "C-c + v")   'diredc-vc-jump) ; TODO: Not certain I want this...
+    (define-key map (kbd "E")         'diredc-wdired)
+    (define-key map (kbd "e")         'diredc-wdired)
+    (define-key map (kbd "s")         'diredc-sort-or-edit)
     (define-key map (kbd "'")         'diredc-shell)
+    (define-key map (kbd "&")         'diredc-do-async-shell-command)
     (define-key map (kbd "C-c !")     'diredc-shell)
     (define-key map (kbd "C-k")       'diredc-trash-quick-delete)
-    (define-key map (kbd "C-<delete> ?") 'diredc-trash-assistant)
+    (define-key map (kbd "C-<delete> ?") 'diredc-trash-key-assist)
     (define-key map (kbd "C-<delete> SPC") 'diredc-trash-toggle)
     (define-key map (kbd "C-<delete> <insertchar>") 'diredc-trash-toggle)
     (define-key map (kbd "C-<delete> j") 'diredc-trash-view) ; jump to files-dir
@@ -383,9 +638,13 @@ Returns a keymap."
     (define-key map (kbd "C-<delete> C-<delete>") 'diredc-trash-empty)
     (define-key map (kbd "C-<delete> x") 'diredc-trash-empty)
     (define-key map (kbd "C-<delete> r") 'diredc-trash-restore)
+    (define-key map [remap beginning-of-buffer] 'diredc-beginning-of-buffer)
+    (define-key map [remap end-of-buffer]       'diredc-end-of-buffer)
+    (define-key map (kbd "\{")         'diredc-collapse-mode)
+    (define-key map (kbd "\}")         'diredc-collapse-mode)
     map))
 
-(setq diredc-mode-map (diredc--create-keymap))
+(defvar diredc-mode-map (diredc--create-keymap))
 
 (defun diredc-browse--create-keymap ()
   "Internal function for `diredc'.
@@ -393,7 +652,9 @@ Create a new symbol `diredc-browse-mode' keymap. Returns a
 keymap."
   (let ((map (make-sparse-keymap)))
     (set-keymap-parent map view-mode-map)
-    (define-key map "\t"                        'diredc-other-window)
+    (define-key map "\t"                        'diredc-browse-tab)
+    (define-key map (kbd "<backtab>")           'diredc-browse-backtab)
+    (define-key map (kbd "M-u")                 'diredc-swap-windows)
     (define-key map (kbd "C-x q")               'diredc-browse-quit)
     (define-key map [remap View-quit]           'diredc-browse-quit)
     (define-key map [remap View-kill-and-leave] 'diredc-browse-quit)
@@ -401,19 +662,23 @@ keymap."
     (define-key map [remap View-quit-all]       'diredc-browse-quit)
     (define-key map [remap View-exit]           'diredc-browse-find)
     (define-key map [remap View-exit-and-edit]  'diredc-browse-find)
+    (define-key map (kbd "C-q")                 'diredc-exit) ; defalias diredc-quit
     map))
 
-(setq diredc-browse-mode-map (diredc-browse--create-keymap))
+(defvar diredc-browse-mode-map (diredc-browse--create-keymap))
 
 
 ;;
 ;;; Constants:
 
+(defconst diredc--version 1.6
+  "Current version of `diredc'.")
+
 ;; diredc--identify-trash-directory: This function is here, seemingly
 ;; out of place, because its only purpose is to define several
 ;; constants, below.
 (defun diredc--identify-trash-directory (&optional subdir)
-  "Return the path to the 'Trash' directory.
+  "Return the path to the \"Trash\" directory.
 
 This is an internal `diredc' function. You should never need to
 call this function. Instead, use the constants `diredc-trash-dir'
@@ -422,16 +687,16 @@ call this function. Instead, use the constants `diredc-trash-dir'
 
 Optional SUBDIR is a string of a subdirectory to return. Note the
 behavior of this argument is subject to change as information
-about more 'Trash' standards, uh, accumulate. The idea would be
-to generically distinguish between 'files', 'info', and
-'expunged' content subdirectories (if they exist), wherever they
+about more \"Trash\" standards, uh, accumulate. The idea would be
+to generically distinguish between \"files\", \"info\", and
+\"expunged\" content subdirectories (if they exist), wherever they
 may be and whatever they may be called."
   (file-name-as-directory
     (cond (trash-directory
             trash-directory)
           ((fboundp 'system-trash-directory)
             (system-trash-directory))
-          (t ;; http://freedesktop.org/wiki/Specifications/trash-spec
+          (t ;; https://freedesktop.org/wiki/Specifications/trash-spec
             (expand-file-name
               (if (member subdir '("files" "info" "expunged"))
                  subdir
@@ -442,72 +707,88 @@ may be and whatever they may be called."
                       "~/.local/share"))))))))
 
 (defconst diredc-trash-dir (diredc--identify-trash-directory)
-  "The 'Trash' root directory.")
+  "The \"Trash\" root directory.")
 
 (defconst diredc-trash-files-dir (diredc--identify-trash-directory "files")
-  "The 'Trash' directory with the actual trashed files.")
+  "The \"Trash\" directory with the actual trashed files.")
 
 (defconst diredc-trash-info-dir (diredc--identify-trash-directory "info")
-  "The 'Trash' directory with the trashed files' metadata.")
+  "The \"Trash\" directory with the trashed files' metadata.")
 
 (defconst diredc-trash-expunged-dir (diredc--identify-trash-directory "expunged")
-  "The 'Trash' directory with the 'expunged' information.")
+  "The \"Trash\" directory with the \"expunged\" information.")
 
 (defconst diredc-face-chmod-font-lock-dir   'diredc-face-chmod-font-lock-dir
-  "Definition for face.
-This constant is required for how we apply `font-lock' keywords.")
+  "Face definition for how we apply `font-lock' keywords.
+Applicable when variable `diredc-bonus-configuration' is non-nil.")
 
 (defconst diredc-face-chmod-font-lock-read  'diredc-face-chmod-font-lock-read
-  "Definition for face.
-This constant is required for how we apply `font-lock' keywords.")
+  "Face definition for how we apply `font-lock' keywords.
+Applicable when variable `diredc-bonus-configuration' is non-nil.")
 
 (defconst diredc-face-chmod-font-lock-write 'diredc-face-chmod-font-lock-write
-  "Definition for face.
-This constant is required for how we apply `font-lock' keywords.")
+  "Face definition for how we apply `font-lock' keywords.
+Applicable when variable `diredc-bonus-configuration' is non-nil.")
 
 (defconst diredc-face-chmod-font-lock-exec  'diredc-face-chmod-font-lock-exec
-  "Definition for face.
-This constant is required for how we apply `font-lock' keywords.")
+  "Face definition for how we apply `font-lock' keywords.
+Applicable when variable `diredc-bonus-configuration' is non-nil.")
 
-(defconst diredc--chmod-font-lock-regex
-  " \\([d-]\\)\\([r-]\\)\\([w-]\\)\\([x-]\\)\\([r-]\\)\\([w-]\\)\\([x-]\\)\\([r-]\\)\\([w-]\\)\\([x-]\\) "
+(defconst diredc--chmod-font-lock-regexp
+  " \\([dl-]\\)\\([r-]\\)\\([w-]\\)\\([xsgt-]\\)\\([r-]\\)\\([w-]\\)\\([xsgt-]\\)\\([r-]\\)\\([w-]\\)\\([xsgt-]\\)\\+? "
   "Regexp to identify alphanumeric permission mode strings.
-This constant is used to colorize the string, using `font-lock'.")
+This constant is used to colorize the string, using `font-lock',
+when variable `diredc-bonus-configuration' is non-nil.")
 
 (defconst diredc--chmod-font-lock-keyword
   (list
-    (list diredc--chmod-font-lock-regex
-          '(1 diredc-face-chmod-font-lock-dir)
-          '(2 diredc-face-chmod-font-lock-read)
-          '(3 diredc-face-chmod-font-lock-write)
-          '(4 diredc-face-chmod-font-lock-exec)
-          '(5 diredc-face-chmod-font-lock-read)
-          '(6 diredc-face-chmod-font-lock-write)
-          '(7 diredc-face-chmod-font-lock-exec)
-          '(8 diredc-face-chmod-font-lock-read)
-          '(9 diredc-face-chmod-font-lock-write)
-          '(10 diredc-face-chmod-font-lock-exec)))
-  "Diredc `font-lock' keyword definition for chmod strings.")
+    (list diredc--chmod-font-lock-regexp
+          '(1 diredc-face-chmod-font-lock-dir t t)
+          '(2 diredc-face-chmod-font-lock-read t t)
+          '(3 diredc-face-chmod-font-lock-write t t)
+          '(4 diredc-face-chmod-font-lock-exec t t)
+          '(5 diredc-face-chmod-font-lock-read t t)
+          '(6 diredc-face-chmod-font-lock-write t t)
+          '(7 diredc-face-chmod-font-lock-exec t t)
+          '(8 diredc-face-chmod-font-lock-read t t)
+          '(9 diredc-face-chmod-font-lock-write t t)
+          '(10 diredc-face-chmod-font-lock-exec t t)))
+  "Diredc `font-lock' keyword definition for chmod strings.
+Applicable when variable `diredc-bonus-configuration' is non-nil.")
 
-
-;;
-;;; Customization faces:
+(defconst diredc--sort-options
+;;    prompt                  sort=   reverse  up  LC_COLLATE  column
+  '(("none"                  "none"      nil   nil   nil       nil)
+    ("name (a-z)"            nil         nil   t     nil       nil)
+    ("name (z-a)"            nil         t     nil   nil       nil)
+    ("name (A-Za-z)"         nil         nil   t     t         nil)
+    ("name (z-aZ-A)"         nil         t     nil   t         nil)
+    ("size (decreasing)"     "size"      nil   nil   nil       nil)
+    ("size (increasing)"     "size"      t     t     nil       nil)
+    ("time (newest first)"   "time"      nil   nil   nil       nil)
+    ("time (oldest first)"   "time"      t     t     nil       nil)
+    ("version (decreasing)"  "version"   nil   nil   nil       nil)
+    ("version (increasing)"  "version"   t     t     nil       nil)
+    ("chmod (a-z)"           "chmod"     nil   t     nil       "\\1")
+    ("chmod (z-a)"           "chmod"     t     t     nil       "\\1")
+    ("owner (a-z)"           "owner"     nil   t     nil       "\\3")
+    ("owner (z-a)"           "owner"     t     t     nil       "\\3")
+    ("group (a-z)"           "group"     nil   t     nil       "\\4")
+    ("group (z-a)"           "group"     t     t     nil       "\\4")
+    ("extension (a-z)"       "extension" nil   t     nil       nil)
+    ("extension (z-a)"       "extension" t     nil   nil       nil)
+    ("extension (A-Za-z)"    "extension" nil   t     t         nil)
+    ("extension (Z-Az-a)"    "extension" t     nil   t         nil))
+  "List of options for function `diredc-sort-or-edit'.
+See there and your version of \"man(1) ls\".")
 
-(defface diredc-face-chmod-font-lock-dir   '((t :foreground "cyan"))
-  "Face for chmod directory bits in dired buffers."
-  :group 'diredc)
+(defconst diredc--sort-columns-regexp
+  "^  \\([-ldrwxgst]\\{10\\}\\) +\\([^ ]+\\) +\\([^ ]+\\) +\\([^ ]+\\).*$"
+  "Description of `diredc' line that we will parse for sorting by
+  chmod, owner, or group. See function `diredc-sort-or-edit'.")
 
-(defface diredc-face-chmod-font-lock-read  '((t :foreground "blue"))
-  "Face for chmod readable bits in dired buffers."
-  :group 'diredc)
-
-(defface diredc-face-chmod-font-lock-write '((t :foreground "yellow"))
-  "Face for chmod writable bits in dired buffers."
-  :group 'diredc)
-
-(defface diredc-face-chmod-font-lock-exec  '((t :foreground "red"))
-  "Face for chmod executable bits in dired buffers."
-  :group 'diredc)
+(defconst diredc--update-interval-default 0.5
+  "Default update interval, in seconds, for `diredc' buffers.")
 
 
 ;;
@@ -518,14 +799,14 @@ This constant is used to colorize the string, using `font-lock'.")
   :group 'dired
   :prefix "diredc-")
 
-(defcustom dired-allow-duplicate-buffers t
+(defcustom diredc-allow-duplicate-buffers t
   "Allow multiple `dired' buffers to visit the same directory.
 
 This must be set NON-NIL for `diredc' to work properly, and
 evaluating \\<global-keymap> \\[diredc] sets this variable
 non-nil for the session."
   :type 'boolean
-  :group 'diredc)
+  :package-version '(diredc . "1.0"))
 
 (defcustom diredc-bookmarks '()
   "List of bookmarked directories for `diredc'.
@@ -536,42 +817,12 @@ See also functions `diredc-bookmark-add' and
 `diredc-bookmark-jump'."
   :type '(repeat (cons (directory :tag "Directory to bookmark")
                        (string    :tag "Description / Annotation")))
-  :group 'diredc)
+  :package-version '(diredc . "1.0"))
 
 (defcustom diredc-hist-select-without-popup nil
   "Function `dir-hist-select' should never use package `popup'."
   :type 'boolean
-  :group 'diredc)
-
-(defcustom diredc-shell-guess-fallback '("xdg-open")
-  "Universal fallback suggested command(s).
-
-This offers a final option if no matching regex is found in
-either `dired-guess-shell-alist-default' or
-`dired-guess-shell-alist-default'.
-
-The value is a list of COMMAND where each COMMAND can either be a
-string or a Lisp expression that evaluates to a string. If this
-expression needs to consult the name of the file for which the
-shell commands are being requested, it can access that file name
-as the variable `file'. If several COMMANDs are given, the first
-one will be the default and the rest will be added temporarily to
-the history and can be retrieved with \\<minibuffer-local-map>
-\\[previous-history-element].
-
-IMPORTANT: This feature requires function `dired-guess-default'
-be advised by `diredc--advice--shell-guess-fallback', as follows:
-
-  (advice-add 'dired-guess-default
-              :around #'diredc--advice--shell-guess-fallback)
-
-It may have already been done for you. In order to undo it,
-perform:
-
-  (advice-remove 'dired-guess-default
-                 #'diredc--advice--shell-guess-fallback)"
-  :type '(repeat sexp)
-  :group 'diredc)
+  :package-version '(diredc . "1.0"))
 
 (defcustom diredc-display-listing-switches-list
     '(("classic long" . "-aFlv --group-directories-first --time-style=long-iso")
@@ -588,7 +839,7 @@ This is merely a list of values suitable for defcustom
 Also see the `man' page for `ls'."
   :type '(repeat (cons (string :tag "Description")
                        (string :tag "Listing switches")))
-  :group 'diredc)
+  :package-version '(diredc . "1.0"))
 
 (defcustom diredc-show-more-file-info-list
   '(("Don't display any additional information" . "")
@@ -603,17 +854,153 @@ string, and whose CDR is the text string of a shell command with
 the file's name replaced with \"%s\". See command `diredc-show-more-file-info'."
   :type '(repeat (cons (string :tag "Description")
                        (string :tag "Command")))
-  :group 'diredc)
+  :package-version '(diredc . "1.0"))
 
 (defcustom diredc-display-select-without-popup nil
-  "Function `dir-display-select' should never use package `popup'."
+  "Function `diredc-display-select' should never use package `popup'."
   :type 'boolean
+  :package-version '(diredc . "1.0"))
+
+(defcustom diredc-async-processes-are-persistent t
+  "Whether spawned asynchronous processes out-live Emacs.
+When non-NIL, asynchronous processes spawned via
+`dired-do-async-shell-command' will survive even after exiting
+Emacs. However, because *Async Shell Command* buffers will not be
+spawned, STDOUT and STDERR for the process will be lost.
+
+Even when this variable is non-NIL, the non-persistent behavior
+can be chosen at run-time by prefixing the process command with a
+SPACE, thus spawning an *Async Shell Command* buffer and logging
+there STDOUT and STDERR for the process. See
+`diredc-do-async-shell-command'."
+  :type 'boolean
+  :package-version '(diredc . "1.0"))
+
+(defcustom diredc-bonus-configuration t
+  "Supplemental configuration for `diredc' buffers.
+
+Dired was developed more than 25 years ago. Around it have
+developed very many configuration options and also very many
+opinions about those options. Setting this variable non-nil
+enables those options that the `diredc' developer feels are sane
+and desirable for a newcomer to `dired'. For exactly what it
+does, see function `diredc-bonus-configuration'."
+  :type 'boolean
+  :package-version '(diredc . "1.0"))
+
+(defcustom diredc-header-line t
+  "Whether to display a header line.
+This will summarize the number and size of marked items."
+  :type 'boolean
+  :package-version '(diredc . "1.0"))
+
+(defcustom diredc-thousands-separator ","
+  "How to divide long numbers for readability.
+This is in lieu of getting the information from environment
+variable LC_NUMERIC."
+  ;; ref: https://lists.gnu.org/archive/html/emacs-devel/2021-06/msg00139.html
+  :type 'string
+  :package-version '(diredc . "1.0"))
+
+(defcustom diredc-update nil
+  "Whether to use the `diredc' buffer update feature.
+
+This feature currently defaults to OFF because of some unresolved
+buggy behavior: 1) After the minibuffer is used, it moves POINT
+of the unselected `diredc' buffer to POINT-MIN; 2) It unsets the
+highlighting of `hl-line-mode' in the selected `diredc' buffer.
+
+When this variable is non-NIL, `diredc' buffers will be
+reverted every `diredc-update-interval' seconds. This mitigates a
+deficiency of `Dired' in that it relies upon `file-notify' to
+trigger buffer updates. However, `file-notify' does not trigger
+upon events that change the size of a file that is listed in a
+`Dired' buffer. Thus, for example, when a tar archive is created,
+vanilla `Dired' records its size as zero, and it will remain so
+until some other action triggers a `revert-buffer' event."
+  :type 'boolean
+  :package-version '(diredc . "1.6"))
+
+(defcustom diredc-update-interval diredc--update-interval-default
+  "How often, in seconds, to update `diredc' buffers.
+Positive integers or floating point numbers are acceptable.
+See function `diredc--update-control' for details."
+  :type '(float
+          :validate
+          (lambda (w)
+            (when (> 0 (floor (widget-value w)))
+              (widget-put w :error "Positive number required.")
+              w)))
+  :set (lambda (sym val)
+         (set-default-toplevel-value sym val)
+         (when (bound-and-true-p diredc-mode)
+           (diredc--update-control 'start)))
+  :package-version '(diredc . "1.6"))
+
+(defgroup diredc-frame nil
+  "GUI Emacs settings."
   :group 'diredc)
+
+(defcustom diredc-frame-parameters '()
+  "Desired frame parameters for the diredc frame.
+An alist of cons (PARAMETER . VALUE).
+See function `make-frame' and (info \"(elisp) Frame Parameters\")."
+;; ie. eval (info "(elisp) Frame Parameters")
+  :type '(repeat (cons (symbol :tag "Frame parameter")
+                       (sexp   :tag "Value")))
+  :package-version '(diredc . "1.2")
+  :group 'diredc-frame)
+
+(defcustom diredc-frame-inherited-parameters
+  '(left top width height)
+  "Features of parent frame to retain for `diredc' frame.
+A list of symbols of parameters.
+See (info \"(elisp) Frame Parameters\")."
+;; ie. eval (info "(elisp) Frame Parameters")
+  :type '(repeat (symbol :tag "Frame parameter"))
+  :package-version '(diredc . "1.2")
+  :group 'diredc-frame)
+
+(defgroup diredc-shell nil
+  "Pop-up shell settings."
+  :group 'diredc)
+
+(defcustom diredc-shell-guess-fallback '("xdg-open")
+  "Universal fallback suggested command(s).
+
+This offers a final option if no matching regexp is found in
+either `dired-guess-shell-alist-default' or
+`dired-guess-shell-alist-default'.
+
+The value is a list of COMMAND where each COMMAND can either be a
+string or a Lisp expression that evaluates to a string. If this
+expression needs to consult the name of the file for which the
+shell commands are being requested, it can access that file name
+as the variable \"file\". If several COMMANDs are given, the first
+one will be the default and the rest will be added temporarily to
+the history and can be retrieved with \\<minibuffer-local-map>
+\\[previous-history-element].
+
+IMPORTANT: This feature requires function `dired-guess-default'
+be advised by `diredc--advice--shell-guess-fallback', as follows:
+
+  (advice-add \\'dired-guess-default
+              :around #\\'diredc--advice--shell-guess-fallback)
+
+It may have already been done for you. In order to undo it,
+perform:
+
+  (advice-remove \\'dired-guess-default
+                 #\\'diredc--advice--shell-guess-fallback)"
+  :type '(repeat sexp)
+  :package-version '(diredc . "1.0")
+  :group 'diredc-shell)
 
 (defcustom diredc-shell-lines 15
   "Number of lines for a `diredc' shell window."
   :type 'integer
-  :group 'diredc)
+  :package-version '(diredc . "1.0")
+  :group 'diredc-shell)
 
 (defcustom diredc-shell-list
   '(("POSIX shell"                  diredc-shell--launch-shell "/bin/sh")
@@ -623,13 +1010,13 @@ the file's name replaced with \"%s\". See command `diredc-show-more-file-info'."
     ("POSIX dumb terminal-emulator" diredc-shell--launch-term "/bin/sh")
     ("bash dumb terminal-emulator"  diredc-shell--launch-term "/bin/bash")
     ("zsh dumb terminal-emulator"   diredc-shell--launch-term "/bin/zsh")
-    ("POSIX ansi terminal-emulator" diredc-shell--launch-term "/bin/sh" t)
-    ("bash ansi terminal-emulator"  diredc-shell--launch-term "/bin/bash" t)
-    ("zsh ansi terminal-emulator"   diredc-shell--launch-term "/bin/zsh" t))
+    ("POSIX ansi terminal-emulator" diredc-shell--launch-term "/bin/sh")
+    ("bash ansi terminal-emulator"  diredc-shell--launch-term "/bin/bash")
+    ("zsh ansi terminal-emulator"   diredc-shell--launch-term "/bin/zsh"))
   "Shell options to offer to the user.
 Each item of the list must have three elements: A description
-string; A launch program, and; A path string to the desired shell
-executable. The launch program should return the shell's buffer,
+string; A launch function, and; A path string to the desired shell
+executable. The launch function should return the shell's buffer,
 and should accept seven string arguments: A path string to the
 desired shell executable; the current dired directory ('$d1'); a
 possible second dired directory ('$d2'); a possible current
@@ -638,8 +1025,10 @@ directory ('$f2'); a possible list of tagged files in the current
 dired directory ('$t1'); and a possible list of tagged files in
 the other dired directory ('$t2')."
   :type '(repeat (list (string :tag "Description")
-                       (function :tag "Function")))
-  :group 'diredc)
+                       (function  :must-match t :tag "Function")
+                       (file :must-match t :tag "Shell executable")))
+  :package-version '(diredc . "1.0")
+  :group 'diredc-shell)
 
 (defcustom diredc-shell-default "POSIX shell"
   "Default shell to launch from a `dired' buffer.
@@ -650,30 +1039,355 @@ is a string that must match an entry in `diredc-shell-list'."
                          diredc-shell-list)))
            (push 'radio result)
            result)
+  :package-version '(diredc . "1.0")
+  :group 'diredc-shell)
+
+(defgroup diredc-browse nil
+  "Quick file preview settings."
   :group 'diredc)
 
-(defcustom diredc-bonus-configuration t
-  "Supplemental configuation for `diredc' buffers.
+(defcustom diredc-browse-include-images t
+  "Over-ride exclusion specs, to enable image viewing.
 
-Dired was developed more than 25 years ago. Around it have
-developed very many configuration options and also very many
-opinions about those options. Setting this variable non-nil
-enables those options that the `diredc' developer feels are sane
-and desirable for a newcomer to `dired'. For exactly what it
-does, see function `diredc-bonus-configuration'."
+When this variable is NON-NIL, If inclusion helper command
+specified in customization variable
+`diredc-browse-helper' identifies the target file as an
+image, then the settings of customization variables
+`diredc-browse-exclude-file-extensions',
+`diredc-browse-exclude-coding-systems' and
+`diredc-browse-helper' will be ignored..
+
+Note that this can also be toggled by entering
+`diredc-browse-mode' with a PREFIX-ARG, ie. C-u \\<diredc-mode-map>\\[diredc-browse-mode]."
   :type 'boolean
+  :package-version '(diredc . "1.4")
+  :group 'diredc-browse)
+
+(defcustom diredc-browse-include-images-regexp
+  "\\<image\\>\\|\\<pdf\\>\\|\\<epub\\>\\|\\<djvu\\>"
+  "Mimetype categories to be browsed when image browsing is enabled.
+This REGEXP is referenced either when customization variable
+`diredc-browse-include-images' is NON-NIL or when the feature was
+toggled on by entering `diredc-browse-mode' with a PREFIX-ARG,
+ie. C-u\\<diredc-mode-map>\\[diredc-browse-mode]."
+  :type 'regexp
+  :package-version '(diredc . "1.4")
+  :group 'diredc-browse)
+
+(defcustom diredc-browse-exclude-file-extensions (list "^db$" "^docx$")
+  "Regexps for filename extensions of files not to be browsed.
+
+Example: For a tar file, use the form  ^tar$, not .tar
+
+This is useful to avoid displaying unnecessary garbage buffers
+when using `diredc-browse-mode'. See also the related
+customization variables `diredc-browse-exclude-coding-systems'
+and `diredc-browse-helper'.
+
+Setting this variable isn't expected to be necessary, as all
+cases ought to be caught by the settings for
+`diredc-browse-exclude-coding-systems'."
+  :type '(repeat string)
+  :package-version '(diredc . "1.0")
+  :group 'diredc-browse)
+
+(defcustom diredc-browse-exclude-coding-systems
+  '(binary no-conversion no-conversion-multibyte)
+  "Coding systems of files not to be browsed.
+This is useful to avoid displaying unnecessary garbage buffers
+when using `diredc-browse-mode'. See also the related
+customization variables `diredc-browse-exclude-coding-systems'
+and `diredc-browse-helper'.
+
+See also Info node `(emacs) Coding Systems'"
+  :type '(repeat coding-system)
+  :package-version '(diredc . "1.0")
+  :group 'diredc-browse)
+
+(defcustom diredc-browse-helper
+  ;; FIXME: Only tested for (eq system-type 'gnu/linux). Please submit
+  ;;        corrections or additions.
+  (list
+    (list 'gnu          "/usr/bin/file" "-bi" "\\<text\\>" "/usr/bin/file" "-bi" "\\<ELF\\>\\|\\<binary\\>")
+    (list 'gnu/linux    "/usr/bin/file" "-bi" "\\<text\\>" "/usr/bin/file" "-bi" "\\<ELF\\>\\|\\<binary\\>")
+    (list 'gnu/kfreebsd "/usr/bin/file" "-bi" "\\<text\\>" "/usr/bin/file" "-bi" "\\<ELF\\>\\|\\<binary\\>")
+    (list 'darwin       "/usr/bin/file" "-bi" "\\<text\\>" "/usr/bin/file" "-bi" "\\<ELF\\>\\|\\<binary\\>")
+    (list 'cygwin       "/usr/bin/file" "-bi" "\\<text\\>" "/usr/bin/file" "-bi" "\\<ELF\\>\\|\\<binary\\>")
+    (list 'ms-dos       "" "" "" "" "" "")
+    (list 'windows-nt   "" "" "" "" "" ""))
+  "External helper programs to determine files (not) to be browsed.
+This is useful to avoid displaying unnecessary garbage buffers
+when using `diredc-browse-mode'. See also the related
+customization variables `diredc-browse-include-images',
+`diredc-browse-include-images-regexp',
+`diredc-browse-exclude-file-extensions' and
+`diredc-browse-exclude-coding-systems.'
+
+Each element of this list is itself a list of one symbol and six
+strings: 1) The emacs variable `system-type' for this element; 2)
+The inclusion helper command; 3) Any parameters for the command;
+4) The regexp of the command's desired output; 5) The exclusion
+helper command; 6) Any parameters for the command; 7) The regexp
+of the command's desired output.
+
+Mode `diredc-browse-mode' applies the inclusion test, and only if
+that fails applies the exclusion test.
+
+The default value includes all files recognized by the system
+command as \"text\" and excludes all recognized as
+\"ELF\" (executable and linkable)."
+  :type '(repeat (list (sexp   :tag "Emacs system type")
+                 (file :must-match t :tag "Inclusion helper command")
+                 (string :tag "Inclusion command's parameters") ;
+                 (regexp :tag "Inclusion command's desired output")
+                 (file :must-match t :tag "Exclusion helper command")
+                 (string :tag "Exclusion command's parameters")
+                 (regexp :tag "Exclusion command's desried output")))
+  :package-version '(diredc . "1.4")
+  :group 'diredc-browse)
+(defalias 'diredc-browse-exclude-helper 'diredc-browse-helper
+  "This variable name was deprecated in version 1.4 in favor of
+`diredc-browse-helper', to which it is currently still aliased.")
+
+(defcustom diredc-browse-magit t
+  "View `magit-status' when browsing repository root directories."
+  :type 'boolean
+  :package-version '(diredc . "1.6")
+  :group 'diredc-browse)
+
+(defgroup diredc-sort nil
+  "Mode line indicators for sort direction."
   :group 'diredc)
+
+(defcustom diredc-sort-prefix-ascending  ""
+  "Mode line indicator for sort direction.
+This is one of a set of four related customizable variables:
+`diredc-sort-prefix-ascending', `diredc-sort-suffix-ascending',
+`diredc-sort-prefix-descending', and
+`diredc-sort-suffix-descending'."
+  :type 'string
+  :package-version '(diredc . "1.0")
+  :group 'diredc-sort)
+
+(defcustom diredc-sort-suffix-ascending  "↑"
+  "Mode line indicator for sort direction.
+This is one of a set of four related customizable variables:
+`diredc-sort-prefix-ascending', `diredc-sort-suffix-ascending',
+`diredc-sort-prefix-descending', and
+`diredc-sort-suffix-descending'."
+  :type 'string
+  :package-version '(diredc . "1.0")
+  :group 'diredc-sort)
+
+(defcustom diredc-sort-prefix-descending ""
+  "Mode line indicator for sort direction.
+This is one of a set of four related customizable variables:
+`diredc-sort-prefix-ascending', `diredc-sort-suffix-ascending',
+`diredc-sort-prefix-descending', and
+`diredc-sort-suffix-descending'."
+  :type 'string
+  :package-version '(diredc . "1.0")
+  :group 'diredc-sort)
+
+(defcustom diredc-sort-suffix-descending "↓"
+  "Mode line indicator for sort direction.
+This is one of a set of four related customizable variables:
+`diredc-sort-prefix-ascending', `diredc-sort-suffix-ascending',
+`diredc-sort-prefix-descending', and
+`diredc-sort-suffix-descending'."
+  :type 'string
+  :package-version '(diredc . "1.0")
+  :group 'diredc-sort)
+
+(defgroup diredc-face nil
+  "Fonrification options and faces."
+  :group 'diredc)
+
+(defcustom diredc-fontify-by-file-extension nil
+  "Whether to fontify filenames based upon their extensions.
+The actual rules are defined by defcustom variable
+`diredc-face-file-ext-alist'. This option operates along with
+defcustom option `diredc-fontify-by-file-name', with the rules of
+that option taking precedence."
+  :type 'boolean
+  :package-version '(diredc . "1.4")
+  :group 'diredc-face)
+
+(defcustom diredc-fontify-executable-symbol t
+  "Whether to highlight a file's executable suffix symbol.
+This will be an asterisk that appears appended to a filename by
+the operating system listing program used by `dired', ie. `ls'.
+For customizing the fontification, see face
+`diredc-face-executable'."
+  :type 'boolean
+  :package-version '(diredc . "1.4")
+  :group 'diredc-face)
+
+(defcustom diredc-face-file-ext-alist nil
+  "FONT-LOCK faces to apply to filenames, by their extensions.
+Each element of this list must be in the form (LABEL EXT-LIST
+FACE-SPEC), where LABEL is a short identifier string, EXT-LIST is
+a list of filename extension strings, and FACE-SPEC is either as
+defined in macro `defface', or the unquoted symbol of a face.
+
+Examples:
+  (\"org\"   \\'(\"org\")           \\'((t (:foreground \"green\"))))
+  (\"book\"  \\'(\"pdf\" \"epub\")  font-lock-doc-face)
+  (\"audio\" \\'(\"mp3\" \"ogg\")   \\'((((type x)) (:foreground \"cyan\"))
+                                    ( t         (:foreground \"blue\"))))
+
+Tip: When experimenting with this variable, temporarily setting
+defcuston variable `diredc-improve-font-lock-performance' non-NIL
+will enable your modifications to be applied in one keystroke, by
+pressing `g' (the default `diredc' keybinding for
+`revert-buffer', ie. refresh the buffer), instead of needing to
+exit and restart `diredc'. The cost of this occasional
+convenience is zillions of unnecessary face-spec resets and
+font-lock recalculations, where \"zillions\" increases with the
+number of frames you have open and the number of lines in all
+your dired buffers."
+  :type '(repeat (list (string :tag "Short label")
+                       (repeat (string :tag "Extension string"))
+                       (sexp   :tag "Face spec")))
+  :package-version '(diredc . "1.4")
+  :group 'diredc-face)
+
+(defcustom diredc-fontify-by-file-name nil
+  "Whether to fontify filenames.
+The actual rules are defined by defcustom variable
+`diredc-face-file-name-alist'. This option operates along with
+defcustom option `diredc-fontify-by-file-ext', with the rules of
+this option taking precedence."
+  :type 'boolean
+  :package-version '(diredc . "1.4")
+  :group 'diredc-face)
+
+(defcustom diredc-face-file-name-alist nil
+  "FONT-LOCK faces to apply to filenames.
+These rules take precedence over those in defcustom variable
+`diredc-face-file-ext-alist'. Each element of this list must be
+in the form (LABEL EXT-LIST FACE-SPEC), where LABEL is a short
+identifier string, NAME-LIST is a list of filename extension
+strings, and FACE-SPEC is either as defined in macro `defface’,
+or the unquoted symbol of a face."
+  :type '(repeat (list (string :tag "Short label")
+                       (repeat (string :tag "File name string"))
+                       (sexp   :tag "Face spec")))
+  :package-version '(diredc . "1.4")
+  :group 'diredc-face)
+
+(defcustom diredc-improve-font-lock-performance t
+  "Read the details below to understand the trade-offs.
+
+Setting this variable NIL will enable modifications to defcustom
+variable `diredc-face-file-ext-alist' to be applied in one keystroke,
+by pressing `g' (the default `diredc' keybinding for
+`revert-buffer'). The cost of this ocassional convenience is
+zillions of unnecessary face-spec resets and font-lock
+recalculations, where \"zillions\" increases with the number of
+frames you have open and the number of lines in all your dired
+buffers.
+
+When this variable is set non-NIL, modifications to defcustom
+ variable `diredc-face-file-ext-alist'will take effect upon exiting
+ and restarting `diredc'."
+  :type 'boolean
+  :package-version '(diredc . "1.4")
+  :group 'diredc-face)
+
+
+;;
+;;; Customization faces:
+
+(defgroup diredc-faces nil
+  "Faces for the dired-commander suite of packages."
+  :group 'diredc-face)
+
+(defface diredc-face-chmod-font-lock-dir   '((t :foreground "cyan"))
+  "Face for chmod directory bits in dired buffers.
+Applicable when variable `diredc-bonus-configuration' is non-nil."
+  :package-version '(diredc . "1.0")
+  :group 'diredc-faces)
+
+(defface diredc-face-chmod-font-lock-read  '((t :foreground "blue"))
+  "Face for chmod readable bits in dired buffers.
+Applicable when variable `diredc-bonus-configuration' is non-nil."
+  :package-version '(diredc . "1.0")
+  :group 'diredc-faces)
+
+(defface diredc-face-chmod-font-lock-write '((t :foreground "yellow"))
+  "Face for chmod writable bits in dired buffers.
+Applicable when variable `diredc-bonus-configuration' is non-nil."
+  :package-version '(diredc . "1.0")
+  :group 'diredc-faces)
+
+(defface diredc-face-chmod-font-lock-exec  '((t :foreground "red"))
+  "Face for chmod executable bits in dired buffers.
+Applicable when variable `diredc-bonus-configuration' is non-nil."
+  :package-version '(diredc . "1.0")
+  :group 'diredc-faces)
+
+(defface diredc-face-executable '((t (:foreground "red" :weight bold)))
+  "Face for executable suffix symbol.
+This will be an asterisk that appears appended to a filename by
+ the operating system listing program used by `dired', ie. `ls'."
+  :package-version '(diredc . "1.4")
+  :group 'diredc-faces)
+
+(defface diredc-face-collapse '((t (:foreground "red" :weight bold)))
+  "Face for \"collapsed\" directory delimiters.
+When `diredc-collapse-mode' is in effect, this will fontify the
+delimiters (\"/\") of the collapsed path."
+  :package-version '(diredc . "1.4")
+  :group 'diredc-faces)
+
+(defface diredc-hl-current-buffer '((t :inherit 'hl-line :bold t))
+  "Face for current line in selected buffer.
+Applicable when variable `diredc-bonus-configuration' is non-nil.
+See also `hl-line-mode'."
+  :package-version '(diredc . "1.0")
+  :group 'diredc-faces)
+
+(defface diredc-header-line
+ '((((class color) (background light))
+       (:background "white"))
+   (((class color) (background dark))
+       (:background "black")))
+  "Face remapping for the header line."
+  :package-version '(diredc . "1.0")
+  :group 'diredc-faces)
+
+(defface diredc-header-*-marks
+ '((((class color) (background light))
+       (:foreground "blue"))
+   (((class color) (background dark))
+       (:foreground "brightcyan")))
+  "Face for default marks' summary in header line."
+  :package-version '(diredc . "1.0")
+  :group 'diredc-faces)
+
+(defface diredc-header-D-marks
+ '((((class color) (background light))
+       (:foreground "darkred" :bold t))
+   (((class color) (background dark))
+       (:foreground "color-197")))
+  "Face for deletion marks' summary in header line."
+  :package-version '(diredc . "1.0")
+  :group 'diredc-faces)
 
 
 ;;
 ;;; Buffer-local variables:
 
-(defvar-local diredc-hist--history-list (list (expand-file-name default-directory))
+(defvar-local diredc-hist--history-list (list (list (expand-file-name default-directory)
+                                                    (point)
+                                                    dired-omit-mode))
   "Internal variable for `diredc-history-mode' minor mode.
 
 A buffer-local list of directories visited. Each element of the
-list is a CONS whose CAR is a directory name and whose CDR is a
-return POINT within that buffer.")
+list contains three elements: 1) a directory name; 2) a return
+POINT within that buffer, and; 3) a state for mode
+`dired-omit-mode'.")
 ;; TODO: Storing a POINT for a return position isn't perfect; it will
 ;; yield 'wrong' results if the buffer's contents change, eg. the `ls'
 ;; display switches change, or entries are added / deleted.
@@ -695,16 +1409,32 @@ The value is the `diredc' WINDOW from which the buffer was
 created.")
 
 (defvar-local diredc-browse-mode nil
-  "Whether a `diredc-mode' is browsing files at POINT.
+  "Whether a `diredc-mode' buffer is browsing files at POINT.
 This is an internal variable for `diredc-mode' buffers. Do not
 manipulate it directly. See function `diredc-browse-mode'.")
 
-(defvar-local diredc-shell--bufwin '(nil . nil)
+(defvar-local diredc-shell--bufwin nil
   "Internal variable for `diredc-shell'.
-CONS of information for a shell associated with the current
-`diredc' buffer. The CAR is the shell's buffer, and the CDR is
-its most recently known window.")
+Window from which the current `diredc-shell' buffer was created.")
 
+(defvar-local diredc--hl-cookie nil
+  "Internal variable for `diredc-bonus-configuration'.
+When non-nil, contains a face-remapping cookie for the current
+buffer's `hl-line' face. See function
+`face-remap-add-relative'.")
+
+(defvar-local dired-aux-files nil
+  "Variable requiring definition for package `dired-aux'.
+It is used by function `dired-read-shell-command' which `diredc'
+advises with function `diredc--advice--dired-read-shell-command'.")
+
+(defvar-local diredc--sort-option-special nil
+  "Whether the sort option uses \"ls\" switches or a `diredc' method.
+If the sort option uses a `diredc' method, then the value is the
+method entry in variable `diredc--sort-options'. Otherwise, it
+should be NIL.")
+
+
 ;;
 ;;; Global variables:
 
@@ -720,7 +1450,7 @@ Don't ever set this variable directly! Instead, evaluate function
 Don't ever set this variable directly! Instead, evaluate function
 `diredc-history-mode'. Note that when option `diredc-mode' is
 installed, that this mode will always be updated to follow its
-chnage of state.")
+change of state.")
 
 (defvar diredc-recover-schemes
   '((0 ; no `dired' buffers found
@@ -770,8 +1500,10 @@ chnage of state.")
         (setq buffer-list
           (mapcar
             (lambda (x)
-              (cons (with-current-buffer x dired-directory) x))
+              (cons (buffer-local-value 'dired-directory x) x))
             buffer-list))
+        (delete-other-windows)
+        (split-window-right)
         (dolist (num '("first" "second"))
           (setq decision nil)
           (while (or (not decision)
@@ -782,14 +1514,16 @@ chnage of state.")
                 (format "select %s buffer to keep: " num)
                 (mapcar 'car buffer-list) nil t)))
           (setq decision (assoc decision buffer-list))
-          (switch-to-buffer (cdr decision))
+          (set-window-dedicated-p nil nil)
+          (switch-to-buffer (cdr decision) nil 'force)
+          (set-window-dedicated-p nil t)
           (setq buffer-list (remq decision buffer-list))
           (other-window 1))
         (while buffer-list
           (kill-buffer (cdr (pop buffer-list))))))))
   "Strategies for recovering `dired' environments.
 
-A list of sub-lists. The CAR fof each sub-list is a number
+A list of sub-lists. The CAR of each sub-list is a number
 corresponding to number of existing `dired' buffers their
 contents are applicable, and this number should correspond to the
 element's position in the list, beginning with zero.
@@ -811,13 +1545,63 @@ number of existing `dired' buffers.")
 A CONS whose CAR is the most recent file browsed, and whose CDR
 is that file's buffer.")
 
+(defvar diredc--browse-include-images nil
+  "Whether the user interactively requested to view images.
+This is set when entering `diredc-browse-mode' with a PREFIX-ARG.
+See also the similarly named customization variable
+`diredc-browse-include-images'.")
+
 (defvar diredc--show-more-file-info-index 0
   "Current position in `diredc-show-more-file-info-list'.
 Internal variable for `diredc'. An integer, beginning at zero.")
 
-(defvar diredc--show-more-file-info-cmd ""
-  "Current command string to be used to show additional file info.
-Internal variable for `diredc'.")
+(defvar diredc--show-more-file-info-cmd (cons "" "")
+  "Current command to be used to show additional file info.
+Internal variable for `diredc'.
+This is a CONS extracted from variable `diredc-show-more-file-info-list'.")
+
+(defvar diredc--lc-collate-original-value nil
+  "The original value of environment variable LC_COLLATE.
+As found by `diredc' when started.")
+
+(defvar diredc--font-lock-file-matched-face nil
+  "Face for currently matched filename.
+Used by function `diredc--font-lock-file-extension-matcher' and
+variable `dired-font-lock-keywords'.")
+
+(defvar diredc--faces-created nil
+  "Faces created by function `diredc--font-lock-file-extension-matcher'.")
+
+(defvar diredc--update-timer nil
+  "Timer object, created by function `diredc--update-control'.")
+
+(defvar diredc--browse-magit nil
+  "Internal version of customizable variable `diredc-browse-magit'.")
+
+
+;;
+;;; Functions - inline functions:
+
+(defsubst diredc--match-command (cmd)
+  "Match a command from  a `shell-command' string.
+This is mainly here to ensure uniformity of the regexp."
+  ;; NOTE: The atom \\\\? is to account for a leading '\' used to
+  ;;       over-ride shell-aliases.
+  (string-match "^ *\\\\?\\([^ ]+\\)" cmd))
+
+(defsubst diredc--set-omit-mode (yes)
+  "Set mode `dired-omit-mode' based upon value of YES."
+  (dired-omit-mode (if yes 1 -1)))
+
+(defsubst diredc--swap-browse-buffer (w1 w2)
+  "Swap browse-buffer window IDs.
+This is an internal function for `diredc', meant to be called by
+function `diredc-swap-windows'."
+  (when diredc-browse--buffer
+    (setq diredc-browse--buffer
+      (cond ((eq diredc-browse--buffer w2) w1)
+            ((eq diredc-browse--buffer w1) w2)
+            (t (error "Diredc browse buffer window mis-match"))))))
 
 
 ;;
@@ -826,110 +1610,305 @@ Internal variable for `diredc'.")
 (defun diredc--advice--wdired-exit ()
   "Ensure correct keymap when returning from wdired."
   (when diredc-mode
+    (diredc--bonus-configuration 'dired-mode-hook)
+    (when diredc-history-mode
+      (diredc--set-omit-mode
+        (nth 2 (nth diredc-hist--history-position diredc-hist--history-list))))
     (use-local-map diredc-mode-map)))
 
-(defun diredc--advice--shell-guess-fallback (oldfun files)
+(defun diredc--advice--shell-guess-fallback (_oldfun files)
   "Offer universal fallback suggested command(s) for `dired-do-shell-command'.
 
-OLDFUN is function `dired-guess-default'. FILES are are defined
-there.
+OLDFUN is function `dired-guess-default', which is never called by this advice.
+FILES are defined there.
 
-Usage: (advice-add 'dired-guess-default
-                   :around #'diredc--advice--shell-guess-fallback)
+Usage: (advice-add \\'dired-guess-default
+                   :around #\\'diredc--advice--shell-guess-fallback)
 
-This advice could easily be replace by making the following
-trivial change in the advised function `dired-guess-default':
+This advice addresses the issues in Emacs bug report and patch #48071
+(http://debbugs.gnu.org/cgi/bugreport.cgi?bug=48071) which was fixed in
+Emacs 29.
 
+It also implements diredc feature `diredc-shell-guess-fallback' and is
+called directly by function `diredc-do-async-shell-command'."
+  (let* ((case-fold-search dired-guess-shell-case-fold-search)
+         ;; Prepend the user's alist to the default alist.
          (alist (append dired-guess-shell-alist-user
                         dired-guess-shell-alist-default
-                        diredc-shell-guess-fallback))"
-  (let ((inner-result (apply oldfun (if (listp files) (list files))))
-        ;; The variables and their names are meant to be identical to
-        ;; the internals of the advised function, to simplify
-        ;; maintenance if the advised function should change.
-        (cmds diredc-shell-guess-fallback)
-        (file (if (listp files) (car files) files)))
-    (or inner-result
-        ;; Perform the final operation of the advised function, but
-        ;; using `diredc-shell-guess-fallback'
-        (if (cdr cmds)
-  	  (delete-dups (mapcar (lambda (cmd) (eval cmd `((file . ,file)))) cmds))
-         (eval (car cmds) `((file . ,file)))))))
+                        (list (list ".*" (car diredc-shell-guess-fallback)))))
+         regexp cmds)
+    (cl-loop
+      for elt in alist
+      do (setq regexp (car elt))
+         (cl-loop
+           for file in files
+           always (string-match-p regexp file)
+           finally
+             (cl-loop
+               for cmd in (cdr elt) do
+               (unless (stringp cmd)
+                 (setq cmd (condition-case nil
+                             (funcall cmd `((file . ,file)))
+                             (error nil))))
+               (and (stringp cmd)
+                    (executable-find
+                      (if (diredc--match-command cmd)
+                        (match-string 1 cmd)
+                       cmd))
+                    (push cmd cmds)))))
+    (nreverse (delete-dups cmds))))
 
-(defun diredc--advice--dired-internal-noselect (oldfun dir-or-list &optional switches mode)
+(defun diredc--advice--dired-internal-noselect (_oldfun dir-or-list &optional switches mode)
   "Diredc advice to function `dired-internal-noselect'.
-OLDFUN is function `dired-internal-noselect'. Args DIR-OR-LIST,
+_OLDFUN is function `dired-internal-noselect'. Args DIR-OR-LIST,
 SWITCHES, and MODE are as defined there.
 
-This function replaces the Emacs standard function in order to
-change a single line in order to allow multiple `dired' buffers
-to be visiting the same directory.
+Originally, this function replaced the Emacs standard function in
+order to change a single line in order to allow multiple `dired'
+buffers to be visiting the same directory.
 
 See also: Emacs bug report #44023:
-          https://debbugs.gnu.org/cgi/bugreport.cgi?bug=44023"
-;; IMPORTANT: This is good for emacs 26.1, 27.1, 28.0(snapshot 2020-09)
-;; TODO: emacs 25.1, emacs 27.1
+          https://debbugs.gnu.org/cgi/bugreport.cgi?bug=44023
+
+Subsequently, with the introduction of defcustom variable
+`diredc-update-interval', this function was further modified to
+not directly revert buffers."
+;; IMPORTANT: This function has been compared against function
+;; `dired-internal-noselect' in Emacs versions 26.1, 27.1, 28.0, 29.2
   (let* ((old-buf (current-buffer))
-	 (dirname (if (consp dir-or-list) (car dir-or-list) dir-or-list))
+         (dirname (if (consp dir-or-list) (car dir-or-list) dir-or-list))
        ;; BEGIN modification
-       ; (buffer (dired-find-buffer-nocreate dirname mode))
-         (buffer (when (not (bound-and-true-p dired-allow-duplicate-buffers))
+       ;;(buffer (dired-find-buffer-nocreate dirname mode))
+         (buffer (when (not (bound-and-true-p diredc-allow-duplicate-buffers))
                    (dired-find-buffer-nocreate dirname mode)))
        ;; END modification
-	 (new-buffer-p (null buffer)))
+         (new-buffer-p (null buffer)))
     (or buffer
         (setq buffer (create-file-buffer (directory-file-name dirname))))
     (set-buffer buffer)
-    (if (not new-buffer-p)		; existing buffer ...
-	(cond (switches			; ... but new switches
-	       ;; file list may have changed
-	       (setq dired-directory dir-or-list)
-	       ;; this calls dired-revert
-	       (dired-sort-other switches))
-	      ;; Always revert when `dir-or-list' is a cons.  Also revert
-	      ;; if `dired-directory' is a cons but `dir-or-list' is not.
-	      ((or (consp dir-or-list) (consp dired-directory))
-	       (setq dired-directory dir-or-list)
-	       (revert-buffer))
-	      ;; Always revert regardless of whether it has changed or not.
-	      ((eq dired-auto-revert-buffer t)
-	       (revert-buffer))
-	      ;; Revert when predicate function returns non-nil.
-	      ((functionp dired-auto-revert-buffer)
-	       (when (funcall dired-auto-revert-buffer dirname)
-		 (revert-buffer)
-		 (message "Changed directory automatically updated")))
-	      ;; If directory has changed on disk, offer to revert.
-	      ((when (dired-directory-changed-p dirname)
-		 (message "%s"
-			  (substitute-command-keys
-			   "Directory has changed on disk; type \\[revert-buffer] to update Dired")))))
+    (if (not new-buffer-p)              ; existing buffer ...
+        (cond (switches                 ; ... but new switches
+               ;; file list may have changed
+               (setq dired-directory dir-or-list)
+               ;; this calls dired-revert
+               (dired-sort-other switches))
+              ;; Always revert when `dir-or-list' is a cons.  Also revert
+              ;; if `dired-directory' is a cons but `dir-or-list' is not.
+              ((or (consp dir-or-list) (consp dired-directory))
+               (setq dired-directory dir-or-list)
+               ;; (revert-buffer)
+               )
+              ;; Always revert regardless of whether it has changed or not.
+              ((eq dired-auto-revert-buffer t)
+               ;; (revert-buffer))
+               )
+              ;; Revert when predicate function returns non-nil.
+              ((functionp dired-auto-revert-buffer)
+              ;; (when (funcall dired-auto-revert-buffer dirname)
+              ;;   (revert-buffer)
+              ;;   (message "Changed directory automatically updated")))
+               )
+              ;; If directory has changed on disk, offer to revert.
+              ((when (dired-directory-changed-p dirname)
+                 (message "%s"
+                          (substitute-command-keys
+                           "Directory has changed on disk; type \\[revert-buffer] to update Dired")))))
       ;; Else a new buffer
       (setq default-directory
             (or (car-safe (insert-directory-wildcard-in-dir-p dirname))
-	        ;; We can do this unconditionally
-	        ;; because dired-noselect ensures that the name
-	        ;; is passed in directory name syntax
-	        ;; if it was the name of a directory at all.
-	        (file-name-directory dirname)))
+                ;; We can do this unconditionally
+                ;; because dired-noselect ensures that the name
+                ;; is passed in directory name syntax
+                ;; if it was the name of a directory at all.
+                (file-name-directory dirname)))
       (or switches (setq switches dired-listing-switches))
       (if mode (funcall mode)
         (dired-mode dir-or-list switches))
       ;; default-directory and dired-actual-switches are set now
       ;; (buffer-local), so we can call dired-readin:
       (let ((failed t))
-	(unwind-protect
-	    (progn (dired-readin)
-		   (setq failed nil))
-	  ;; dired-readin can fail if parent directories are inaccessible.
-	  ;; Don't leave an empty buffer around in that case.
-	  (if failed (kill-buffer buffer))))
+        (unwind-protect
+            (progn (dired-readin)
+                   (setq failed nil))
+          ;; dired-readin can fail if parent directories are inaccessible.
+          ;; Don't leave an empty buffer around in that case.
+          (if failed (kill-buffer buffer))))
       (goto-char (point-min))
       (dired-initial-position dirname))
     (when (consp dired-directory)
       (dired--align-all-files))
     (set-buffer old-buf)
     buffer))
+
+(defun diredc--advice--dired-display-file (_oldfun)
+  "Diredc advice to function `dired-display-file'.
+
+This advice is necessary to avoid creating a new window on the
+'diredc' frame.
+
+OLDFUN is function `dired-display-file' and is never called
+by this advice.
+
+Usage: (advice-add \='dired-display-file
+                   :around #\='diredc--advice--dired-display-file)"
+  (diredc-hist-find-alternate-file))
+
+(defun diredc--advice--dired-run-shell-command (_oldfun command)
+  "Optionally allow spawned asynchronous processes to out-live Emacs.
+See variable `diredc-async-processes-are-persistent' and function
+`diredc-do-async-shell-command'.
+
+OLDFUN is function `dired-run-shell-command' and is never called
+by this advice. COMMAND is an entire shell command string. For
+asynchronous commands, `dired' prepares COMMAND to end with
+\"&wait&\" without a space prior.
+
+Usage: (advice-add \='dired-run-shell-command
+                   :around #\='diredc--advice--dired-run-shell-command)"
+;; NOTE: The advised function is reached via `dired-do-shell-command'
+;; which calls it indirectly via `dired-bunch-files' if ON-EACH (ie.
+;; apply the function separately for each of a list of files).
+;; Regardless, the command and file-list are passed through
+;; `dired-shell-stuff-it' prior.
+  (cond
+   ((or (not diredc-async-processes-are-persistent)
+        (string-match "^ " command)
+        (not (string-match "&wait&$" command)))
+   ;; NOTE: This condition is itself a rewrite of the advised function, to
+   ;;       use function `start-process-shell-command' instead of `shell-command'.
+   ;;       (defun dired-run-shell-command (command)
+     (let ((command (list (replace-regexp-in-string "&wait&$" " " command)))
+           (handler (find-file-name-handler
+                      (directory-file-name default-directory)
+                      'shell-command)) ; <- May need to be start-process?
+           (proc-name "*Async Shell Command*")
+           (proc-buf  (get-buffer-create "*Async Shell Command*")))
+       (if handler
+         (apply handler 'start-process-shell-command proc-name proc-buf command)
+        (apply 'start-process-shell-command proc-name proc-buf command))))
+   (t ; Using diredc's home-made persistent async process feature
+     (setq command (replace-regexp-in-string "&wait&$" " " command))
+     (let* ((win (selected-window))
+            (buf (shell))
+            (kill-buffer-query-functions nil)
+            (cmd (when (diredc--match-command command)
+                   (match-string 1 command)))
+            (separator (when cmd (concat " & " cmd)))
+            (cmds (when separator (split-string command separator)))
+            (suffix " & disown"))
+       (if (eq win (selected-window))
+         (bury-buffer)
+        (delete-window)
+        (select-window win 'no-record))
+       (with-current-buffer buf
+         (when cmds
+           (setq command (pop cmds)))
+         (insert command suffix)
+         (comint-send-input)
+         (while (setq command (pop cmds))
+           (insert cmd command suffix)
+           (comint-send-input))
+         (sit-for 0.3 'nodisp)
+         (kill-buffer)))))
+   ;; Return nil for sake of `nconc' in `dired-bunch-files'.
+   nil)
+
+(defun diredc--advice--dired-read-shell-command (_oldfun prompt arg files)
+  "Validate input to `dired-read-shell-command'.
+OLDFUN is function `dired-read-shell-command', which is never
+called by this advice. PROMPT, ARG, and FILES are described
+there.
+
+Inputs must be non-empty and valid commands on the host system.
+These two validation checks address the issues in Emacs bug
+report and patch #48072
+\(http://debbugs.gnu.org/cgi/bugreport.cgi?bug=48072).
+
+Note that function `diredc-do-async-shell-command' still needs to
+locally define `dired-read-shell-command'. See there."
+  (minibuffer-with-setup-hook
+      (lambda ()
+        (setq-local dired-aux-files files)
+        (setq-local minibuffer-default-add-function
+                    #'minibuffer-default-add-dired-shell-commands))
+    (setq prompt (format prompt (dired-mark-prompt arg files)))
+    (let (command)
+      (setq command
+        (if (functionp 'dired-guess-shell-command)
+          (dired-mark-pop-up nil 'shell files
+                             'dired-guess-shell-command prompt files)
+         (dired-mark-pop-up nil 'shell files
+                            'read-shell-command prompt nil nil)))
+      ;; Validation checks of #48072:
+      (when (string= "" command)
+        (user-error "No command entered. Nothing to do!"))
+      (unless (executable-find
+                (if (diredc--match-command command)
+                  (match-string 1 command)
+                 command))
+        (user-error "Not a valid command!"))
+      command)))
+
+(defun diredc--advice--repeat-over-lines (_oldfun arg function)
+  "Fix Emacs bug #48883 (2021-06-06: improper marking of lines).
+
+_OLDFUN is function `dired-repeat-over-lines', which is never
+called by this advice. ARG is a positive or negative integer
+number of lines on which to operate, and FUNCTION is the
+operation to perform.
+
+Ref: http://debbugs.gnu.org/cgi/bugreport.cgi?bug=48883
+
+The advised function was: 1) operating on directory heading
+lines; 2) operating on the lines for the \"not-real\" files '.'
+and ',,', and; 3) advancing POINT undesirablly. I submitted two
+solutions there. Here in `diredc', in order to limit advising the
+underlying Emacs package, I'm using the version that alters just
+function `dired-repeat-over-lines'. A second version submitted
+there applies the fix by changing also function
+`dired-between-two-lines'."
+  (let ((pos (make-marker)))
+    (beginning-of-line)
+    (cond
+     ((> arg 0)
+       (while (and (> arg 0) (not (eobp)))
+         (setq arg (1- arg))
+         (beginning-of-line)
+       ;;(while (and (not (eobp)) (dired-between-files)) (forward-line 1))
+         (while (and (not (eobp))
+                     (condition-case nil
+                       (not (dired-get-filename))
+                       (error t)))
+           (forward-line 1))
+         (save-excursion
+           (forward-line 1)
+           (move-marker pos (1+ (point))))
+         (unless (eobp)
+           (save-excursion (funcall function))
+           ;; Advance to the next line--actually, to the line that *was* next.
+           ;; (If FUNCTION inserted some new lines in between, skip them.)
+           (goto-char pos)))
+       (when (eobp)
+         (forward-line -1)
+         (dired-move-to-filename)))
+     ((< arg 0)
+       (while (and (< arg 0) (not (bobp)))
+         (setq arg (1+ arg))
+         (forward-line -1)
+       ;;(while (and (not (bobp)) (dired-between-files)) (forward-line -1))
+         (while (and (not (bobp))
+                     (condition-case nil
+                       (not (dired-get-filename))
+                       (error t)))
+           (forward-line -1))
+         (beginning-of-line)
+         (when (condition-case nil
+                 (dired-get-filename)
+                 (error nil))
+           (save-excursion (funcall function))))
+       (move-marker pos nil)
+       (dired-move-to-filename)))))
+
 
 ;;
 ;;; Functions - hook functions:
@@ -939,19 +1918,31 @@ See also: Emacs bug report #44023:
   (cond
    (diredc-mode
      (use-local-map diredc-mode-map)
-     (diredc-bonus-configuration 'dired-mode-hook)
+     (setq header-line-format (if diredc-header-line "  Diredc:" ""))
+     (when diredc-header-line
+       (make-local-variable 'face-remapping-alist)
+       (push (cons 'header-line 'diredc-header-line)
+             face-remapping-alist))
+     (diredc--bonus-configuration 'dired-mode-hook)
+     (advice-add 'wdired-finish-edit   :after #'diredc--advice--wdired-exit)
+     (advice-add 'wdired-abort-changes :after #'diredc--advice--wdired-exit)
+     (advice-add 'wdired-exit          :after #'diredc--advice--wdired-exit)
      (add-hook 'post-command-hook
-               'diredc--hook-function--post-command t))
+               #'diredc--hook-function--post-command))
    (t ; not diredc-mode
+     (advice-remove 'wdired-finish-edit   #'diredc--advice--wdired-exit)
+     (advice-remove 'wdired-abort-changes #'diredc--advice--wdired-exit)
+     (advice-remove 'wdired-exit          #'diredc--advice--wdired-exit)
      (remove-hook 'post-command-hook
-                  'diredc--hook-function--post-command))))
+                  #'diredc--hook-function--post-command))))
 
 (defun diredc-hist--hook-function ()
   "Hook function for `dired-mode-hook'."
   (setq diredc-hist--history-position 0
         diredc-hist--history-list
-          (list (cons (substring-no-properties (expand-file-name dired-directory))
-                      (point)))))
+          (list (list (expand-file-name dired-directory)
+                      (point)
+                      dired-omit-mode))))
 
 (defun diredc--hook-function--post-command ()
   "Internal hook function for `diredc-mode' file buffers.
@@ -960,17 +1951,18 @@ A hook function for `post-command-hook', to display additional
 file information in the minibuffer area for the current file at
 POINT."
   (cond
-   ((minibuffer-window-active-p (selected-window))
-     t)
-   ((not (eq major-mode 'dired-mode))
-     (remove-hook 'post-command-hook
-                  'diredc--hook-function--post-command))
-   ((equal (expand-file-name dired-directory)
-           diredc-trash-files-dir)
-     (diredc-trash--show-more-file-info--freedesktop))
-   ((diredc--file-name-at-point)
-     (diredc--show-more-file-info))
-   (t t)))
+   ((or (minibuffer-window-active-p (selected-window))
+        (not (eq major-mode 'dired-mode))))
+   (t
+     (if diredc-header-line
+       (diredc--report-counts-and-sizes)
+      (setq header-line-format nil))
+     (cond
+      ((equal (expand-file-name dired-directory)
+              diredc-trash-files-dir)
+        (diredc-trash--show-more-file-info--freedesktop))
+      ((diredc--file-name-at-point)
+        (diredc--show-more-file-info))))))
 
 (defun diredc-browse--hook-function ()
   "Internal function for `diredc-browse-mode' minor mode.
@@ -978,47 +1970,402 @@ POINT."
 A hook function for `post-command-hook'. It creates and kills
 `view-mode' buffers for `diredc-browse-mode'."
   (unless (or diredc-browse--buffer
-              (minibuffer-window-active-p (selected-window)))
-    (let ((new-file (condition-case err
+              (minibuffer-window-active-p (selected-window))
+              (not (string-match "#<frame diredc " (format "%s" (selected-frame))))
+              (eq this-command 'push-button))
+    (let ((original-win (selected-window))
+          (new-file (condition-case nil
                       (dired-get-filename nil t)
                       (error nil)))
-          new-buf)
-      (when (not (equal new-file (car diredc-browse--tracker)))
-        (when (buffer-live-p (cdr diredc-browse--tracker))
-          (kill-buffer (cdr diredc-browse--tracker))
-          (setq diredc-browse--tracker '(nil . nil)))
-        (when (and new-file (file-regular-p new-file) (file-readable-p new-file))
-          (let ((original-win (selected-window))
-                (w-list (window-list))
+          (browse-buf (cdr diredc-browse--tracker)))
+      (unless (and new-file
+                   (equal new-file (car diredc-browse--tracker)))
+        (unless (buffer-live-p browse-buf)
+          (setq browse-buf (get-buffer-create "diredc browse"))
+          (let ((w-list (window-list))
                 w done)
             (while (and (not done)
                         (setq w (pop w-list)))
               (when (not (eq w original-win))
-                (select-window w 'no-record)
+                (select-window w 'norecord)
                 (when (eq major-mode 'dired-mode)
-                  (set-window-dedicated-p nil nil)
                   (setq done t))))
             (when (not done)
               (split-window-right)
               (other-window 1))
-            (condition-case err
-              (find-file new-file)
-              (user-error ;; When a file's size exceeds
-               ;; `large-file-warning-threshold', function
-               ;; `abort-if-file-too-large' calls function `user-error' if
-               ;; the user wishes to abort.
-               (select-window original-win)
-               (user-error "Aborted")))
-            (setq diredc-browse--buffer original-win)
-            (view-mode)
-            (use-local-map diredc-browse-mode-map)
-            (setq new-buf (current-buffer))
-            (select-window original-win)
-            (setq diredc-browse--tracker (cons new-file new-buf))))))))
+            (set-window-dedicated-p nil nil)
+            (switch-to-buffer browse-buf 'norecord 'force-same-window)
+            (set-window-dedicated-p nil t)
+            (setq diredc-browse--buffer original-win)))
+        (setq diredc-browse--tracker (cons new-file browse-buf))
+        (set-buffer browse-buf)
+        (let ((inhibit-read-only t)
+              (buffer-undo-list t))
+          (erase-buffer)
+          (set-auto-mode)
+          (cond
+           ((and new-file
+                 (file-regular-p new-file)
+                 (file-readable-p new-file)
+                 (not (file-symlink-p new-file)))
+             (unless (diredc-browse--exclude new-file)
+               (condition-case err
+                 (progn
+                   (insert-file-contents new-file)
+                   (setq buffer-file-name new-file)
+                   (set-auto-mode)
+                   (setq diredc-browse--buffer original-win))
+                 (error
+                   (erase-buffer)
+                   (insert
+                     (format "diredc browse buffer\n\n Error looking at file: %s\n\n %s: %s"
+                             new-file (car err) (cdr err)))
+                   (dolist (w (window-list))
+                     (when (not (eq w original-win))
+                       (select-window w 'norecord)
+                       (unless (or  (eq major-mode 'dired-mode)
+                                    (equal "diredc browse" (buffer-name))
+                                    (string-match "^*diredc-shell " (buffer-name)))
+                         (delete-window))))))))
+           (t
+             (let ((type (car (file-attributes new-file))))
+               (insert
+                 (cond
+                  ((stringp type)
+                    (format "Looking at a symbolic link to:\n\n   %s" type))
+                  ((and diredc--browse-magit
+                        type
+                        (equal (file-name-as-directory new-file)
+                               (magit-toplevel new-file)))
+                    (let ((default-directory (file-name-as-directory new-file))
+                          (magit-display-buffer-noselect t)
+                          (magit-display-buffer-function
+                            (lambda (buf) t)))
+                      (magit-setup-buffer-internal
+                        #'magit-status-mode nil nil browse-buf))
+                    "")
+                  (type
+                    "Looking at a directory")
+                  (t ;; ie. (eq type nil)
+                    (if (not new-file)
+                      "Looking at nothing"
+                     "Looking at an unreadable file"))))))))
+        (setq header-line-format
+          (format "Diredc %s buffer%s"
+                  (propertize "browse" 'face 'warning)
+                  (if new-file (concat ": " (file-name-nondirectory new-file)) "")))
+        (setq diredc-browse--buffer original-win)
+        (set-buffer-modified-p nil)
+        (buffer-disable-undo)
+        (view-mode)
+        (use-local-map diredc-browse-mode-map)
+        (select-window original-win 'norecord)))))
+
+(defun diredc--window-state-change-hook-function (fram)
+  "Internal function for mode `diredc-mode'.
+When variable `diredc-bonus-configuration' is non-nil, this
+function allows the current line of the selected `diredc' buffer
+to be highlighted in a face independent of face `hl-line'. See
+face `diredc-hl-current-buffer'."
+   (when (and diredc-mode diredc-bonus-configuration
+            (string-match "^#<frame diredc "
+                          (format "%s" (window-frame))))
+     (let* ((win-list (window-list fram)))
+       (with-selected-window (pop win-list)
+         (unless diredc--hl-cookie
+           (setq-local diredc--hl-cookie
+             (face-remap-add-relative 'hl-line 'diredc-hl-current-buffer)))
+         (dolist (win win-list)
+           (select-window win 'no-record)
+           (when diredc--hl-cookie
+             (face-remap-remove-relative diredc--hl-cookie)
+             (setq diredc--hl-cookie nil)))))))
 
 
 ;;
 ;;; Functions:
+
+(defun diredc--unset-created-faces ()
+  "Clear programmatically created faces."
+;; Why not delete the face? Elisp (Emacs 29) doesn't seem to be able
+;; to do that. While uninterning the symbol does remove its values, it
+;; doesn't delete it from the list of faces, and attempting to
+;; redefine it creates a duplicate, such that both the uninterned face
+;; and the new one appear as two distinct objects with identical
+;; names. Also, because the operation is not supported, the Emacs
+;; developers have felt free in the past to change the relevant
+;; internals (eg.
+;; https://emacs.stackexchange.com/questions/48443/how-to-delete-a-face#comment115865_48445).
+  (let ((elem))
+   (while (setq elem (pop diredc--faces-created))
+     (face-spec-set elem nil 'reset))))
+
+(defun diredc--font-lock-collapse-matcher (limit)
+  "Matches a \"collapsed\" path-spec.
+See `diredc-collapse-mode' for details. Returns \"t\" upon match.
+This function is suitable for argument MATCHER as required by
+variable `font-lock-keyword'. It is mean to be part of a `diredc'
+element added to variable `diredc-font-lock-keywords'."
+  (when (and diredc-collapse-mode
+             (save-excursion (dired-move-to-filename))
+             (re-search-forward "/" limit 'noerror))
+    t))
+
+(defun diredc--font-lock-matcher-common (start-pos limit regexp type data)
+  "Common match function for `diredc--font-lock-file-matcher'.
+START-POS is POINT at the beginning of the `dired' filename.
+LIMIT is POINT at the end of the `dired' line. REGEXP is where
+within the filename to search for a match, where '%s' indicates
+the matching section. TYPE is either \"name\" or \"extension\".
+DATA is the alist, either `diredc-face-file-name-alist' or
+`diredc-face-file-ext-alist'."
+  (let (facename elem found faceval)
+    (while (and (not found)
+                (setq elem (pop data)))
+      (goto-char start-pos)
+      (when (re-search-forward
+                (format regexp (regexp-opt (nth 1 elem)))
+                limit 'noerror)
+        (setq facename (intern (format "diredc--face-for-file-%s-type-%s"
+                                       type
+                                       (replace-regexp-in-string " " "_" (nth 0 elem)))))
+        (when (or (when (not (get facename 'face-override-spec))
+                    (push facename diredc--faces-created)
+                    t)
+                  (not diredc-improve-font-lock-performance))
+          (face-spec-set facename
+                         (if (facep (setq faceval (nth 2 elem)))
+                           (face-user-default-spec faceval)
+                          faceval)))
+        (setq diredc--font-lock-file-matched-face facename)
+        (setq found t)))
+    found))
+
+(defun diredc--font-lock-file-matcher (limit)
+  "Matches a file name or extension for font-lock fontification.
+Returns \"t\" upon match. See defcustom variables
+`diredc-face-file-name-alist' and `diredc-face-file-ext-alist'
+This function is suitable for argument MATCHER as required by
+variable `font-lock-keyword'. It is mean to be part of a `diredc'
+element added to variable `diredc-font-lock-keywords'."
+  (let ((start-pos (point)))
+   (cond
+    ((and diredc-fontify-by-file-name
+          (diredc--font-lock-matcher-common
+            start-pos
+            limit
+            "%s\\*?$"
+            "name"
+            diredc-face-file-name-alist))
+      t)
+    ((and diredc-fontify-by-file-extension
+          (diredc--font-lock-matcher-common
+            start-pos
+            limit
+            "\\.%s\\*?$"
+            "extension"
+            diredc-face-file-ext-alist))
+      t)
+    ((and diredc-fontify-executable-symbol
+          (goto-char start-pos)
+          (re-search-forward "\\*$" limit 'noerror))
+      (setq diredc--font-lock-file-matched-face nil)
+      t)
+    ((and diredc-collapse-mode
+          (goto-char start-pos)
+          (re-search-forward ".*/.+$" limit 'noerror))
+      (setq diredc--font-lock-file-matched-face nil)
+      t)
+    (t nil))))
+
+(defun diredc--font-lock-add-rules ()
+  "Create font-lock rules to fontify filenames.
+See customization variables `diredc-face-file-name-alist' and
+`diredc-face-file-ext-alist'."
+  ;;
+  ;; IMPORTANT: In order to understand the subtleties of what is being
+  ;; done here, read the very long docstring for variable
+  ;; 'font-lock-keywords'. Then read the developer comments in file
+  ;; `dired.el' at defvar `dired-font-lock-keywords', especially re:
+  ;; MATCH-ANCHORED and "It is quicker...".
+  ;;
+  (when (or diredc-fontify-by-file-name
+            diredc-fontify-by-file-extension
+            diredc-fontify-executable-symbol)
+    (add-to-list
+      'dired-font-lock-keywords
+      (list 'diredc--font-lock-file-matcher
+            ;; MATCH-ANCHORED
+            (list "\\(\\(.*/\\)+\\)?\\(\\*?[^\\*]+\\)?\\(\\*\\)?$" ; MATCHER
+                  '(or (dired-move-to-filename) (end-of-line))     ; PRE-MATCH-FORM
+                  nil                                              ; POST-MATCH-FORM
+                  ;; MATCH-HIGHLIGHT, ie. (SUBEXP FACENAME OVERRIDE LAXMATCH)
+                  (list 2 '(face-user-default-spec 'dired-directory) t t)
+                  (list 3 '(when (or diredc-fontify-by-file-extension
+                                     diredc-fontify-by-file-name)
+                             diredc--font-lock-file-matched-face)
+                        t t)
+                  (list 4 '(when diredc-fontify-executable-symbol
+                             (face-user-default-spec 'diredc-face-executable))
+                        t t)))
+      'append))
+  (add-to-list
+    'dired-font-lock-keywords
+    (list 'diredc--font-lock-collapse-matcher
+          ;; MATCH-ANCHORED
+          (list "\\(/\\)."       ; MATCHER
+                '(backward-char) ; PRE-MATCH-FORM  (due to matcher function)
+                nil              ; POST-MATCH-FORM (prep for next)
+                ;; MATCH-HIGHLIGHT, ie. (SUBEXP FACENAME OVERRIDE LAXMATCH)
+                (list 1 '(face-user-default-spec 'diredc-face-collapse) t t)))
+    'append))
+
+(defun diredc--revert-all ()
+  "Revert visible `diredc' buffers."
+  (dolist (elem (mapcar 'cdr dired-buffers))
+    (when (and (buffer-live-p elem)
+               (get-buffer-window elem))
+      (with-current-buffer elem
+        (unless (or revert-buffer-in-progress-p
+                    (= (buffer-size) 0)
+                    (eq major-mode 'wdired-mode))
+          (revert-buffer)
+          (hl-line-mode))))))
+
+(defun diredc--update-control (arg)
+  "Update visible `diredc' buffers.
+
+Revert visible `diredc' buffers every `diredc-update-interval'
+seconds, unless they are in `wdired-mode'. ARG should be either
+'start or 'stop.
+
+This mitigates a deficiency of `Dired' in that it relies upon
+`file-notify' to trigger buffer updates. However, `file-notify'
+does not trigger upon events that change the size of a file that
+is listed in a `Dired' buffer. Thus, for example, when a tar
+archive is created, vanilla `Dired' records its size as zero, and
+it will remain so until some other action triggers a
+`revert-buffer' event."
+  (when diredc-update
+    (and diredc--update-timer
+         (timerp diredc--update-timer)
+         (cancel-timer diredc--update-timer))
+    (when (eq arg 'start)
+      (let ((x (if (< 0 diredc-update-interval)
+                 diredc-update-interval
+                diredc--update-interval-default)))
+       (setq diredc--update-timer
+         (run-with-timer x x 'diredc--revert-all))))))
+
+(defun diredc--thousands (num)
+  "Return a readable string for integer NUM.
+Delimits the number by variable `diredc-thousands-separator'.
+Used by function `diredc--report-counts-and-sizes'."
+  ;; ref: https://lists.gnu.org/archive/html/emacs-devel/2021-06/msg00139.html
+  (setq num (number-to-string num))
+  (while (string-match "\\(.*[0-9]\\)\\([0-9][0-9][0-9].*\\)" num)
+  (setq num
+    (concat
+      (match-string 1 num)
+      diredc-thousands-separator
+      (match-string 2 num))))
+    num)
+
+(defun diredc--mark-msg (label file-count dir-count link-count size units1 units2)
+  "Returns summary of mark count and size.
+For use of function `diredc--report-counts-and-sizes' in setting
+variable `header-line-format'."
+  (unless (and (zerop file-count)
+               (zerop dir-count)
+               (zerop link-count))
+    (format " [%s: %s%s%s] "
+      label
+      (if (zerop file-count) ""
+        (format "%s file%s (%s %s%sytes)"
+                (diredc--thousands file-count)
+                (if (= 1 file-count) "" "s")
+                (diredc--thousands size)
+                units1 units2))
+      (if (zerop dir-count)  ""
+        (format "%s%s dir%s"
+                (if (zerop file-count) "" ", ")
+                (diredc--thousands dir-count)
+                (if (= 1 dir-count) "" "s")))
+      (if (zerop link-count) ""
+        (format "%s%s link%s"
+                (if (and (zerop file-count)
+                         (zerop dir-count)) "" ", ")
+                (diredc--thousands link-count)
+                (if (= 1 link-count) "" "s"))))))
+
+(defun diredc--report-counts-and-sizes ()
+  "Get total size of marked files.
+This differs from `dired-number-of-marked-files' in that: 1) the
+count of files, directories, and links are itemized; 2) the sizes
+of links and directories are not reported; 3) the units of size
+respects that of the dired listing, and; 4) the result is posted
+to the header line.
+
+This function is fragile in the sense that it expects the
+`diredc' buffer to be presenting its first five fields in classic
+\"ls -l\" format.
+
+This function does not attempt to calculate the actual size of
+directories (eg. by using shell command \"du\") because that can
+many seconds for large subdirectory trees, and this function is
+meant to be called as part of a `post-command-hook'. For that
+feature, see interactive function `diredc-du'."
+  ;; TODO: This can be performed as a summary for a directory, listing
+  ;;       number of files (and sizes) by extension
+  (let ((atoms ;; compare: diredc--sort-columns-regexp
+         "^\\([*D]\\) \\([-ld]\\)\\([-rwxgst]\\{9\\}\\) +\\([^ ]+\\) +\\([^ ]+\\) +\\([^ ]+\\) +\\([0-9]+\\)\\([KMGTPEZY]\\)?\\(B\\)?.*$")
+        (m-file-count 0) (m-link-count 0) (m-dir-count 0) (m-size 0)
+        (d-file-count 0) (d-link-count 0) (d-dir-count 0) (d-size 0)
+        (units1 "") (units2 "b")
+        m-msg d-msg)
+    (save-mark-and-excursion
+      (goto-char (point-min))
+      (while (re-search-forward atoms nil t)
+        (when (match-string 8)
+          (setq units1 (match-string 8))
+          (when (match-string 9)
+            (setq units2 (match-string 9))))
+        (cond
+         ((equal "*" (match-string 1))
+           (cond
+            ((equal "-" (match-string 2))
+              (setq m-file-count (1+ m-file-count))
+              (setq m-size  (+ m-size (string-to-number (or (match-string 7) 0)))))
+            ((equal "d" (match-string 2))
+              (setq m-dir-count (1+ m-dir-count)))
+            ((equal "l" (match-string 2))
+              (setq m-link-count (1+ m-link-count)))))
+         (t ; (equal "D" (match-string 1))
+           (cond
+            ((equal "-" (match-string 2))
+              (setq d-file-count (1+ d-file-count))
+              (setq d-size  (+ d-size (string-to-number (or (match-string 7) 0)))))
+            ((equal "d" (match-string 2))
+              (setq d-dir-count (1+ d-dir-count)))
+            ((equal "l" (match-string 2))
+              (setq d-link-count (1+ d-link-count))))))))
+    (setq m-msg
+      (diredc--mark-msg "*" m-file-count m-dir-count m-link-count m-size units1 units2))
+    (setq d-msg
+      (diredc--mark-msg "D" d-file-count d-dir-count d-link-count d-size units1 units2))
+    (setq header-line-format
+      (concat "  Diredc: "
+      ;;      (if (or m-msg d-msg) "Marks: " "")
+              (propertize (or m-msg "") 'face 'diredc-header-*-marks)
+              (propertize (or d-msg "") 'face 'diredc-header-D-marks)))))
+
+(defun diredc--decode-hexlated-string (str)
+  "Convert hexlated string STR to human-readable, with charset coding support.
+This function improves upon `url-unhex-string' by handled
+hexlated multi-byte and unicode characters."
+  (decode-coding-string (url-unhex-string str)
+                        (or file-name-coding-system
+                            default-file-name-coding-system)))
 
 (defun diredc--file-name-at-point ()
   "Wrapper for `dired-file-name-at-point' to suppress errors.
@@ -1028,9 +2375,32 @@ other Emacs functions."
   ;; WARNING: Do not confuse function `dired-file-name-at-point' with
   ;; function `dired-filename-at-point'. The latter truncates file
   ;; names at spaces, and possibly has other deficiencies.
-  (condition-case err
+  (condition-case nil
     (dired-file-name-at-point)
     (error nil)))
+
+(defun diredc--sort-special (method)
+  "Perform a sort on a `diredc' buffer.
+This function handles sort methods that `dired' can't off-load to
+the shell's `ls'. METHOD is an entry in variable
+`diredc--sort-options' whose `column' value is non-NIL."
+  (when (< 1 (length dired-subdir-alist))
+    (user-error "Not supported for Dired buffers with sub-dirs"))
+  (save-mark-and-excursion
+    (save-match-data
+      (goto-char (point-min))
+      (unless (re-search-forward diredc--sort-columns-regexp nil t)
+        (user-error "Incompatible Dired listing format"))
+      (goto-char (point-min))
+      (read-only-mode -1)
+      (sort-regexp-fields
+        (nth 2 method)
+        diredc--sort-columns-regexp
+        (nth 5 method)
+        (line-beginning-position 3)
+        (point-max))
+      (read-only-mode)))
+  (setq diredc--sort-option-special method))
 
 (defun diredc-shell--array-variable (program val)
   "Internal function for use with variable `diredc-shell-list'.
@@ -1045,6 +2415,46 @@ variables to a shell."
      (t val))
    (format "\"%s\"" val)))
 
+(defun diredc-shell--bind-keys ()
+  "Set uniform keybindings for all forms of diredc shells.
+These bindings need to be performed \"early\" in order that they
+exist even if the shell process crashes, eg. due to a bad value
+in variables `explicit-bash-args'."
+  (use-local-map (copy-keymap (current-local-map)))
+  (local-set-key (kbd "C-c C-k") 'diredc-shell-kill)
+  (local-set-key [remap kill-buffer] 'diredc-shell-kill))
+
+(defun diredc--set-term-environment (program d1 d2 f1 f2 t1 t2)
+  "Internal function to uniformly set terminal emulator environment.
+For keybindings and environment variables."
+  (diredc-shell--bind-keys)
+  (setq-local diredc--shell-point (point-max)) ; See kludge below.
+  (funcall comint-input-sender
+           (get-buffer-process (current-buffer))
+           (format " export INSIDE_DIREDC=\"%s\" d1=\"%s\" d2=\"%s\" f1=\"%s\" f2=\"%s\" t1=\"%s\" t2=\"%s\"; printf 'diredc-shell: Use C-c C-k to close this pop-up shell.\ndiredc-shell: Special variables: $d1 $d2 $f1 $f2 $t1 $t2%s\n'"
+                   diredc--version
+                   d1 (or d2 "") (or f1 "") (or f2 "")
+                   (diredc-shell--array-variable program t1)
+                   (diredc-shell--array-variable program t2)
+                   (if (equal d2 "")
+                     "\ndiredc-shell: Variables d2,f2,t2 not set. (More than two dired buffers visible)."
+                    "")))
+  ;; TODO: 2024-04: It seems that at this point (Emacs 29.2), there is
+  ;; no way to nicely wait on a change of state in the comint buffer
+  ;; (eg. process-sentinel). Revisit this situation periodically so we
+  ;; can replace the following kludge.
+  (cl-loop
+    repeat 10
+    do (sleep-for 0.1)
+    until
+      (when (not (equal diredc--shell-point (point-max)))
+        (goto-char (point-min))
+        (when (search-forward "diredc-shell:" nil t)
+          (delete-region (point-min) (match-beginning 0)))
+        (goto-char (point-max))
+        t))
+  (setq-local diredc--shell-point nil))
+
 (defun diredc-shell--launch-shell (program d1 d2 f1 f2 t1 t2)
   "Internal function for use with variable `diredc-shell-list'.
 PROGRAM is the shell executable to run. D1, D2, F1, F2, T1, and
@@ -1058,17 +2468,14 @@ If optional ANSI is NON-NIL, then the program is run in Emacs
     (display-buffer-same-window
       buf (list nil)) ;; not sure what this last ARG is about (not documented).
     (shell buf)
-    (insert (format "export d1=\"%s\" d2=\"%s\" f1=\"%s\" f2=\"%s\" t1=%s t2=%s\n"
-                    d1 (or d2 "") (or f1 "") (or f2 "")
-                    (diredc-shell--array-variable program t1)
-                    (diredc-shell--array-variable program t2)))
-    (comint-send-input)
+    (diredc--set-term-environment program d1 d2 f1 f2 t1 t2)
     buf))
 
-(defun diredc-shell--launch-eshell (program d1 d2 f1 f2 t1 t2)
+(defun diredc-shell--launch-eshell (_program d1 d2 f1 f2 t1 t2)
   "Internal function for use with variable `diredc-shell-list'.
-PROGRAM is the shell executable to run. D1, D2, F1, F2, T1, and
-T2 are shell variables to be set based upon their dired values."
+_PROGRAM is an ignored placeholder for consistency with similar
+functions. D1, D2, F1, F2, T1, and T2 are shell variables to be
+set based upon their dired values."
   (let ((buf (eshell)))
     (setq-local d1 d1)
     (setq-local f1 f1)
@@ -1076,6 +2483,7 @@ T2 are shell variables to be set based upon their dired values."
     (setq-local d2 d2)
     (setq-local f2 f2)
     (setq-local t2 t2)
+    (diredc-shell--bind-keys)
     buf))
 
 (defun diredc-shell--launch-term (program d1 d2 f1 f2 t1 t2)
@@ -1099,11 +2507,7 @@ Emacs `ansi-term'; Otherwise, the simple Emacs `term-mode' is
 used."
   (let ((buf (if ansi (ansi-term program) (term program))))
     (term-line-mode)
-      (insert (format "export d1=\"%s\" d2=\"%s\" f1=\"%s\" f2=\"%s\" t1=%s t2=%s\n"
-                      d1 (or d2 "") (or f1 "") (or f2 "")
-                      (diredc-shell--array-variable program t1)
-                      (diredc-shell--array-variable program t2)))
-    (term-send-input)
+    (diredc--set-term-environment program d1 d2 f1 f2 t1 t2)
     buf))
 
 (defun diredc-shell--find-existing-shell ()
@@ -1115,14 +2519,120 @@ If a shell window already exists, select it and return non-nil."
         w done)
     (while (and (not done)
                 (setq w (pop w-list)))
-      (select-window w 'no-record)
+      (select-window w 'norecord)
       (when (and (derived-mode-p 'comint-mode)
                  (equal (bound-and-true-p dired-directory) d1))
         (select-window w)
         (setq done t)))
     (when (not done)
-      (select-window original-window 'no-record))
+      (select-window original-window 'norecord))
     done))
+
+(defun diredc--guess-decoding (filename)
+  "Guess the encoding system to be used to find FILENAME.
+Returns a coding-system symbol. See variables
+`auto-coding-alist', `file-coding-system-alist' and function
+`find-operation-coding-system'."
+  ;; NOTE: See also `mailcap-extension-to-mime' and related features
+  ;; in `mailcap.el'
+  (or (cl-loop
+        for elem in auto-coding-alist
+        when (string-match (car elem) filename)
+        return (cdr elem))
+      (cl-loop for elem in file-coding-system-alist
+        when (string-match (car elem) filename)
+        return
+          (let ((val (cdr elem)))
+            (cond
+             ((consp val) (cdr val))
+             ((functionp val)
+               (if (consp (setq val
+                            (funcall val (list 'insert-file-contents filename))))
+                 (car val)
+                val))
+             (t val))))))
+
+(defun diredc-browse--button-describe-action (button)
+  "Perform `describe-variable' for the variable at BUTTON."
+  (describe-variable (button-get button 'var)))
+
+(defun diredc-browse--button-return-action (_button)
+  "Navigate away from the diredc-browse window of BUTTON."
+  (diredc-other-window))
+
+(defun diredc-browse--exclude (filename)
+  "Decide whether to browse readable file FILENAME.
+Reports in the \"diredc browse\" buffer any reason not to browse.
+The file is checked against the values of variables
+`diredc-browse-exclude-file-extensions' and
+`diredc-browse-exclude-coding-systems'. If those checks pass,
+variable `diredc-browse-helper' is used (see there)."
+  (let ((helper (assq system-type diredc-browse-helper))
+        (ext (or (file-name-extension filename)
+                 (file-name-nondirectory filename)))
+        output ext-match var coding-match helper-match browse-binary)
+    (cond
+     ((and helper
+          (setq output
+            (shell-command-to-string
+              (format "%s %s \"%s\"" (nth 1 helper) (nth 2 helper) filename)))
+          (or (string-match (nth 3 helper) output)    ; the inclusion test passed
+              (and diredc--browse-include-images
+                   (string-match diredc-browse-include-images-regexp output))))
+       nil) ; return value: exclusion is false
+     ((or ;; check file extensions to exclude
+          (setq ext-match
+            (cl-loop for elem in diredc-browse-exclude-file-extensions
+                     when (string-match elem ext)
+                     return elem))
+          ;; check coding systems to exclude
+          (setq coding-match (memq (diredc--guess-decoding filename)
+                                   diredc-browse-exclude-coding-systems))
+          ;; check exclusion-helpers
+          (setq helper-match
+            (and (string-match
+                   (nth 6 helper)
+                   (setq output (condition-case nil
+                     (shell-command-to-string
+                       (format "%s %s \"%s\"" (nth 4 helper) (nth 5 helper) filename))
+                     (error ""))))
+                 (match-string 0 output))))
+      (erase-buffer)
+      (insert
+        (concat "\nThis file is excluded from being browsed because it has\n"
+          (cond
+           (ext-match
+             (setq var 'diredc-browse-exclude-file-extensions)
+             (format "filename extension \"%s\".\n\nSee variable %s"
+                     ext-match var))
+           (coding-match
+             (setq var 'diredc-browse-exclude-coding-systems)
+             (format "coding system \"%s\".\n\nSee variable %s"
+                     (car coding-match) var))
+           (helper-match
+             (setq var 'diredc-browse-helper)
+             (format "property \"%s\".\n\nSee variable %s"
+                     helper-match var))
+           (browse-binary
+             (setq var 'diredc-browse-binary)
+             (format "property \"binary-file\".\n\nSee variable %s"
+                     var))
+           (t "")) ; WARNING: This condition should never be reached
+          "\n\nYou can customize this variable."))
+      (goto-char (point-min))
+      (when (re-search-forward (symbol-name var) nil t)
+        (make-text-button (match-beginning 0) (match-end 0)
+                          :type 'help-xref
+                          'action 'diredc-browse--button-describe-action 'var var))
+      (when (re-search-forward "\\<customize\\>" nil t)
+        (help-xref-button 0 'help-customize-variable var))
+      (let ((p1 (+ 2 (goto-char (point-max)))))
+        (insert "\n\nReturn to diredc.")
+        (make-text-button p1 (1- (point-max))
+                          :type 'help-xref
+                          'action 'diredc-browse--button-return-action))
+      t) ; Return t when exclusion is true
+    )))
 
 (defun diredc-trash--show-more-file-info--freedesktop ()
   "Internal function for `diredc-mode' 'Trash' file buffers.
@@ -1154,17 +2664,63 @@ management."
 (defun diredc--show-more-file-info ()
   "Update the additional file information displayed in the minibuffer."
   (let (message-log-max ; suppress output to *Messages* buffer
-        (info-file (expand-file-name (diredc--file-name-at-point)))
-        (cmd diredc--show-more-file-info-cmd)
+        (info-file (format "'%s'"
+                           (shell-quote-argument
+                             (expand-file-name (diredc--file-name-at-point)))))
+        (cmd (cdr diredc--show-more-file-info-cmd))
         output)
-    (when (and info-file
-               (not (zerop (length cmd))))
-      (setq output (condition-case err
-                     (shell-command-to-string (format cmd info-file))
-                     (error ""))) ; TODO: Report error encountered
-      (if (zerop (length output))
-        (message "%s: No output." (substring cmd 0 (string-match " "cmd)))
-       (message "%s" output)))))
+    (when (and info-file (not (zerop (length cmd))))
+      (setq output
+        (with-temp-buffer
+          (insert
+            (condition-case nil
+              (shell-command-to-string (format cmd info-file))
+              (error ""))) ; TODO: Report error encountered
+          (goto-char (point-min))
+          (while (re-search-forward "\\(\\([^[:blank:][:digit:]]+[[:blank:]]\\)+\\)?[^[:space:][:digit:]]+:" nil t)
+            (add-face-text-property (match-beginning 0) (match-end 0) 'font-lock-comment-face))
+          (buffer-string)))
+      (message "[%s/%s] %s (%s)%s"
+        diredc--show-more-file-info-index
+        (length diredc-show-more-file-info-list)
+        (propertize (car diredc--show-more-file-info-cmd) 'face 'font-lock-comment-face)
+        (substring cmd 0 (string-match " "cmd))
+        (if (zerop (length output))
+          ": No output."
+         (concat "\n" output))))))
+
+(defun diredc--hist-guess-restore-point (hist pos)
+  "Fetch POINT of an adjoining matching history entry.
+This function is called in cases of \"direct\" navigation, because
+the user may have asked to directly navigate to a directory that
+could have been done by either `diredc-hist-next-directory' or
+`diredc-hist-previous-directory' for which the history stack has
+a restore POINT.
+
+HIST is a copy of the buffer's history stack, variable
+`diredc-hist--history-list', and POS is a copy the current position
+within it, variable `diredc-hist--history-position'."
+  ;; NOTE: The structure of the `cond' in this function is based upon
+  ;; that of function `diredc-hist--update-directory-history'. The two
+  ;; functions (currently) check the same places, but for different
+  ;; purpose and result.
+  ;; TODO: Consider being more lenient, and checking any entry in
+  ;; HIST, even if it's not adjoining. The issue then would be is two
+  ;; matches exist, which to choose.
+  (let ((dir (expand-file-name dired-directory))
+        pos2)
+    (cond
+     ((= 1 (length hist))
+       (when (equal dir (caar hist))
+         (nth 1 (car hist))))
+     ((equal dir (car (nth pos hist)))
+       (nth 1 (nth pos hist)))
+     ((and (< 0 pos)
+           (equal dir (car (nth (setq pos2 (1- pos)) hist))))
+       (nth 1 (nth pos2 hist)))
+     ((and (> (length hist) (setq pos2 (1+ pos)))
+           (equal dir (car (nth pos2 hist))))
+       (nth 1 (nth pos2 hist))))))
 
 (defun diredc-hist--update-directory-history (hist pos)
   "Internal function to update a `dired' buffer's history record.
@@ -1173,9 +2729,12 @@ HIST should be a buffer's `diredc-hist--history-list' value. POS
 should be a buffer's `diredc-hist--history-position' value.
 Returns a CONS whose CAR is the new list and whose CDR is the new
 position."
+  ;; TODO: consider standardizing retval. Compare function
+  ;; `diredc-hist--prune-deleted-directories'
+  ;; NOTE: See note for function `diredc--hist-guess-restore-point'.
   (let* ((new-dir (substring-no-properties
-                  (expand-file-name dired-directory)))
-         (new (cons new-dir (point)))
+                    (expand-file-name dired-directory)))
+         (new (list new-dir (point) dired-omit-mode))
          pos2)
     (cons
       ; diredc-hist--history-list
@@ -1201,31 +2760,222 @@ position."
       ; diredc-hist--history-position
       pos)))
 
-(defun diredc-display--update (new)
+(defun diredc--update-listing-switches (new)
   "Internal function to update all `dired' buffers.
 NEW is the new listing switch entry to use."
   (setq dired-listing-switches (cdr new))
-  (dolist (buf (buffer-list))
-    (with-current-buffer buf
-      (when (eq major-mode 'dired-mode)
+  (dolist (elem dired-buffers)
+    (when (buffer-live-p (cdr elem))
+      (with-current-buffer (cdr elem)
         (setq dired-actual-switches dired-listing-switches)
-        (revert-buffer))))
+        (unless (or (= (buffer-size) 0)
+                    (eq major-mode 'wdired-mode))
+          (revert-buffer)))))
   (message "Dired using 'ls' switches: \"%s\"" (car new)))
+
+(defun diredc-hist--prune-deleted-directories ()
+  "Prune non-existing directories from a diredc buffer's history."
+  ;; TODO: consider standardiing retval. Compare function
+  ;; `diredc-hist--update-directory-history'
+  (let ((pos diredc-hist--history-position)
+        hist)
+    (mapc
+      (lambda (elem)
+        (if (file-directory-p (car elem))
+          (push elem hist)
+         (unless (zerop pos) (cl-decf pos))))
+      diredc-hist--history-list)
+    (setq diredc-hist--history-list
+      (cond
+       (hist (reverse hist))
+       ((file-directory-p default-directory)
+         (list (list default-directory 1 dired-omit-mode)))
+       (t (list (list "/" 1 nil)))))
+    (setq diredc-hist--history-position pos)))
+
+(defun diredc--find-another-diredc-buffer (buf)
+  "Find a live dired buffer other than BUF.
+BUF is expected to be a live dired buffer."
+  (if (= 1 (length dired-buffers))
+    ;; This is an error condition; let's be nice and recover from it.
+    (dired "~")
+   (let ((result (cdr (nth 0 dired-buffers))))
+     (when (eq buf result)
+       (setq result (cdr (nth 1 dired-buffers))))
+      result)))
+  ;; NOTE: The above might not return expected / desired results when
+  ;; there exist many dired buffers, possibly spread across many
+  ;; non-diredc frames. The following may end up being more robust for
+  ;; those cases.
+  ;; (let ((bufs (buffer-list (window-frame (selected-window))))
+  ;;       found result)
+  ;;   (while (and (not found) (setq result (pop bufs)))
+  ;;     (with-current-buffer result
+  ;;       (when (and (eq major-mode 'dired-mode)
+  ;;                  (not (eq result buf)))
+  ;;         (setq found t
+  ;;               bufs nil))))
+  ;;   (when found result)))
+
+(defun diredc--abort-on-directory-deleted (dir)
+  "Report a user error for a deleted directory."
+  (unless (file-directory-p dir)
+    (user-error "This diredc buffer %s describes a directory that has been deleted!" dir)))
+
+(defun diredc--ask-on-directory-deleted (dir)
+  "Prompt when attempting to operate on a deleted directory."
+  (unless (file-directory-p dir)
+    (unless (yes-or-no-p
+              (format "This diredc buffer %s describes a directory that has been deleted!
+Continue anyway? " dir))
+      (user-error "Operation aborted"))))
+
+(defun diredc--guess-and-do-async-shell-command (target)
+  "Used by `diredc-hist-find-alternate-file'.
+
+When a user presses <RET> on a file-type with known exec
+associations, ie. from variable
+`dired-guess-shell-alist-user' (see there), do not interpret this
+user action as a request to open the file in an Emacs buffer.
+Instead, run the first shell command on the file, and
+asynchronously."
+  (let ((execs (dired-guess-default (list target)))
+        exec found)
+    (when (< 1 (length execs))
+      ;; The final entry in 'execs' should always be xdg-open or
+      ;; similar, which we will ignore for this feature since it would
+      ;; apply to files find-able for Emacs.
+      (setq execs (butlast execs))
+      (while (and (not found)
+                (setq exec (pop execs)))
+        (when (setq exec (executable-find exec))
+        (setq found t)
+          (dired-do-shell-command (format " %s &" exec) nil (list target)))))
+    found))
 
 
 ;;
 ;;; Interactive functions:
 
+(defun diredc-restore-collation ()
+  "Restore environment variable LC_COLLATE to its original setting.
+This could possibly come in handy if you regret that you used
+function `diredc-sort-or-edit' in a way that modified that environment
+variable. You could also manually use function `setenv' to your
+preference."
+  (interactive)
+  (setenv "LC_COLLATE" diredc--lc-collate-original-value))
+
+(defun diredc-sort-or-edit (&optional method)
+  "Sort a `diredc' buffer by METHOD.
+Interactively, prompts the user for METHOD, offering the choices
+of the CARs of variable `diredc--sort-options' (see there).
+Programmatically, if arguments are not provided, defaults to sort
+by name, ascending.
+
+Note that the sorting options for chmod, owner, and group are
+fragile in the sense that they expect the `diredc' buffer to be
+presenting its first four fields in classic \"ls -l\" format.
+
+With a prefix argument, allows the user to manually edit the
+current listing switches instead. See variable
+`dired-listing-switches', and compare with function
+`dired-sort-toggle-or-edit'.
+
+Some of the available sort methods change the environment
+variable LC_COLLATE, which you might want set differently for
+your Emacs use outside of `diredc'. If you find yourself in such
+a situation, evaluating function `diredc-reset-collation' will
+restore the variable to how it was found. This will be performed
+automatically for you upon exiting `diredc', and you can of
+course at any time manually play with function `setenv'.
+
+This function modifies the mode line to reflect the sort order.
+You can customize the sort-direction indications. See variables
+`diredc-sort-prefix-ascending', `diredc-sort-suffix-ascending',
+`diredc-sort-prefix-descending', and
+`diredc-sort-suffix-descending'."
+  (interactive
+    (let (minibuffer-history method)
+      (unless (eq major-mode 'dired-mode)
+        (user-error "Not a Dired buffer"))
+      (unless diredc-mode
+        (user-error "Diredc not enabled"))
+      (when dired-sort-inhibit
+        (error "Cannot sort this Dired buffer"))
+      (unless current-prefix-arg
+        (while (or (not method)
+                   (zerop (length method)))
+          (setq method
+            (completing-read "Sort method: "
+                             (mapcar 'car diredc--sort-options)
+                             nil t))))
+      (list method)))
+  (cond
+   (current-prefix-arg
+     (dired-sort-other
+       (read-string "ls switches (must contain -l): " dired-actual-switches))
+     (setq mode-name "Dired")
+     (revert-buffer))
+   (t
+     (setq method (or (assoc (or method "name (a-z)") diredc--sort-options)
+                      (error "Improper diredc sort method requested: %s" method)))
+     (cond
+      ((nth 5 method) ; ie. chmod/owner/group
+        (diredc--sort-special method))
+      (t ; ie. using ls switches for sorting buffer
+        (setq dired-listing-switches
+          (concat
+            (replace-regexp-in-string "\\( --reverse\\)?\\( --sort=[^ ]+\\)?$"
+                                      "" dired-listing-switches)
+            (when (nth 2 method) " --reverse")
+            (when (nth 1 method) (format " --sort=%s" (nth 1 method)))))
+        (setq dired-actual-switches dired-listing-switches)
+        (setenv "LC_COLLATE" (when (nth 4 method) "C"))
+        (revert-buffer)))
+     (setq mode-name
+       (if (equal (nth 1 method) "none")
+         "Dired"
+        (format "Dired by %s%s%s"
+                (if (nth 3 method)
+                  diredc-sort-prefix-ascending
+                 diredc-sort-prefix-descending)
+                (or (nth 1 method) "name")
+                (if (nth 3 method)
+                  diredc-sort-suffix-ascending
+                 diredc-sort-suffix-descending))))))
+  (force-mode-line-update))
+
+(defun diredc-wdired ()
+  "Modify directory contents by editing the `dired' buffer.
+This is a simple wrapper for `wdired-mode'. See there for
+details."
+  (interactive)
+  (diredc--abort-on-directory-deleted dired-directory)
+  (when diredc-history-mode
+    (setf (nth 2 (nth diredc-hist--history-position diredc-hist--history-list))
+          dired-omit-mode))
+  (wdired-change-to-wdired-mode)
+  (setq header-line-format
+    (if diredc-header-line
+      (concat "  Diredc: "
+              (propertize " EDITING!" 'face 'bold)
+              "  C-c C-k to abort;  C-c C-c to accept")
+     "")))
+
 (defun diredc-shell-kill ()
   "Kill the current shell window, buffer, and process."
   (interactive)
   ;; TODO preform sanity check here (only use in diredc shell buffers)
-  (let (proc)
+  (let ((return-window diredc-shell--bufwin)
+        proc)
     (while (and (setq proc (get-buffer-process (current-buffer)))
                 (process-live-p proc))
       (set-process-query-on-exit-flag proc nil)
-      (kill-process proc)))
-  (kill-buffer-and-window))
+      (kill-process proc))
+    (kill-buffer-and-window)
+    (when (window-live-p return-window)
+      (select-window return-window))))
 
 (defun diredc-shell ()
   "Create a `diredc' shell window and buffer.
@@ -1235,7 +2985,16 @@ The chosen shell option is set in variable
 PREFIX-ARG to over-ride it.
 
 If a shell-window already exists for the current `dired'
-directory, select it instead of creating an additional one."
+directory, select it instead of creating an additional one.
+
+The shell process will be configured with the following variables:
+
+  $d1, $d2  dired-directory of this/other pane
+  $f1, $f2  current dired file of this/other pane
+  $t1, $t2  tagged elements of this other pane
+            (as a shell array variable, if supported by the shell)
+
+  $INSIDE_DIREDC  value of variable `diredc--version'."
   (interactive)
   (when (not (eq major-mode 'dired-mode))
     (error "Not a dired-buffer"))
@@ -1243,9 +3002,9 @@ directory, select it instead of creating an additional one."
         window-list minibuffer-history len d2 f2 t2 make-new
         (shell-choice (when (not current-prefix-arg)
                         (car (assoc diredc-shell-default diredc-shell-list))))
-        (d1 dired-directory)
-        (f1 (or (dired-file-name-at-point) ""))
-        (t1 (or (dired-get-marked-files) "")))
+        (d1 (expand-file-name dired-directory))
+        (f1 (expand-file-name (or (dired-file-name-at-point) "")))
+        (t1 (mapconcat 'identity (dired-get-marked-files) " ")))
    (while (or (not shell-choice)
               (zerop (length shell-choice)))
      (setq minibuffer-history '("")
@@ -1264,33 +3023,64 @@ directory, select it instead of creating an additional one."
    (when make-new
      (setq diredc-shell-default shell-choice)
      (dolist (x (window-list))
-       (select-window x 'no-record)
+       (select-window x 'norecord)
        (when (eq major-mode 'dired-mode)
          (push x window-list)))
      (setq window-list (remq d1-window window-list))
      (when (= 1 (setq len (length window-list)))
-       (select-window (car window-list) 'no-record)
-       (setq d2        dired-directory
-             f2        (or (dired-file-name-at-point) "")
-             t2        (or (dired-get-marked-files) "")))
-     (select-window d1-window)
+       (select-window (car window-list) 'norecord)
+       (setq d2        (expand-file-name dired-directory)
+             f2        (expand-file-name (or (dired-file-name-at-point) ""))
+             t2        (mapconcat 'identity (dired-get-marked-files) " ")))
+     (select-window d1-window 'norecord)
      (select-window (split-window-below (- 0 diredc-shell-lines)))
      (funcall (nth 1 (assoc shell-choice diredc-shell-list))
               (nth 2 (assoc shell-choice diredc-shell-list))
               d1 d2 f1 f2 t1 t2)
      (setq-local dired-directory d1)
-     (use-local-map (copy-keymap (current-local-map)))
-     (local-set-key (kbd "C-c C-k") 'diredc-shell-kill)
+     (setq  diredc-shell--bufwin d1-window)
      (set-window-dedicated-p nil t)
-     (when (< 1 len)
-       (message "Variables d2,f2,t2 not set. (More than two dired buffers visible).")))))
+     (message "diredc-shell: Use C-c C-k to close this pop-up shell.\ndiredc-shell: Special variables: $d1 $d2 $f1 $f2 $t1 $t2%s"
+       (if (< 1 len)
+         "\ndiredc-shell: Variables d2,f2,t2 not set. (More than two dired buffers visible)."
+        "")))))
+
+(defun diredc-browse-tab ()
+  "Tab-navigate to the next button or other window.
+This function navigates to the other window only if no buttons
+exist in the current one."
+  (interactive)
+  (if (eq major-mode 'magit-status-mode)
+    (magit-section-toggle (magit-current-section))
+   (condition-case nil
+     (forward-button 1)
+     (user-error
+       (goto-char (point-min))
+       (condition-case nil
+         (forward-button 1)
+         (user-error
+           (diredc-other-window)))))))
+
+(defun diredc-browse-backtab ()
+  "Tab-navigate to the previous button or other window.
+This function navigates to the other window only if no buttons
+exist in the current one."
+  (interactive)
+  (condition-case ()
+    (forward-button -1)
+    (user-error
+      (goto-char (point-max))
+      (condition-case nil
+        (forward-button -1)
+        (user-error
+          (diredc-other-window))))))
 
 (defun diredc-browse-find ()
   "Quit `diredc-browse-mode', and find the current file."
   (interactive)
   (cond
    ((window-live-p diredc-browse--buffer)
-     (select-window diredc-browse--buffer))
+     (select-window diredc-browse--buffer 'norecord))
    ((diredc-other-window) t)
    ((other-window -1) t))
   (diredc-hist-find-file))
@@ -1303,7 +3093,7 @@ window, and exits `diredc-browse-mode'."
   (interactive)
   (cond
    ((window-live-p diredc-browse--buffer)
-     (select-window diredc-browse--buffer))
+     (select-window diredc-browse--buffer 'norecord))
    ((diredc-other-window) t)
    ((other-window -1) t))
   (diredc-browse-mode -1))
@@ -1320,36 +3110,120 @@ additional feature of having the TAB key set to switch the
 selected window back to the calling Dired window.
 
 When called non-interactively, turns the mode on if ARG is
-positive or nil. Otherwise, turns the mode off."
+positive or nil. Otherwise, turns the mode off.
+
+There are several ways to suppress this option for certain files.
+See customization variables `diredc-browse-include-images',
+`diredc-browse-include-images-regexp',
+`diredc-browse-exclude-file-extensions',
+`diredc-browse-exclude-coding-systems', and
+`diredc-browse-helper'.
+
+When called interactively with a PREFIX-ARG, enter the mode with
+the state of customization variable
+`diredc-browse-include-images' toggled.
+
+When customization variable `diredc-browse-magit' is non-NIL and
+POINT is on the root directory of a git repository, the
+`magit-status' of that repository is displayed."
   (interactive)
-  (when (not (derived-mode-p 'dired-mode))
-    (user-error "Not a Dired buffer"))
+  (when (not diredc-mode)
+    (user-error "Not in Diredc mode"))
+  (unless (or (equal arg -1)
+              (eq major-mode 'dired-mode)
+              (eq (current-buffer) (cdr diredc-browse--tracker)))
+    (user-error "Not a Diredc buffer"))
   (cond
    ((called-interactively-p 'interactive)
-     (setq diredc-browse-mode (not diredc-browse-mode)))
+     (setq diredc-browse-mode (not diredc-browse-mode))
+     (setq diredc--browse-include-images
+       (and diredc-browse-mode
+            (if current-prefix-arg
+              (not diredc-browse-include-images)
+             diredc-browse-include-images))))
    (arg
     (setq diredc-browse-mode (if (< 0 arg) t nil)))
    (t
     (setq diredc-browse-mode t)))
   (cond
    (diredc-browse-mode
-    (add-hook 'post-command-hook 'diredc-browse--hook-function t)
+    (when diredc-browse-magit
+      (setq diredc--browse-magit (require 'magit-status nil t)))
+    (add-hook 'post-command-hook #'diredc-browse--hook-function)
     (diredc-browse--hook-function))
    (t
-    (remove-hook 'post-command-hook 'diredc-browse--hook-function)
-    (when (buffer-live-p (cdr diredc-browse--tracker))
-      (kill-buffer (cdr diredc-browse--tracker)))
-    (setq diredc-browse--tracker '(nil . nil))
-    (let ((w (selected-window)))
-      (dolist (x (window-list))
-        (select-window x 'no-record)
-        (when (eq major-mode 'dired-mode)
+    (remove-hook 'post-command-hook #'diredc-browse--hook-function)
+    (let ((orig-win (selected-window))
+          (browse-buf (cdr diredc-browse--tracker)) ; TODO buffer-live-p
+          (target-buf ; The dired buffer to replace the browse buffer
+            (diredc--find-another-diredc-buffer
+              (if (not diredc-browse--buffer) ; cur-buf is not the browse buffer
+                (current-buffer)
+               (setq diredc-browse-mode nil)
+               (window-buffer diredc-browse--buffer))))
+          wins target-win kill-win)
+      (when browse-buf
+        (setq wins (get-buffer-window-list browse-buf))
+        (setq target-win (pop wins))
+        (while (setq kill-win (pop wins))
+          (delete-window kill-win))
+        (when target-win
+          (select-window target-win 'no-record)
+          (set-window-dedicated-p nil nil)
+          (when (buffer-live-p browse-buf)
+            (kill-buffer browse-buf))
+          (when (buffer-live-p target-buf)
+            (switch-to-buffer target-buf 'no-record 'force-same-window))
           (set-window-dedicated-p nil t)))
-      (select-window w 'no-record)))))
+      (setq diredc-browse--tracker '(nil . nil))
+      (select-window orig-win 'norecord)))))
+
+(defun diredc-swap-windows ()
+  "Swap `diredc' buffers.
+This feature is only supported when the `diredc' frame is
+displaying only two buffers. It performs a true and complete
+swap, including buffer histories."
+  (interactive)
+  (unless (string-match "^#<frame diredc " (format "%s" (window-frame)))
+    (user-error "Not in a diredc frame"))
+  (unless (= 2 (length (window-list)))
+    (user-error "Not swapping. Too many windows open on frame"))
+  (let (switch-to-buffer-preserve-window-point
+        w1 w2 b1 b2)
+    (setq w1 (selected-window)
+          w2 (next-window)
+          b1 (current-buffer))
+    (select-window w2 'no-record)
+    (setq b2 (current-buffer))
+    (set-window-dedicated-p nil nil)
+    (switch-to-buffer b1 nil 'force-same-window)
+    (set-window-dedicated-p nil t)
+    (diredc--swap-browse-buffer w1 w2)
+    (select-window w1 'no-record)
+    (set-window-dedicated-p nil nil)
+    (switch-to-buffer b2 nil 'force-same-window)
+    (set-window-dedicated-p nil t)
+    (diredc--swap-browse-buffer w1 w2)))
+
+(defun diredc-summary ()
+  "Modified dired keybinding cheat message, to include diredc.
+Compare with `dired-summary'."
+  (interactive)
+  (message
+    "d-elete, u-ndelete, x-punge, f-ind, o-ther window, R-ename, C-opy, h-diredc help"))
+
+(defun diredc-key-assist ()
+  "Minibuffer cheatsheet and launcher for diredc functions.
+There also exist `diredc-trash-key-assist' for trash-specific
+functions (\\[diredc-trash-key-assist])."
+  (interactive)
+  (unless (require 'key-assist nil t)
+    (user-error "Requires package 'key-assist'"))
+  (key-assist "diredc"))
 
 (defun diredc-trash-assistant ()
   "Minibuffer cheatsheet and launcher for diredc-trash functions."
-  ;; This was the inspiration for `key-assist.el'
+  ;; This was the inspiration for package `key-assist.el'
   (interactive)
   (let ((zz (lambda (x)
               (let (shortest)
@@ -1381,8 +3255,33 @@ positive or nil. Otherwise, turns the mode off."
                     choices :test 'equal))))
     (funcall (cadr (nth choice options)))))
 
+(defun diredc-trash-key-assist ()
+  "Minibuffer cheatsheet and launcher for diredc-trash functions."
+  ;; This can deprecate function `diredc-trash-assistant'. However,
+  ;; when using package `ivy', only the final line of the prompt is
+  ;; visible.
+  (interactive)
+  (if (not (require 'key-assist nil t))
+    (diredc-trash-assistant)
+   (let* ((zz (lambda (x) (list (car x)
+                                (concat (key-assist--get-keybinding (car x))
+                                        "\t"
+                                        (cadr x)))))
+          (prompt (concat (diredc-trash-info) "\nSelect: "))
+          (spec (mapcar
+                  zz
+                  (list
+                    (list 'diredc-trash-toggle   (if delete-by-moving-to-trash
+                                                   "Switch to using deletion"
+                                                  "Switch to using trash"))
+                    (list 'diredc-trash-view     "Jump to trash files dir")
+                    (list 'diredc-trash-info     "Report trash size")
+                    (list 'diredc-trash-empty    "Empty the trash")
+                    (list 'diredc-trash-restore  "Restore file at point")))))
+     (key-assist spec prompt t))))
+
 (defun diredc-trash-toggle ()
-  "Toggle between using 'trash' or 'delete'."
+  "Toggle between using \"trash\" or \"delete\"."
   (interactive)
   (setq delete-by-moving-to-trash (not delete-by-moving-to-trash))
   (message (if delete-by-moving-to-trash
@@ -1390,7 +3289,7 @@ positive or nil. Otherwise, turns the mode off."
             "Now deleting, not trashing")))
 
 (defun diredc-trash-empty ()
-  "Empty the 'Trash'."
+  "Empty the \"Trash\"."
   (interactive)
   (when (yes-or-no-p (concat (diredc-trash-info)
                              "\nEmpty the trash?: "))
@@ -1398,7 +3297,7 @@ positive or nil. Otherwise, turns the mode off."
      (trash-directory
        (dired-delete-file trash-directory 'always)
        (dired-create-directory trash-directory))
-     ((fboundp 'system-trash-empty)
+     ((fboundp 'system-trash-empty) ; placeholder for future possible trash schemes
        (system-trash-empty))
      (t ;; http://freedesktop.org/wiki/Specifications/trash-spec
        ;; (shell-command-to-string
@@ -1410,8 +3309,8 @@ positive or nil. Otherwise, turns the mode off."
                           diredc-trash-expunged-dir))
          (when (file-writable-p dir)
            (dired-delete-file dir 'always)
-           (dired-create-directory dir)))
-       (diredc-trash-info)))))
+           (dired-create-directory dir))))))
+  (message ""))
 
 (defun diredc-trash-info ()
   "Report size of trash and number of files.
@@ -1423,8 +3322,8 @@ files to their original location."
   (cond
    (trash-directory
      (user-error "Not supported for `trash-directory'=%s" trash-directory))
-   ((fboundp 'system-trash-empty) ; placeholder for future possible trash schemes
-     (system-trash-info))         ; placeholder for future possible trash schemes
+   ((fboundp 'system-trash-info) ; placeholder for future possible trash schemes
+     (system-trash-info))
    (t ;; http://freedesktop.org/wiki/Specifications/trash-spec
      (let (size num)
        (if (not (file-exists-p diredc-trash-files-dir))
@@ -1488,7 +3387,10 @@ If a REGION is selected, all files within are restored."
                  (concat (file-name-nondirectory file) ".trashinfo")
                  diredc-trash-info-dir)))
            (re-search-forward "Path=\\([^\n]+\\)")
-           (setq dest (match-string-no-properties 1)))
+           (setq dest
+             (if (not (stringp (setq dest (match-string-no-properties 1))))
+               (error "Missing restore path for trash entry \"%s\"" file)
+              (diredc--decode-hexlated-string dest))))
      ;;  (shell-command (format "mv \"%s\" \"%s\"" file dest))
          (when (or (not (file-exists-p dest))
                    (yes-or-no-p
@@ -1497,10 +3399,7 @@ If a REGION is selected, all files within are restored."
            (delete-file info-file)))
        (when end
          (goto-char (region-beginning))
-         (deactivate-mark))
-       (when file
-         (let (auto-revert-verbose)
-           (auto-revert-mode)))))))
+         (deactivate-mark))))))
 
 (defun diredc-trash-view ()
   "Jump to the user's 'Trash' files directory."
@@ -1527,7 +3426,7 @@ setting of variable `delete-by-moving-to-trash'."
     ;; This next code idiom repeats elsewhere (eg.
     ;; `diredc-trash-restore'), so consider making it a function.
     (if (not (region-active-p))
-      (setq files (list (cons (diredc--file-name-at-point) 0)))
+      (setq files (list (cons (diredc--file-name-at-point) (point-marker))))
      (save-excursion
        (setq end (region-end))
        (goto-char (region-beginning))
@@ -1599,6 +3498,28 @@ See the defcustom variable `diredc-bookmarks'."
   (interactive)
   (customize-variable 'diredc-bookmarks))
 
+(defun diredc-beginning-of-buffer ()
+  "Move POINT (relative to) beginning of a `diredc' buffer.
+Navigates to the first filename entry in a `diredc' buffer. With
+a PREFIX-ARG, behaves as function `beginning-of-buffer'."
+  (interactive)
+  (if current-prefix-arg
+    (beginning-of-buffer current-prefix-arg)
+   (goto-char (point-min))
+   (forward-line 1))
+  (dired-move-to-filename))
+
+(defun diredc-end-of-buffer ()
+  "Move POINT (relative to) end of a `diredc' buffer.
+Navigates to the final filename entry in a `diredc' buffer. With
+a PREFIX-ARG, behaves as function `end-of-buffer'."
+  (interactive)
+  (if current-prefix-arg
+    (end-of-buffer current-prefix-arg)
+   (goto-char (point-max))
+   (forward-line -1))
+  (dired-move-to-filename))
+
 (defun diredc-display-select ()
   "Change the data presented in the `diredc' buffer.
 
@@ -1634,7 +3555,7 @@ for this purpose, see `diredc-display-select-without-popup'."
                                 :around t
                                 :initial-index pos)))
       (when new
-        (diredc-display--update new)))))
+        (diredc--update-listing-switches new)))))
 
 (defun diredc-display-toggle ()
   "Toggle to the next data presentation format for the `diredc' buffer.
@@ -1655,7 +3576,7 @@ explicit selection of a specific display option."
      (when (not (zerop len))
        (setq new (nth (if (not pos) 0 (mod (1+ pos) len))
                    diredc-display-listing-switches-list))
-       (diredc-display--update new)))))
+       (diredc--update-listing-switches new)))))
 
 (defun diredc-show-more-file-info (&optional arg)
   "Change what/whether to display additional file information in minibuffer.
@@ -1677,25 +3598,97 @@ operation."
   (cond
    ((called-interactively-p 'any)
      (setq diredc--show-more-file-info-cmd
-       (cdr (nth (setq diredc--show-more-file-info-index
-                   (if current-prefix-arg
-                     (let ((choices (mapcar 'car diredc-show-more-file-info-list))
-                           choice minibuffer-history)
-                       (while (not (setq choice
-                                     (cl-position
-                                       (completing-read "Select: " choices nil t nil 'choices)
-                                       choices :test 'equal))))
-                       choice)
-                    ;; if: not current-prefix-arg
-                    (mod (1+ diredc--show-more-file-info-index)
-                         (length diredc-show-more-file-info-list))))
-                 diredc-show-more-file-info-list)))
-     (diredc--show-more-file-info))
+       (nth (setq diredc--show-more-file-info-index
+              (if current-prefix-arg
+                (let ((choices (mapcar 'car diredc-show-more-file-info-list))
+                      choice minibuffer-history)
+                  (while (not (setq choice
+                                (cl-position
+                                  (completing-read "Select: " choices nil t nil 'choices)
+                                  choices :test 'equal))))
+                  choice)
+               ;; if: not current-prefix-arg
+               (mod (1+ diredc--show-more-file-info-index)
+                    (length diredc-show-more-file-info-list))))
+            diredc-show-more-file-info-list))
+     (if (zerop (length (cdr diredc--show-more-file-info-cmd)))
+       (message "[%s/%s] %s"
+                diredc--show-more-file-info-index
+                (length diredc-show-more-file-info-list)
+                (propertize "Suppressing display of additional file info."
+                            'face 'font-lock-comment-face))
+     (diredc--show-more-file-info)))
    (; cond: not called-interactively
     (and arg
          (stringp arg))
-     (setq diredc--show-more-file-info-cmd arg)
-     (diredc--show-more-file-info))))
+      (diredc--show-more-file-info))))
+
+(defun diredc-do-async-shell-command (command &optional arg file-list)
+  "Run a shell COMMAND on the marked files FILE-LIST asynchronously.
+
+Like `dired-do-async-shell-command', but entering a \"blank\" is
+interpreted as (concat \" \" default-command). Doing so allows
+overriding a setting of `diredc-async-processes-are-persistent'
+non-NIL.
+
+ARG is the prefix-arg."
+  (interactive
+   (let ((files (dired-get-marked-files t current-prefix-arg nil nil t)))
+     (cl-flet
+       ;; We are re-defining `dired-read-shell-command' from
+       ;; `dired-aux.el' because even if/when emacs bug #48072 is
+       ;; addressed, we need to allow a SPACE command to allow
+       ;; overriding a `diredc-async-processes-are-persistent' value
+       ;; of non-NIL.
+       ;;
+       ;; See elsewhere in this file for an advice function to address
+       ;; the bug for a non-asynchronous command.
+       ((dired-read-shell-command (prompt arg files)
+          (minibuffer-with-setup-hook
+              (lambda ()
+                (setq-local dired-aux-files files)
+                (setq-local minibuffer-default-add-function
+                            #'minibuffer-default-add-dired-shell-commands))
+            (setq prompt (format prompt (dired-mark-prompt arg files)))
+            (let (command)
+              (setq command
+                (if (functionp 'dired-guess-shell-command)
+                  (dired-mark-pop-up nil 'shell files
+                                     'dired-guess-shell-command prompt files)
+                 (dired-mark-pop-up nil 'shell files
+                                    'read-shell-command prompt nil nil)))
+           ;; These two validation checks address the issues in Emacs
+           ;; bug report and patch #48072:
+           ;; (http://debbugs.gnu.org/cgi/bugreport.cgi?bug=48072)
+              (when  (string= "" command)
+                (user-error "No command entered. Nothing to do!"))
+           ;; For diredc, we need to allow a SPACE command to allow
+           ;; overriding a `diredc-async-processes-are-persistent'
+           ;; value of non-NIL.
+           ;; (unless (executable-find command)
+              (unless (or (string-match-p "^[ \t]+$" command)
+                          (executable-find
+                            (if (diredc--match-command command)
+                              (match-string 1 command)
+                             command)))
+                (user-error "Not a valid command!"))
+              command))))
+     (list
+      ;; Want to give feedback whether this file or marked files are used:
+      (dired-read-shell-command "& on %s: " current-prefix-arg files)
+      current-prefix-arg
+      files))))
+  (cond
+   ((string-match-p "^[ \t]+$" command)
+     ;; no command entered, guess fallback
+     (setq command (format " %s &"
+                     (car (diredc--advice--shell-guess-fallback
+                          'dired-guess-default
+                          file-list)))))
+   ((not (string-match-p "&[ \t]*\\'" command))
+     ;; command entered, but without " &" suffix
+     (setq command (concat command " &"))))
+  (dired-do-shell-command command arg file-list))
 
 (defun diredc-history-mode (&optional arg)
   "Control ability to navigate directory history.
@@ -1718,11 +3711,11 @@ See functions `diredc-hist-previous-directory',
      (setq diredc-history-mode t)))
   (cond
    (diredc-history-mode
-     (setq dired-allow-duplicate-buffers t)
-     (add-hook 'dired-mode-hook  'diredc-hist--hook-function t)
+     (setq diredc-allow-duplicate-buffers t)
+     (add-hook 'dired-mode-hook  #'diredc-hist--hook-function)
      (message "Diredc-history-mode enabled in all Dired buffers."))
    (t
-     (remove-hook 'dired-mode-hook 'diredc-hist--hook-function)
+     (remove-hook 'dired-mode-hook #'diredc-hist--hook-function)
      ;; Do not set local variables `diredc-hist--history-list' and
      ;; `diredc-hist--history-position' to NIL, so if the mode is
      ;; toggled on again, those values will be remembered.
@@ -1736,19 +3729,26 @@ Optionally, navigate prefix argument ARG number of history elements."
   (interactive "p")
   (when (not diredc-history-mode)
     (user-error "Diredc-history-mode not enabled"))
+  (diredc-hist--prune-deleted-directories)
   (let* ((max (1- (length diredc-hist--history-list)))
          (req (+ diredc-hist--history-position arg))
          (ovr (or (when (> req max) (setq req max))
                   (when (< req 0)   (setq req 0))))
          (hist diredc-hist--history-list)
          (pos  (min max req)) ; i don't think pos is necessary anymore, use req instead
-         (hist-elem (nth pos hist)))
+         (hist-elem (nth pos hist))
+         (special-sort diredc--sort-option-special))
     (if ovr
       (message "No more directory history!")
-     (setf (cdr (nth diredc-hist--history-position hist)) (point))
+     (setf (nth 1 (nth diredc-hist--history-position hist)) (point))
+     (setf (nth 2 (nth diredc-hist--history-position hist)) dired-omit-mode)
+     (set-window-dedicated-p nil nil)
      (find-alternate-file (car hist-elem))
      (set-window-dedicated-p nil t)
-     (goto-char (cdr hist-elem))
+     (diredc--set-omit-mode (nth 2 hist-elem))
+     (goto-char (nth 1 hist-elem))
+     (when special-sort
+       (diredc--sort-special special-sort))
      (setq diredc-hist--history-list hist
            diredc-hist--history-position pos))))
 
@@ -1761,14 +3761,15 @@ Optionally, navigate prefix argument ARG number of history elements."
     (user-error "Diredc-history-mode not enabled"))
   (diredc-hist-previous-directory (- arg)))
 
-(defun diredc-hist-change-directory (&optional dir)
-  "Prompt the user to naviagte the Dired window anywhere.
+(defun diredc-hist-change-directory (&optional new-dir)
+  "Prompt the user to navigate the Dired window anywhere.
 
-With prefix argument DIR, runs `diredc-hist-select' instead to allow
-explicit selection of a specific directory in the buffer's
-history.
+When called interactively with a prefix argument and
+`diredc-history-mode' active, runs `diredc-hist-select' instead
+to allow explicit selection of a specific directory in the
+buffer's history.
 
-When called from Lisp, optional arg DIR suppresses the prompting
+When called from Lisp, optional arg NEW-DIR suppresses the prompting
 and navigates to that location."
   (interactive)
   (when (eq major-mode 'wdired-mode)
@@ -1776,45 +3777,122 @@ and navigates to that location."
   (and (not (eq major-mode 'dired-mode))
        (fboundp 'diredc-frame-quick-switch)
        (diredc-frame-quick-switch))
+  (when diredc-history-mode
+    (diredc-hist--prune-deleted-directories))
   (if (and diredc-history-mode
            current-prefix-arg)
     (diredc-hist-select)
-   (let* ((new  (or dir
-                    (read-file-name "Select directory: "
-                      dired-directory dired-directory t)))
-          (new  (expand-file-name
-                  (if (file-directory-p new) new (file-name-directory new))))
-          ;; TODO: test setting hist/pos is a problem if not in diredc-history-mode
-          (hist diredc-hist--history-list)
-          (pos  diredc-hist--history-position))
-     (setf (cdr (nth pos hist)) (point))
-     (find-alternate-file new)
+   (let (file-to-find new-file new-hist hist pos restore-point)
      (when diredc-history-mode
-       (setq new (diredc-hist--update-directory-history hist pos)
-             diredc-hist--history-list (car new)
-             diredc-hist--history-position (cdr new))))))
+       (setq hist diredc-hist--history-list
+             pos  diredc-hist--history-position))
+     (if new-dir
+       (setq new-dir (expand-file-name new-dir))
+      (setq new-dir
+        (expand-file-name (read-file-name "Select directory: "
+                                          dired-directory dired-directory t)))
+      (unless (file-directory-p new-dir)
+        (if (file-exists-p new-dir)
+          (setq new-file      new-dir
+                new-dir       (file-name-directory new-dir)
+                file-to-find (concat "\s\\(" (file-name-nondirectory new-file) "\\)\n"))
+         (when (yes-or-no-p (format "Directory %s does not exist. Create it? " new-dir))
+           (dired-create-directory new-dir))
+           (message "")))) ; clear echo area (emacs 26) when answer is 'no'
+     (when (file-directory-p new-dir)
+       (when diredc-history-mode
+         (setf (nth 1 (nth pos hist)) (point))
+         (setf (nth 2 (nth pos hist)) dired-omit-mode))
+       (let ((omit-mode dired-omit-mode)
+             (special-sort diredc--sort-option-special))
+         (set-window-dedicated-p nil nil)
+         (find-alternate-file new-dir)
+         (set-window-dedicated-p nil t)
+         (diredc--set-omit-mode omit-mode)
+         (when (setq restore-point
+                 (diredc--hist-guess-restore-point hist pos))
+           (goto-char restore-point))
+         (when special-sort
+           (diredc--sort-special special-sort)))
+       (set-window-dedicated-p nil t)
+       (while (and file-to-find
+                   (re-search-forward file-to-find nil t))
+         (backward-char 2)
+         (when (string-match-p new-file
+                               (expand-file-name (dired-file-name-at-point)))
+           (setq file-to-find nil)
+           (goto-char (match-beginning 1))))
+       (when diredc-history-mode
+         (setq new-hist (diredc-hist--update-directory-history hist pos)
+               diredc-hist--history-list (car new-hist)
+               diredc-hist--history-position (cdr new-hist)))))))
 
 (defun diredc-hist-up-directory (&optional arg)
   "Navigate the Dired window to its parent directory.
 
 With optional prefix argument, repeat ARG times."
   (interactive "p")
-  (cond
-   ((zerop arg) (message "Nothing to do!"))
-   ((> 0 arg)   (message "tbd"))
-   (t
-     (if (not diredc-history-mode)
-       (dotimes (x (max arg 0))
-         (find-alternate-file ".."))
-      (let ((hist diredc-hist--history-list)
-            (pos  diredc-hist--history-position)
-            new)
-        (setf (cdr (nth pos hist)) (point))
-        (dotimes (x (max arg 0))
-          (find-alternate-file ".."))
-        (setq new (diredc-hist--update-directory-history hist pos)
-              diredc-hist--history-list (car new)
-              diredc-hist--history-position (cdr new)))))))
+  (let ((dir dired-directory)
+        (omit-mode dired-omit-mode)
+        (special-sort diredc--sort-option-special))
+    (set-window-dedicated-p nil nil)
+    (cond
+     ((not (file-directory-p dir))
+       (diredc--ask-on-directory-deleted dir)
+       ;; The current directory has been deleted, so we just navigate to
+       ;; the first existing parent.
+       (while (not (file-directory-p (setq dir (file-name-directory (substring dir 0 -1))))))
+       (if (not diredc-history-mode)
+         (find-alternate-file dir)
+        (diredc-hist--prune-deleted-directories)
+        (let* ((hist diredc-hist--history-list)
+               (pos  diredc-hist--history-position)
+               restore-point new)
+          (setf (nth 1 (nth pos hist)) (point))
+          (setf (nth 2 (nth pos hist)) omit-mode)
+          (find-alternate-file dir)
+          (when (setq restore-point
+                  (diredc--hist-guess-restore-point hist pos))
+            (goto-char restore-point))
+          (setq new (diredc-hist--update-directory-history hist pos)
+                diredc-hist--history-list (car new)
+                diredc-hist--history-position (cdr new))))
+       (diredc--set-omit-mode omit-mode)
+       (when special-sort
+         (diredc--sort-special special-sort)))
+     ((zerop arg) (message "Nothing to do!"))
+     ((> 0 arg)   (message "tbd"))
+     (t
+       (cond
+        (diredc-history-mode
+          (diredc-hist--prune-deleted-directories)
+          (let* ((hist diredc-hist--history-list)
+                 (pos  diredc-hist--history-position)
+                 restore-point new)
+            (setf (nth 1 (nth pos hist)) (point))
+            (setf (nth 2 (nth pos hist)) omit-mode)
+            (dotimes (_x (max arg 0))
+              (when dir
+                (setq dir (file-name-directory (substring dir 0 -1)))))
+            (find-alternate-file (or dir "/"))
+            (diredc--set-omit-mode omit-mode)
+            (when (setq restore-point
+                    (diredc--hist-guess-restore-point hist pos))
+              (goto-char restore-point))
+            (when special-sort
+              (diredc--sort-special special-sort))
+            (setq new (diredc-hist--update-directory-history hist pos)
+                  diredc-hist--history-list (car new)
+                  diredc-hist--history-position (cdr new))))
+        (t ; (not diredc-history-mode)
+          (dotimes ( _x (max arg 0))
+            (when dir
+              (setq dir (file-name-directory (substring dir 0 -1)))))
+          (find-alternate-file (or dir "/"))
+          (diredc--set-omit-mode omit-mode)
+          (when special-sort
+            (diredc--sort-special special-sort))))))
+     (set-window-dedicated-p nil t)))
 
 (defun diredc-hist-select ()
   "Navigate anywhere in the Dired history directly.
@@ -1824,6 +3902,7 @@ for this purpose, see `diredc-hist-select-without-popup'."
   (interactive)
   (when (not diredc-history-mode)
     (user-error "Requires diredc-history mode"))
+  (diredc-hist--prune-deleted-directories)
   (let* ((hist diredc-hist--history-list)
          (pos  diredc-hist--history-position)
          (options (mapcar 'car hist))
@@ -1831,14 +3910,19 @@ for this purpose, see `diredc-hist-select-without-popup'."
                       (not (require 'popup nil 'noerror)))
                 (completing-read "Select: " options nil t nil (cons 'options pos))
                (substring-no-properties
-                 (popup-menu* options :point (point-min) :initial-index pos)))))
+                 (popup-menu* options :point (point-min) :initial-index pos))))
+         hist-elem)
     (when new
-      (setf (cdr (nth pos hist)) (point))
+      (setf (nth 1 (nth pos hist)) (point))
+      (setf (nth 2 (nth pos hist)) dired-omit-mode)
       (find-alternate-file new)
+      (set-window-dedicated-p nil t)
       (setq new (diredc-hist--update-directory-history hist pos)
             diredc-hist--history-list (car new)
-            diredc-hist--history-position (cdr new))
-      (goto-char (cdr (nth (cdr new) (car new)))))))
+            diredc-hist--history-position (cdr new)
+            hist-elem (nth (cdr new) (car new)))
+      (diredc--set-omit-mode (nth 2 hist-elem))
+      (goto-char (nth 1 hist-elem)))))
 
 (defun diredc-hist-duplicate (&optional arg)
   "Navigate a second `dired' buffer to a duplicate location.
@@ -1853,68 +3937,118 @@ location of the `dired' buffer in the second window.
 
 Compare with the Midnight Commander feature bound there by
 default to 'M-i'."
+;; NOTE: This function twice uses (user-error "") as an 'undocumented'
+;; alternative to `throw'/`catch' or `defun*'/`return-from'. If that
+;; causes some unexpected side-effect or otherwise bothers you, feel
+;; free to replace them with either of the official methods.
   (interactive)
   (let ((start-buf (current-buffer))
         (wins (window-list))
         (this-dir dired-directory)
-        that-dir old-point win new-buf new-data hist pos)
+        that-dir old-point win target-win new-buf new-data hist pos dup-found omit-mode)
     (cond
      ((or arg current-prefix-arg) ; Change this window/buffer
+       (diredc--ask-on-directory-deleted dired-directory)
        (while (setq win (pop wins))
-         (with-current-buffer (setq new-buf (window-buffer win))
-           (when (and (eq major-mode 'dired-mode)
-                      (not (equal this-dir dired-directory)))
-             (set-buffer new-buf)
-             (setq that-dir dired-directory)
-             (setq old-point (point))
-             (setq wins '(nil)))))
-       (set-buffer start-buf)
+         (unless (equal start-buf (setq new-buf (window-buffer win)))
+           (with-current-buffer new-buf
+             (when (eq major-mode 'dired-mode)
+               (if (equal this-dir dired-directory)
+                 (setq dup-found t)
+                (setq that-dir dired-directory)
+                (setq wins '(nil)))
+              (setq old-point (point))
+              (setq omit-mode dired-omit-mode)))))
+       (when (and (not that-dir) dup-found)
+         (if (equal omit-mode dired-omit-mode)
+           (user-error "Nothing to do!")
+          (diredc--set-omit-mode omit-mode)
+          (user-error ""))) ; Naughty me!
+       (diredc--abort-on-directory-deleted that-dir)
        (when diredc-history-mode
+         (diredc-hist--prune-deleted-directories)
          (setq hist diredc-hist--history-list)
          (setq pos  diredc-hist--history-position)
-         (setf (cdr (nth pos hist)) (point)))
+         (setf (nth 1 (nth pos hist)) (point))
+         (setf (nth 2 (nth pos hist)) dired-omit-mode))
+       (set-window-dedicated-p nil nil)
        (find-alternate-file that-dir)
+       (diredc--set-omit-mode omit-mode)
+       (set-window-dedicated-p nil t)
        (goto-char old-point)
        (when diredc-history-mode
          (setq new-data (diredc-hist--update-directory-history hist pos))
          (setq diredc-hist--history-list (car new-data))
          (setq diredc-hist--history-position (cdr new-data))))
      (t ; Change the other window/buffer
+       (diredc--abort-on-directory-deleted dired-directory)
        (setq old-point (point))
        (while (setq win (pop wins))
-         (setq new-buf (window-buffer win))
-         (with-current-buffer new-buf
-           (when (and (eq major-mode 'dired-mode)
-                      (not (equal this-dir dired-directory)))
-             (select-window win)
-             (when diredc-history-mode
-               (setq hist diredc-hist--history-list)
-               (setq pos  diredc-hist--history-position)
-               (setf (cdr (nth pos hist)) (point)))
-             (find-alternate-file this-dir)
-             (goto-char old-point)
-             (when diredc-history-mode
-               (setq new-data (diredc-hist--update-directory-history hist pos))
-               (setq diredc-hist--history-list (car new-data))
-               (setq diredc-hist--history-position (cdr new-data)))
-             (pop-to-buffer start-buf)
-             (setq wins '(nil)))))))))
+         (unless (equal start-buf (setq new-buf (window-buffer win)))
+           (with-current-buffer new-buf
+             (when (eq major-mode 'dired-mode)
+               (if (equal this-dir dired-directory)
+                 (setq dup-found t)
+                (setq that-dir dired-directory)
+                (setq wins '(nil)))
+               (setq omit-mode dired-omit-mode)
+               (setq target-win win)))))
+       (when (and (not that-dir) dup-found)
+         (if (equal omit-mode dired-omit-mode)
+           (user-error "Nothing to do!")
+          ;; Abbreviated version of the remainder of the function
+          (setq omit-mode dired-omit-mode)
+          (select-window target-win 'norecord)
+          (diredc--set-omit-mode omit-mode)
+          (pop-to-buffer start-buf)
+          (user-error ""))) ; Naughty me!
+       (setq omit-mode dired-omit-mode)
+       (select-window target-win 'norecord)
+       (diredc--ask-on-directory-deleted dired-directory)
+       (when diredc-history-mode
+         (diredc-hist--prune-deleted-directories)
+         (setq hist diredc-hist--history-list)
+         (setq pos  diredc-hist--history-position)
+         (setf (nth 1 (nth pos hist)) (point))
+         (setf (nth 2 (nth pos hist)) dired-omit-mode))
+       (set-window-dedicated-p nil nil)
+       (find-alternate-file this-dir)
+       (diredc--set-omit-mode omit-mode)
+       (set-window-dedicated-p nil t)
+       (goto-char old-point)
+       (when diredc-history-mode
+         (setq new-data (diredc-hist--update-directory-history hist pos))
+         (setq diredc-hist--history-list (car new-data))
+         (setq diredc-hist--history-position (cdr new-data)))
+       (pop-to-buffer start-buf)))))
 
 (defun diredc-hist-find-file ()
   "In Dired, visit this file."
   (interactive)
   (if diredc-history-mode
     (diredc-hist-find-alternate-file)
-   (dired-find-file)
-   (set-window-dedicated-p nil t)))
+   (let ((omit-mode dired-omit-mode)
+         (special-sort diredc--sort-option-special))
+     (dired-find-file)
+     (when (eq major-mode 'dired-mode)
+       (diredc--set-omit-mode omit-mode)
+       (when special-sort
+         (diredc--sort-special special-sort))
+       (set-window-dedicated-p nil t)))))
 
 (defun diredc-hist-find-file-other-window ()
   "In Dired, visit this file or directory in another window."
   (interactive)
   (if diredc-history-mode
     (diredc-hist-find-alternate-file 'other-window)
-   (dired-find-file-other-window)
-   (set-window-dedicated-p nil t)))
+   (let ((omit-mode dired-omit-mode)
+         (special-sort diredc--sort-option-special))
+     (dired-find-file-other-window)
+     (when (eq major-mode 'dired-mode)
+       (diredc--set-omit-mode omit-mode)
+       (when special-sort
+         (diredc--sort-special special-sort))
+       (set-window-dedicated-p nil t)))))
 
 (defun diredc-hist-find-alternate-file (&optional arg)
   "Navigate the Dired window to the selected directory or file.
@@ -1924,17 +4058,32 @@ window, and if ARG is non-nil visits it in a second dired window
 on the same frame. If point is on a non-directory file, visits
 the file in another frame."
   (interactive)
+  ;; TODO: Maybe this check should be done more often.
+  ;; TODO: If this is really a wide dired problem, report it to emacs.
+  (diredc--abort-on-directory-deleted dired-directory)
   (if (not diredc-history-mode)
-    (dired-find-alternate-file)
+    (let ((omit-mode dired-omit-mode)
+          (special-sort diredc--sort-option-special))
+      (dired-find-alternate-file)
+      (when (eq major-mode 'dired-mode)
+        (diredc--set-omit-mode omit-mode)
+        (when special-sort
+          (diredc--sort-special special-sort))
+        (set-window-dedicated-p nil t)))
+   (diredc-hist--prune-deleted-directories)
    (let ((target (substring-no-properties (dired-get-file-for-visit)))
-         hist pos new)
+         (omit-mode dired-omit-mode)
+         (special-sort diredc--sort-option-special)
+         hist pos new hist-elem)
      (cond ; whether target is a directory or a file
       ((file-directory-p target) ; a directory
         (cond ; whether to use this window or another one
          ((not arg) ; use this window
            (setq hist diredc-hist--history-list
                  pos  diredc-hist--history-position)
-           (setf (cdr (nth pos hist)) (point))
+           (setf (nth 1 (nth pos hist)) (point))
+           (setf (nth 2 (nth pos hist)) omit-mode)
+           (set-window-dedicated-p nil nil)
            (dired-find-alternate-file))
          (t ; open directory in another window
            (let ((other-windows-on-this-frame
@@ -1959,38 +4108,44 @@ the file in another frame."
                    (select-window found)
                    (setq hist diredc-hist--history-list
                          pos  diredc-hist--history-position)
-                   (setf (cdr (nth pos hist)) (point))
+                   (setf (nth 1 (nth pos hist)) (point))
+                   (setf (nth 2 (nth pos hist)) omit-mode)
                    (find-alternate-file target))
                  (t ; no window is a dired window
                    (other-window 1)
                    (dired target)
                    ; maybe instead: look for and use a non-visible dired buffer?
                   )))))))
+        (diredc--set-omit-mode omit-mode)
+        (when special-sort
+          (diredc--sort-special special-sort))
         (set-window-dedicated-p nil t)
         (setq new (diredc-hist--update-directory-history hist pos)
               diredc-hist--history-list (car new)
-              diredc-hist--history-position (cdr new))
+              diredc-hist--history-position (cdr new)
+              hist-elem (nth (cdr new) (car new)))
 ;;      Not certain it is necessary to goto-char here...
-        (goto-char (cdr (nth (cdr new) (car new)))))
-      (t ; target is not a directory, so visit file, in another frame
-         (let* ((buf (find-buffer-visiting target))
-                (win (and buf
-                          (get-buffer-window buf t))))
-           (cond
-            ((and win (equal (window-frame win) (window-normalize-frame nil)))
-             ; file is already viewable in current frame, so select it in
-             ; another frame
-              (if (> 1 (length (frame-list)))
-                (select-frame (next-frame))
-               (make-frame-command))
-              (find-file target))
-            (win ; file is already viewable in another frame, so select it
-              (select-window win))
-            (t
-              (if (< 1 (length (frame-list)))
-                (select-frame (next-frame))
-               (make-frame-command))
-              (find-file target)))))))))
+        (goto-char (nth 1 hist-elem)))
+      (t ; target is not a directory
+        (unless (and (not current-prefix-arg)
+                     (diredc--guess-and-do-async-shell-command target))
+          ;; No shell command associated, so visit file, in another frame
+          (let* ((buf (find-buffer-visiting target))
+                 (win (and buf
+                           (get-buffer-window buf t)))
+                 (frame-inherited-parameters diredc-frame-inherited-parameters))
+            (cond
+             ((or (not win)
+                  (and win (equal (window-frame win) (window-frame))))
+              ; file is already viewable in current frame, so select it in
+              ; another frame
+               (select-frame-set-input-focus
+                 (if (< 1 (length (frame-list)))
+                   (next-frame)
+                  (make-frame diredc-frame-parameters)))
+               (find-file target))
+             (t ; ie. win ; file is already viewable in another frame, so select it
+               (select-window win))))))))))
 
 (defun diredc-other-window ()
   "Select another `diredc' window, if one exists.
@@ -2002,32 +4157,40 @@ Returns NON-NIL upon success."
     (while (and (not done)
                 (setq w (pop w-list)))
       (when (not (eq w original-win))
-        (select-window w 'no-record)
+        (select-window w 'norecord)
         (when (or (eq major-mode 'dired-mode)
+                  (eq major-mode 'wdired-mode)
                   (bound-and-true-p diredc-browse--buffer))
           (setq done t)
           (select-window w))))
     (cond
      (done t)
      (t
-       (select-window original-win 'no-record)
+       (select-window original-win 'norecord)
        nil))))
 
-(defun diredc-bonus-configuration (caller)
+(defun diredc--bonus-configuration (caller)
   "Maybe set supplemental configuration options.
 When variable `diredc-bonus-configuration' is non-nil, enables
 those options that the `diredc' developer feels are sane and
 desirable for a newcomer to `dired'. CALLER should be the calling
 function context, either `diredc-mode' or `dired-mode-hook'."
+  ;; NOTE: I do *NOT* want to make this a mode, ie. subject to
+  ;;       real-time toggling. The only reason for the existence of
+  ;;       defcustom variable `diredc-bonus-configuration' is to
+  ;;       respect a user's desire not to have all these extra
+  ;;       features imposed upon regular `dired'.
   (when diredc-bonus-configuration
     (cond
      ((eq caller 'dired-mode-hook)
-       (font-lock-add-keywords 'nil diredc--chmod-font-lock-keyword t)
+       (font-lock-add-keywords 'nil diredc--chmod-font-lock-keyword)
        (setq truncate-lines t
              directory-free-space-args "-Pm" ; show total/available space in MB
+             ;; TODO: WARNING: `directory-free-space-args' becomes obsolete as
+             ;; of 27.1 and is ignored, as Emacs uses `file-system-info' instead.
+             ;; But, we want to support older emacsen for a while.
              dired-dwim-target t)            ; dual pane awareness
        (dired-omit-mode)
-       (auto-revert-mode)
        (hl-line-mode)
        (define-key dired-mode-map (kbd "M-.") 'dired-omit-mode))
      ((eq caller 'diredc-mode)
@@ -2035,6 +4198,8 @@ function context, either `diredc-mode' or `dired-mode-hook'."
          dired-omit-files "^\\.?#\\|^\\..*"
          dired-omit-verbose nil
          dired-guess-shell-case-fold-search t)
+       (add-to-list 'display-buffer-alist
+         '("\\*Async Shell Command\\*.*" display-buffer-no-window nil))
        ;; variable of package dired-aux
        (add-to-list 'dired-compress-files-alist '("\\.gz\\'" . "gzip -k %i"))
        (add-to-list 'dired-compress-files-alist '("\\.xz\\'" . "xz -k %i"))))))
@@ -2050,21 +4215,25 @@ function context, either `diredc-mode' or `dired-mode-hook'."
 This function does not change any `dired' settings or global
 modes."
   (interactive)
-  (while (condition-case err
+  (diredc--update-control 'stop)
+  (diredc-browse-mode -1)
+  (while (condition-case nil
            (or (select-frame-by-name "diredc") t)
            (error nil))
-    (condition-case err
+    (condition-case nil
       (delete-frame)
       (error ; this happens when all frames were named 'dired'
         (set-frame-name "F1")))) ; emacs default first frame name
   (dolist (buf (buffer-list))
-    (with-current-buffer buf
-      (when (or (eq major-mode 'dired-mode)
-                (bound-and-true-p diredc-browse--buffer))
-        ;; If ALL your existing buffers (including *scratch*) are in
-        ;; dired-mode, when the final one is killed, emacs v26.1
-        ;; creates a *Messages* buffer.
-        (kill-buffer buf)))))
+    (set-buffer buf)
+    (when (or (eq major-mode 'dired-mode)
+              (bound-and-true-p diredc-browse--buffer))
+      ;; If ALL your existing buffers (including *scratch*) are in
+      ;; dired-mode, when the final one is killed, emacs v26.1
+      ;; creates a *Messages* buffer.
+      (kill-buffer buf)))
+  (let ((inhibit-message t))
+   (diredc-mode -1)))
 (defalias 'diredc-quit 'diredc-exit)
 
 (defun diredc-do-not-quit-window ()
@@ -2081,12 +4250,14 @@ second, by binding `Q' to `dired-do-find-regexp-and-replace'."
   "Attempt to restore a `dired' dual-pane layout.
 
 If possibly one or more `dired' frames and/or' buffers exist, but
-the layout on the frame has been altered 'somehow' (\"ahem.. no
+the layout on the frame has been \"somehow\" altered (\"ahem.. no
 judgements...\"), try this function."
   (interactive)
   (when (zerop (length diredc-recover-schemes))
     (error "Variable 'diredc-recover-schemes' corrupt"))
-  (let (minibuffer-history ; needs to be reset to prevent unwanted entries
+  (let ((switch-to-buffer-in-dedicated-window t)
+        (frame-inherited-parameters diredc-frame-inherited-parameters)
+        minibuffer-history ; needs to be reset to prevent unwanted entries
         temp-list ; variable is re-used for several purposes!
         len       ; variable is re-used for several purposes!
         options
@@ -2096,7 +4267,7 @@ judgements...\"), try this function."
         (push fram temp-list)))
     (cond
      ((zerop (length temp-list))
-       (make-frame-command)
+       (make-frame diredc-frame-parameters)
        (set-frame-name "diredc"))
      (t
       (select-frame (pop temp-list))
@@ -2106,7 +4277,7 @@ judgements...\"), try this function."
      ((= 1 (setq len (length (setq temp-list (reverse (window-list))))))
        (split-window-right))
      ((< 2 len)
-       (dotimes (x (- len 2))
+       (dotimes (_x (- len 2))
          (delete-window (pop temp-list)))))
     (setq temp-list nil)
     (dolist (buf (buffer-list))
@@ -2149,33 +4320,69 @@ turn the mode on; Otherwise, turn it off."
     (diredc-history-mode (if diredc-mode 1 -1)))
   (cond
    (diredc-mode
-     (setq dired-allow-duplicate-buffers t)
-     (add-hook 'dired-mode-hook  'diredc--hook-function t)
+     (setq diredc-allow-duplicate-buffers t
+           diredc--lc-collate-original-value (getenv "LC_COLLATE"))
+     (add-hook 'dired-mode-hook  #'diredc--hook-function)
+     (add-to-list 'window-state-change-functions 'diredc--window-state-change-hook-function)
+     (advice-add 'dired-repeat-over-lines
+                 :around #'diredc--advice--repeat-over-lines)
      (advice-add 'dired-internal-noselect
                  :around #'diredc--advice--dired-internal-noselect)
-     (advice-add 'dired-guess-default
-                 :around #'diredc--advice--shell-guess-fallback)
+     (advice-add 'dired-display-file
+                 :around #'diredc--advice--dired-display-file)
+     (when (< emacs-major-version 29)
+       (advice-add 'dired-guess-default
+                   :around #'diredc--advice--shell-guess-fallback))
+     (advice-add 'dired-run-shell-command
+                 :around #'diredc--advice--dired-run-shell-command)
+     (advice-add 'dired-read-shell-command
+                 :around #'diredc--advice--dired-read-shell-command)
      (dolist (buf dired-buffers)
        (if (not (buffer-live-p (cdr buf)))
          (setq dired-buffers (remove buf dired-buffers))
         (with-current-buffer (cdr buf)
-          (use-local-map diredc-mode-map))))
-     (diredc-bonus-configuration 'diredc-mode)
+          (diredc--hook-function)
+          (let ((win (get-buffer-window)))
+            (when win (set-window-dedicated-p win t))))))
+     (diredc--bonus-configuration 'diredc-mode)
+     (diredc--font-lock-add-rules)
+     (diredc--update-control 'start)
      (message "Diredc-mode enabled in all Dired buffers."))
    (t
-     (remove-hook 'dired-mode-hook 'diredc--hook-function)
-     ;; Do not set `dired-allow-duplicate-buffers' to NIL, because it
+     (remove-hook 'dired-mode-hook #'diredc--hook-function)
+     (setq window-state-change-functions
+       (delq 'diredc--window-state-change-hook-function
+             window-state-change-functions))
+     ;; Do not set `diredc-allow-duplicate-buffers' to NIL, because it
      ;; may be required by other minor modes or features (eg.
      ;; dired-frame.el)
-     (advice-remove 'dired-guess-default
-                    #'diredc--advice--shell-guess-fallback)
+     (advice-remove 'dired-repeat-over-lines
+                    #'diredc--advice--repeat-over-lines)
+     (advice-remove 'dired-display-file
+                    #'diredc--advice--dired-display-file)
+     (when (< emacs-major-version 29)
+       (advice-remove 'dired-guess-default
+                      #'diredc--advice--shell-guess-fallback))
+     (advice-remove 'dired-run-shell-command
+                    #'diredc--advice--dired-run-shell-command)
+     (advice-remove 'dired-read-shell-command
+                    #'diredc--advice--dired-read-shell-command)
+     (diredc--unset-created-faces)
      (dolist (buf dired-buffers)
        (if (not (buffer-live-p (cdr buf)))
          (setq dired-buffers (remove buf dired-buffers))
         (with-current-buffer (cdr buf)
+          (diredc--hook-function)
+          (let ((win (get-buffer-window)))
+            (when win (set-window-dedicated-p win nil)))
+          (setq header-line-format nil)
           (use-local-map dired-mode-map))))
+     (diredc-restore-collation)
+     (diredc-collapse-mode -1)
+     (diredc--update-control 'stop)
      (message "Diredc-mode disabled in all Dired buffers."))))
 
+;;;###autoload
 (defun diredc ()
   "Launch `diredc'. Switch back and forth between `diredc' and previous frame.
 
@@ -2184,16 +4391,17 @@ If no `diredc' frame exists, create one with a dual-window layout."
   (unless diredc-mode
     (diredc-mode 1))
   (cond
-   ((string-match "^#<frame diredc " (format "%s" (window-normalize-frame nil)))
+   ((string-match "^#<frame diredc " (format "%s" (window-frame)))
      (other-frame 1)
      (redraw-frame))
    (t
-    (condition-case err
+    (condition-case nil
       (select-frame-by-name "diredc")
       (error
         (setq dired-dwim-target t)  ; dual pane awareness
-        (setq dired-allow-duplicate-buffers t)
-        (make-frame-command)
+        (setq diredc-allow-duplicate-buffers t)
+        (let ((frame-inherited-parameters diredc-frame-inherited-parameters))
+          (select-frame (make-frame diredc-frame-parameters)))
         (set-frame-name "diredc")
         (split-window-right)
         (dired default-directory)
@@ -2212,14 +4420,14 @@ If no `diredc' frame exists, create one with a dual-window layout."
 ;;   "What version control methods `diredc-git-jump' acts on."
 ;;   :type '(repeat (choice (const 'git)
 ;;                          (const 'cvs)))
-;;   :group 'diredc)
+;;   )
 ;;
 ;; (defcustom diredc-vc-root-dirs '("~")
 ;;   "From where to search for sub-directories under version control.
 ;;
 ;; See `diredc-git-jump'."
 ;;   :type '(repeat (directory))
-;;   :group 'diredc)
+;;   )
 ;;
 ;; (defun diredc-vc-jump (&optional vc-type)
 ;;   "Jump to a directory under version control.
@@ -2262,7 +4470,7 @@ If no `diredc' frame exists, create one with a dual-window layout."
 ;;    https://debbugs.gnu.org/cgi/bugreport.cgi?bug=44023
 ;;
 ;; *) Function `dired-file-name-at-point' should have an optional
-;;    argument NOERROR added, to return NIL instead of signalling
+;;    argument NOERROR added, to return NIL instead of signaling
 ;;    error conditions, and should guarantee a NON-NIL return value
 ;;    otherwise. Once this is done, then all occurrences of
 ;;    (diredc--file-name-at-point) should be removed and replaced with

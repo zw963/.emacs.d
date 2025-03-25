@@ -6,8 +6,9 @@
 ;; Maintainer: Matúš Goljer <matus.goljer@gmail.com>
 ;; Version: 0.0.1
 ;; Created: 14th February 2014
-;; Package-requires: ((dash "2.7.0") (dired-hacks-utils "0.0.1"))
+;; Package-Requires: ((dash "2.7.0") (dired-hacks-utils "0.0.1") (emacs "24"))
 ;; Keywords: files
+;; URL: https://github.com/Fuco1/dired-hacks
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License
@@ -95,8 +96,10 @@
 
 Function takes no argument and is called with point over the file
 we should act on."
-  :type '(choice (const :tag "Open file under point" dired-narrow-find-file)
-                 (function :tag "Use custom function."))
+  :type '(choice
+          (const :tag "Do nothing" ignore)
+          (const :tag "Open file under point" dired-narrow-find-file)
+          (function :tag "Use custom function"))
   :group 'dired-narrow)
 
 (defcustom dired-narrow-exit-when-one-left nil
@@ -106,15 +109,14 @@ exit minibuffer and call `dired-narrow-exit-action'."
   :group 'dired-narrow)
 
 (defcustom dired-narrow-enable-blinking t
-  "If set to true highlight the chosen file shortly.
-This feature works only when `dired-narrow-exit-when-one-left' is true."
+  "If non-nil, highlight the chosen file shortly.
+Only works when `dired-narrow-exit-when-one-left' is non-nil."
   :type 'boolean
   :group 'dired-narrow)
 
 (defcustom dired-narrow-blink-time 0.2
-  "How long should be highlighted a chosen file.
-Units are seconds."
-  :type 'float
+  "How many seconds should a chosen file be highlighted."
+  :type 'number
   :group 'dired-narrow)
 
 (defface dired-narrow-blink
@@ -148,7 +150,8 @@ when `dired-narrow-exit-when-one-left' and `dired-narrow-enable-blinking' are tr
 
 (defun dired-narrow--update (filter)
   "Make the files not matching the FILTER invisible.
- Return the count of visible files that are left after update."
+
+Return the count of visible files that are left after update."
 
   (let ((inhibit-read-only t)
         (visible-files-cnt 0))
@@ -241,7 +244,14 @@ read from minibuffer."
         (progn
           (dired-narrow-mode 1)
           (add-to-invisibility-spec :dired-narrow)
-          (setq disable-narrow (read-from-minibuffer "Filter: " nil dired-narrow-map))
+          (setq disable-narrow (read-from-minibuffer
+                                (pcase dired-narrow-filter-function
+                                  ('dired-narrow--regexp-filter
+                                   "Regex Filter:\s")
+                                  ('dired-narrow--fuzzy-filter
+                                   "Fuzzy Filter:\s")
+                                  (t "Filter:\s"))
+                                nil dired-narrow-map))
           (let ((inhibit-read-only t))
             (dired-narrow--remove-text-with-property :dired-narrow))
           ;; If the file no longer exists, we can't do anything, so
@@ -252,13 +262,15 @@ read from minibuffer."
         (unless disable-narrow (dired-narrow-mode -1))
         (remove-from-invisibility-spec :dired-narrow)
         (dired-narrow--restore))
-      (when (and disable-narrow
-                 dired-narrow--current-file
-                 dired-narrow-exit-action)
-        (funcall dired-narrow-exit-action))
       (cond
        ((equal disable-narrow "dired-narrow-enter-directory")
-        (dired-narrow--internal filter-function))))))
+        (dired-narrow-find-file)
+        (dired-narrow--internal filter-function))
+       (t
+        (when (and disable-narrow
+                   dired-narrow--current-file
+                   dired-narrow-exit-action)
+          (funcall dired-narrow-exit-action)))))))
 
 
 ;; Interactive

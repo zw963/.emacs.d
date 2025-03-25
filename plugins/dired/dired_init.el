@@ -91,7 +91,7 @@
 (require 'diredfl)
 (diredfl-global-mode t)
 
-(require 'fd-dired)
+;; (require 'fd-dired)
 
 (require 'dired-quick-sort)
 (dired-quick-sort-setup)
@@ -101,19 +101,22 @@
 (define-key dired-mode-map  "/" 'dired-narrow-fuzzy)
 (define-key dired-mode-map  (kbd "<down-mouse-1>") 'dired-find-file)
 
-;; (require 'diredc)
+(require 'diredc)
+;; (global-set-key [(meta D)] (lambda () (interactive) (dired "./"))) ; 打开 dired buffer.
+(global-set-key [(meta D)] 'diredc) ; 打开 dired buffer.
+(global-set-key [remap dired-other-frame] 'diredc)
 
 (require 'find-dupes-dired)
 
-;; (require 'dired-preview)
-;; (setq dired-preview-delay 0.7)
-;; (setq dired-preview-max-size (expt 2 20))
-;; (setq dired-preview-ignored-extensions-regexp
-;;       (concat "\\."
-;;               "\\(mkv\\|webm\\|mp4\\|mp3\\|ogg\\|m4a"
-;;               "\\|gz\\|zst\\|tar\\|xz\\|rar\\|zip"
-;;               "\\|iso\\|epub\\|pdf\\)"))
-;; (dired-preview-global-mode 1)
+(require 'dired-preview)
+(setq dired-preview-delay 0.7)
+(setq dired-preview-max-size (expt 2 20))
+(setq dired-preview-ignored-extensions-regexp
+      (concat "\\."
+              "\\(mkv\\|webm\\|mp4\\|mp3\\|ogg\\|m4a"
+              "\\|gz\\|zst\\|tar\\|xz\\|rar\\|zip"
+              "\\|iso\\|epub\\|pdf\\)"))
+(dired-preview-global-mode 1)
 
 ;; 一些常用的命令:
 ;; t, dired-toggle-marks, 可以用来 mark 所有文件.
