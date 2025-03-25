@@ -23,8 +23,8 @@
 (require 'beacon_init)
 (require 'avy_init)
 (require 'doom-modeline_init)
-(require 'rich-minority_init)
-(require 'show-point-mode_init)
+;; (require 'rich-minority_init)
+;; (require 'show-point-mode_init)
 ;; (require 'hydra_init);; depend by treemacs
 (require 'edit-server_init)
 (require 'undo-tree_init)
@@ -53,7 +53,8 @@
 (require 'goto-chg_init)
 (require 'symbol-overlay_init)
 (require 'iedit_init) ;; 确保放到 symbol-overlay 后面
-(require 'color-rg_init)
+;; (require 'color-rg_init)
+(require 'deadgrep_init)
 ;; (require 'eee_init) ;; 这个打开，覆盖 color-rg 的 Ctrl + Alt + R
 (require 'markdown-mode_init)
 ;; (require 'easy-kill_init)
