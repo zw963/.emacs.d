@@ -100,6 +100,7 @@
   treemacs-dom-node->position)
 
 (treemacs-import-functions-from "treemacs-workspaces"
+  treemacs--next-project-pos
   treemacs--find-workspace
   treemacs-current-workspace
   treemacs-workspace->projects
@@ -375,6 +376,16 @@ EXCLUDE-PREFIX: File Path"
       (setq node (treemacs-button-get node :parent)
             project (treemacs-button-get node :project)))
     project))
+
+(defun treemacs-last-node-of-project (project)
+  "Find the last node in given PROJECT.
+Returns nil if the project is not expanded."
+  (declare (side-effect-free t))
+  (let ((node (treemacs-project->position project)))
+    (when (treemacs-is-node-expanded? node)
+      (save-excursion
+        (goto-char node)
+        (previous-button (treemacs--next-project-pos))))))
 
 (define-inline treemacs--prop-at-point (prop)
   "Grab property PROP of the button at point.
@@ -1257,6 +1268,14 @@ treemacs window."
       (-let [next-window (nth (% (1+ idx) (length treemacs-windows)) treemacs-windows)]
         (unless (eq next-window current-window)
           (select-window next-window))))))
+
+(defun treemacs--pre-sorted-list (items)
+  "Return a lambda that includes sorting metadata for `completing-read'.
+Ensures that the order of ITEMS is not changed during completion."
+  (lambda (string pred action)
+    (pcase action
+      ('metadata `(metadata (display-sort-function . ,#'identity)))
+      (_ (complete-with-action action items string pred)))))
 
 (provide 'treemacs-core-utils)
 

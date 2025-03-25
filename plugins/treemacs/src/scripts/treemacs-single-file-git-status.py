@@ -7,14 +7,15 @@ import os
 # 2) the file's previous state, to check if things changed at all
 # 3) the file's parents that need to be updated as well
 
-FILE = sys.argv[1]
-OLD_FACE = sys.argv[2]
-PARENTS = [p for p in sys.argv[3:]]
+GIT_BIN = sys.argv[1]
+FILE = sys.argv[2]
+OLD_FACE = sys.argv[3]
+PARENTS = [p for p in sys.argv[4:]]
 
-FILE_STATE_CMD = "git status --porcelain --ignored=matching "
-IS_IGNORED_CMD = "git check-ignore "
-IS_TRACKED_CMD = "git ls-files --error-unmatch "
-IS_CHANGED_CMD = "git ls-files --modified --others --exclude-standard "
+FILE_STATE_CMD = "{} status --porcelain --ignored=matching ".format(GIT_BIN)
+IS_IGNORED_CMD = "{} check-ignore ".format(GIT_BIN)
+IS_TRACKED_CMD = "{} ls-files --error-unmatch ".format(GIT_BIN)
+IS_CHANGED_CMD = "{} ls-files --modified --others --exclude-standard ".format(GIT_BIN)
 
 def face_for_status(path, status):
     if status == "M":
@@ -39,10 +40,9 @@ def main():
         sys.exit(2)
 
     new_state = determine_file_git_state()
-    old_state = face_for_status(FILE, OLD_FACE)
 
     # nothing to do
-    if old_state == new_state:
+    if OLD_FACE == face_for_status(FILE, new_state):
         sys.exit(2)
 
     proc_list = []
@@ -73,7 +73,7 @@ def main():
             propagate_state = "?"
             result_list.append((path, propagate_state))
             break
-        elif changed_proc.communicate() != b'' and changed_proc.returncode == 0:
+        elif changed_proc.communicate()[0] != b'' and changed_proc.returncode == 0:
             result_list.append((path, "M"))
         else:
             result_list.append((path, "0"))
@@ -97,8 +97,8 @@ def add_git_processes(status_listings, path):
     status_listings.append((path, ignored_proc, tracked_proc, changed_proc))
 
 def determine_file_git_state():
-    proc  = Popen(FILE_STATE_CMD + FILE, shell=True, stdout=PIPE, stderr=DEVNULL)
-    line  = proc.stdout.readline()
+    proc = Popen(FILE_STATE_CMD + FILE, shell=True, stdout=PIPE, stderr=DEVNULL)
+    line = proc.stdout.readline()
     if line:
         state = line.lstrip().split(b" ")[0]
         return state.decode('utf-8').strip()[0]

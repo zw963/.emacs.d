@@ -5,7 +5,7 @@
 ;; Author: Alexander Miller <alexanderm@web.de>
 ;; Package-Requires: ((emacs "26.1") (cl-lib "0.5") (dash "2.11.0") (s "1.12.0") (ace-window "0.9.0") (pfuture "1.7") (hydra "0.13.2") (ht "2.2") (cfrs "1.3.2"))
 ;; Homepage: https://github.com/Alexander-Miller/treemacs
-;; Version: 3.1
+;; Version: 3.2
 
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -51,7 +51,7 @@
 
 (defconst treemacs-version
   (eval-when-compile
-    (format "v3.1 (installed %s) @ Emacs %s"
+    (format "v3.2 (installed %s) @ Emacs %s"
             (format-time-string "%Y.%m.%d" (current-time))
             emacs-version)))
 
@@ -115,13 +115,13 @@ To *add* a project to the current workspace use
 ;;;###autoload
 (defun treemacs-find-file (&optional arg)
   "Find and focus the current file in the treemacs window.
-If the current buffer has visits no file or with a prefix ARG ask for the
+If the current buffer visits no file or with a prefix ARG ask for the
 file instead.
 Will show/create a treemacs buffers if it is not visible/does not exist.
 For the most part only useful when `treemacs-follow-mode' is not active."
   (interactive "P")
-  (-let ((path (unless arg (buffer-file-name (current-buffer))))
-         (manually-entered nil))
+  (let ((path (unless arg (buffer-file-name (current-buffer))))
+        (manually-entered nil))
     (unless path
       (setq manually-entered t
             path (->> (--if-let (treemacs-current-button) (treemacs--nearest-path it))
@@ -172,6 +172,20 @@ visiting a file or Emacs cannot find any tags for the current file."
      (treemacs--do-follow-tag index treemacs-window buffer-file project))))
 
 ;;;###autoload
+(defun treemacs-start-on-boot (&optional focus-treemacs)
+  "Initialiser specifically to start treemacs as part of your init file.
+
+Ensures that all visual elements are present which might otherwise be missing
+because their setup requires an interactive command or a post-command hook.
+
+FOCUS-TREEMACS indicates whether the treemacs window should be selected."
+  (-let [initial-window (selected-window)]
+    (treemacs)
+    (hl-line-highlight)
+    (redisplay)
+    (unless focus-treemacs (select-window initial-window))))
+
+;;;###autoload
 (defun treemacs-select-window (&optional arg)
   "Select the treemacs window if it is visible.
 Bring it to the foreground if it is not visible.
@@ -193,20 +207,21 @@ A non-nil prefix ARG will also force a workspace switch."
      (if (not (eq treemacs--in-this-buffer t))
          (treemacs--select-visible-window)
        (pcase-exhaustive treemacs-select-when-already-in-treemacs
-           ('stay
-            (ignore))
-           ('close
-            (treemacs-quit))
-           ('goto-next
-            (treemacs--jump-to-next-treemacs-window))
-           ('next-or-back
-            (or
-             (treemacs--jump-to-next-treemacs-window)
-             (select-window (get-mru-window (selected-frame) nil :not-selected))))
-           ('move-back
-            (select-window (get-mru-window (selected-frame) nil :not-selected))))))))
+         ('stay
+          (ignore))
+         ('close
+          (treemacs-quit))
+         ('goto-next
+          (treemacs--jump-to-next-treemacs-window))
+         ('next-or-back
+          (or
+           (treemacs--jump-to-next-treemacs-window)
+           (-if-let (mru-window (get-mru-window (selected-frame) nil :not-selected))
+               (select-window mru-window)
+             (treemacs-log-failure "get-mru-window could not find the last used window."))))
+         ('move-back
+          (select-window (get-mru-window (selected-frame) nil :not-selected))))))))
 
-(setf treemacs-select-when-already-in-treemacs 'next-or-back)
 ;;;###autoload
 (defun treemacs-show-changelog ()
   "Show the changelog of treemacs."

@@ -140,6 +140,7 @@ Will be set by `treemacs--post-command'.")
     (define-key map (kbd "a")        'treemacs-copy-absolute-path-at-point)
     (define-key map (kbd "r")        'treemacs-copy-relative-path-at-point)
     (define-key map (kbd "p")        'treemacs-copy-project-path-at-point)
+    (define-key map (kbd "n")        'treemacs-copy-filename-at-point)
     (define-key map (kbd "f")        'treemacs-copy-file)
     (define-key map (kbd "v")        'treemacs-paste-dir-at-point-to-minibuffer)
     map)
@@ -223,8 +224,9 @@ Will be set by `treemacs--post-command'.")
                              major-mode)
                 nil)
                '("%e" (:eval (spaceline-ml-treemacs))))
-              ((memq 'moody-mode-line-buffer-identification
-                     (default-value 'mode-line-format))
+              ((and (listp (default-value 'mode-line-format))
+                    (member 'moody-mode-line-buffer-identification
+                            (default-value 'mode-line-format)))
                '(:eval (moody-tab " Treemacs " 10 'down)))
               ((featurep 'doom-modeline)
                (with-no-warnings
@@ -336,7 +338,7 @@ Will simply return `treemacs--eldoc-msg'."
       (setq evil-treemacs-state-cursor
             (if treemacs-show-cursor
                 evil-motion-state-cursor
-              '(bar . 0)))))
+              (lambda () (setq cursor-type nil))))))
 
   ;; higher fuzz value makes it less likely to start a mouse drag
   ;; and make a switch to visual state

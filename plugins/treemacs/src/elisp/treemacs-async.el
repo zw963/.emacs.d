@@ -155,6 +155,7 @@ Real implementation will be `fset' based on `treemacs-git-mode' value."
            (command `(,treemacs-python-executable
                       "-O"
                       ,treemacs--git-status.py
+                      ,treemacs-git-executable
                       ,git-root
                       ,(number-to-string treemacs-max-git-entries)
                       ,treemacs-git-command-pipe
@@ -197,7 +198,7 @@ GIT-FUTURE: Pfuture"
   "Start a simple git status process for files under PATH."
   (let* ((default-directory (file-truename path))
          (process-environment (cons "GIT_OPTIONAL_LOCKS=0" process-environment))
-         (future (pfuture-new "git" "status" "--porcelain" "--ignored=matching" "-z" ".")))
+         (future (pfuture-new treemacs-git-executable "status" "--porcelain" "--ignored=matching" "-z" ".")))
     (process-put future 'default-directory default-directory)
     future))
 
@@ -285,7 +286,8 @@ OVERRIDE-STATUS: Boolean"
                                  "NONE")))
              (cmd `(,treemacs-python-executable
                     "-O"
-                    ,treemacs--single-file-git-status.py ,file ,current-face ,@parents)))
+                    ,treemacs--single-file-git-status.py
+                    ,treemacs-git-executable ,file ,current-face ,@parents)))
         (pfuture-callback cmd
           :directory parent
           :name "Treemacs Update Single File Process"
@@ -354,7 +356,9 @@ Every string list consists of the following elements:
           (default-directory path)
           (search-paths nil))
       (treemacs-walk-reentry-dom (treemacs-find-in-dom path)
-        (lambda (node) (push (treemacs-dom-node->key node) search-paths)))
+        (lambda (node)
+          (-let [key (treemacs-dom-node->key node)]
+            (when (stringp key) (push key search-paths)))))
       (-let [command
              `(,treemacs-python-executable
                "-O"
@@ -393,6 +397,7 @@ run because the git cache has yet to be filled."
   (pfuture-callback `(,treemacs-python-executable
                       "-O"
                       ,treemacs--find-ignored-files.py
+                      ,treemacs-git-executable
                       ,@path)
     :on-error (ignore)
     :on-success

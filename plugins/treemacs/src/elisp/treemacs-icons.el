@@ -244,6 +244,7 @@ Necessary since root icons are not rectangular."
     (treemacs-create-icon :file "svgrepo/briefcase.png" :extensions (briefcase)   :fallback " ")
     (treemacs-create-icon :file "svgrepo/mail.png"      :extensions (mail)        :fallback " ")
     (treemacs-create-icon :file "svgrepo/mail-plus.png" :extensions (mail-plus)   :fallback " ")
+    (treemacs-create-icon :file "svgrepo/inbox.png"     :extensions (inbox)       :fallback " ")
 
     ;; custom dir icons
     (treemacs-create-icon :file "svgrepo/dir-src-closed.png"    :extensions ("src-closed")     :fallback (propertize "+ " 'face 'treemacs-term-node-face))
@@ -281,6 +282,24 @@ Necessary since root icons are not rectangular."
      :file "vsc/dir-images-open.png" :extensions ("screenshots-open" "icons-open")
      :fallback (propertize "- " 'face 'treemacs-term-node-face))
 
+    ;; mode icons
+    (treemacs-create-icon :file "emacs.png"          :extensions (emacs-lisp-mode))
+    (treemacs-create-icon :file "git.png"            :extensions (gitignore-mode))
+    (treemacs-create-icon :file "python.png"         :extensions (python-mode))
+    (treemacs-create-icon :file "vsc/make.png"       :extensions (makefile-gmake-mode))
+    (treemacs-create-icon :file "vsc/dir-closed.png" :extensions (dired-mode))
+    (treemacs-create-icon :file "ledger.png"         :extensions (ledger-mode))
+    (treemacs-create-icon :file "vsc/org.png"        :extensions (org-mode org-agenda-mode))
+    (treemacs-create-icon :file "vsc/vim.png"        :extensions (tridactylrc-mode))
+    (treemacs-create-icon :file "conf.png"           :extensions (conf-mode i3wm-config-mode))
+    (treemacs-create-icon :file "conf.png"           :extensions (conf-mode i3wm-config-mode))
+    (treemacs-create-icon :file "shell.png"          :extensions (fish-mode))
+    (treemacs-create-icon :file "svgrepo/list.png"   :extensions (elfeed-search-mode))
+    (treemacs-create-icon :file "vsc/deps.png"       :extensions (cask-mode))
+    (treemacs-create-icon :file "yaml.png"           :extensions (yaml-mode))
+    (treemacs-create-icon :file "css.png"            :extensions (css-mode))
+    (treemacs-create-icon :file "markdown.png"       :extensions (markdown-mode))
+
     ;; file icons
     (treemacs-create-icon :file "txt.png"           :extensions (fallback))
     (treemacs-create-icon :file "emacs.png"         :extensions ("el" "elc" "eln"))
@@ -300,10 +319,10 @@ Necessary since root icons are not rectangular."
     (treemacs-create-icon :file "asciidoc.png"      :extensions ("adoc" "asciidoc"))
     (treemacs-create-icon :file "rust.png"          :extensions ("rs"))
     (treemacs-create-icon :file "image.png"         :extensions ("jpg" "jpeg" "bmp" "svg" "png" "xpm" "gif"))
-    (treemacs-create-icon :file "clojure.png"       :extensions ("clj" "cljs" "cljc" "edn"))
+    (treemacs-create-icon :file "clojure.png"       :extensions ("clj" "cljs" "cljc" "cljd" "edn"))
     (treemacs-create-icon :file "ts.png"            :extensions ("ts" "tsx"))
     (treemacs-create-icon :file "vue.png"           :extensions ("vue"))
-    (treemacs-create-icon :file "css.png"           :extensions ("css"))
+    (treemacs-create-icon :file "css.png"           :extensions ("css" "rasi"))
     (treemacs-create-icon :file "conf.png"          :extensions ("properties" "conf" "config" "cfg" "ini" "xdefaults" "xresources" "terminalrc" "ledgerrc"))
     (treemacs-create-icon :file "html.png"          :extensions ("html" "htm"))
     (treemacs-create-icon :file "git.png"           :extensions ("git" "gitignore" "gitconfig" "gitmodules" "gitattributes"))
@@ -311,7 +330,7 @@ Necessary since root icons are not rectangular."
     (treemacs-create-icon :file "jar.png"           :extensions ("jar"))
     (treemacs-create-icon :file "kotlin.png"        :extensions ("kt"))
     (treemacs-create-icon :file "scala.png"         :extensions ("scala"))
-    (treemacs-create-icon :file "gradle.png"        :extensions ("gradle"))
+    (treemacs-create-icon :file "gradle.png"        :extensions ("gradle" "kts" "build.gradle.kts" "settings.gradle.kts"))
     (treemacs-create-icon :file "sbt.png"           :extensions ("sbt"))
     (treemacs-create-icon :file "go.png"            :extensions ("go"))
     (treemacs-create-icon :file "systemd.png"       :extensions ("service" "timer"))
@@ -359,8 +378,8 @@ Necessary since root icons are not rectangular."
     (treemacs-create-icon :file "vsc/asm.png"       :extensions ("asm" "arm"))
     (treemacs-create-icon :file "vsc/autohk.png"    :extensions ("ahk"))
     (treemacs-create-icon :file "vsc/babel.png"     :extensions ("babelrc" "babelignore" "babelrc.js" "babelrc.json" "babel.config.js"))
-    (treemacs-create-icon :file "vsc/bat.png"       :extensions ("bat"))
-    (treemacs-create-icon :file "vsc/binary.png"    :extensions ("exe" "dll" "obj" "so" "o"))
+    (treemacs-create-icon :file "vsc/bat.png"       :extensions ("bat" "exe" "gradlew"))
+    (treemacs-create-icon :file "vsc/binary.png"    :extensions ("dll" "obj" "so" "o"))
     (treemacs-create-icon :file "vsc/bazel.png"     :extensions ("bazelrc" "bazel"))
     (treemacs-create-icon :file "vsc/bower.png"     :extensions ("bowerrc" "bower.json"))
     (treemacs-create-icon :file "vsc/bundler.png"   :extensions ("gemfile" "gemfile.lock"))
@@ -445,6 +464,14 @@ Uses `treemacs-icon-fallback' as fallback."
            (ht-get treemacs-icons
                    (treemacs--file-extension file-downcased)
                    (with-no-warnings treemacs-icon-fallback)))))))
+
+(define-inline treemacs-icon-for-mode (mode)
+  "Retrieve an icon for major MODE from `treemacs-icons'.
+Uses `treemacs-icon-fallback' as fallback."
+  (declare (side-effect-free t))
+  (inline-letevals (mode)
+    (inline-quote
+     (ht-get treemacs-icons ,mode (with-no-warnings treemacs-icon-fallback)))))
 
 (define-inline treemacs-icon-for-dir (dir state)
   "Retrieve an icon for DIR from `treemacs-icons' in given STATE.
@@ -574,7 +601,7 @@ be assigned which treemacs icon, for example
                icon))))
 
 (treemacs-only-during-init
-  (treemacs-load-theme "Default"))
+ (treemacs-load-theme "Default"))
 
 (provide 'treemacs-icons)
 
