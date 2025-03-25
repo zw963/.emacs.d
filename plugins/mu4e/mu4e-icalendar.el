@@ -66,10 +66,10 @@
   "Icalendar related settings."
   :group 'mu4e)
 
-(defcustom mu4e-icalendar-trash-after-reply nil
-  "If non-nil, trash the icalendar invitation after replying."
-  :type 'boolean
-  :group 'mu4e-icalendar)
+;; (defcustom mu4e-icalendar-trash-after-reply nil
+;;   "If non-nil, trash the icalendar invitation after replying."
+;;   :type 'boolean
+;;   :group 'mu4e-icalendar)
 
 (defcustom mu4e-icalendar-diary-file nil
   "If non-nil, the file in which to add events upon reply."
@@ -134,22 +134,20 @@
                     (or organizer
                         (plist-get (car (plist-get msg :reply-to)) :email)
                         (plist-get (car (plist-get msg :from)) :email)
-                        (mu4e-warn "Cannot find organizer"))))
-              (mu4e--compose-setup
-               'reply
-               (lambda (_parent)
-                 (message-reply organizer)
-                 (goto-char (point-max))
-                 (message-goto-body)
-                 (mml-insert-multipart "alternative")
-                 (mml-insert-empty-tag 'part 'type "text/plain")
-                 (mml-attach-buffer ical-name
-                                    "text/calendar; method=REPLY; charset=UTF-8")
-                 (when mu4e-icalendar-trash-after-reply
-                   ;; Override `mu4e-sent-handler' set by `mu4e-compose-mode' to
-                   ;; also trash the message (thus must be appended to hooks).
-                   (add-hook 'message-sent-hook
-                             (mu4e--icalendar-trash-message-hook msg) 90 t))))
+                        (mu4e-warn "Cannot find organizer")))
+                   (message-cite-function #'mu4e-message-cite-nothing))
+              (mu4e-compose-reply-to organizer)
+              (message-goto-body)
+              (mml-insert-multipart "alternative")
+              (mml-insert-empty-tag 'part 'type "text/plain")
+              (mml-attach-buffer ical-name
+                                 "text/calendar; method=REPLY; charset=UTF-8")
+              ;; XXX: not currently supported
+              ;;(when mu4e-icalendar-trash-after-reply
+              ;;   ;; Override `mu4e-sent-handler' set by `mu4e-compose-mode' to
+              ;;   ;; also trash the message (thus must be appended to hooks).
+              ;;   (add-hook 'message-sent-hook
+              ;;             (mu4e--icalendar-trash-message-hook msg) 90 t))
 
               (when gnus-icalendar-org-enabled-p
                 (if (gnus-icalendar-find-org-event-file event)
@@ -178,11 +176,11 @@
         (or (mu4e-view-headers-next)
             (kill-buffer-and-window))))))
 
-(defun mu4e--icalendar-trash-message-hook (original-msg)
-  "Trash the iCalendar message ORIGINAL-MSG."
-  (lambda ()
-    (setq mu4e-sent-func
-          (mu4e--icalendar-trash-message original-msg))))
+;; (defun mu4e--icalendar-trash-message-hook (original-msg)
+;;   "Trash the iCalendar message ORIGINAL-MSG."
+;;   (lambda ()
+;;     (setq mu4e-sent-func
+;;           (mu4e--icalendar-trash-message original-msg))))
 
 (defun mu4e--icalendar-insert-diary (event reply-status filename)
   "Insert a diary entry for the EVENT in file named FILENAME.

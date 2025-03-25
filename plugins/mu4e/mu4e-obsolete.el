@@ -1,6 +1,6 @@
 ;;; mu4e-obsolete.el --- Obsolete things -*- lexical-binding: t -*-
 
-;; Copyright (C) 2022-2023 Dirk-Jan C. Binnema
+;; Copyright (C) 2022-2024 Dirk-Jan C. Binnema
 
 ;; Author: Dirk-Jan C. Binnema <djcb@djcbsoftware.nl>
 ;; Maintainer: Dirk-Jan C. Binnema <djcb@djcbsoftware.nl>
@@ -65,6 +65,10 @@
   'mu4e-compose-cite-function 'message-cite-function "1.11.22")
 (define-obsolete-variable-alias
   'mu4e-compose-in-new-frame 'mu4e-compose-switch "1.11.22")
+
+(define-obsolete-variable-alias 'mu4e-compose-hidden-headers
+  'mu4e-draft-hidden-headers "1.12.5")
+
 
 ;; mu4e-message
 
@@ -225,6 +229,7 @@
 
 (make-obsolete-variable 'mu4e-header-func "mu4e-headers-append-func" "1.7.4")
 (make-obsolete-variable 'mu4e-temp-func "No longer used" "1.7.0")
+(make-obsolete-variable 'mu4e-sent-func  "No longer used" "1.12.5")
 
 
 ;; mu4e-update
@@ -272,6 +277,9 @@
 (define-obsolete-function-alias 'mu4e-icalendar-setup
   'gnus-icalendar-setup '"1.11.22")
 
+(make-obsolete-variable 'mu4e-icalendar-trash-after-reply
+                        "Not functional after composer changes"
+                        "1.12.5")
 ;; mu4e.
 (define-obsolete-function-alias 'mu4e-clear-caches #'ignore "1.11.15")
 

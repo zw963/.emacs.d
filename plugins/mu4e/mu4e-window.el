@@ -1,6 +1,7 @@
 ;;; mu4e-window.el --- Window management -*- lexical-binding: t; -*-
 
 ;; Copyright (C) 2022  Mickey Petersen
+;; Copyright (C) 2023-2025 Dirk-Jan C. Binnema
 
 ;; Author: Mickey Petersen <mickey@masteringemacs.org>
 ;; Keywords: mail
@@ -25,14 +26,16 @@
 ;;; Buffer names for internal use
 
 (defconst mu4e--sexp-buffer-name "*mu4e-sexp-at-point*"
-  "Buffer name for sexp buffers.")
+  "Name for the buffer which shows the sexp for the message-at-point.")
+
+(defconst mu4e--last-query-buffer-name "*mu4e-last-query*"
+  "Name for the buffer which shows the last server-query.")
 
 (defvar mu4e-main-buffer-name "*mu4e-main*"
   "Name of the mu4e main buffer.")
 
 (defvar mu4e-embedded-buffer-name " *mu4e-embedded*"
   "Name for the embedded message view buffer.")
-
 
 ;; Buffer names for public use
 
@@ -77,17 +80,31 @@ function; this is no longer supported; instead you can use
   :group 'mu4e-headers)
 
 (defcustom mu4e-headers-visible-lines 10
-  "Number of lines to display in the header view when using the
+  "Number of lines to display in the headers view (horizontal split-view).
 horizontal split-view. This includes the header-line at the top,
 and the mode-line."
   :type 'integer
   :group 'mu4e-headers)
 
 (defcustom mu4e-headers-visible-columns 30
-  "Number of columns to display for the header view when using the
+  "Number of columns to display for the header view (vertical split-view).
 vertical split-view."
   :type 'integer
   :group 'mu4e-headers)
+
+(defcustom mu4e-compose-switch nil
+  "Where to display the new message?
+A symbol:
+- nil           : default (new buffer)
+- window        : compose in new window
+- frame or t    : compose in new frame
+- display-buffer: use `display-buffer' / `display-buffer-alist'
+  (for fine-tuning).
+
+For backward compatibility with `mu4e-compose-in-new-frame', t is
+treated as =\\'frame."
+  :type 'symbol
+  :group 'mu4e-compose)
 
 (declare-function mu4e-view-mode "mu4e-view")
 (declare-function mu4e-error     "mu4e-helpers")
@@ -196,20 +213,24 @@ being created if CREATE is non-nil."
     (let ((buffer)
           ;; If `mu4e-view-buffer-name-func' is non-nil, then use that
           ;; to source the name of the view buffer to create or re-use.
-          (buffer-name (or (and mu4e-view-buffer-name-func
-                                (funcall mu4e-view-buffer-name-func headers-buffer))
-                           ;; If the variable is nil, use the default
-                           ;; name
-                           mu4e-view-buffer-name))
+          (buffer-name
+           (or (and mu4e-view-buffer-name-func
+                    (funcall mu4e-view-buffer-name-func headers-buffer))
+               ;; If the variable is nil, use the default
+               ;; name
+               mu4e-view-buffer-name))
           ;; Search all view buffers and return those that are linked to
           ;; `headers-buffer'.
-          (linked-buffer (mu4e-get-view-buffers
-                          (lambda (buf)
-                            (and (mu4e--buffer-local-boundp 'mu4e-linked-headers-buffer buf)
-                                 (eq mu4e-linked-headers-buffer headers-buffer))))))
-      ;; If such a linked buffer exists and its buffer is live, we use that buffer.
+          (linked-buffer
+           (mu4e-get-view-buffers
+            (lambda (buf)
+              (and (mu4e--buffer-local-boundp 'mu4e-linked-headers-buffer buf)
+                   (eq mu4e-linked-headers-buffer headers-buffer))))))
+      ;; If such a linked buffer exists and its buffer is live, we use that
+      ;; buffer.
       (if (and linked-buffer (buffer-live-p (car linked-buffer)))
-          ;; NOTE: It's possible for there to be more than one linked view buffer.
+          ;; NOTE: It's possible for there to be more than one linked view
+          ;; buffer.
           ;;
           ;; What, if anything, should the heuristic be to pick the
           ;; one to use? Presently `car' is used, but there are better
@@ -245,7 +266,7 @@ This is an action function for buffer display, see Info
 node `(elisp) Buffer Display Action Functions'.  It should be
 called only by `display-buffer' or a function directly or
 indirectly called by the latter."
-    (when-let ((window (or (display-buffer-reuse-window buffer alist)
+    (when-let* ((window (or (display-buffer-reuse-window buffer alist)
                            (display-buffer-same-window buffer alist)
                            (display-buffer-pop-up-window buffer alist)
                            (display-buffer-use-some-window buffer alist))))
@@ -274,8 +295,10 @@ for BUFFER-OR-NAME to be displayed in."
     (setq mu4e-split-view 'horizontal))
 
   (let* ((buffer-name (or (get-buffer buffer-or-name)
-                          (mu4e-error "Buffer `%s' does not exist" buffer-or-name)))
-         (buffer-type (with-current-buffer buffer-name (mu4e--get-current-buffer-type)))
+                          (mu4e-error "Buffer `%s' does not exist"
+                                      buffer-or-name)))
+         (buffer-type
+          (with-current-buffer buffer-name (mu4e--get-current-buffer-type)))
          (direction (cons 'direction
                           (pcase (cons buffer-type mu4e-split-view)
                             ;; views or headers can display
@@ -289,19 +312,34 @@ for BUFFER-OR-NAME to be displayed in."
             ;; views or headers can display
             ;; horz/vert depending on the value of
             ;; `mu4e-split-view'
-            ('(view . horizontal) '((window-height . shrink-window-if-larger-than-buffer)))
-            ('(view . vertical) '((window-min-width . fit-window-to-buffer)))
+            ('(view . horizontal)
+             '((window-height . shrink-window-if-larger-than-buffer)))
+            ('(view . vertical)
+             '((window-min-width . fit-window-to-buffer)))
             (`(,_ . t) nil)))
          (window-action (cond
-                         ((eq buffer-type 'main) '(display-buffer-reuse-window
-                                                   display-buffer-reuse-mode-window
-                                                   display-buffer-full-frame))
-                         ((memq buffer-type '(headers compose))
+                         ;; main-buffer
+                         ((eq buffer-type 'main)
+                          '(display-buffer-reuse-window
+                            display-buffer-reuse-mode-window
+                            display-buffer-full-frame))
+                         ;; compose-buffer
+                         ((eq buffer-type 'compose)
+                          (pcase mu4e-compose-switch
+                            ('window          #'display-buffer-pop-up-window)
+                            ((or 'frame 't)   #'display-buffer-pop-up-frame)
+                            (_                '(display-buffer-reuse-window
+                                                display-buffer-reuse-mode-window
+                                                display-buffer-same-window))))
+                         ;; headers buffer
+                         ((memq buffer-type '(headers))
                           '(display-buffer-reuse-window
                             display-buffer-reuse-mode-window
                             display-buffer-same-window))
+
                          ((memq mu4e-split-view '(horizontal vertical))
                           '(display-buffer-in-direction))
+
                          ((memq mu4e-split-view '(single-window))
                           '(display-buffer-reuse-window
                             display-buffer-reuse-mode-window
@@ -314,8 +352,7 @@ for BUFFER-OR-NAME to be displayed in."
                               display-buffer-same-window))))
          (arg `((,@window-action)
                 ,@window-size
-                ,direction
-                )))
+                ,direction)))
     (funcall (if select #'pop-to-buffer #'display-buffer)
              buffer-name
              arg)))
@@ -330,20 +367,20 @@ and `mu4e-headers-visible-lines' or
 This function is best called from the hook
 `mu4e-view-rendered-hook'."
   (unless (mu4e-current-buffer-type-p 'view)
-    (mu4e-error "Cannot resize as this is not a valid view buffer."))
-  (when-let (win (and mu4e-linked-headers-buffer
-                      (get-buffer-window mu4e-linked-headers-buffer)))
+    (mu4e-error "Cannot resize as this is not a valid view buffer"))
+  (when-let* ((win (and mu4e-linked-headers-buffer
+                        (get-buffer-window mu4e-linked-headers-buffer))))
     ;; This can fail for any number of reasons. If it does, we do
     ;; nothing. If the user has customized the window display we may
     ;; find it impossible to resize the window, and that should not be
     ;; cause for error.
     (ignore-errors
       (cond ((eq mu4e-split-view 'vertical)
-             (window-resize win (- mu4e-headers-visible-columns (window-width win nil))
+             (window-resize win (- mu4e-headers-visible-columns
+                                   (window-width win nil))
                             t t nil))
             ((eq mu4e-split-view 'horizontal)
              (set-window-text-height win mu4e-headers-visible-lines))))))
-
 
 (provide 'mu4e-window)
 ;;; mu4e-window.el ends here

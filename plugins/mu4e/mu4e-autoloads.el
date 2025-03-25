@@ -32,15 +32,21 @@ is non-nil.
 
 ;;; Generated autoloads from mu4e-compose.el
 
+(defalias 'mu4e-compose-mail #'mu4e-compose-new)
 (autoload 'mu4e-compose-new "mu4e-compose" "\
 Mu4e's implementation of `compose-mail'.
-TO, SUBJECT, OTHER-HEADERS, CONTINUE, SWITCH-FUNCTION,
-YANK-ACTION SEND-ACTIONS RETURN-ACTION are as described in
-`compose-mail', and to the extend that they do not conflict with
-mu4e inner workings.
+TO, SUBJECT, OTHER-HEADERS, CONTINUE, YANK-ACTION SEND-ACTIONS
+RETURN-ACTION are as described in `compose-mail', and to the
+extend that they do not conflict with mu4e's inner workings.
+SWITCH-FUNCTION is ignored.
 
 (fn &optional TO SUBJECT OTHER-HEADERS CONTINUE SWITCH-FUNCTION YANK-ACTION SEND-ACTIONS RETURN-ACTION &rest _)" t)
-(defalias 'mu4e-compose-mail #'mu4e-compose-new)
+(autoload 'mu4e-compose-reply-to "mu4e-compose" "\
+Reply to the message at point.
+Optional TO can be the To: address for the message. If WIDE is
+non-nil, make it a \"wide\" reply (a.k.a. \"reply-to-all\").
+
+(fn &optional TO WIDE)" t)
 (autoload 'mu4e-compose-reply "mu4e-compose" "\
 Reply to the message at point.
 If WIDE is non-nil, make it a \"wide\" reply (a.k.a.
@@ -48,22 +54,21 @@ If WIDE is non-nil, make it a \"wide\" reply (a.k.a.
 
 (fn &optional WIDE)" t)
 (autoload 'mu4e-compose-wide-reply "mu4e-compose" "\
-Wide-reply to the message at point.
-A.k.a., \"reply-to-all\"." t)
+Wide reply to the message at point.
+I.e., \"reply-to-all\"." t)
 (autoload 'mu4e-compose-supersede "mu4e-compose" "\
-Supersede message at point.
+Supersede the message at point.
 
 That is, send the message again, with all the same recipients;
 this can be useful to follow-up on a sent message. The message
-must be from current user, as determined through
+must originate from the current user, as determined through
 `mu4e-personal-or-alternative-address-p'." t)
-(autoload 'mu4e-compose-forward "mu4e-compose" "\
-Forward the message at point." t)
 (autoload 'mu4e-compose-edit "mu4e-compose" "\
 Edit an existing draft message." t)
 (autoload 'mu4e-compose-resend "mu4e-compose" "\
 Re-send the message at point to ADDRESS.
-The message is resent as-is, without any editing.
+The message is resent as-is, without any editing. See
+`message-resend' for details.
 
 (fn ADDRESS)" t)
 (define-mail-user-agent 'mu4e-user-agent #'mu4e-compose-mail #'message-send-and-exit #'message-kill-buffer 'message-send-hook)
@@ -92,7 +97,7 @@ The message is resent as-is, without any editing.
 
 ;;; Generated autoloads from mu4e-draft.el
 
-(register-definition-prefixes "mu4e-draft" '("mu4e"))
+(register-definition-prefixes "mu4e-draft" '("mu4e-"))
 
 
 ;;; Generated autoloads from mu4e-folders.el
@@ -152,6 +157,22 @@ The message is resent as-is, without any editing.
 
 ;;; Generated autoloads from mu4e-org.el
 
+(autoload 'mu4e-org-store-link "mu4e-org" "\
+Store a link to a mu4e message or query.
+It links to the last known query when in `mu4e-headers-mode' with
+`mu4e-org-link-query-in-headers-mode' set; otherwise it links to
+a specific message, based on its message-id, so that links stay
+valid even after moving the message around.")
+(autoload 'mu4e-org-open "mu4e-org" "\
+Open the org LINK.
+Open the mu4e message (for links starting with \"msgid:\") or run
+the query (for links starting with \"query:\").
+
+(fn LINK)")
+(autoload 'mu4e-org-store-and-capture "mu4e-org" "\
+Store a link to the current message or query.
+(depending on `mu4e-org-link-query-in-headers-mode', and capture
+it with org)." t)
 (register-definition-prefixes "mu4e-org" '("mu4e-"))
 
 
@@ -182,6 +203,11 @@ Create buttons for any mu4e BUFFER.
 ;;; Generated autoloads from mu4e-thread.el
 
 (register-definition-prefixes "mu4e-thread" '("mu4e-thread-"))
+
+
+;;; Generated autoloads from mu4e-transient.el
+
+(register-definition-prefixes "mu4e-transient" '("mu4e--define-toggle-suffix"))
 
 
 ;;; Generated autoloads from mu4e-update.el

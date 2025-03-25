@@ -1,6 +1,6 @@
 ;;; mu4e-message.el --- Working with mu4e-message plists -*- lexical-binding: t -*-
 
-;; Copyright (C) 2012-2022 Dirk-Jan C. Binnema
+;; Copyright (C) 2012-2025 Dirk-Jan C. Binnema
 
 ;; Author: Dirk-Jan C. Binnema <djcb@djcbsoftware.nl>
 ;; Maintainer: Dirk-Jan C. Binnema <djcb@djcbsoftware.nl>
@@ -29,18 +29,18 @@
 (require 'mu4e-vars)
 (require 'mu4e-contacts)
 (require 'mu4e-window)
+(require 'mu4e-helpers)
 (require 'flow-fill)
 (require 'shr)
 (require 'pp)
 
-(declare-function mu4e-error "mu4e-helpers")
-(declare-function mu4e-warn  "mu4e-helpers")
+
+(declare-function mu4e-determine-attachment-dir  "mu4e-helpers")
 (declare-function mu4e-personal-address-p "mu4e-contacts")
-(declare-function mu4e-make-temp-file  "mu4e-helpers")
 
 ;;; Message fields
 
-(defsubst mu4e-message-field-raw (msg field)
+(defun mu4e-message-field-raw (msg field)
   "Retrieve FIELD from message plist MSG.
 
 See \"mu fields\" for the full list of field, in particular the
@@ -71,39 +71,38 @@ Some notes on the format:
   the MIME-part), :name (the file name, if any), :mime-type (the
   MIME-type, if any) and :size (the size in bytes, if any).
 - Messages in the Headers view come from the database and do not have
-  :attachments, :body-txt or :body-html fields. Message in the
-  Message view use the actual message file, and do include these fields."
+  :attachments or :body fields. Message in the Message view use the
+  actual message file, and do include these fields."
   ;; after all this documentation, the spectacular implementation
   (if msg
       (plist-get msg field)
     (mu4e-error "Message must be non-nil")))
 
-(defsubst mu4e-message-field (msg field)
+(defun mu4e-message-field (msg field)
   "Retrieve FIELD from message plist MSG.
 Like `mu4e-message-field-nil', but will sanitize nil values:
-- all string field except body-txt/body-html: nil -> \"\"
-- numeric fields + dates                    : nil -> 0
-- all others                                : return the value
-Thus, function will return nil for empty lists, non-existing body-txt
-or body-html."
+- all string field except body: nil -> \"\"
+- numeric fields + dates      : nil -> 0
+- all others                  : return the value
+Thus, function will return nil for empty lists, or non-existing body."
   (let ((val (mu4e-message-field-raw msg field)))
     (cond
      (val
       val)   ;; non-nil -> just return it
      ((member field '(:subject :message-id :path :maildir :in-reply-to))
-      "")    ;; string fields except body-txt, body-html: nil -> ""
-     ((member field '(:body-html :body-txt))
+      "")    ;; string fields except body: nil -> ""
+     ((member field '(:body))
       val)
      ((member field '(:docid :size))
       0)     ;; numeric type: nil -> 0
      (t
       val)))) ;; otherwise, just return nil
 
-(defsubst mu4e-message-has-field (msg field)
+(defun mu4e-message-has-field (msg field)
   "If MSG has a FIELD return t, nil otherwise."
   (plist-member msg field))
 
-(defsubst mu4e-message-at-point (&optional noerror)
+(defun mu4e-message-at-point (&optional noerror)
   "Get the message s-expression for the message at point.
 Either the headers buffer or the view buffer, or nil if there is
 no such message. If optional NOERROR is non-nil, do not raise an
@@ -112,6 +111,11 @@ error when there is no message at point."
        ((eq major-mode 'mu4e-headers-mode) (get-text-property (point) 'msg))
        ((eq major-mode 'mu4e-view-mode) mu4e--view-message))
       (unless noerror (mu4e-warn "No message at point"))))
+
+(defun mu4e-message-p ()
+  "Are we on a message?
+Either in headers or view mode."
+  (mu4e-message-at-point 'no-error))
 
 (defsubst mu4e-message-field-at-point (field)
   "Get the field FIELD from the message at point.
@@ -207,12 +211,40 @@ If MSG is nil, use `mu4e-message-at-point'."
     (kill-new path)
     (mu4e-message "Saved '%s' to kill-ring" path)))
 
+(defun mu4e-save-message (&optional auto-path auto-overwrite)
+  "Save a copy of the message-at-point.
+
+If AUTO-PATH is non-nil, save to the attachment directory for
+message/rfc822 files as per `mu4e-determine-attachment-dir'.
+Otherwise, ask user.
+
+If AUTO-OVERWRITE is non-nil, automatically overwrite if a file
+with the same name already exist in the target directory.
+Otherwise, ask for user confirmation.
+
+Returns the full path."
+  (interactive "P")
+  (let* ((srcpath (mu4e-message-readable-path))
+         (srcname (file-name-nondirectory srcpath))
+         (destdir (file-name-as-directory
+                   (mu4e-determine-attachment-dir
+                    srcpath "message/rfc822")))
+         (destpath (mu4e-join-paths destdir srcname))
+         (destpath
+          (if auto-path destpath
+              (read-file-name "Save message as: "
+                              destdir nil nil srcname))))
+    (when destpath
+      (copy-file srcpath destpath (if auto-overwrite t 0))
+      (mu4e-message "Saved %s" destpath)
+      destpath)))
+
 (defun mu4e-sexp-at-point ()
   "Show or hide the s-expression for the message-at-point, if any."
   (interactive)
-  (if-let ((win (get-buffer-window mu4e--sexp-buffer-name)))
+  (if-let* ((win (get-buffer-window mu4e--sexp-buffer-name)))
       (delete-window win)
-    (when-let ((msg (mu4e-message-at-point 'noerror)))
+    (when-let* ((msg (mu4e-message-at-point 'noerror)))
       (when (buffer-live-p mu4e--sexp-buffer-name)
         (kill-buffer mu4e--sexp-buffer-name))
       (with-current-buffer-window
@@ -232,7 +264,8 @@ If MSG is nil, use `mu4e-message-at-point'."
 
 If the header appears multiple times, the field values are
 concatenated, unless FIRST is non-nil, in which case only the
-first value is returned. See `message-fetch-field' for details.
+first value is returned. See `message-field-value' and
+`nessage-fetch-field' for details.
 
 Note: this loads the full message file such that any available
 message header can be used. If the header is part of the MSG
@@ -240,7 +273,8 @@ plist, it is much more efficient to get the information from that
 plist."
   (with-temp-buffer
     (insert (mu4e--decoded-message msg 'headers-only))
-    (message-fetch-field hdr first)))
+    (message-field-value hdr first)))
+
 ;;;
 (provide 'mu4e-message)
 ;;; mu4e-message.el ends here
