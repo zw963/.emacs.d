@@ -14,12 +14,12 @@
 
 (add-to-list 'git-gutter:update-commands 'ace-window)
 
-(global-set-key [(control x) (v) (u)] 'git-gutter:stage-hunk)
+;; (global-set-key [(control x) (v) (u)] 'git-gutter:stage-hunk)
 (global-set-key [(control x) (v) (R)] 'git-gutter:revert-hunk)
-(global-set-key [(control x) (v) (r)] 'git-gutter:update-all-windows)
+;; (global-set-key [(control x) (v) (r)] 'git-gutter:update-all-windows)
 (global-set-key [(control x) (v) (?\s)] 'git-gutter:mark-hunk)
 
-(global-set-key (kbd "C-x v =") 'git-gutter:popup-diff)
+;; (global-set-key (kbd "C-x v =") 'git-gutter:popup-diff)
 
 (provide 'git-gutter_init)
 
