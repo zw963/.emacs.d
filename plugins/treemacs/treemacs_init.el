@@ -156,9 +156,9 @@
             ))
 
 (with-eval-after-load 'lsp-mode
-  ;; (add-hook 'treemacs-switch-workspace-hook 'lsp-treemacs-symbols)
-  ;; (add-hook 'treemacs-select-hook 'lsp-ui-imenu)
-  ;; (add-hook 'treemacs-switch-workspace-hook 'lsp-ui-imenu)
+  (add-hook 'treemacs-switch-workspace-hook 'lsp-treemacs-symbols)
+  (add-hook 'treemacs-switch-workspace-hook 'lsp-ui-imenu)
+  (add-hook 'treemacs-select-functions 'lsp-ui-imenu)
   )
 
 
