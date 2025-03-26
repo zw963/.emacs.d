@@ -42,22 +42,22 @@
 
 (setq global-auto-revert-non-file-buffers t) ;自动还原 ibuffer, dired.
 
-(define-key dired-mode-map  "/" 'dired-filter-by-name)
-(defun dired-filter-by-name(filter-regexp)
-  (interactive "s(only show matched):")
-  (let ((dired-marker-char 16)
-        (files (directory-files default-directory t)))
-    ;;(dired-unmark-all-files dired-marker-char)
-    (save-excursion
-      (dolist (file files)
-        (when (and (dired-goto-file (expand-file-name file))
-                   (not (string= "" filter-regexp))
-                   (string-match filter-regexp (file-name-nondirectory file)))
-          (dired-mark 1)
-          )))
-    (dired-toggle-marks)
-    (dired-do-kill-lines nil (concat "Filter:'" filter-regexp "' omitted %d line%s"))
-    (dired-move-to-filename)))
+;; (define-key dired-mode-map  "/" 'dired-filter-by-name)
+;; (defun dired-filter-by-name(filter-regexp)
+;;   (interactive "s(only show matched):")
+;;   (let ((dired-marker-char 16)
+;;         (files (directory-files default-directory t)))
+;;     ;;(dired-unmark-all-files dired-marker-char)
+;;     (save-excursion
+;;       (dolist (file files)
+;;         (when (and (dired-goto-file (expand-file-name file))
+;;                    (not (string= "" filter-regexp))
+;;                    (string-match filter-regexp (file-name-nondirectory file)))
+;;           (dired-mark 1)
+;;           )))
+;;     (dired-toggle-marks)
+;;     (dired-do-kill-lines nil (concat "Filter:'" filter-regexp "' omitted %d line%s"))
+;;     (dired-move-to-filename)))
 
 ;; 这个是外部 package
 (require 'dired-efap)                   ; rename
@@ -120,7 +120,7 @@
 
 ;; 一些常用的命令:
 ;; t, dired-toggle-marks, 可以用来 mark 所有文件.
-;; /, dired-narrow-fuzzy, 用来动态的 narrow 匹配的文件, g 会恢复.
+;; /, dired-narrow-fuzzy, 用来动态的 narrow 匹配的文件, C-g 会恢复.
 ;; 在标记的文件中搜索,  diredp-do-grep
 
 (provide 'dired_init)
