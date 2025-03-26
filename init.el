@@ -9,15 +9,14 @@
 (require 'org-mode_init)
 (require 'ibuffer_init)
 (require 'dired_init)
-(require 'shell_init)
 (require 'treemacs_init)
 ;; (require 'sort-tab_init)
 
 (require 'dimmer_init)
 (require 'fancy-narrow_init)
 (require 'zoom-frm_init)
-(require 'back-button_init)
-(require 'winum_init)
+(require 'back-button_init) ;; !!!!
+;; (require 'winum_init)
 (require 'which-key_init)
 (require 'anzu_init)
 (require 'beacon_init)
@@ -32,9 +31,9 @@
 (require 'beyond-compare_init)
 ;; (require 'ido_init)
 
-(require 'flx_init)
-(require 'fussy_init); 放到 flx_init 后面
-;; (require 'hotfuzz_init)
+;; (require 'flx_init)
+;; (require 'fussy_init); 放到 flx_init 后面
+(require 'hotfuzz_init)
 (require 'company_init)
 (require 'helm_init)
 (require 'helm-bindings_init) ; 和 ivy_init 冲突， 二者选其一.
@@ -46,21 +45,21 @@
 (require 'quickrun_init)
 (require 'amx_init) ;; 似乎运行 dap-debug 时出错?
 (require 'spatial-navigate_init)
-
+(require 'shell_init)
 (require 'vterm_init)
 (require 'async_init)
 (require 'mu4e_init)
 (require 'volatile-highlights_init) ;; 这个现在看不出效果？
-(require 'buffer-move_init)
+(require 'buffer-move_init) ;; ????
 (require 'goto-chg_init)
-(require 'symbol-overlay_init)
+(require 'symbol-overlay_init) ????
 (require 'iedit_init) ;; 确保放到 symbol-overlay 后面
 ;; (require 'color-rg_init)
 (require 'deadgrep_init)
 ;; (require 'eee_init) ;; 这个打开，覆盖 color-rg 的 Ctrl + Alt + R
 (require 'markdown-mode_init)
 ;; (require 'easy-kill_init)
-(require 'burly_init)
+;; (require 'burly_init)
 (require 'sis_init)
 (require 'page-break-lines_init)
 
@@ -73,9 +72,9 @@
 ;; (require 'indentinator_init)
 (require 'dumb-jump_init)
 (require 'apheleia_init) ;; 怀疑这个跟 lsp-mode formatter 冲突?
-(require 'git_init)
+(require 'git_init) ;; ????
 (require 'flycheck_init)
-(require 'smartparens_init)
+;; (require 'smartparens_init)
 (require 'string-inflection_init)
 (require 'highlight-indentation_init)
 (require 'highlight-escape-sequences_init)
