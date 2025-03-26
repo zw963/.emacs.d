@@ -3,7 +3,7 @@
 (setq anzu-search-threshold 500)
 (setq anzu-replace-threshold 100)
 (setq anzu-minimum-input-length 3)
-(setq anzu-replace-to-string-separator " => ")
+(setq anzu-replace-to-string-separator " ⇨ ")
 ;; (setq anzu-deactivate-region nil)
 
 (global-set-key [remap query-replace] 'anzu-query-replace-regexp)
