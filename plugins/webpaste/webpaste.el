@@ -43,8 +43,9 @@
 
 ;;;###autoload
 (defgroup webpaste nil
-  "Configuration options for webpaste.el where you can define paste providers,
-provider priority for which order which provider should be tried when used."
+  "Configuration options for webpaste.el.
+You can define paste providers, provider priority for which order which provider
+should be tried when used."
   :group 'web)
 
 
@@ -162,7 +163,7 @@ This uses `browse-url-generic' to open URLs."
      :uri "https://bpa.st/api/v1/paste"
      :post-data (("expiry" . "1day"))
      :post-field-lambda webpaste--providers-pinnwand-request
-     :lang-overrides ((emacs-lisp-mode . "emacs"))
+     :lang-overrides ((emacs-lisp-mode . "emacs-lisp"))
      :success-lambda webpaste--providers-pinnwand-success))
 
   "Define all webpaste.el providers.
@@ -382,33 +383,35 @@ Optional params:
                         use to the provider.
 
 :lang-overrides    Alist defining overrides for languages for this provider.  If
-                   a mode is set to nil, it will use fundamental-mode's value as
-                   fallback.  Fundamental-mode's value can also be overridden.
+                   a mode is set to nil, it will use the value of
+                   `fundamental-mode' as fallback.  The value of
+                   `fundamental-mode' can also be overridden.
 
 :lang-uri-separator   Lang URI separator.  This is used for providers that
                       appends the language to the end of the resulting URI and
                       needs a separator between language and link.
 
-:parser            Defines how request.el parses the result.  Look up :parser for
-                   `request'.  This defaults to 'buffer-string.
+:parser            Defines how request.el parses the result.  Look up :parser
+                   for `request'.  This defaults to \\='buffer-string.
 
 :error-lambda      Callback sent to `request', look up how to write these in the
                    documentation for `request'.  The default value for this is
-                   `webpaste--providers-error-lambda', but there's also
+                   `webpaste--providers-error-lambda', but there\\='s also
                    `webpaste--providers-error-lambda-no-failover' available if
-                   you need a provider that isn't allowed to failover.
+                   you need a provider that isn\\='t allowed to failover.
 
 :post-field-lambda Function that builds and returns the post data that should be
                    sent to the provider.  It should accept named parameters by
                    the names TEXT, POST-FIELD and POST-DATA.  POST-DATA should
-                   default to 'nil' or empty list.  It also takes the option
+                   default to nil or empty list.  It also takes the option
                    LANG-OVERRIDES which is a list that enables overriding of
                    `webpaste--default-lang-alist'.
 
                    TEXT contains the data that should be sent.
                    POST-FIELD contains the name of the field to be sent.
                    POST-DATA contains predefined fields that the provider needs.
-                   SUCCESS-LAMBDA contains the function to run on an successful paste."
+                   SUCCESS-LAMBDA contains the function to run on an successful
+                   paste."
   ;; If we get a separator sent to the function, append it to the list of
   ;; separators for later use
   (when lang-uri-separator
@@ -473,8 +476,8 @@ Optional params:
 
 Return nil if no shebang found.
 
-Example: For \"#!/usr/bin/env bash\", 'bash-mode is returned.
-         For \"#!/bin/python\", 'python-mode is returned."
+Example: For \"#!/usr/bin/env bash\", \\='bash-mode is returned.
+         For \"#!/bin/python\", \\='python-mode is returned."
 
   (let* ((end-of-first-line (save-excursion
                               (save-restriction
