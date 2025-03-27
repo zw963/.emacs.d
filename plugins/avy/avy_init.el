@@ -5,7 +5,7 @@
 
 (add-hook 'org-mode-hook
           (lambda ()
-            (global-set-key [(control j)] 'avy-goto-char-timer)
+            (define-key org-mode-map [(control j)] 'avy-goto-char-timer)
             ))
 
 (with-eval-after-load 'treemacs
@@ -15,7 +15,7 @@
               ))
   )
 ;; (global-set-key [(control c) (r)] 'avy-resume)
-(define-key isearch-mode-map [(control \')] 'avy-isearch)
+(define-key isearch-mode-map [(control j)] 'avy-isearch)
 
 (setq avy-background t)
 (setq avy-style 'pre)
@@ -35,39 +35,12 @@
 
 (require 'avy-zap)
 (global-set-key [remap zap-to-char] 'avy-zap-to-char-dwim)
-
-;; (setq avy-zap-function 'delete-region)
+(setq avy-zap-function 'delete-region)
 
 (require 'goto-char-preview)
 
 ;; M-g c, 这个更多的是在调试时使用，打印错误，告诉那个位置出错，直接跳过去。
 (global-set-key [remap goto-char] 'goto-char-preview)
-
-(require 'ace-window)
-;; (setq aw-keys '(?a ?s ?d ?f ?g ?h ?j ?k ?l))
-(setq aw-scope 'visible)
-(setq aw-dispatch-always t)
-
-;; ace-window 激活后，有一个有用的快捷键 m, 用来交换当前 window 和指定的 window.
-;; 或者直接 C-u C-x o, 直接就是 swap window, C-u C-u C-x 0, 删除指定的 window.
-;; (global-set-key [remap other-window] 'ace-window)
-(global-set-key [remap other-window] (lambda ()
-                                       (interactive)
-                                       (progn
-                                         (setq unread-command-events (listify-key-sequence (kbd "?"))) ;; Queue "?" key command to be sent
-                                         (ace-window nil))
-                                       ))
-
-(set-face-attribute
- 'aw-leading-char-face nil
- :foreground "deep sky blue"
- :weight 'bold
- :height 3.0)
-
-(set-face-attribute
- 'aw-mode-line-face nil
- :inherit 'mode-line-buffer-id
- :foreground "lawn green")
 
 ;; 这个和 treemacs rightclick menu 冲突.
 ;; 在某些情况下，这个无法方便的像 helm 一样过滤，不够方便
@@ -90,6 +63,7 @@
 ;; 进入 help-mode, 测试快捷键 o.
 (ace-link-setup-default)
 
+(require 'goto-window_init)
 (require 'goto-line_init)
 
 (provide 'avy_init)
