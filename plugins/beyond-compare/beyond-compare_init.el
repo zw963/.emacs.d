@@ -1,6 +1,12 @@
 ;; ============================== Beyond Comapre 集成 ==============================
 (require 'beyond-compare-functions)
 
+(global-set-key [(control f11)] 'bc1-current-region)
+(global-set-key [(meta f11)] 'bc2-current-region)
+
+(global-set-key [(control f12)] 'bc1-current-file)
+(global-set-key [(meta f12)] 'bc2-current-file)
+
 (require 'dired)
 (add-hook 'dired-mode-hook
           (lambda ()
@@ -30,12 +36,6 @@
             (define-key vc-git-log-view-mode-map [(=)] 'bc3-gitdiff-file-at-point) ;; 当前文件与 commit 之间的修改.
             ))
 
-(global-set-key [(control f12)] 'bc1-current-file)
-(global-set-key [(meta f12)] 'bc2-current-file)
-
-(global-set-key [(control f11)] 'bc1-current-region)
-(global-set-key [(meta f11)] 'bc2-current-region)
-
 (with-eval-after-load 'git-emacs
   (global-set-key [(control x) (v) (=)] 'bc3-gitdiff) ;; 当前 diff 修改.
   (global-set-key [(control x) (v) (h)] 'bc3-gitdiff-head) ;; diff + index 修改
@@ -57,6 +57,11 @@
           (lambda ()
             (define-key mo-git-blame-mode-map [(d)] 'bc3-gd1-file-at-point)
             ))
+
+(with-eval-after-load 'treemacs
+  (add-hook 'treemacs-mode-hook
+            (lambda ()
+              (define-key treemacs-mode-map [mouse-3]         'treemacs-rightclick-menu-hacked))))
 
 (provide 'beyond-compare_init)
 
