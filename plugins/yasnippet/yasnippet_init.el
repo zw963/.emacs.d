@@ -232,5 +232,7 @@
 (yas-recompile-all)
 (yas-global-mode t)
 
+(require 'auto-yasnippet)
+
 (provide 'yasnippet_init)
 ;;; yasnippet_init.el ends here
