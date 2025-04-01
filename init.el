@@ -22,6 +22,7 @@
 
 ;; / 然后键入关键字，可以快速过滤。
 ;; S, 可以调出 hydra 菜单，快速排序。
+;; 暂时关闭了 dired+, 因为，C-o 是在另一个 window 查看当前文件（光标不切换）
 (require 'dired_init)
 
 ;; (require 'hydra_init);; depend by treemacs
@@ -57,6 +58,7 @@
 ;; C-/      => undo-tree-or-undo-pp
 ;; C-M-/    => undo-tree-redo
 (require 'undo-tree_init)
+;; (require 'vundo_init)
 
 ;; C-' (回车键左边的按键）
 (require 'toggle-quotes_init)
@@ -113,7 +115,7 @@
 (require 'apheleia_init) ;; 怀疑这个跟 lsp-mode formatter 冲突?
 (require 'git_init) ;; ????
 (require 'flycheck_init)
-;; (require 'smartparens_init)
+(require 'smartparens_init)
 (require 'string-inflection_init)
 (require 'highlight-indentation_init)
 (require 'highlight-escape-sequences_init)

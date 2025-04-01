@@ -77,6 +77,8 @@
             (dired-hide-details-mode -1)
             ;; 这行代码在 hook 里面是必须的, 因为 dired-efap 改写了 meta b 参数.
             (define-key dired-mode-map  [(meta b)] nil)
+            (define-key dired-mode-map [(control o)] dired-display-file) ;; 这是 dired 模式默认
+            (define-key dired-mode-map [(control c) (o)] diredp-find-file-other-frame) ;; 这是 dired+ 的 C-o, 改为 C-c o
             (define-key dired-mode-map  [(control r)] 'rg-grep)
             (define-key dired-mode-map  [(control c) (+)] 'dired-create-empty-file)
             ;; (define-key dired-mode-map ")" 'dired-git-info-mode)
