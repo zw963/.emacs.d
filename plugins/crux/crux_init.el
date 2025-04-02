@@ -78,7 +78,12 @@
 (global-set-key [(control x) (\3)] 'split-window-right-then-switch-to)
 (global-set-key [(control right)] 'transpose-current-char) ;光标前所在字母右移
 (global-set-key [(control left)] 'transpose-current-char-backward) ;光标前所在字母左移
-(global-set-key [(meta k)] 'mark-next-line)
+
+;; 暂时关闭 mark-next-line, 因为实在是找不到一个快捷键可以绑定它
+;; 目前，Alt + hjkl 使用 VIM 快捷键，因此和以前的 Alt + k 冲突。
+;; 记住，如果只是给当前行增加注释，直接 M-; 就行了，不需要先 mark 当前 line
+;; (global-set-key [(meta k)] 'mark-next-line)
+
 ;; (global-set-key [(control c) (?\t)] 'crux-indent-rigidly-and-copy-to-clipboard)
 
 (global-set-key [(meta =)] 'indent-rigidly-right)
