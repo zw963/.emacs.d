@@ -8,7 +8,11 @@
 ;; ==============================没有专门绑定快捷键的 mode==============================
 (require 'org-mode_init)
 (require 'ibuffer_init)
-(require 'dimmer_init)
+
+;; 下面的二选一
+;; (require 'dimmer_init)
+(require 'golden-ratio_init)
+
 (require 'which-key_init)
 (require 'beacon_init)
 
@@ -87,7 +91,7 @@
 (require 'yasnippet_init)
 (require 'wgrep_init)
 (require 'quickrun_init)
-(require 'amx_init) ;; 似乎运行 dap-debug 时出错?
+;; (require 'amx_init) ;; 似乎运行 dap-debug 时出错?
 (require 'spatial-navigate_init)
 (require 'shell_init)
 (require 'vterm_init)
