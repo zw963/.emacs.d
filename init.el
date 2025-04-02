@@ -13,6 +13,10 @@
 ;; (require 'dimmer_init)
 (require 'golden-ratio_init)
 
+;; 二选一
+;; (require 'highlight-indentation_init)
+(require 'indent-bars_init)
+
 (require 'which-key_init)
 (require 'beacon_init)
 
@@ -124,13 +128,12 @@
 (require 'flycheck_init)
 (require 'smartparens_init)
 (require 'string-inflection_init)
-(require 'highlight-indentation_init)
 (require 'highlight-escape-sequences_init)
 (require 'rainbow-delimiters_init)
 (require 'expand-region_init)
 (require 'ruby_init)
 (require 'crystal-mode_init)
-(require 'rainbow-mode_init)
+(require 'colorful-mode_init)
 (require 'scss-css-mode_init)
 ;; (require 'format-all_init)
 ;; (require 'wakatime-mode_init)
