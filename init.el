@@ -31,6 +31,9 @@
 (require 'company_init)
 (require 'breadcrumb_init)
 
+;; =============== 下面是绑定快捷键的模式 ===============
+
+
 ;; / 然后键入关键字，可以快速过滤。
 ;; S, 可以调出 hydra 菜单，快速排序。
 ;; 暂时关闭了 dired+, 因为，C-o 是在另一个 window 查看当前文件（光标不切换）
@@ -92,10 +95,16 @@
 ;; (require 'ivy_init)
 ;; (require 'prescient_init) ;; 这个必须放在 ivy_init 或 company_init 后面.
 
+;; 记住 aya 前缀的 command，例如：aya-create, aya-expand
 (require 'yasnippet_init)
+
+;; 记住，C-c C-c 是编辑完成，我自己修改了快捷键，F3 通常是进入 wgrep 编辑模式。
+;; 通常会和 iedit-mode 的 Ctrl + ; 一起使用。
 (require 'wgrep_init)
+
+;; C-c 回车，或者 C-x C-e 执行 region 
 (require 'quickrun_init)
-;; (require 'amx_init) ;; 似乎运行 dap-debug 时出错?
+
 (require 'spatial-navigate_init)
 (require 'shell_init)
 (require 'vterm_init)
