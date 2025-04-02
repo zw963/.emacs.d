@@ -19,5 +19,8 @@
       helm-flx-for-helm-locate t) ;; nil by default
 (helm-flx-mode 1)
 
+(require 'helm-descbinds)
+(helm-descbinds-mode)
+
 (provide 'helm_init)
 ;;; helm_init.el ends here
