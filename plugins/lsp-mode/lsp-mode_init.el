@@ -165,6 +165,10 @@
   (setq lsp-treemacs-error-list-current-project-only t)
   )
 
+;; (add-hook 'treemacs-switch-workspace-hook 'lsp-treemacs-symbols)
+;; (add-hook 'treemacs-switch-workspace-hook 'lsp-ui-imenu)
+;; (add-hook 'treemacs-select-functions 'lsp-ui-imenu)
+
 ;; 想完成本 buffer 内的内容，需要加入 company-dabbrev-code
 ;; 但是，如果开启这个，会让 lsp 出现很多和上下文无关的结果。
 ;; 因此只是有选择的在几个没有开启 lsp 的模式下开启。
