@@ -25,11 +25,24 @@
 
 (require 'edit-server_init)
 (require 'doom-modeline_init)
+
+
+;; hotfuzz 或 fussy 二选一
 (require 'flx_init)
 (require 'fussy_init); 放到 flx_init 后面
 ;; (require 'hotfuzz_init)
+
+
 (require 'company_init)
 (require 'breadcrumb_init)
+(require 'async_init)
+(require 'volatile-highlights_init)
+
+(require 'sis_init)
+(require 'page-break-lines_init)
+
+;; 记得这个最大的问题是, 无法在 daemon 模式下恢复保存的  workspace?
+;; (require 'burly_init)
 
 ;; =============== 下面是绑定快捷键的模式 ===============
 
@@ -105,24 +118,38 @@
 ;; C-c 回车，或者 C-x C-e 执行 region 
 (require 'quickrun_init)
 
+;; 基于空格的智能跳转，Alt + 上下左右
 (require 'spatial-navigate_init)
+
+;; 主要是 vterm，有个 Ctrl + ~ 快捷键
+;; 但是一个报错：awk: cmd. line:1: warning: escape sequence `\[' treated as plain `['，很恼火。
 (require 'shell_init)
-(require 'vterm_init)
-(require 'async_init)
+
+;; 快捷键很多，见相关笔记
 (require 'mu4e_init)
-(require 'volatile-highlights_init) ;; 这个现在看不出效果？
-(require 'buffer-move_init) ;; ????
+
+;; Ctrl + Shift + 上下左右
+(require 'buffer-move_init)
+
+;; Ctrl + . 以及 , （就是源代码跳转时，使用 Alt, 改成 Ctrl 即可）
+;; 注意, Ctrl + . 在中文状态下, 和 fcitx 冲突, 需要关闭相应快捷键
 (require 'goto-chg_init)
-(require 'symbol-overlay_init) ????
+
+;; 目前是 F7, 实在找不到好的快捷键
+;; TODO: 找找有没有什么适合前缀的快捷键, 占用了更加适合连续键入的非前缀快捷键
+(require 'symbol-overlay_init)
+
+;; Ctrl + ;
 (require 'iedit_init) ;; 确保放到 symbol-overlay 后面
+
+;; 二选一
+;; Ctrl + Alt + r, F3 使用 wgrep 编辑
 ;; (require 'color-rg_init)
-(require 'deadgrep_init)
 ;; (require 'eee_init) ;; 这个打开，覆盖 color-rg 的 Ctrl + Alt + R
+(require 'deadgrep_init)
+
+;; 记住 C-c ' 编辑代码块中的代码.
 (require 'markdown-mode_init)
-;; (require 'easy-kill_init)
-;; (require 'burly_init)
-(require 'sis_init)
-(require 'page-break-lines_init)
 
 ;; ============================== 编程相关 ==============================
 

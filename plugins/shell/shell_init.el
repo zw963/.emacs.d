@@ -1,3 +1,5 @@
+;; 运行 shell 启动 shell-mode
+
 (custom-set-variables
  '(comint-scroll-to-bottom-on-input t)
  '(comint-completion-autolist t)     ; show completion list when ambiguous
@@ -15,6 +17,8 @@
                              (define-key shell-mode-map [(control p)] 'comint-previous-input)
                              (define-key shell-mode-map [(control r)] 'comint-previous-matching-input-from-input)
                              ))
+
+(require 'vterm_init)
 
 (provide 'shell_init)
 
