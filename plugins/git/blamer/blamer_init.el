@@ -4,7 +4,7 @@
 (setq blamer-idle-time 1)
 (setq blamer-max-lines 1)
 
-;; (global-set-key [(control x) (v) (m)] 'blamer-show-posframe-commit-info)
+(global-set-key [(control x) (v) (m)] 'blamer-show-posframe-commit-info)
 
 (global-blamer-mode 1)
 

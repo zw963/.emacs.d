@@ -1,10 +1,10 @@
 ;;; gitattributes-mode.el --- Major mode for editing .gitattributes files  -*- lexical-binding:t -*-
 
 ;; Copyright (C) 2013-2015 Rüdiger Sonderfeld
-;; Copyright (C) 2013-2022 The Magit Project Contributors
+;; Copyright (C) 2013-2024 The Magit Project Contributors
 
 ;; Author: Rüdiger Sonderfeld <ruediger@c-plusplus.net>
-;; Maintainer: Jonas Bernoulli <jonas@bernoul.li>
+;; Maintainer: Jonas Bernoulli <emacs.git-modes@jonas.bernoulli.dev>
 ;; Homepage: https://github.com/magit/git-modes
 ;; Keywords: convenience vc git
 
@@ -31,6 +31,7 @@
 
 ;;; Code:
 
+(require 'compat)
 (require 'easymenu)
 (require 'thingatpt)
 
@@ -49,8 +50,8 @@ Alternatively add `turn-on-eldoc-mode' to the mode hook."
 
 (defcustom gitattributes-mode-man-function #'man
   "Function to open the gitattributes(5) manpage."
-  :type '(choice (const :tag "Man" #'man)
-                 (const :tag "Woman" #'woman)
+  :type '(choice (const :tag "Man" man)
+                 (const :tag "Woman" woman)
                  (function :tag "Function"))
   :group 'gitattributes-mode)
 
@@ -184,8 +185,8 @@ If ARG is omitted or nil, move point backward one field."
     (dotimes (_ (or arg 1))
       (re-search-backward "\\s-[!-]?\\<" nil 'move))))
 
-(defvar gitattributes-mode-map (make-sparse-keymap)
-  "Keymap for `gitattributes-mode'.")
+(defvar-keymap gitattributes-mode-map
+  :doc "Keymap for `gitattributes-mode'.")
 
 (easy-menu-define gitattributes-mode-menu
   gitattributes-mode-map

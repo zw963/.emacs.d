@@ -44,6 +44,13 @@
 ;; 记得这个最大的问题是, 无法在 daemon 模式下恢复保存的  workspace?
 ;; (require 'burly_init)
 
+;; ---------------- 编程相关 ----------------
+
+(require 'indentation_init)
+(require 'tree-sitter_init)
+(require 'apheleia_init) ;; 怀疑这个跟 lsp-mode formatter 冲突?
+(require 'dumb-jump_init)
+
 ;; =============== 下面是绑定快捷键的模式 ===============
 
 
@@ -151,17 +158,25 @@
 ;; 记住 C-c ' 编辑代码块中的代码.
 (require 'markdown-mode_init)
 
-;; ============================== 编程相关 ==============================
+;; ---------------- 编程相关 ----------------
 
+;; M-c . 输入一个 `=> '
+;; C-c C-c 执行 format-buffer
+;; 还有个 Alt + Return,  某些模式下有用, 用来变换 do ... end block 到 { ... }
+;; prog-mode 包含 hideshow
+;; 鼠标右键找到 fold/unfold 展开或收起代码块 (或者 Ctrl + TAB)
+;; C-c / 收起所有代码块
+;; C-c \ 展开所有代码块
 (require 'prog-mode_init)
-(require 'tree-sitter_init)
-;; (require 'combobulate_init)
-(require 'snap-indent_init)
-;; (require 'indentinator_init)
-(require 'dumb-jump_init)
-(require 'apheleia_init) ;; 怀疑这个跟 lsp-mode formatter 冲突?
+
+;; 快捷键见 git_init.el
 (require 'git_init) ;; ????
+
+;; 注意两点:
+;; 如果 flycheck 检测到错误, 整个 mode-line 都是红色的
+;; 当前使用的 mode line, 右侧可以看到 flycheck 的状态, 鼠标点击, 出来一个菜单, 可以选择下一个错误.
 (require 'flycheck_init)
+
 (require 'smartparens_init)
 (require 'string-inflection_init)
 (require 'highlight-escape-sequences_init)
