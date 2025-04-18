@@ -15,6 +15,7 @@
   (if (rinari-root)
       (robe-rails-refresh)
     (ruby-load-file (buffer-file-name))))
+
 (define-key inf-ruby-minor-mode-map (kbd "C-c C-l") 'robe-reload-enhanced)
 
 (run-ruby-mode-hook '(robe-mode))

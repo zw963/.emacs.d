@@ -51,7 +51,8 @@
    (t
     (cond
      ((equal major-mode 'enh-ruby-mode) (enh-ruby-forward-sexp))
-     ((equal major-mode 'crystal-mode) (ruby-forward-sexp))
+     ;; ((equal major-mode 'crystal-mode) (ruby-forward-sexp))
+     ((equal major-mode 'crystal-mode) (crystal-forward-sexp))
      (t (ruby-forward-sexp))))))
 
 (defun seeing-is-believing ()
