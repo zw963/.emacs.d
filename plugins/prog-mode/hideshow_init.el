@@ -1,4 +1,5 @@
 (require 'hideshow)
+(require 'treesit-fold)
 
 ;; 某些模式下, 可能需要定制 hs-hide-all-non-comment-function.
 ;; 参加下面的例子, the following code shows the next nested level in addition to
@@ -78,7 +79,7 @@ Meant to be used as `hs-set-up-overlay'."
 (add-hook 'hs-minor-mode-hook (lambda ()
                                 (local-set-key [(control c) (/)] 'hs-hide-all)
                                 (local-set-key [(control c) (\\)] 'hs-show-all)
-                                (local-set-key [(control tab)] 'hs-toggle-hiding)
+                                (local-set-key [(control tab)] 'treesit-fold-toggle)
                                 (local-set-key [(mouse-2)] 'hs-toggle-hiding)
                                 ))
 

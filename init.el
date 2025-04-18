@@ -176,11 +176,14 @@
 ;; M-c . 输入一个 `=> '
 ;; C-c C-c 执行 format-buffer
 ;; 还有个 Alt + Return,  某些模式下有用, 用来变换 do ... end block 到 { ... }
-;; prog-mode 包含 hideshow
+(require 'prog-mode_init)
+
+;; 包含 hideshow
 ;; 鼠标右键找到 fold/unfold 展开或收起代码块 (或者 Ctrl + TAB)
 ;; C-c / 收起所有代码块
 ;; C-c \ 展开所有代码块
-(require 'prog-mode_init)
+(require 'context-menu-mode_init)
+(require 'treesit-fold_init)
 
 ;; 快捷键见 git_init.el
 (require 'git_init) ;; ????
