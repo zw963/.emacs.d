@@ -3,9 +3,8 @@
 ;; (add-hook 'prog-mode-hook #'snap-indent-mode)
 
 (require 'indentinator)
-
 (add-hook 'prog-mode-hook #'indentinator-mode)
 
-(provide 'snap-indent_init)
+(provide 'indentation_init)
 
-;;; snap-indent_init.el ends here
+;;; indentation_init.el ends here
