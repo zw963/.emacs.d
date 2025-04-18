@@ -319,7 +319,7 @@ which has been dropped in Emacs 27.  Considering that this
 package never supported marking a window as dedicated and earlier
 Emacsen just passed `display-buffer-mark-dedicated' for its
 value, it's safe to just omit that argument if not necessary."
-  (if (< emacs-major-version 27)
+  (if (version< emacs-version "27")
       (window--display-buffer buffer window type alist
                               display-buffer-mark-dedicated)
     (window--display-buffer buffer window type alist)))
