@@ -55,7 +55,14 @@
 (require 'rainbow-delimiters_init)
 (require 'colorful-mode_init)
 (require 'scss-css-mode_init)
+(require 'ws-butler_init)
+(require 'posframe_init)
+(require 'ligature_init)
+(require 'nerd-icons_init)
+(require 'shackle_init)
 
+;; (require 'tabnine_init) ;; lsp-bridge 默认会开启 tabnine
+(require 'codeium_init)
 
 ;; =============== 下面是绑定快捷键的模式 ===============
 
@@ -200,11 +207,8 @@
 ;; C-c p
 (require 'webpaste_init)
 
-
-(require 'ws-butler_init)
-(require 'yafolding_init)
-;; (require 'fira-code-mode_init)
-(require 'ligature_init)
+;; popper-cycle 绑定到 Ctrl + Shift + ~
+(require 'popper_init)
 
 ;; 关闭一些有用，但最近不常用的 mode
 ;; (require 'dart-mode_init)
@@ -214,19 +218,11 @@
 ;; (require 'rust-ts-mode_init)
 
 ;; (require 'lsp-bridge_init)
-;; (require 'tabnine_init) ;; lsp-bridge 默认会开启 tabnine
-(require 'codeium_init)
 ;; (require 'haskell-mode_init)
 ;; (require 'js2-mode_init)
 ;; (require 'lua-mode_init)
 
 (require 'elixir_init)
-
-;; 这个似乎要放到最后面？
-(require 'posframe_init)
-(require 'shackle_init)
-(require 'popper_init)
-(require 'nerd-icons_init)
 
 (add-hook 'prog-mode-hook 'display-line-numbers-mode)
 (add-hook 'sgml-mode-hook 'display-line-numbers-mode)
