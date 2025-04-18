@@ -50,6 +50,12 @@
 (require 'tree-sitter_init)
 (require 'apheleia_init) ;; 怀疑这个跟 lsp-mode formatter 冲突?
 (require 'dumb-jump_init)
+(require 'smartparens_init)
+(require 'highlight-escape-sequences_init)
+(require 'rainbow-delimiters_init)
+(require 'colorful-mode_init)
+(require 'scss-css-mode_init)
+
 
 ;; =============== 下面是绑定快捷键的模式 ===============
 
@@ -177,18 +183,24 @@
 ;; 当前使用的 mode line, 右侧可以看到 flycheck 的状态, 鼠标点击, 出来一个菜单, 可以选择下一个错误.
 (require 'flycheck_init)
 
-(require 'smartparens_init)
+;; Alt + u, 变换光标前后的符号
+;; Shift + Alt + u, 仅仅变换光标前符号到全部大写
 (require 'string-inflection_init)
-(require 'highlight-escape-sequences_init)
-(require 'rainbow-delimiters_init)
+
+;; C-M-h
 (require 'expand-region_init)
+
+;; C-c C-l 运行 robe repl
+;; C-x C-e 运行 seeing-is-believing
 (require 'ruby_init)
+
 (require 'crystal-mode_init)
-(require 'colorful-mode_init)
-(require 'scss-css-mode_init)
-;; (require 'format-all_init)
 ;; (require 'wakatime-mode_init)
+
+;; C-c p
 (require 'webpaste_init)
+
+
 (require 'ws-butler_init)
 (require 'yafolding_init)
 ;; (require 'fira-code-mode_init)

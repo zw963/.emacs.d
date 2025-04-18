@@ -3,7 +3,7 @@
 ;; Copyright (C) 2023 Free Software Foundation, Inc.
 
 ;; Author: Karthik Chikmagalur <karthik.chikmagalur@gmail.com>
-;; Version: 0.4.6
+;; Version: 0.4.8
 ;; Package-Requires: ((emacs "26.1"))
 ;; Keywords: convenience
 ;; URL: https://github.com/karthink/popper
@@ -280,7 +280,7 @@ such alists."
    (append alist
            `((window-height . ,popper-window-height)
              (side . bottom)
-             (slot . 1)))))
+             (slot . 0)))))
 
 (defun popper-popup-p (buf)
   "Predicate to test if buffer BUF qualifies for popper handling.
@@ -311,7 +311,7 @@ This is intended to be used in `display-buffer-alist'."
 The project root is used if found by project, with the default
 directory as a fall back."
   (or (and (fboundp 'project-root)
-           (when-let ((project (project-current)))
+           (when-let* ((project (project-current)))
              (project-root project)))
       (expand-file-name default-directory)))
 
@@ -321,7 +321,7 @@ directory as a fall back."
     (user-error "Cannot find project directory to group popups. \
 Please install `project' or customize \
 `popper-group-function'"))
-  (when-let ((project (project-current)))
+  (when-let* ((project (project-current)))
     (project-root project)))
 
 (defun popper-group-by-projectile ()
@@ -583,7 +583,7 @@ See `popper-cycle' for NUM and details."
 (defun popper-raise-popup (&optional buffer)
   "Raise a popup to regular status.
 If BUFFER is not specified,raise the current buffer."
-  (when-let ((buf (get-buffer (or buffer (current-buffer)))))
+  (when-let* ((buf (get-buffer (or buffer (current-buffer)))))
     (with-current-buffer buf
       (if (popper-popup-p buf)
           (setq popper-popup-status 'raised)
@@ -647,7 +647,7 @@ This should run after `popper--update-popups' in
                (with-selected-window win
                  (setq-local popper-popup-status 'popup)
                  ;; If window was previously showing a different buffer, switch to it
-                 (if-let ((wpb (window-prev-buffers win))
+                 (if-let* ((wpb (window-prev-buffers win))
                           (switch-to-buffer-preserve-window-point t))
                      (switch-to-buffer (caar wpb))
                    ;; otherwise kill this window/frame
