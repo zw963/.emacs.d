@@ -1,5 +1,4 @@
 (require 'prog-mode)
-(require 'hideshow_init)
 (require 'meta-return-hack_init)
 (require 'context-menu-mode_init)
 

@@ -20,8 +20,8 @@
 (require 'which-key_init)
 (require 'beacon_init)
 
-;; (require 'anzu_init)
-(require 'visual-regexp_init)
+(require 'anzu_init)
+;; (require 'visual-regexp_init)
 
 (require 'edit-server_init)
 (require 'doom-modeline_init)
