@@ -69,7 +69,12 @@
 
 ;; / 然后键入关键字，可以快速过滤。
 ;; S, 可以调出 hydra 菜单，快速排序。
-;; 暂时关闭了 dired+, 因为，C-o 是在另一个 window 查看当前文件（光标不切换）
+;; Shift + F2, 重命名当前文件
+;; Backspace, 返回上一级目录
+;; C-s 文件名 isearch
+;; o 在另一个 window 打开文件(光标切换)
+;; C-o 是在另一个 window 查看当前文件（光标不切换）
+;; C-c o, 另一个 frame 打开当前文件 (光标切换)
 (require 'dired_init)
 
 ;; (require 'hydra_init);; depend by treemacs
@@ -87,8 +92,8 @@
 ;; M-9 left-tab, M-0 right-tab.
 (require 'sort-tab_init)
 
-;; C-x 然后左右方向键, 本文件历史，
-;;或 C-x 然后 Ctrl + 左右方向键, 全局历史
+;; C-x 然后连续按下左右方向键, 本文件历史，
+;;或 C-x Ctrl 不放, 连续按下左右方向键, 全局历史
 (require 'back-button_init)
 
 ;; C-j 然后输入一个关键字，然后根据提示，跳转到匹配的位置。

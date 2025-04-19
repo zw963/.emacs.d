@@ -35,8 +35,10 @@
   )
 ;; (define-key dired-mode-map [(f)] 'dired-isearch-filenames-regexp)
 (define-key dired-mode-map [(control s)] 'dired-isearch-filenames)
+
 (define-key dired-mode-map [(?\d)] 'dired-up-directory)
 (define-key dired-mode-map [(backspace)] 'dired-up-directory)
+
 (define-key dired-mode-map [(control d)] 'dired-do-delete)
 (define-key dired-mode-map [(insert)] 'dired-cpa-current-file)
 
