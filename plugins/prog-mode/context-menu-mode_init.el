@@ -158,6 +158,7 @@
                 mint-mode-hook
                 bash-ts-mode-hook
                 emacs-lisp-mode-hook
+                rust-mode-hook
                 ))
   (add-hook hook (lambda ()
                    (add-to-list 'context-menu-functions 'context-menu-show-lsp-describe-thing-at-point)
