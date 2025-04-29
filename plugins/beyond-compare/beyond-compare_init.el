@@ -58,11 +58,6 @@
             (define-key mo-git-blame-mode-map [(d)] 'bc3-gd1-file-at-point)
             ))
 
-(with-eval-after-load 'treemacs
-  (add-hook 'treemacs-mode-hook
-            (lambda ()
-              (define-key treemacs-mode-map [mouse-3]         'treemacs-rightclick-menu-hacked))))
-
 (provide 'beyond-compare_init)
 
 ;;; beyond-compare_init.el ends here
