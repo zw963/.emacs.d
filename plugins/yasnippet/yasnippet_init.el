@@ -111,10 +111,10 @@
   "Return corresponding class/module name for given FILE."
   (let ((file (current-git-file-path)))
     (if file
-        (let ((path (find-if (lambda (path) (string-match (concat "^" (regexp-quote path)) file))
-                             '("app/models/" "app/controllers/" "app/helpers/" "lib/"
-                               "test/controllers/" "test/models/" "test/helpers/" "test/jobs" "test/integration"
-                               "spec/models/" "spec/controllers/" "spec/helpers/ spec/lib/" "test/graphql"))))
+        (let ((path (cl-find-if (lambda (path) (string-match (concat "^" (regexp-quote path)) file))
+                                '("app/models/" "app/controllers/" "app/helpers/" "lib/"
+                                  "test/controllers/" "test/models/" "test/helpers/" "test/jobs" "test/integration"
+                                  "spec/models/" "spec/controllers/" "spec/helpers/ spec/lib/" "test/graphql"))))
           (if path
               (replace-regexp-in-string
                "^::"
