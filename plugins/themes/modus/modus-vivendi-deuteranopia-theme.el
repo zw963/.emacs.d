@@ -1,6 +1,6 @@
 ;;; modus-vivendi-deuteranopia-theme.el --- Deuteranopia-optimized theme with a black background -*- lexical-binding:t -*-
 
-;; Copyright (C) 2019-2024  Free Software Foundation, Inc.
+;; Copyright (C) 2019-2025  Free Software Foundation, Inc.
 
 ;; Author: Protesilaos Stavrou <info@protesilaos.com>
 ;; Maintainer: Protesilaos Stavrou <info@protesilaos.com>
@@ -167,14 +167,10 @@ standard)."
 
       (bg-completion       "#2f447f")
       (bg-hover            "#45605e")
-      (bg-hover-secondary  "#654a39")
+      (bg-hover-secondary  "#604c30")
       (bg-hl-line          "#2f3849")
       (bg-region           "#5a5a5a")
       (fg-region           "#ffffff")
-
-      (bg-char-0 "#0050af")
-      (bg-char-1 "#7f1f7f")
-      (bg-char-2 "#625a00")
 
       (bg-mode-line-active        "#2a2a6a")
       (fg-mode-line-active        "#f0f0f0")
@@ -257,17 +253,18 @@ standard)."
 ;;;; Code mappings
 
       (bracket fg-main)
-      (builtin magenta-warmer)
+      (builtin yellow)
       (comment yellow-cooler)
-      (constant blue-cooler)
+      (constant blue-faint)
       (delimiter fg-main)
       (docmarkup magenta-faint)
       (docstring cyan-faint)
-      (fnname magenta)
-      (keyword magenta-cooler)
+      (fnname yellow-warmer)
+      (keyword blue-cooler)
       (number fg-main)
       (operator fg-main)
-      (preprocessor red-cooler)
+      (preprocessor magenta-cooler)
+      (property cyan)
       (punctuation fg-main)
       (rx-backslash blue-cooler)
       (rx-construct yellow-cooler)
@@ -277,10 +274,10 @@ standard)."
 
 ;;;; Accent mappings
 
-      (accent-0 blue-cooler)
+      (accent-0 blue-warmer)
       (accent-1 yellow)
       (accent-2 cyan-cooler)
-      (accent-3 magenta-warmer)
+      (accent-3 yellow-cooler)
 
 ;;;; Button mappings
 
@@ -294,7 +291,7 @@ standard)."
       (fg-completion-match-0 blue-cooler)
       (fg-completion-match-1 yellow)
       (fg-completion-match-2 cyan-cooler)
-      (fg-completion-match-3 magenta-warmer)
+      (fg-completion-match-3 yellow-cooler)
       (bg-completion-match-0 unspecified)
       (bg-completion-match-1 unspecified)
       (bg-completion-match-2 unspecified)
@@ -313,7 +310,7 @@ standard)."
       (date-scheduled yellow-cooler)
       (date-scheduled-subtle yellow-faint)
       (date-weekday cyan)
-      (date-weekend magenta)
+      (date-weekend magenta-cooler)
 
 ;;;; Line number mappings
 
@@ -374,7 +371,7 @@ standard)."
       (fg-prose-macro magenta-cooler)
 
       (bg-prose-verbatim unspecified)
-      (fg-prose-verbatim magenta-warmer)
+      (fg-prose-verbatim yellow)
 
       (prose-done blue)
       (prose-todo yellow-warmer)
@@ -385,7 +382,7 @@ standard)."
       (prose-table fg-alt)
       (prose-table-formula yellow-warmer)
 
-      (prose-tag magenta-faint)
+      (prose-tag fg-alt)
 
 ;;;; Rainbow mappings
 
@@ -403,7 +400,7 @@ standard)."
 
       (bg-search-current bg-yellow-intense)
       (bg-search-lazy bg-blue-intense)
-      (bg-search-replace bg-magenta-intense)
+      (bg-search-replace bg-yellow-intense)
 
       (bg-search-rx-group-0 bg-cyan-intense)
       (bg-search-rx-group-1 bg-magenta-intense)
@@ -464,10 +461,10 @@ standard)."
       (fg-heading-1 fg-main)
       (fg-heading-2 yellow-faint)
       (fg-heading-3 blue-faint)
-      (fg-heading-4 magenta)
-      (fg-heading-5 green-faint)
-      (fg-heading-6 red-faint)
-      (fg-heading-7 cyan-faint)
+      (fg-heading-4 green-faint)
+      (fg-heading-5 magenta-cooler)
+      (fg-heading-6 yellow-cooler)
+      (fg-heading-7 cyan)
       (fg-heading-8 fg-dim)
 
       (bg-heading-0 unspecified)

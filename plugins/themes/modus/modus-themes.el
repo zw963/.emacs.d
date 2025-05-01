@@ -5,7 +5,7 @@
 ;; Author: Protesilaos Stavrou <info@protesilaos.com>
 ;; Maintainer: Protesilaos Stavrou <info@protesilaos.com>
 ;; URL: https://github.com/protesilaos/modus-themes
-;; Version: 4.6.0
+;; Version: 4.7.0
 ;; Package-Requires: ((emacs "28.1"))
 ;; Keywords: faces, theme, accessibility
 
@@ -309,11 +309,12 @@ If the value is nil or otherwise does not specify two valid Modus
 themes, the command `modus-themes-toggle' reverts to selecting a
 theme from the list of available Modus themes.  In effect, it is
 the same as using the command `modus-themes-select'."
-  :type `(choice
-          (const :tag "No toggle" nil)
-          (list :tag "Pick two themes to toggle between"
-                (choice :tag "Theme one of two" ,@(mapcar (lambda (theme) (list 'const theme)) modus-themes-items))
-                (choice :tag "Theme two of two" ,@(mapcar (lambda (theme) (list 'const theme)) modus-themes-items))))
+  :type (let ((themes (mapcar (lambda (theme) (list 'const theme)) modus-themes-items)))
+          `(choice
+            (const :tag "No toggle" nil)
+            (list :tag "Pick two themes to toggle between"
+                  (choice :tag "Theme one of two" ,@themes)
+                  (choice :tag "Theme two of two" ,@themes))))
   :package-version '(modus-themes . "4.0.0")
   :version "30.1"
   :group 'modus-themes)
@@ -1723,6 +1724,25 @@ FG and BG are the main colors."
     `(link ((,c :inherit button)))
     `(link-visited ((,c :background ,bg-link-visited :foreground ,fg-link-visited :underline ,underline-link-visited)))
     `(tooltip ((,c :background ,bg-active :foreground ,fg-main)))
+;;;;; adoc-mode
+    `(adoc-code-face ((,c :inherit font-lock-constant-face)))
+    `(adoc-command-face ((,c :inherit modus-themes-prose-macro)))
+    `(adoc-complex-replacement-face ((,c :background ,bg-magenta-subtle :foreground ,magenta)))
+    `(adoc-emphasis-face ((t (:inherit bold))))
+    `(adoc-gen-face ((,c :foreground ,blue)))
+    `(adoc-meta-face ((,c :inherit modus-themes-fixed-pitch :foreground ,prose-metadata)))
+    `(adoc-meta-hide-face ((,c :inherit modus-themes-fixed-pitch :foreground ,prose-metadata)))
+    `(adoc-replacement-face ((,c :inherit font-lock-escape-face)))
+    `(adoc-secondary-text-face ((,c :inherit modus-themes-fixed-pitch :foreground ,prose-metadata-value)))
+    `(adoc-table-face ((,c :inherit modus-themes-fixed-pitch :foreground ,prose-table)))
+    `(adoc-title-0-face ((,c :inherit modus-themes-heading-0)))
+    `(adoc-title-1-face ((,c :inherit modus-themes-heading-1)))
+    `(adoc-title-2-face ((,c :inherit modus-themes-heading-2)))
+    `(adoc-title-3-face ((,c :inherit modus-themes-heading-3)))
+    `(adoc-title-4-face ((,c :inherit modus-themes-heading-4)))
+    `(adoc-title-5-face ((,c :inherit modus-themes-heading-5)))
+    `(adoc-typewriter-face ((,c :inherit modus-themes-prose-verbatim)))
+    `(adoc-verbatim-face ((,c :inherit modus-themes-prose-verbatim)))
 ;;;;; agda2-mode
     `(agda2-highlight-bound-variable-face ((,c :inherit font-lock-variable-name-face)))
     `(agda2-highlight-catchall-clause-face ((,c :background ,bg-inactive)))
@@ -1855,11 +1875,11 @@ FG and BG are the main colors."
     `(auto-dim-other-buffers-hide-face ((,c :foreground ,bg-inactive :background ,bg-inactive)))
 ;;;;; avy
     `(avy-background-face ((,c :background ,bg-dim :foreground ,fg-dim :extend t)))
-    `(avy-goto-char-timer-face ((,c :inherit bold :background ,bg-active)))
-    `(avy-lead-face ((,c :inherit (bold modus-themes-reset-soft) :background ,bg-char-0)))
-    `(avy-lead-face-0 ((,c :inherit (bold modus-themes-reset-soft) :background ,bg-char-1)))
-    `(avy-lead-face-1 ((,c :inherit modus-themes-reset-soft :background ,bg-inactive)))
-    `(avy-lead-face-2 ((,c :inherit (bold modus-themes-reset-soft) :background ,bg-char-2)))
+    `(avy-goto-char-timer-face ((,c :inherit (bold modus-themes-search-lazy modus-themes-reset-soft))))
+    `(avy-lead-face ((,c :inherit (bold modus-themes-search-current modus-themes-reset-soft))))
+    `(avy-lead-face-0 ((,c :inherit (bold modus-themes-search-current modus-themes-reset-soft))))
+    `(avy-lead-face-1 ((,c :inherit (bold modus-themes-search-current modus-themes-reset-soft))))
+    `(avy-lead-face-2 ((,c :inherit (bold modus-themes-search-current modus-themes-reset-soft))))
 ;;;;; aw (ace-window)
     `(aw-background-face ((,c :foreground "gray50")))
     `(aw-key-face ((,c :inherit modus-themes-key-binding)))
@@ -2032,8 +2052,8 @@ FG and BG are the main colors."
 ;;;;; corfu-candidate-overlay
     `(corfu-candidate-overlay-face ((t :inherit shadow)))
 ;;;;; corfu-quick
-    `(corfu-quick1 ((,c :inherit bold :background ,bg-char-0)))
-    `(corfu-quick2 ((,c :inherit bold :background ,bg-char-1)))
+    `(corfu-quick1 ((,c :inherit (bold modus-themes-search-current))))
+    `(corfu-quick2 ((,c :inherit (bold modus-themes-search-current))))
 ;;;;; counsel
     `(counsel-active-mode ((,c :foreground ,keyword)))
     `(counsel-application-name ((,c :foreground ,name)))
@@ -2484,6 +2504,7 @@ FG and BG are the main colors."
     `(font-lock-number-face ((,c :foreground ,number)))
     `(font-lock-operator-face ((,c :foreground ,operator)))
     `(font-lock-preprocessor-face ((,c :foreground ,preprocessor)))
+    `(font-lock-property-name-face ((,c :foreground ,property)))
     `(font-lock-punctuation-face ((,c :foreground ,punctuation)))
     `(font-lock-regexp-grouping-backslash ((,c :inherit modus-themes-bold :foreground ,rx-backslash)))
     `(font-lock-regexp-grouping-construct ((,c :inherit modus-themes-bold :foreground ,rx-construct)))
@@ -2522,10 +2543,10 @@ FG and BG are the main colors."
     `(geiser-font-lock-xref-link ((,c :inherit button)))
 ;;;;; git-commit
     `(git-commit-comment-action ((,c :inherit font-lock-comment-face)))
-    `(git-commit-comment-branch-local ((,c :inherit font-lock-comment-face :foreground ,accent-0)))
-    `(git-commit-comment-branch-remote ((,c :inherit font-lock-comment-face :foreground ,accent-1)))
+    `(git-commit-comment-branch-local ((,c :inherit (bold font-lock-comment-face) :foreground ,accent-0)))
+    `(git-commit-comment-branch-remote ((,c :inherit (bold font-lock-comment-face) :foreground ,accent-1)))
     `(git-commit-comment-heading ((,c :inherit (bold font-lock-comment-face))))
-    `(git-commit-comment-file ((,c :inherit font-lock-comment-face :foreground ,name)))
+    `(git-commit-comment-file ((,c :inherit font-lock-comment-face :foreground ,accent-2))) ; like `magit-filename'
     `(git-commit-keyword ((,c :foreground ,keyword)))
     `(git-commit-nonempty-second-line ((,c :inherit error)))
     `(git-commit-overlong-summary ((,c :inherit warning)))
@@ -2615,7 +2636,7 @@ FG and BG are the main colors."
     `(gnus-summary-low-ticked ((,c :inherit italic :foreground ,err)))
     `(gnus-summary-low-undownloaded ((,c :inherit italic :foreground ,warning)))
     `(gnus-summary-low-unread ((,c :inherit italic)))
-    `(gnus-summary-normal-ancient (( )))
+    `(gnus-summary-normal-ancient ((,c :inherit shadow)))
     `(gnus-summary-normal-read ((,c :inherit shadow)))
     `(gnus-summary-normal-ticked ((,c :foreground ,err)))
     `(gnus-summary-normal-undownloaded ((,c :foreground ,warning)))
@@ -2723,6 +2744,8 @@ FG and BG are the main colors."
     `(ibut-face ((,c :inherit button :background ,bg-link-symbolic :foreground ,fg-link-symbolic :underline ,underline-link-symbolic)))
 ;;;;; icomplete
     `(icomplete-first-match ((,c :inherit modus-themes-completion-match-0)))
+    `(icomplete-vertical-selected-prefix-indicator-face ((,c :inherit bold :foreground ,keybind)))
+    `(icomplete-vertical-unselected-prefix-indicator-face ((,c :inherit shadow)))
     `(icomplete-selected-match ((,c :inherit modus-themes-completion-selected)))
 ;;;;; ido-mode
     `(ido-first-match ((,c :inherit modus-themes-completion-match-0)))
@@ -3850,6 +3873,14 @@ FG and BG are the main colors."
     `(tldr-description ((,c :inherit font-lock-doc-face)))
     `(tldr-introduction ((,c :inherit font-lock-comment-face)))
     `(tldr-title ((,c :inherit bold)))
+;;;;; tmr
+    `(tmr-mode-line-active ((,c :inherit bold :foreground ,modeline-info)))
+    `(tmr-mode-line-soon ((,c :inherit bold :foreground ,modeline-warning)))
+    `(tmr-mode-line-urgent ((,c :inherit bold :foreground ,modeline-err)))
+    `(tmr-tabulated-description ((,c :foreground ,docstring)))
+    `(tmr-tabulated-end-time ((,c :foreground ,date-deadline)))
+    `(tmr-tabulated-remaining-time ((,c :foreground ,date-scheduled)))
+    `(tmr-tabulated-start-time ((,c :foreground ,date-common)))
 ;;;;; transient
     `(transient-active-infix ((,c :inherit highlight)))
     `(transient-amaranth ((,c :inherit bold :foreground ,yellow-warmer)))
@@ -4003,8 +4034,8 @@ FG and BG are the main colors."
 ;;;;; vertico
     `(vertico-current ((,c :inherit modus-themes-completion-selected)))
 ;;;;; vertico-quick
-    `(vertico-quick1 ((,c :inherit bold :background ,bg-char-0)))
-    `(vertico-quick2 ((,c :inherit bold :background ,bg-char-1)))
+    `(vertico-quick1 ((,c :inherit (bold modus-themes-search-current))))
+    `(vertico-quick2 ((,c :inherit (bold modus-themes-search-current))))
 ;;;;; vimish-fold
     `(vimish-fold-fringe ((,c :foreground ,cyan)))
     `(vimish-fold-mouse-face ((,c :inherit modus-themes-intense-blue)))

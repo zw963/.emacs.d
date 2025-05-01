@@ -1,6 +1,6 @@
 ;;; modus-operandi-theme.el --- Elegant, highly legible theme with a white background -*- lexical-binding:t -*-
 
-;; Copyright (C) 2019-2024  Free Software Foundation, Inc.
+;; Copyright (C) 2019-2025  Free Software Foundation, Inc.
 
 ;; Author: Protesilaos Stavrou <info@protesilaos.com>
 ;; Maintainer: Protesilaos Stavrou <info@protesilaos.com>
@@ -170,10 +170,6 @@ which corresponds to a minimum contrast in relative luminance of
       (bg-region           "#bdbdbd")
       (fg-region           "#000000")
 
-      (bg-char-0 "#7feaff")
-      (bg-char-1 "#ffaaff")
-      (bg-char-2 "#dff000")
-
       (bg-mode-line-active        "#c8c8c8")
       (fg-mode-line-active        "#000000")
       (border-mode-line-active    "#5a5a5a")
@@ -266,6 +262,7 @@ which corresponds to a minimum contrast in relative luminance of
       (number fg-main)
       (operator fg-main)
       (preprocessor red-cooler)
+      (property cyan)
       (punctuation fg-main)
       (rx-backslash magenta)
       (rx-construct green-cooler)

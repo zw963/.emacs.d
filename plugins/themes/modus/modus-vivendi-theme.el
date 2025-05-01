@@ -1,6 +1,6 @@
 ;;; modus-vivendi-theme.el --- Elegant, highly legible theme with a black background -*- lexical-binding:t -*-
 
-;; Copyright (C) 2019-2024  Free Software Foundation, Inc.
+;; Copyright (C) 2019-2025  Free Software Foundation, Inc.
 
 ;; Author: Protesilaos Stavrou <info@protesilaos.com>
 ;; Maintainer: Protesilaos Stavrou <info@protesilaos.com>
@@ -170,10 +170,6 @@ which corresponds to a minimum contrast in relative luminance of
       (bg-region           "#5a5a5a")
       (fg-region           "#ffffff")
 
-      (bg-char-0 "#0050af")
-      (bg-char-1 "#7f1f7f")
-      (bg-char-2 "#625a00")
-
       (bg-mode-line-active        "#505050")
       (fg-mode-line-active        "#ffffff")
       (border-mode-line-active    "#959595")
@@ -266,6 +262,7 @@ which corresponds to a minimum contrast in relative luminance of
       (number fg-main)
       (operator fg-main)
       (preprocessor red-cooler)
+      (property cyan)
       (punctuation fg-main)
       (rx-backslash magenta)
       (rx-construct green-cooler)
