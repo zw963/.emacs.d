@@ -1,11 +1,11 @@
 ;;; doom-modeline.el --- A minimal and modern mode-line -*- lexical-binding: t; -*-
 
-;; Copyright (C) 2018-2024 Vincent Zhang
+;; Copyright (C) 2018-2025 Vincent Zhang
 
 ;; Author: Vincent Zhang <seagle0128@gmail.com>
 ;; Homepage: https://github.com/seagle0128/doom-modeline
 ;; Version: 4.2.0
-;; Package-Requires: ((emacs "25.1") (compat "29.1.4.5") (nerd-icons "0.1.0") (shrink-path "0.3.1"))
+;; Package-Requires: ((emacs "25.1") (compat "30.1.0.0") (nerd-icons "0.1.0") (shrink-path "0.3.1"))
 ;; Keywords: faces mode-line
 
 ;; This file is not part of GNU Emacs.
@@ -232,6 +232,9 @@ If DEFAULT is non-nil, set the default mode-line for all buffers."
         ;; Automatically set mode-lines
         (add-hook 'after-change-major-mode-hook #'doom-modeline-auto-set-modeline)
 
+        ;; Setup font height cache hook
+        (add-hook 'after-setting-font-hook #'doom-modeline--reset-font-height-cache)
+
         ;; Special handles
         (advice-add #'helm-display-mode-line :after #'doom-modeline-set-helm-modeline)
         (setq helm-ag-show-status-function #'doom-modeline-set-helm-modeline))
@@ -251,6 +254,9 @@ If DEFAULT is non-nil, set the default mode-line for all buffers."
 
       ;; For two-column editing
       (setq 2C-mode-line-format (doom-modeline--original-value '2C-mode-line-format))
+
+      ;; Remove font height cache hook
+      (remove-hook 'after-setting-font-hook #'doom-modeline--reset-font-height-cache)
 
       ;; Cleanup
       (remove-hook 'after-change-major-mode-hook #'doom-modeline-auto-set-modeline)

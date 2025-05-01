@@ -1,6 +1,6 @@
 ;;; doom-modeline-core.el --- The core libraries for doom-modeline -*- lexical-binding: t; -*-
 
-;; Copyright (C) 2018-2024 Vincent Zhang
+;; Copyright (C) 2018-2025 Vincent Zhang
 
 ;; This file is not part of GNU Emacs.
 
@@ -495,6 +495,20 @@ It respects option `doom-modeline-icon'."
 (defcustom doom-modeline-vcs-display-function #'doom-modeline-vcs-name
   "The function to display the branch name."
   :type 'function
+  :group 'doom-modeline)
+
+(defcustom doom-modeline-vcs-state-faces-alist
+  '((needs-update . (doom-modeline-warning bold))
+    (removed . (doom-modeline-urgent bold))
+    (conflict . (doom-modeline-urgent bold))
+    (unregistered . (doom-modeline-urgent bold)))
+  "Alist mapping VCS states to their corresponding faces.
+
+See `vc-state' for possible values of the state.
+
+For states not explicitly listed, the `doom-modeline-vcs-default' face
+is used."
+  :type '(alist :key-type symbol :value-type sexp)
   :group 'doom-modeline)
 
 (defcustom doom-modeline-check-icon t
@@ -994,6 +1008,13 @@ Also see the face `doom-modeline-unread-number'."
   "Face for REPL warning state."
   :group 'doom-modeline-faces)
 
+(defface doom-modeline-vcs-default
+  '((t (:inherit (doom-modeline-info bold))))
+  "Default face for VCS states.
+
+Which are not explicitly listed in `doom-modeline-vcs-state-faces-alist'."
+  :group 'doom-modeline-faces)
+
 (defface doom-modeline-lsp-success
   '((t (:inherit doom-modeline-info)))
   "Face for LSP success state."
@@ -1388,14 +1409,34 @@ If INACTIVE-FACE is nil, `mode-line-inactive' face will be used."
     (* (string-width str) (window-font-width nil 'mode-line)
        (if (display-graphic-p) 1.05 1.0))))
 
+;; Per-frame cache for mode-line font height.
+(defvar doom-modeline--font-height-cache (make-hash-table :test 'eq :weakness 'key)
+  "Per-frame cache for mode-line font height.
+Keys are frame objects, values are cons cells (HEIGHT . FACE-HEIGHT-ATTR).")
+
+(defun doom-modeline--reset-font-height-cache (&rest _)
+  "Reset cached font height for all frames."
+  (clrhash doom-modeline--font-height-cache))
+
 (defun doom-modeline--font-height ()
-  "Calculate the actual char height of the mode-line."
-  (let ((height (face-attribute 'mode-line :height))
-        (char-height (window-font-height nil 'mode-line)))
-    (round
-     (* 1.0 (cond ((integerp height) (/ height 10))
-                  ((floatp height) (* height char-height))
-                  (t char-height))))))
+  "Calculate the actual char height of the mode-line for the current frame.
+The result is cached per-frame to avoid expensive calculations during redisplay."
+  (let* ((frame (selected-frame))
+         (current-face-height-attr (face-attribute 'mode-line :height frame)) ; Get attribute for the specific frame
+         (cache-entry (gethash frame doom-modeline--font-height-cache)))
+    (if (and cache-entry
+             (equal (cdr cache-entry) current-face-height-attr))
+        ;; Return cached value if frame exists in cache and face attribute matches
+        (car cache-entry)
+      ;; Else, recalculate and update cache for this frame
+      (let* ((base-char-height (window-font-height nil 'mode-line)) ; Use window-font-height in the context of the frame/window
+             (new-height (round
+                          (* 1.0 (cond ((integerp current-face-height-attr) (/ current-face-height-attr 10.0)) ; Ensure float division
+                                       ((floatp current-face-height-attr) (* current-face-height-attr base-char-height))
+                                       (t base-char-height))))))
+        ;; Update cache for the current frame
+        (puthash frame (cons new-height current-face-height-attr) doom-modeline--font-height-cache)
+        new-height))))
 
 (defun doom-modeline--original-value (sym)
   "Return the original value for SYM, if any.
