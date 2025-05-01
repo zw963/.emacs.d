@@ -1,9 +1,10 @@
-;; (require 'snap-indent)
+(require 'snap-indent)
 
-;; (add-hook 'prog-mode-hook #'snap-indent-mode)
+(add-hook 'prog-mode-hook #'snap-indent-mode)
 
-(require 'indentinator)
-(add-hook 'prog-mode-hook #'indentinator-mode)
+;; 这个打开的话, 当和 iedit 一起工作时, 经常会搞乱
+;; (require 'indentinator)
+;; (add-hook 'prog-mode-hook #'indentinator-mode)
 
 (provide 'indentation_init)
 
