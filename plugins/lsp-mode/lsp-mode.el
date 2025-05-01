@@ -185,10 +185,10 @@ As defined by the Language Server Protocol 3.16."
      lsp-ltex-plus lsp-lua lsp-fennel lsp-magik lsp-markdown lsp-marksman
      lsp-matlab lsp-mdx lsp-meson lsp-metals lsp-mint lsp-mojo lsp-move lsp-mssql
      lsp-nextflow lsp-nginx lsp-nim lsp-nix lsp-nushell lsp-ocaml lsp-openscad
-     lsp-pascal lsp-perl lsp-perlnavigator lsp-php lsp-pls lsp-purescript
-     lsp-pwsh lsp-pyls lsp-pylsp lsp-pyright lsp-python-ms lsp-qml lsp-r
-     lsp-racket lsp-remark lsp-rf lsp-roc lsp-roslyn lsp-rubocop lsp-ruby-lsp
-     lsp-ruby-syntax-tree lsp-ruff lsp-rust lsp-semgrep lsp-shader
+     lsp-pascal lsp-perl lsp-perlnavigator lsp-php lsp-pls lsp-postgres
+     lsp-purescript lsp-pwsh lsp-pyls lsp-pylsp lsp-pyright lsp-python-ms
+     lsp-qml lsp-r lsp-racket lsp-remark lsp-rf lsp-roc lsp-roslyn lsp-rubocop
+     lsp-ruby-lsp lsp-ruby-syntax-tree lsp-ruff lsp-rust lsp-semgrep lsp-shader
      lsp-solargraph lsp-solidity lsp-sonarlint lsp-sorbet lsp-sourcekit
      lsp-sql lsp-sqls lsp-steep lsp-svelte lsp-tailwindcss lsp-terraform
      lsp-tex lsp-tilt lsp-toml lsp-trunk lsp-ts-query lsp-ttcn3 lsp-typeprof
@@ -573,6 +573,20 @@ language server."
   "If non-nil, `lsp-mode' will apply edits suggested by the language server
 before saving a document."
   :type 'boolean
+  :group 'lsp-mode)
+
+(defcustom lsp-format-buffer-on-save nil
+  "If non-nil format buffer on save.
+To only format specific major-mode buffers see `lsp-format-buffer-on-save-list'."
+  :type 'boolean
+  :safe #'booleanp
+  :local t
+  :group 'lsp-mode)
+
+(defcustom lsp-format-buffer-on-save-list '()
+  "If the list is empty format all buffer on save. Else only format buffers
+if their major-mode is in the list."
+  :type '(repeat symbol)
   :group 'lsp-mode)
 
 (defcustom lsp-after-apply-edits-hook nil
@@ -5201,6 +5215,13 @@ if it's closing the last buffer in the workspace."
                'before-save)
             (error)))))))
 
+(defun lsp--format-buffer-before-save ()
+  (when lsp-format-buffer-on-save
+    (if (not lsp-format-buffer-on-save-list)
+        (lsp-format-buffer)
+      (when (member major-mode lsp-format-buffer-on-save-list)
+        (lsp-format-buffer)))))
+
 (defun lsp--on-auto-save ()
   "Handler for auto-save."
   (when (lsp--send-will-save-p)
@@ -9397,6 +9418,7 @@ Errors if there are none."
   (lsp--text-document-did-close t)
   (lsp-managed-mode -1)
   (lsp-mode -1)
+  (remove-hook 'before-save-hook #'lsp--format-buffer-before-save t)
   (setq lsp--buffer-workspaces nil)
   (lsp--info "Disconnected"))
 
@@ -9445,6 +9467,7 @@ argument ask the user to select which language server to start."
                         (lsp--try-project-root-workspaces (equal arg '(4))
                                                           (and arg (not (equal arg 1))))))
           (lsp-mode 1)
+          (add-hook 'before-save-hook #'lsp--format-buffer-before-save nil t)
           (when lsp-auto-configure (lsp--auto-configure))
           (setq lsp-buffer-uri (lsp--buffer-uri))
           (lsp--info "Connected to %s."
