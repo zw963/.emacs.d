@@ -6,7 +6,7 @@
 ;; Homepage: https://github.com/emacscollective/auto-compile
 ;; Keywords: compile convenience lisp
 
-;; Package-Version: 2.0.5
+;; Package-Version: 2.0.6
 ;; Package-Requires: ((emacs "26.1"))
 
 ;; SPDX-License-Identifier: GPL-3.0-or-later
@@ -272,7 +272,7 @@ non-nil."
 (defun auto-compile--tree-member (elt tree &optional delete)
   ;; Also known as keycast--tree-member.
   (and (listp tree)
-       (if-let* ((pos (cl-position elt tree))
+       (if-let* ((pos (cl-position elt tree :test #'equal))
                  (mem (nthcdr pos tree)))
            (cond ((not delete) mem)
                  ((cdr mem)
