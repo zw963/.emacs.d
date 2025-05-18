@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 ;;; rustic-cargo.el --- Cargo based commands -*-lexical-binding: t-*-
 ;;; Commentary:
 

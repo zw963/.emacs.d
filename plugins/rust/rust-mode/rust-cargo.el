@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 ;;; rust-cargo.el --- Support for cargo                -*-lexical-binding: t-*-
 ;;; Commentary:
 

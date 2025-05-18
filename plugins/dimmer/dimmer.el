@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 ;;; dimmer.el --- Visually highlight the selected buffer
 
 ;; Copyright (C) 2017-2021 Neil Okamoto

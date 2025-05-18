@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 ;;; dired-rainbow.el --- Extended file highlighting according to its type
 
 ;; Copyright (C) 2014-2017 Matus Goljer

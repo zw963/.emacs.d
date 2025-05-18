@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 ;;; mu4e-contrib.el --- User-contributed functions -*- lexical-binding: t -*-
 
 ;; Copyright (C) 2013-2023 Dirk-Jan C. Binnema

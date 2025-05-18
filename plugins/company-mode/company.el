@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 ;;; company.el --- Modular text completion framework  -*- lexical-binding: t -*-
 
 ;; Copyright (C) 2009-2025  Free Software Foundation, Inc.

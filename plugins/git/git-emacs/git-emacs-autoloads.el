@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 ;; See git-emacs.el for project and license information.
 
 ;; Autoloads for git-emacs.

@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 ;;; rustic-compile.el --- Compile facilities -*-lexical-binding: t-*-
 
 ;;; Commentary:

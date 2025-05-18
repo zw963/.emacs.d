@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 ;;; eee-eat.el --- Eat support for eee.el -*- lexical-binding: t -*-
 
 ;;; Commentary:

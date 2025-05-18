@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 ;;; shackle.el --- Enforce rules for popups
 
 ;; Copyright (C) 2014 Vasilij Schneidermann <mail@vasilij.de>

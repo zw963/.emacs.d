@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 ;;; helm-source.el --- Helm source creation. -*- lexical-binding: t -*-
 
 ;; Copyright (C) 2015 ~ 2025  Thierry Volpiatto

@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 ;;; auto-compile.el --- Automatically compile Emacs Lisp libraries  -*- lexical-binding:t -*-
 
 ;; Copyright (C) 2008-2025 Jonas Bernoulli

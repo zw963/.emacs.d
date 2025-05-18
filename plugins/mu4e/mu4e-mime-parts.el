@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 ;;; mu4e-mime-parts.el --- Dealing with MIME-parts & URLs -*- lexical-binding: t -*-
 
 ;; Copyright (C) 2023-2024 Dirk-Jan C. Binnema

@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 ;; -*- lexical-binding: t -*-
 (require 'dired-hacks-utils)
 (require 'dash)

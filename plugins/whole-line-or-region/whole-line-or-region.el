@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 ;;; whole-line-or-region.el --- Operate on current line if region undefined  -*- lexical-binding: t -*-
 
 ;; This file is not part of Emacs

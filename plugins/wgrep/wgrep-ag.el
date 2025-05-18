@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 ;;; wgrep-ag.el --- Writable ag buffer -*- lexical-binding: t -*-
 
 ;; Copyright (C) 2010-2020,2023 Masahiro Hayashi

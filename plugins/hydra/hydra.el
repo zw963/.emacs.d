@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 ;;; hydra.el --- Make bindings that stick around. -*- lexical-binding: t -*-
 
 ;; Copyright (C) 2015-2019  Free Software Foundation, Inc.

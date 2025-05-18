@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 ;;; modus-vivendi-tritanopia-theme.el --- Tritanopia-optimized theme with a black background -*- lexical-binding:t -*-
 
 ;; Copyright (C) 2019-2025  Free Software Foundation, Inc.

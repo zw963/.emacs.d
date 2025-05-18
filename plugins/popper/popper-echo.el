@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 ;;; popper-echo.el --- Show a popup list in the echo area when cycling them  -*- lexical-binding: t -*-
 
 ;; Copyright (C) 2023 Free Software Foundation, Inc.

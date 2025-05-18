@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 ;;; helm-descbinds.el --- A convenient `describe-bindings' with `helm'   -*- lexical-binding: t -*-
 
 ;; Copyright (C) 2008, 2009, 2010  Taiki SUGAWARA <buzz.taiki@gmail.com>

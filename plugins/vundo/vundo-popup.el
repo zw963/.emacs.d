@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 ;;; vundo-popup.el --- vundo as visualizer for the ordinary undo commands -*- lexical-binding: t -*-
 
 ;; Copyright (C) 2025 Free Software Foundation, Inc

@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 ;;; diff-hl-dired.el --- Highlight changed files in Dired -*- lexical-binding: t -*-
 
 ;; Copyright (C) 2012-2017, 2023  Free Software Foundation, Inc.

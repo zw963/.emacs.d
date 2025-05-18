@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 ;;; direx.el --- Simple Directory Explorer
 
 ;; Copyright (C) 2011-2015  Tomohiro Matsuyama

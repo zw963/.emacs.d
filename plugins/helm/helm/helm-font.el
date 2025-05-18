@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 ;;; helm-font --- Font and ucs selection for Helm -*- lexical-binding: t -*-
 
 ;; Copyright (C) 2012 ~ 2025 Thierry Volpiatto

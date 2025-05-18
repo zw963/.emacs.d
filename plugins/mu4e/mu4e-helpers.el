@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 ;;; mu4e-helpers.el --- Helper functions -*- lexical-binding: t -*-
 
 ;; Copyright (C) 2022-2025 Dirk-Jan C. Binnema

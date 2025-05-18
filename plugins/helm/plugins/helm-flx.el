@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 ;;; helm-flx.el --- Sort helm candidates by flx score -*- lexical-binding: t -*-
 
 ;; Copyright (C) 2014-2022 Jonathan Hayase

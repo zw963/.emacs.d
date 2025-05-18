@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 ;;; frame-local.el --- Variables local to a frame  -*- lexical-binding: t -*-
 
 ;; Copyright (C) 2018 Sebastien Chapuis

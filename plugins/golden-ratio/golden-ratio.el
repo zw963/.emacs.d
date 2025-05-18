@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 ;;; golden-ratio.el --- Automatic resizing of Emacs windows to the golden ratio
 
 ;; Copyright (C) 2012 Roman Gonzalez

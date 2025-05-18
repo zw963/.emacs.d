@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 ;;; posframe-benchmark.el --- Benchmark tool for posframe    -*- lexical-binding:t -*-
 
 ;; Copyright (C) 2018-2020 Free Software Foundation, Inc.

@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 ;;; flutter-gen.el --- Tools for generating Dart code for Flutter -*- lexical-binding: t -*-
 
 ;; Copyright (C) 2018-2019 Aaron Madlon-Kay

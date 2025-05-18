@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 ;;; emacsql.el --- High-level SQL database front-end  -*- lexical-binding:t -*-
 
 ;; This is free and unencumbered software released into the public domain.

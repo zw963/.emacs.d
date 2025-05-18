@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 ;;; treemacs-projectile.el --- Projectile integration for treemacs -*- lexical-binding: t -*-
 
 ;; Copyright (C) 2024 Alexander Miller

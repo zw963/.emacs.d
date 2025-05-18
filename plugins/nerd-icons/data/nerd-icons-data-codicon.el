@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 ;;; nerd-icons-data-codicon.el --- glyphset codicon -*- lexical-binding: t -*-
 
 ;; Copyright (C) 2023 Hongyu Ding <rainstormstudio@yahoo.com>

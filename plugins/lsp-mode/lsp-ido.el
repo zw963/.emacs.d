@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 ;;; lsp-ido.el --- `ido' integration -*- lexical-binding: t -*-
 ;;
 ;; Copyright (C) 2021 emacs-lsp maintainers

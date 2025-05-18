@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 ;;; mu4e-compose.el --- Compose and send messages -*- lexical-binding: t -*-
 
 ;; Copyright (C) 2011-2024 Dirk-Jan C. Binnema

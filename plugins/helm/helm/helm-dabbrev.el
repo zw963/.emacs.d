@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 ;;; helm-dabbrev.el --- Helm implementation of dabbrev. -*- lexical-binding: t -*-
 
 ;; Copyright (C) 2012 ~ 2025 Thierry Volpiatto

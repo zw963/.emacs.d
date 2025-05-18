@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 ;;; rjsx-mode.el --- Real support for JSX    -*- lexical-binding: t -*-
 
 ;; Copyright (C) 2016 Felipe Ochoa

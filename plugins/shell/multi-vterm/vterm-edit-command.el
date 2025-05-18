@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 ;; Stolen from https://gitee.com/blindingdark/BEmacs/raw/master/vendor/vterm-edit-command.el
 
 (require 'subr-x)

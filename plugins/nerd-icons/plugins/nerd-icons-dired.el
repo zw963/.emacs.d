@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 ;;; nerd-icons-dired.el --- Shows icons for each file in dired mode -*- lexical-binding: t -*-
 
 ;; Copyright (C) 2023 Hongyu Ding <rainstormstudio@yahoo.com>

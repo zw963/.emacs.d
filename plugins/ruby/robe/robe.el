@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 ;;; robe.el --- Code navigation, documentation lookup and completion for Ruby -*- lexical-binding: t -*-
 
 ;; Copyright © 2012 Phil Hagelberg

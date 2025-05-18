@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 ;;; mu4e-speedbar --- Speedbar support for mu4e -*- lexical-binding: t -*-
 
 ;; Copyright (C) 2012-2021 Antono Vasiljev, Dirk-Jan C. Binnema

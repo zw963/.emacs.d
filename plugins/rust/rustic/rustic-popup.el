@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 ;;; rustic-popup.el --- Cargo popup -*-lexical-binding: t-*-
 
 ;;; Commentary:

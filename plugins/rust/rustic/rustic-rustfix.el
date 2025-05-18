@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 ;;; rustic-rustfix.el --- Support for rustfix         -*- lexical-binding:t -*-
 ;;; Commentary:
 

@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 ;;; git-messenger.el --- Popup last commit of current line -*- lexical-binding: t -*-
 
 ;; Copyright (C) 2017-2020 by Syohei YOSHIDA and Neil Okamoto

@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 ;;; packed.el --- [DEPRECATED] Package manager agnostic Emacs Lisp package utilities  -*- lexical-binding:t -*-
 
 ;; Copyright (C) 2012-2022 Jonas Bernoulli

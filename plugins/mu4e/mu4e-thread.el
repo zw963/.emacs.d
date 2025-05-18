@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 ;;; mu4e-thread.el --- Thread folding support -*- lexical-binding: t -*-
 
 ;; Copyright (C) 2023 Nicolas P. Rougier

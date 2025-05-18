@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 ;;; helm-all-the-icons.el --- Browse icons from all-the-icons package. -*- lexical-binding: t -*-
 
 ;; Author:      Thierry Volpiatto <thievol@posteo.net>

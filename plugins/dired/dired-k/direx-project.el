@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 ;;; direx-project.el --- Project Module for Direx
 
 ;; Copyright (C) 2012-2015  Tomohiro Matsuyama

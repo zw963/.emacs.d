@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 ;;; apheleia-formatter-context.el --- Formatter ctx -*- lexical-binding: t -*-
 
 ;; SPDX-License-Identifier: MIT

@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 ;;; gcmh.el --- the Garbage Collector Magic Hack -*- lexical-binding:t -*-
 
 ;; Copyright (C) 2019-2020  Free Software Foundation, Inc.

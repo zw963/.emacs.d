@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 ;;; mu4e.el --- Mu4e, the mu mail user agent -*- lexical-binding: t -*-
 
 ;; Copyright (C) 2011-2025 Dirk-Jan C. Binnema

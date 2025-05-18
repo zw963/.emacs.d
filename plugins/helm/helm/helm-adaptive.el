@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 ;;; helm-adaptive.el --- Adaptive Sorting of Candidates. -*- lexical-binding: t -*-
 
 ;; Original Author: Tamas Patrovics

@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 ;;; browse-kill-ring+.el --- Extensions to `browse-kill-ring.el'.
 ;;
 ;; Filename: browse-kill-ring+.el

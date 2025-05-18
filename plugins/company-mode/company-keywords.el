@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 ;;; company-keywords.el --- A company backend for programming language keywords  -*- lexical-binding: t -*-
 
 ;; Copyright (C) 2009-2011, 2013-2018, 2020-2023  Free Software Foundation, Inc.

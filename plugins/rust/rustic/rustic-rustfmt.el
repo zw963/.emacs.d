@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 ;;; rustic-rustfmt.el --- Support for rustfmt         -*- lexical-binding:t -*-
 ;;; Commentary:
 

@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 ;;; wgrep-ack.el --- Writable ack-and-a-half buffer -*- lexical-binding: t -*-
 
 ;; Copyright (C) 2010-2020,2023 Masahiro Hayashi

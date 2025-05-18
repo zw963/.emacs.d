@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 ;;; ox-gfm.el --- Github Flavored Markdown Back-End for Org Export Engine
 
 ;; Copyright (C) 2014-2017 Lars Tveito

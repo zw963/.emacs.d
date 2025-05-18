@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 ;;; color-rg.el --- Search and refacotry code with rg
 
 ;; Filename: color-rg.el

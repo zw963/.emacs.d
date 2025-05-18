@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 ;;; apheleia-rcs.el --- Apply RCS patches -*- lexical-binding: t -*-
 
 ;; SPDX-License-Identifier: MIT

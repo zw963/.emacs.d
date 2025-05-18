@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 ;;; mu4e-lists.el --- Dealing with mailing lists -*- lexical-binding: t -*-
 
 ;; Copyright (C) 2011-2025 Dirk-Jan C. Binnema

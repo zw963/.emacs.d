@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 ;;; llvm-mode.el --- Major mode for the LLVM assembler language.
 
 ;; Maintainer:  The LLVM team, http://llvm.org/

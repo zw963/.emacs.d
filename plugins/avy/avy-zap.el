@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 ;;; avy-zap.el --- Zap to char using `avy'
 
 ;; Copyright (C) 2015  Junpeng Qiu

@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 ;;; modus-themes.el --- Elegant, highly legible and customizable themes -*- lexical-binding:t -*-
 
 ;; Copyright (C) 2019-2025  Free Software Foundation, Inc.

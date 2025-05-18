@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 ;;; company-bbdb.el --- company-mode completion backend for BBDB in message-mode  -*- lexical-binding: t -*-
 
 ;; Copyright (C) 2013-2016, 2020, 2023  Free Software Foundation, Inc.

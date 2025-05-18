@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 ;;; popup-kill-ring.el --- interactively insert item from kill-ring
 
 ;; Copyright (C) 2010  khiker

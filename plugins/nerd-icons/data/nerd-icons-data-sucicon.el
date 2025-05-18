@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 ;;; nerd-icons-data-sucicon.el --- glyphset sucicon -*- lexical-binding: t -*-
 
 ;; Copyright (C) 2023 Hongyu Ding <rainstormstudio@yahoo.com>

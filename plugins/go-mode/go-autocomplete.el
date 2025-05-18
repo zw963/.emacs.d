@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 ;;; go-autocomplete.el --- auto-complete-mode backend for go-mode
 
 ;; Copyright (C) 2010

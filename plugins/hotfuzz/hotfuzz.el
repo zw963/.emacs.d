@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 ;;; hotfuzz.el --- Fuzzy completion style  -*- lexical-binding: t -*-
 
 ;; Copyright (C) Axel Forsman

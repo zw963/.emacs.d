@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 ;;; back-button.el --- Visual navigation through mark rings
 ;;
 ;; Copyright (c) 2012-2015 Roland Walker

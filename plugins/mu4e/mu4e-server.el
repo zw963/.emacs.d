@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 ;;; mu4e-server.el --- Control mu server from mu4e -*- lexical-binding: t -*-
 
 ;; Copyright (C) 2011-2025 Dirk-Jan C. Binnema

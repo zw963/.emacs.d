@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 ;;; edit-server.el --- server that responds to edit requests from Chrome
 
 ;; Copyright (C) 2009-2013  Alex Bennée

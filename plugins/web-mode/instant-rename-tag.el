@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 ;;; instant-rename-tag.el --- Instant rename tag
 
 ;; Filename: instant-rename-tag.el

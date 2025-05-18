@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 ;;; cargo.el --- Emacs Minor Mode for Cargo, Rust's Package Manager.
 
 ;; Copyright (C) 2021  Kevin W. van Rooijen

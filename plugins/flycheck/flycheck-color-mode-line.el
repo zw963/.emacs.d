@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 ;;; flycheck-color-mode-line.el --- Change mode line color with Flycheck status -*- lexical-binding: t -*-
 
 ;; Copyright (c) 2013 Sylvain Benner <sylvain.benner@gmail.com>

@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 ;;; mu4e-modeline.el --- Modeline for mu4e  -*- lexical-binding: t -*-
 
 ;; Copyright (C) 2023-2024 Dirk-Jan C. Binnema

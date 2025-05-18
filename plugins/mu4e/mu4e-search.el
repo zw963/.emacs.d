@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 ;;; mu4e-search.el --- Search-related functions -*- lexical-binding: t -*-
 
 ;; Copyright (C) 2021-2025 Dirk-Jan C. Binnema

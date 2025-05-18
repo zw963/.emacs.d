@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 ;;; git-link.el --- Get the GitHub/Bitbucket/GitLab URL for a buffer location -*- lexical-binding: t -*-
 
 ;; Copyright (C) 2013-2022 Skye Shaw and others

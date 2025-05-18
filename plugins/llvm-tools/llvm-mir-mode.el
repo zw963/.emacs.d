@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 ;;; llvm-mir-mode.el --- Major mode for LLVM Machine IR
 
 ;; Maintainer:  The LLVM team, http://llvm.org/

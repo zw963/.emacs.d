@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 ;;; fringe-helper.el --- helper functions for fringe bitmaps
 ;;
 ;; Copyright (C) 2008, 2013 Nikolaj Schumacher

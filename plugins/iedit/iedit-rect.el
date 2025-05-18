@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 ;;; iedit-rect.el --- visible rectangle editing support based on Iedit.
 
 ;; Copyright (C) 2010 - 2019, 2020 Victor Ren

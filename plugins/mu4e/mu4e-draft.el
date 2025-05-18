@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 ;;; mu4e-draft.el --- Helpers for m4e-compose -*- lexical-binding: t -*-
 
 ;; Copyright (C) 2024-2025 Dirk-Jan C. Binnema

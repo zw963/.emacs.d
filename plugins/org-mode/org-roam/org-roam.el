@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 ;;; org-roam.el --- A database abstraction layer for Org-mode -*- coding: utf-8; lexical-binding: t; -*-
 
 ;; Copyright © 2020-2022 Jethro Kuan <jethrokuan95@gmail.com>

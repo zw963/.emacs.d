@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 ;;; zoom.el --- Fixed and automatic balanced window layout
 
 ;; Copyright (c) 2025 Andrea Cardaci <cyrus.and@gmail.com>

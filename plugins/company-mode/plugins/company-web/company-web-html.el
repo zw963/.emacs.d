@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 ;;; company-web-html.el --- company for html-mode & web-mode
 
 ;; Copyright (C) 2015 Olexandr Sydorchuck

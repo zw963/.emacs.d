@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 ;;; ruby-ffap.el --- emacs lisp mode like FFAP(find file at point) for ruby.
 
 ;; Author: Billy.Zheng

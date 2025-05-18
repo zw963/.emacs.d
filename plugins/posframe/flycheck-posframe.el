@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 ;;; flycheck-posframe.el --- Show flycheck error messages using posframe.el
 
 ;; Copyright (C) 2021 Alex Murray

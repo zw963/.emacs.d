@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 ;;; tablegen-mode.el --- Major mode for TableGen description files (part of LLVM project)
 
 ;; Maintainer:  The LLVM team, http://llvm.org/

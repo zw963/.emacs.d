@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 ;;; move-dup.el --- Eclipse-like moving and duplicating lines or rectangles
 
 ;; Copyright (C) 2014-2021 Jimmy Yuen Ho Wong

@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 ;;; company-prescient.el --- prescient.el + Company -*- lexical-binding: t -*-
 
 ;; Copyright (C) 2018-2022 Radian LLC and contributors

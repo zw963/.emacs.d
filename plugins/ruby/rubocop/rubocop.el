@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 ;;; rubocop.el --- An Emacs interface for RuboCop -*- lexical-binding: t -*-
 
 ;; Copyright © 2011-2021 Bozhidar Batsov

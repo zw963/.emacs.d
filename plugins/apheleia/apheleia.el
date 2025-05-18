@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 ;;; apheleia.el --- Reformat buffer stably -*- lexical-binding: t -*-
 
 ;; Copyright (C) 2019-2022 Radian LLC and contributors

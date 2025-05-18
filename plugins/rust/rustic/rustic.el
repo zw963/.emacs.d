@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 ;;; rustic.el --- Rust development environment -*-lexical-binding: t-*-
 
 ;; Version: 3.4

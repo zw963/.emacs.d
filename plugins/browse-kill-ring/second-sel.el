@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 ;;; second-sel.el --- Secondary selection commands
 ;;
 ;; Filename: second-sel.el

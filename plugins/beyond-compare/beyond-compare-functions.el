@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 (defun bc3-gd1-file-at-point ()
   "git gd1 current file with pointing tag, Use Beyond Compare 3."
   (interactive)

@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 ;;; posframe.el --- Pop a posframe (just a frame) at point    -*- lexical-binding:t -*-
 
 ;; Copyright (C) 2018-2020 Free Software Foundation, Inc.

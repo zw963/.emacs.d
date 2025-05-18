@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 ;;; rustic-expand.el --- Expand support -*-lexical-binding: t-*-
 ;;; Commentary:
 

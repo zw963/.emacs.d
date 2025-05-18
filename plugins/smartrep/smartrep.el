@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 ;;; smartrep.el --- Support sequential operation which omitted prefix keys.
 
 ;; Filename: smartrep.el

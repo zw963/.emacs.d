@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 ;;; diff-hl-inline-popup.el --- inline popup using phantom overlays -*- lexical-binding: t -*-
 
 ;; Copyright (C) 2020-2021  Free Software Foundation, Inc.

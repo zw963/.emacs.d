@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 ;;; crystal-mode.el --- Major mode for editing Crystal files
 
 ;; Copyright (C) 2015-2016 Jason Pellerin

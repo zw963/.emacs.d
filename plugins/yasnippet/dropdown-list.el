@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 ;;; dropdown-list.el --- Drop-down menu interface
 ;;
 ;; Filename: dropdown-list.el

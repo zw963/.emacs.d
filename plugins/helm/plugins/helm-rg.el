@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 ;;; helm-rg.el --- a helm interface to ripgrep -*- lexical-binding: t -*-
 
 ;; Author: Danny McClanahan

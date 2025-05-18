@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 ;;; pfuture.el --- a simple wrapper around asynchronous processes -*- lexical-binding: t -*-
 
 ;; Copyright (C) 2020 Alexander Miller

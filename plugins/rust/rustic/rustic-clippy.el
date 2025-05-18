@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 ;;; rustic-clippy.el --- clippy commands -*-lexical-binding: t-*-
 ;;; Commentary:
 

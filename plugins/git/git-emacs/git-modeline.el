@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 ;; Mode line decoration support, part of git-emacs.
 ;;
 ;; See git-emacs.el for license and versioning.

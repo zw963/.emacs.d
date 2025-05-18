@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 ;;; diff-hl-show-hunk.el --- Integrate popup/posframe and diff-hl-diff-goto-hunk -*- lexical-binding: t -*-
 
 ;; Copyright (C) 2020-2021  Free Software Foundation, Inc.

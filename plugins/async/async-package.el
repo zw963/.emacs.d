@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 ;;; async-package.el --- Fetch packages asynchronously -*- lexical-binding: t -*-
 
 ;; Copyright (C) 2014-2022 Free Software Foundation, Inc.

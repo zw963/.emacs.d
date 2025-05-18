@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 ;;; mu4e-context.el --- Switching between settings -*- lexical-binding: t -*-
 
 ;; Copyright (C) 2015-2025 Dirk-Jan C. Binnema

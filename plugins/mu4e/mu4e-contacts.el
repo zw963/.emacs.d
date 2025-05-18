@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 ;;; mu4e-contacts.el --- Dealing with contacts -*- lexical-binding: t -*-
 
 ;; Copyright (C) 2022-2025 Dirk-Jan C. Binnema

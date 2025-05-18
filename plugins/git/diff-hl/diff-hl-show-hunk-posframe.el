@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 ;;; diff-hl-show-hunk-posframe.el --- posframe backend for diff-hl-show-hunk -*- lexical-binding: t -*-
 
 ;; Copyright (C) 2020-2021  Free Software Foundation, Inc.

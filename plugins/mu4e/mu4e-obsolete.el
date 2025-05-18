@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 ;;; mu4e-obsolete.el --- Obsolete things -*- lexical-binding: t -*-
 
 ;; Copyright (C) 2022-2024 Dirk-Jan C. Binnema

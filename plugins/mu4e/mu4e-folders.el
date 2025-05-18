@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 ;;; mu4e-folders.el --- Maildirs & folders -*- lexical-binding: t -*-
 
 ;; Copyright (C) 2021-2024 Dirk-Jan C. Binnema

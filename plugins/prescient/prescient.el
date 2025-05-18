@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 ;;; prescient.el --- Better sorting and filtering -*- lexical-binding: t -*-
 
 ;; Copyright (C) 2017-2022 Radian LLC and contributors

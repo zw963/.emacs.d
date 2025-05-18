@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 ;;; cargo-process.el --- Cargo Process Major Mode -*-lexical-binding: t-*-
 
 ;; Copyright (C) 2021  Kevin W. van Rooijen

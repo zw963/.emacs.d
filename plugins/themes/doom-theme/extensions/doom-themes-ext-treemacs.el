@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 ;;; doom-themes-ext-treemacs.el --- ... -*- lexical-binding: t; no-byte-compile: t -*-
 ;;
 ;; Copyright (C) 2018-2022 Henrik Lissner

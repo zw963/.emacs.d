@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 ;;; dired-preview.el --- Automatically preview file at point in Dired -*- lexical-binding: t -*-
 
 ;; Copyright (C) 2023-2025  Free Software Foundation, Inc.

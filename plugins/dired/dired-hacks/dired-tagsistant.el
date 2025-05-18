@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 ;;; dired-tagsistant.el --- Tagsistant support for dired
 
 ;; Copyright (C) 2014 Matúš Goljer <matus.goljer@gmail.com>

@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 ;;; helm.el --- Helm is an Emacs incremental and narrowing framework  -*- lexical-binding: t -*-
 
 ;; Copyright (C) 2007         Tamas Patrovics

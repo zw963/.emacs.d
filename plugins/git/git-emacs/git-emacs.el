@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 ;;; git-emacs.el --- yet another git emacs mode for newbies
 ;;
 ;; Copyright (C) 2008  Taesoo Kim (tsgatesv@gmail.com)

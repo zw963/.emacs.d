@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 ;;; popper.el --- Summon and dismiss buffers as popups -*- lexical-binding: t -*-
 
 ;; Copyright (C) 2023 Free Software Foundation, Inc.

@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 ;;; org-roam-log.el --- Integrations with Org-log -*- coding: utf-8; lexical-binding: t; -*-
 
 ;; Copyright © 2022-2022 Jethro Kuan <jethrokuan95@gmail.com>

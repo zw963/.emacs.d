@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 ;;; ivy-posframe.el --- Using posframe to show Ivy  -*- lexical-binding: t -*-
 
 ;; Copyright (C) 2017-2020 Free Software Foundation, Inc.

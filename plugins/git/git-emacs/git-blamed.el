@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 ;;; git-blamed.el --- Minor mode for incremental blame for Git  -*- coding: utf-8 -*-
 ;;
 ;; Copyright (C) 2007  David Kågedal

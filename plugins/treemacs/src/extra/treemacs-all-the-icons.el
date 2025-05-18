@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 ;;; treemacs-all-the-icons.el --- all-the-icons integration for treemacs -*- lexical-binding: t -*-
 
 ;; Copyright (C) 2024 Alexander Miller

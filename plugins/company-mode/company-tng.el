@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 ;;; company-tng.el --- company-mode configuration for single-button interaction  -*- lexical-binding: t -*-
 
 ;; Copyright (C) 2017-2024  Free Software Foundation, Inc.

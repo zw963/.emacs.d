@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 ;;; dired-hacks.el --- Collection of useful dired additions
 
 ;; Copyright (C) 2014-2015 Matúš Goljer

@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 ;;; json-snatcher.el --- Grabs the path to JSON values in a JSON file -*- lexical-binding: t -*-
 
 ;; Copyright (C) 2013 Sterling Graham <sterlingrgraham@gmail.com>

@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 ;;; company-ispell.el --- company-mode completion backend using Ispell  -*- lexical-binding: t -*-
 
 ;; Copyright (C) 2009-2011, 2013-2016, 2018, 2021, 2023  Free Software Foundation, Inc.

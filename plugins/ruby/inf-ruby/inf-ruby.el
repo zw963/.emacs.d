@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 ;;; inf-ruby.el --- Run a Ruby process in a buffer -*- lexical-binding:t -*-
 
 ;; Copyright (C) 1999-2008 Yukihiro Matsumoto, Nobuyoshi Nakada

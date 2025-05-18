@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 ;;; modus-operandi-theme.el --- Elegant, highly legible theme with a white background -*- lexical-binding:t -*-
 
 ;; Copyright (C) 2019-2025  Free Software Foundation, Inc.

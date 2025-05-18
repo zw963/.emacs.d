@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 ;; auto-generated
 
 (defconst mu4e-mu-version "1.12.9"

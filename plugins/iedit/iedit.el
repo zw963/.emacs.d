@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 ;;; iedit.el --- Edit multiple regions in the same way simultaneously.
 
 ;; Copyright (C) 2010 - 2019, 2020, 2021 Victor Ren

@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 ;;; goto-gem.el --- Open dired in gem directory
 
 ;; Copyright (C) 2014  Peter Stiernström

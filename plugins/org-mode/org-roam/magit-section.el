@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 ;;; magit-section.el --- Sections for read-only buffers  -*- lexical-binding:t; coding:utf-8 -*-
 
 ;; Copyright (C) 2008-2022 The Magit Project Contributors

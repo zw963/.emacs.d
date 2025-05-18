@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 ;;; mu4e-bookmarks.el --- Bookmarks handling -*- lexical-binding: t -*-
 
 ;; Copyright (C) 2011-2025 Dirk-Jan C. Binnema

@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 ;;; mc-edit-lines.el
 
 ;; Copyright (C) 2012-2016 Magnar Sveen

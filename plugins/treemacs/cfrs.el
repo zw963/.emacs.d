@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 ;;; cfrs.el --- Child-frame based read-string -*- lexical-binding: t -*-
 
 ;; Copyright (C) 2021 Alexander Miller

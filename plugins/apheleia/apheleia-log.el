@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 ;;; apheleia-log.el --- Log utilities -*- lexical-binding: t -*-
 
 ;; SPDX-License-Identifier: MIT

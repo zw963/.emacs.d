@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 ;;; mu4e-transient.el --- -*- coding: utf-8; lexical-binding: t -*-
 ;;
 ;; Copyright (C) 2025 Dirk-Jan C. Binnema <djcb@djcbsoftware.nl>

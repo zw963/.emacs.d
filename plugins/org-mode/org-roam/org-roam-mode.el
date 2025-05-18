@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 ;;; org-roam-mode.el --- Major mode for special Org-roam buffers -*- lexical-binding: t -*-
 
 ;; Copyright © 2020-2022 Jethro Kuan <jethrokuan95@gmail.com>

@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 ;;; treemacs-bookmarks.el --- A tree style file viewer package -*- lexical-binding: t -*-
 
 ;; Copyright (C) 2024 Alexander Miller

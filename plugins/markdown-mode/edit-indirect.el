@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 ;;; edit-indirect.el --- Edit regions in separate buffers -*- lexical-binding: t -*-
 
 ;; Author: Fanael Linithien <fanael4@gmail.com>

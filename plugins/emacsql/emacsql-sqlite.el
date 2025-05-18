@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 ;;; emacsql-sqlite.el --- EmacSQL back-end for SQLite  -*- lexical-binding:t -*-
 
 ;; This is free and unencumbered software released into the public domain.

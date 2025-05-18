@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 ;;; rustic-lsp.el --- Support for lsp                -*- lexical-binding:t -*-
 ;;; Commentary:
 

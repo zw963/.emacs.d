@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 ;;; doom-modeline-env.el --- A environment parser for doom-modeline -*- lexical-binding: t -*-
 
 ;; Copyright (C) 2019-2025 Vincent Zhang, Justin Barclay

@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 ;;; doom-ayu-moonlight-theme.el --- inspired by doom-ayu-mirage and doom-moonlight -*- lexical-binding: t; no-byte-compile: t; -*-
 
 (require 'doom-themes)

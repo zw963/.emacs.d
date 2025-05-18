@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 ;;; ace-window.el --- Quickly switch windows. -*- lexical-binding: t -*-
 
 ;; Copyright (C) 2015-2022  Free Software Foundation, Inc.

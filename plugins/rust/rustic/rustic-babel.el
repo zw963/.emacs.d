@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 ;;; rustic-babel.el --- org-babel facilities for cargo -*-lexical-binding: t-*-
 
 ;;; Code:

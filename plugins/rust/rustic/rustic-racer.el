@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 ;;; rustic-racer.el --- Racer support -*-lexical-binding: t-*-
 
 ;;; Code:

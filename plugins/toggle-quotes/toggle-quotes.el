@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 ;;; toggle-quotes.el --- Toggle between single and double quoted string
 
 ;; Copyright (C) 2014 Jim Tian

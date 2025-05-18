@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 ;;; ruby-hash-syntax.el --- Toggle ruby hash syntax between => and 1.9+ styles  -*- lexical-binding: t -*-
 
 ;; Copyright (C) 2013-2020  Steve Purcell

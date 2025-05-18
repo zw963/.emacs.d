@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 ;;; go-guru.el --- Integration of the Go 'guru' analysis tool into Emacs.
 
 ;; Copyright 2016 The Go Authors. All rights reserved.

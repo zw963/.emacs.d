@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 ;;; rainbow-delimiters.el --- Highlight brackets according to their depth -*- lexical-binding: t -*-
 
 ;; Copyright (C)

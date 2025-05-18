@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 ;;; modus-vivendi-deuteranopia-theme.el --- Deuteranopia-optimized theme with a black background -*- lexical-binding:t -*-
 
 ;; Copyright (C) 2019-2025  Free Software Foundation, Inc.

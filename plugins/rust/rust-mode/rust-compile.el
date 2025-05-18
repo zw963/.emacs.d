@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 ;;; rust-compile.el --- Compile facilities           -*-lexical-binding: t-*-
 ;;; Commentary:
 

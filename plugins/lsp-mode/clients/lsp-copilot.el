@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 ;;; lsp-copilot.el --- lsp-mode client for copilot       -*- lexical-binding: t -*-
 
 ;; Copyright (C) 2024 Rodrigo Virote Kassick

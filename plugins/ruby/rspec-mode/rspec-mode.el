@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 ;;; rspec-mode.el --- Enhance ruby-mode for RSpec -*- lexical-binding: t -*-
 
 ;; Copyright (C) 2008-2015 Peter Williams <http://barelyenough.org> and others

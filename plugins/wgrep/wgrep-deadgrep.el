@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 ;;; wgrep-deadgrep.el --- Writable deadgrep buffer and apply the changes to files -*- lexical-binding: t -*-
 
 ;; Author: Masahiro Hayashi <mhayashi1120@gmail.com>, Iku Iwasa <iku.iwasa@gmail.com>

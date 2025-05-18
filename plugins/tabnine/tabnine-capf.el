@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 ;; tabnine-capf.el --- A company-mode backend for TabNine ;; -*- lexical-binding: t -*-
 ;;
 ;; Copyright (c) 2022 Tommy Xiang, John Gong

@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 ;;; dired-avfs.el --- AVFS support for dired
 
 ;; Copyright (C) 2014 Matus Goljer

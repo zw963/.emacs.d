@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 ;;; flutter-project.el --- Tools for working with Flutter projects -*- lexical-binding: t -*-
 
 ;; Copyright (C) 2018-2019 Aaron Madlon-Kay

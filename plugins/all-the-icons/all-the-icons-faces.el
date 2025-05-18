@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 ;;; all-the-icons-faces.el --- A module of faces for all-the-icons
 
 ;; Copyright (C) 2016  Dominic Charlesworth <dgc336@gmail.com>

@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 ;;; spatial-navigate.el --- Directional navigation between white-space blocks -*- lexical-binding: t -*-
 
 ;; SPDX-License-Identifier: GPL-2.0-or-later

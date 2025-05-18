@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 ;;; dired-collapse.el --- Collapse unique nested paths in dired listing -*- lexical-binding: t -*-
 
 ;; Copyright (C) 2017 Matúš Goljer

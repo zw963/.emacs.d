@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 ;;; ctags-update.el --- (auto) update TAGS in parent directory using exuberant-ctags
 
 ;; Created: 2011-10-16 13:17

@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 ;;; ido-other-window.el --- Invoke any command using ido in other window
 
 ;; Author: Zak B. Elep

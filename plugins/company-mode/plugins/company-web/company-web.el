@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 ;;; company-web.el --- Company version of ac-html, complete for web,html,emmet,jade,slim modes
 
 ;; Copyright (C) 2015 Olexandr Sydorchuk

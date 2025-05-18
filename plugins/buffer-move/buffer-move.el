@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 ;;; buffer-move.el --- easily swap buffers
 
 ;; Copyright (C) 2004-2014  Lucas Bonnet <lucas@rincevent.net>

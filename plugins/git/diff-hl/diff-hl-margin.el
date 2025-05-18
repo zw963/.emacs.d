@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 ;;; diff-hl-margin.el --- Highlight buffer changes on margins -*- lexical-binding: t -*-
 
 ;; Copyright (C) 2012-2017  Free Software Foundation, Inc.

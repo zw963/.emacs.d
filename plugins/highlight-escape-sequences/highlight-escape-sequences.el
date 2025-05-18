@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 ;;; highlight-escape-sequences.el --- Highlight escape sequences -*- lexical-binding: t -*-
 
 ;; Copyright (C) 2013, 2015-2017  Free Software Foundation, Inc.

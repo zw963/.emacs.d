@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 ;;; dired-subtree.el --- Insert subdirectories in a tree-like fashion
 
 ;; Copyright (C) 2014-2015 Matúš Goljer

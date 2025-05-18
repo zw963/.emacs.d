@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 ;;; borland-blue-theme.el --- Blue/yellow theme based on old DOS Borland/Turbo C IDE
 
 ;; Copyright (C) 2015 Alexey Veretennikov

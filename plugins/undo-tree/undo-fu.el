@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 ;;; undo-fu.el --- Undo helper with redo -*- lexical-binding: t -*-
 
 ;; Copyright (C) 2019  Campbell Barton, 2020 Free Software Foundation, Inc.

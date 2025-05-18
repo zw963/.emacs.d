@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 ;;; ripgrep-dired.el --- ripgrep dired tool. -*- lexical-binding: t -*-
 
 ;; Author: Jian Wang <leuven65@gmail.com>

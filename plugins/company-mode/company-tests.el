@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 ;;; company-tests.el --- company-mode test helpers  -*- lexical-binding: t -*-
 
 ;; Copyright (C) 2011, 2013-2016, 2022  Free Software Foundation, Inc.

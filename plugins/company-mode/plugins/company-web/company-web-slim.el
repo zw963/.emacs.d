@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 ;;; company-web-slim.el --- company for slim-mode
 
 ;; Copyright (C) 2015 Olexandr Sydorchuck

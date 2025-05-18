@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 ;;; helm-etags-plus.el --- Another Etags helm.el interface
 
 ;; Created: 2011-02-23

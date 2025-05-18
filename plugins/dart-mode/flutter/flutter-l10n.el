@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 ;;; flutter-l10n.el --- Tools for Flutter L10N -*- lexical-binding: t -*-
 
 ;; Copyright (C) 2019 Aaron Madlon-Kay

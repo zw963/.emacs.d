@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 ;;; dired+.el --- Extensions to Dired.   -*- lexical-binding:t -*-
 ;;
 ;; Filename: dired+.el

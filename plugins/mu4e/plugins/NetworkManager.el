@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 ;;; NetworkManager.el - NetworkManager interface via D-Bus. -*- lexical-binding:t-*-
 
 ;; Copyright (C) 2014 Tom Tromey

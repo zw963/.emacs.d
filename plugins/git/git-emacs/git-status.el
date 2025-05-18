@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 ;; Git status buffer support, part of git-emacs.
 ;;
 ;; See git-emacs.el for license and versioning.

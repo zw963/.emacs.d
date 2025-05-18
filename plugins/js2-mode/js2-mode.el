@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 ;;; js2-mode.el --- Improved JavaScript editing mode -*- lexical-binding: t -*-
 
 ;; Copyright (C) 2009, 2011-2022  Free Software Foundation, Inc.

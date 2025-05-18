@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 ;;; package --- Summary -*- lexical-binding: t -*-
 ;; eee.el is the meaning of Eval! Exec! Enhance!
 ;; 

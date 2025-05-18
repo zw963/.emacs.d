@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 ;;; helm-fasd.el --- Helm source for fasd
 
 ;; Author: Antti Salminen <antti.salminen@gmail.com>

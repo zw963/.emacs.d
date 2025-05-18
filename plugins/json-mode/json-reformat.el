@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 ;;; json-reformat.el --- Reformatting tool for JSON
 
 ;; Author: Wataru MIYAGUNI <gonngo@gmail.com>

@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 ;;; rvm.el --- Emacs integration for rvm
 
 ;; Copyright (C) 2010-2011 Yves Senn

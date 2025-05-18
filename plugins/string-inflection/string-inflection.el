@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 ;;; string-inflection.el --- underscore -> UPCASE -> CamelCase -> lowerCamelCase conversion of names -*- lexical-binding: t -*-
 
 ;; Copyright (C) 2004,2014,2016,2017,2018,2020,2021,2022,2023,2024 Free Software Foundation, Inc.

@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 (eval-when-compile (require 'robe))
 
 ;;;###autoload

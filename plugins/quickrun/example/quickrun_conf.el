@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 ;;;
 ;;; Sample configuration of `quickrun.el'
 ;;;

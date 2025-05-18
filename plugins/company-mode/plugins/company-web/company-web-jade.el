@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 ;;; company-web-jade.el --- company for jade-mode
 
 ;; Copyright (C) 2015 Olexandr Sydorchuck

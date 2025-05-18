@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 ;;; web-completion-data.el --- Shared completion data for ac-html and company-web 
 
 ;; Copyright (C) 2015 Zhang Kai Yu, Olexandr Sydorchuk

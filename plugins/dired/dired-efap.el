@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 ;;; dired-efap.el --- Edit Filename At Point in a dired buffer
 
 ;; Copyright (C) 2001, 2013 Juan-Leon Lahoz

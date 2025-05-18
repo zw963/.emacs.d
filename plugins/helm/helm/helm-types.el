@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 ;;; helm-types.el --- Helm types classes and methods. -*- lexical-binding: t -*-
 
 ;; Copyright (C) 2015 ~ 2025  Thierry Volpiatto

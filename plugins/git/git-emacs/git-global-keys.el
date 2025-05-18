@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 ;; Global keys for git-emacs.
 ;;
 ;; See git-emacs.el for license and versioning.

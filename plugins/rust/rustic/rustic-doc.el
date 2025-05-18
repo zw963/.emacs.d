@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 ;;; rustic-doc.el --- Browse rust documentation as .org files -*- lexical-binding: t -*-
 
 ;; Copyright (c) 2020 Sam Hedin

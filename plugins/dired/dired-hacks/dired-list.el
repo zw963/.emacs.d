@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 ;;; dired-list.el --- Create dired listings from sources
 
 ;; Copyright (C) 2014-2015 Matúš Goljer

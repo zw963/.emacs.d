@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 ;;; mu4e-main.el --- The Main interface for mu4e -*- lexical-binding: t -*-
 
 ;; Copyright (C) 2011-2025 Dirk-Jan C. Binnema

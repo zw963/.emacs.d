@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 ;;; names.el --- Namespaces for emacs-lisp. Avoid name clobbering without hiding symbols.  -*- lexical-binding:t -*-
 
 ;; Copyright (C) 2014-2015 Free Software Foundation, Inc.

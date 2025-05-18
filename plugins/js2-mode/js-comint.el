@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 ;;; js-comint.el --- JavaScript interpreter in window.
 
 ;;; Copyright (C) 2008 Paul Huff

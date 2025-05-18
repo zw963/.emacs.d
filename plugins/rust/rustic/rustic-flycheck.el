@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 ;;; rustic-flycheck.el --- Flycheck support -*-lexical-binding: t-*-
 
 ;;; Code:

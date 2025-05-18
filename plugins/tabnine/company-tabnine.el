@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 ;;; company-tabnine.el --- A company-mode backend for TabNine
 ;;
 ;; Copyright (c) 2018 Tommy Xiang

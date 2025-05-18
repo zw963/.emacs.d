@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 ;;; mu4e-query-items.el --- Manage query results -*- lexical-binding: t -*-
 
 ;; Copyright (C) 2023-2025 Dirk-Jan C. Binnema

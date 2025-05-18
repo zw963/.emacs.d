@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 ;;; fancy-narrow.el --- narrow-to-region with more eye candy.
 
 ;; Copyright (C) 2014 Artur Malabarba <bruce.connor.am@gmail.com>

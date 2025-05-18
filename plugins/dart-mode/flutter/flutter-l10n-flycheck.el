@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 ;;; flutter-l10n-flycheck.el --- Flycheck checker for intl_translation -*- lexical-binding: t -*-
 
 ;; Copyright (C) 2019 Aaron Madlon-Kay

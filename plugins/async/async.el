@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 ;;; async.el --- Asynchronous processing in Emacs -*- lexical-binding: t -*-
 
 ;; Copyright (C) 2012-2022 Free Software Foundation, Inc.

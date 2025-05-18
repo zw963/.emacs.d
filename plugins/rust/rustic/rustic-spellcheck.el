@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 ;;; rustic-spellcheck.el --- Spellcheck support -*-lexical-binding: t-*-
 ;;; Commentary:
 

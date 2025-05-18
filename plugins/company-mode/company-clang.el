@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 ;;; company-clang.el --- company-mode completion backend for Clang  -*- lexical-binding: t -*-
 
 ;; Copyright (C) 2009-2011, 2013-2023  Free Software Foundation, Inc.

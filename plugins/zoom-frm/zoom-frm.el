@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 ;;; zoom-frm.el --- Commands to zoom frame font size.
 ;;
 ;; Filename: zoom-frm.el

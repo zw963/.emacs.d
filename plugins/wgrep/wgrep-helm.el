@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 ;;; wgrep-helm.el --- Writable helm-grep-mode buffer -*- lexical-binding: t -*-
 
 ;; Copyright (C) 2010-2020,2023 Masahiro Hayashi

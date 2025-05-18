@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 ;;; org-roam-migrate.el --- Migration utilities from v1 to v2 -*- coding: utf-8; lexical-binding: t; -*-
 
 ;; Copyright © 2020-2022 Jethro Kuan <jethrokuan95@gmail.com>

@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 ;;; smtpmail-async.el --- Send e-mail with smtpmail.el asynchronously -*- lexical-binding: t -*-
 
 ;; Copyright (C) 2012-2022 Free Software Foundation, Inc.

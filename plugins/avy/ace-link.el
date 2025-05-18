@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 ;;; ace-link.el --- Quickly follow links -*- lexical-binding: t -*-
 
 ;; Copyright (C) 2014-2020 Oleh Krehel

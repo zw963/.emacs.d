@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 ;;; xterm-color.el --- ANSI, XTERM 256 and Truecolor support -*- lexical-binding: t -*-
 
 ;; Copyright (C) 2010-2020 xristos@sdf.org

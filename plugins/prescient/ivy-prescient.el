@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 ;;; ivy-prescient.el --- prescient.el + Ivy -*- lexical-binding: t -*-
 
 ;; Copyright (C) 2018-2022 Radian LLC and contributors

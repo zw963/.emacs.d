@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 ;;; dired-open.el --- Open files from dired using using custom actions
 
 ;; Copyright (C) 2014-2015 Matúš Goljer

@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 ;;; company-oddmuse.el --- company-mode completion backend for oddmuse-mode  -*- lexical-binding: t -*-
 
 ;; Copyright (C) 2009-2011, 2013-2016, 2022, 2023  Free Software Foundation, Inc.

@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 ;;; rustic-comint.el --- Cargo and comint facilities -*-lexical-binding: t-*-
 ;;; Commentary:
 

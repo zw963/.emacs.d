@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 ;;; helm-multi-match.el --- Multiple regexp matching methods for helm -*- lexical-binding: t -*-
 
 ;; Original Author: rubikitch

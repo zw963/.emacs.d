@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 ;;; company-english-helper.el --- English helper with company interface
 
 ;; Filename: company-english-helper.el

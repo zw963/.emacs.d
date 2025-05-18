@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 ;;; mlir-lsp-clinet.el --- LSP clinet for the MLIR.
 
 ;; Copyright (C) 2022 The MLIR Authors.

@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 ;;; rustic-interaction.el --- Common interactive functions -*-lexical-binding: t-*-
 
 ;;; Code:

@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 ;;; rust-mode-treesitter.el --- use native rust-ts-mode -*-lexical-binding: t-*-
 ;;; Commentary:
 

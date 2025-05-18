@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 ;;; company-box-doc.el --- Company front-end  -*- lexical-binding: t -*-
 
 ;; Copyright (C) 2018 Sebastien Chapuis

@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 ;;; dash.el --- A modern list library for Emacs  -*- lexical-binding: t -*-
 
 ;; Copyright (C) 2012-2025 Free Software Foundation, Inc.

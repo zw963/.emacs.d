@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 ;;; iedit-lib.el --- APIs for editing multiple regions in the same way
 ;;; simultaneously.
 

@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 ;;; symbol-overlay.el --- Highlight symbols with keymap-enabled overlays -*- lexical-binding: t -*-
 
 ;; Copyright (C) 2017 wolray

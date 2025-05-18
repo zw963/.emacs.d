@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 ;;; mlir-mode.el --- Major mode for the MLIR assembler language.
 
 ;; Copyright (C) 2019 The MLIR Authors.

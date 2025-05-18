@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 ;;; mc-mark-more.el
 
 ;; Copyright (C) 2012-2016 Magnar Sveen

@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 ;;; scss-css-mode.el --- Major mode for editing SCSS files
 ;;
 ;; Author: Anton Johansson <anton.johansson@gmail.com> - http://antonj.se
