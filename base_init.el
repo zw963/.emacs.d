@@ -1,3 +1,6 @@
+;; -*- lexical-binding: t; -*-
+
+
 ;; ------------------------------使用的变量------------------------------
 
 (defcustom boring-buffer-regexp-list

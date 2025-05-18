@@ -1,5 +1,6 @@
-;; Stolen from https://github.com/DogLooksGood/meomacs/blob/master/laf.org
+;; -*- lexical-binding: t; -*-
 
+;; Stolen from https://github.com/DogLooksGood/meomacs/blob/master/laf.org
 ;; 一个emoji 例子 👩‍🚒
 ;; Inconsolata Nerd Font Mono 字体 12, 15 才能对齐, 更小没测试.
 (defvar meomacs-font-size 12

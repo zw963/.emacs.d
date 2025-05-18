@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 (require 'all-the-icons)
 
 ;; 使用 (all-the-icons-insert-icons-for 'alltheicon) 来测试 icons.

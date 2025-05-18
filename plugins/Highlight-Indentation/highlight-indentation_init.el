@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 (require 'highlight-indentation)
 
 (set-face-background 'highlight-indentation-face "#333333")

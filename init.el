@@ -1,3 +1,4 @@
+;; -*- lexical-binding: t; -*-
 ;; -*-Emacs-Lisp-*-
 
 (require 'dash)
@@ -10,8 +11,8 @@
 (require 'ibuffer_init)
 
 ;; 下面的二选一
-;; (require 'dimmer_init)
-(require 'golden-ratio_init)
+(require 'dimmer_init)
+;; (require 'golden-ratio_init)
 
 ;; 二选一
 ;; (require 'highlight-indentation_init)

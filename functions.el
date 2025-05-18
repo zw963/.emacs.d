@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 (require 's)
 
 (defun run-ruby-mode-hook (func)
