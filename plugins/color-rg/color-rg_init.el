@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 (require 'color-rg)
 
 (setq color-rg-search-ignore-rules "\

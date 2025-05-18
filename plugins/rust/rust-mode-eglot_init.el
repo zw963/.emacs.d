@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 (require 'eglot_init)
 
 (add-hook 'rust-mode-hook 'eglot-ensure)

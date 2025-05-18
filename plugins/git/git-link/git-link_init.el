@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 (require 'git-link-transient)
 
 (setq git-link-default-remote "origin")

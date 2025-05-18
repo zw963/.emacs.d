@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 (require 'scss-css-mode)
 (setq css-indent-offset 2)
 (setq scss-sass-command (expand-file-name "~/utils/scss/bin/scssc"))

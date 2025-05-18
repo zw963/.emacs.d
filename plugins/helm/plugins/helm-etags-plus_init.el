@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 ;; robe 应该完整的替代了 ctags-update 的功能。
 ;; 但是 robe 很慢, 而且有些非 Rails 项目，无法动态加载的情况下，TAGS 仍旧是较好的方式。
 (require 'helm-etags-plus)

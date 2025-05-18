@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 ;; (require 'org)
 ;; (require 'org-table)
 ;; ;; 允许将 org-mode 导出到 markdown, yep!

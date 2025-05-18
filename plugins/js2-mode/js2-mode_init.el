@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 (require 'js2-mode)
 (require 'xref-js2)
 

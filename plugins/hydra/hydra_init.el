@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 (require 'hydra)
 
 (with-eval-after-load 'git-gutter

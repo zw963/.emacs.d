@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 (require 'ido-other-window)
 (require 'ido)
 (add-list-to-list 'ido-ignore-buffers boring-buffer-regexp-list)

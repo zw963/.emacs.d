@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 ;; ------------------------------ secondary  ------------------------------
 ;; browse-kill-ring+ 的目的是让你可以同时使用 king-ring,  secondary-ring.
 ;; browse-kill-ring+ 会自动尝试加载 second-sel, 并使用它作为 secondary-ring

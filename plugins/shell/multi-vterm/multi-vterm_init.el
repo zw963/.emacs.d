@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 (require 'multi-vterm)
 
 (defun toggle-drop-down-term ()

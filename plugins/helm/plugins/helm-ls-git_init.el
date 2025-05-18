@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 (require 'helm-ls-git)
 (setq helm-ls-git-fuzzy-match t)
 (global-set-key [(control x) (control d)] 'helm-browse-project)

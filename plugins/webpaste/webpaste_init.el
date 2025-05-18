@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 (require 'webpaste)
 
 ;; (setq webpaste-provider-priority '("paste.mozilla.org"))

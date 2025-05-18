@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 (require 'inf-ruby)
 
 ;; FIXME: 似乎 inf-ruby 还是需要 RVM 插件，否则，在没有 ruby 的地方启动 emacs, 甚至找不到 irb

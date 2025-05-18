@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 ;; (require 'dap-mode_init)
 (require 'lsp-mode)
 (require 'lsp-semantic-tokens)

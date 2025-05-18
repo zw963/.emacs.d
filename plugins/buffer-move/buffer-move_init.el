@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 (require 'buffer-move)
 
 (global-set-key (kbd "<C-S-up>")     'buf-move-up)

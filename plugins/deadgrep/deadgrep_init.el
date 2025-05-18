@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 (require 'deadgrep)
 
 (global-set-key [(control meta r)] 'deadgrep)

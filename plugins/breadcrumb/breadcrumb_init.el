@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 (require 'breadcrumb)
 
 (breadcrumb-mode)

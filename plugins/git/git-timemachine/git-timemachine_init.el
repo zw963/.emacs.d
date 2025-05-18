@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 (require 'git-timemachine)
 
 (setq git-timemachine-abbreviation-length 7)

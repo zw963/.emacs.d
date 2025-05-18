@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 (defcustom crystal-spec-keywords
   '(
     "pending"

@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 ;; C-c C-e 开启编辑模式，配合 iedit-mode, 可以批量替换内容。非常酷！
 
 (require 'helm-ag)

@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 (require 'git-emacs)
 (require 'git-log)
 (require 'git-status)

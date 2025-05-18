@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 ;; (require 'tree-sitter)
 
 ;; 默认不设置 treesit-extra-load-path, 使用 ~/.emacs.d/tree-sitter 文件夹

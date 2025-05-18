@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 (require 'ligature)
 
 (setq ligature-ignored-major-modes '(makefile-mode makefile-gmake-mode))

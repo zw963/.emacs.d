@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 (require 'company)
 ;; For better performance and results, use company-capf (default)
 (require 'company-capf)

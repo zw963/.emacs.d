@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 (require 'fussy)
 
 (setq fussy-score-fn 'fussy-flx-rs-score)

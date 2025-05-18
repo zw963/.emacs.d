@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 (require 'ctags-update)
 
 (setq

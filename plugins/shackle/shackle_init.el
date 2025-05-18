@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 (require 'shackle)
 
 (setq shackle-default-size 0.4

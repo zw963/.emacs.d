@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 (require 'rbtagger)
 
 (setq tags-add-tables nil)

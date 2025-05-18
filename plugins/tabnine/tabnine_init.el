@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 ;; (require 'tabnine-capf)
 ;; (add-to-list 'completion-at-point-functions #'tabnine-completion-at-point)
 

@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 (require 'mint-mode)
 
 (defun format-all--locate-file (filename)

@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 (require 'hotfuzz)
 
 (setq completion-styles '(hotfuzz))

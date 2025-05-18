@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 (require 'yafolding)
 
 (with-eval-after-load 'all-the-icons

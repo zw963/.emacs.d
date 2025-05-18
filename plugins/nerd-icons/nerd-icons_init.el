@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 (require 'nerd-icons)
 
 (require 'nerd-icons-completion)

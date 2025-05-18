@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 ;; 使用 emacs 编辑 textarea 中的内容, 需要插件支持, 支持 Firefox 和 Chrome
 (require 'edit-server)
 ;; (setq edit-server-url-major-mode-alist '(("github\\.com" . markdown-mode)

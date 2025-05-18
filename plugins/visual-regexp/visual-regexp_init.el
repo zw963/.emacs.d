@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 (require 'visual-regexp-steroids)
 
 (global-set-key [remap query-replace] 'vr/query-replace)

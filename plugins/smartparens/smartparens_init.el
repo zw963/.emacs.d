@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 (require 'smartparens-config)
 
 (sp-local-pair 'web-mode "<#" "#>")

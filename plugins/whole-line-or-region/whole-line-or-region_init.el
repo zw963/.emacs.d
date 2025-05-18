@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 (require 'whole-line-or-region)
 
 (whole-line-or-region-global-mode 1)

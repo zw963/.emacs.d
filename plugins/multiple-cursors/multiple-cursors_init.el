@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 ;; (require 'region-bindings-mode)
 ;; (region-bindings-mode-enable)
 ;; (setq region-bindings-mode-disable-predicates '((lambda () buffer-read-only)))

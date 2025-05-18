@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 ;;; -*- no-byte-compile: t -*-
 
 ;; 首先， 应该运行 /home/zw963/Dropbox/common/.emacs.d/update_elc 脚本生成 elc

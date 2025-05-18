@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 (require 'ws-butler)
 
 (add-hook 'prog-mode-hook #'ws-butler-mode)

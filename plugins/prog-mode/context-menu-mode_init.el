@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 (require 'hideshow_init)
 (require 'yafolding_init)
 

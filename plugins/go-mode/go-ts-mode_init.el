@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 (require 'go-ts-mode)
 (add-to-list 'auto-mode-alist '("\\.go\\'" . go-ts-mode))
 

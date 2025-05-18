@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 ;; edit 用法：
 ;; helm-git-grep 出来结果后, F3, 直接编辑，完成后 C-x C-s.（或 C-c C-c)
 (require 'helm-git-grep)

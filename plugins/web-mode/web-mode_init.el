@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 (require 'web-mode)
 
 ;; (require 'auto-rename-tag)

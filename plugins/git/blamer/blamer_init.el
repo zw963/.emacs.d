@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 (require 'blamer)
 (require 'git-messenger)
 

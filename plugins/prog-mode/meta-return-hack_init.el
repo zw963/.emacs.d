@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 (require 'ruby-toggle-block_init)
 
 (defun no-moving-newline-and-indent ()

@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 (require 'gcmh)
 
 ;; (setq inhibit-compacting-font-caches t)  ; Don’t compact font caches during GC.

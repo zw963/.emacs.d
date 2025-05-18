@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 (require 'unicode-escape)
 
 ;; company 和 tabnine 的依赖

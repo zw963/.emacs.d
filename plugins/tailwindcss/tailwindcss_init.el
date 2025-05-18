@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 (require 'lsp-tailwindcss)
 
 (setq lsp-tailwindcss-add-on-mode t)

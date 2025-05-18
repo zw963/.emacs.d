@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 ;; (defun ruby-do-end-to-brace-fixed (orig end)
 ;;   (let (beg-marker end-marker beg-pos end-pos)
 ;;     (goto-char (- end 3))

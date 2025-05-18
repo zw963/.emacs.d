@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 (require 'async-bytecomp)
 (require 'dired-async)
 (require 'auth-source)

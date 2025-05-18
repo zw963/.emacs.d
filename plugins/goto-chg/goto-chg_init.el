@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 (require 'goto-chg)
 
 (global-set-key [(control ?,)] 'goto-last-change)

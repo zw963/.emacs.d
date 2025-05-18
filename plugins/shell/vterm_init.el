@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 (require 'vterm)
 
 ;; 按下 C-c C-t, 切换到 copy 模式，此时，直接按回车的话（没有添加选区），会拷贝整行。

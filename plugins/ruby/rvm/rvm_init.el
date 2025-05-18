@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 (require 'rvm)
 
 ;; 因为使用 rbtagger, 这个 hack 不再需要了

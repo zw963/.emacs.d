@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 (require 'json-mode)
 
 (defun turn-on-format-json ()

@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 ;; ============================== Beyond Comapre 集成 ==============================
 (require 'beyond-compare-functions)
 

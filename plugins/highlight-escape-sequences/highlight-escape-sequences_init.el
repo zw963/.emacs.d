@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 (require 'highlight-escape-sequences)
 
 (add-to-list 'hes-mode-alist `(enh-ruby-mode . ,hes-ruby-escape-sequence-keywords))

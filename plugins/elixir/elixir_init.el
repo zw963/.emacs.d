@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 (require 'elixir-ts-mode)
 (require 'lsp-elixir_init)
 

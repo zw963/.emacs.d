@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 (helm-mode 1)
 
 ;; 在其他界面, 可以直接切换到

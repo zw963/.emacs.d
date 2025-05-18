@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 (require 'zoom-frm)
 ;; (require 'autofit-frame)
 (global-set-key (kbd "C--" ) 'zoom-frm-out)

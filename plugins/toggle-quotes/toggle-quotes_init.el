@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 (require 'toggle-quotes)
 (require 'ruby-hash-syntax)
 

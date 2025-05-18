@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 ;; (with-eval-after-load 'lsp-mode
 ;;   (require 'lsp-solargraph)
 

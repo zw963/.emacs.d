@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 (require 'crystal-mode)
 (require 'lsp-crystal_init)
 (require 'flycheck-crystal)

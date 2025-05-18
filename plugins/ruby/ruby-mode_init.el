@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 (require 'ruby-mode)
 
 ;; 对应于 enh-ruby-mode 的配置.

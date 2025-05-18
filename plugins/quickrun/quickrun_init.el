@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 ;; (setq quickrun-option-default-directory ".quickrun/")
 ;; (defun quickrun--create-option-default-directory ()
 ;;   (if (file-directory-p quickrun-option-default-directory)

@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 (require 'flycheck)
 
 (global-flycheck-mode)

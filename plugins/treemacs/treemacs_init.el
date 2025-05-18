@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 (require 'cfrs)
 (require 'treemacs)
 (require 'treemacs-file-management)

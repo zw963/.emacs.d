@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 (setq kill-do-not-save-duplicates t)
 
 (require 'browse-kill-ring)

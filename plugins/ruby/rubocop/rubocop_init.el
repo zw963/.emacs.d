@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 (require 'rubocop)
 
 ;; (setq rubocop-format-on-save t)

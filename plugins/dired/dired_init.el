@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 (require 'dired)
 ;; dired
 (setq dired-recursive-copies 'always)            ;dired递归拷贝

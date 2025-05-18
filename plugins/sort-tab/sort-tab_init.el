@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 (require 'sort-tab)
 
 (sort-tab-mode t)

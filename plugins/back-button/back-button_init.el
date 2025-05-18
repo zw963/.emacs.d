@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 (setq back-button-local-keystrokes nil)
 
 (require 'back-button)

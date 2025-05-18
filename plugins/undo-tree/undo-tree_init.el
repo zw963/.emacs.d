@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 ;; (require 'undo-fu)
 
 ;; (with-eval-after-load 'undo-fu

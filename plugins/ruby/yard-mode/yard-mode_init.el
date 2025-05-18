@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 (setq yard-tags
       '("abstract" "api" "attr" "attr_reader" "attr_writer"
         "author" "deprecated" "example" "note" "option" "overload"

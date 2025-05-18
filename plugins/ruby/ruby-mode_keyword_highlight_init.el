@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 (defcustom ruby-general-keywords
   '("__LINE__" "__ENCODING__" "__FILE__" "at_exit" "attr" "attr_accessor"
     "attr_reader" "load" "attr_writer" "loop" "proc" "lambda" "eval" "exec"

@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 (require 'page-break-lines)
 
 (add-to-list 'page-break-lines-modes 'browse-kill-ring-mode)

@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 (require 'eee)
 
 (provide 'eee_init)

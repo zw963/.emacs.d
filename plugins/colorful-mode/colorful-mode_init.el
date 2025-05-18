@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 (require 'colorful-mode)
 
 (setq colorful-use-prefix t)

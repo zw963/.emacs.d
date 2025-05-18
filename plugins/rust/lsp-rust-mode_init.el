@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 (require 'lsp-rust)
 (require 'lsp-mode_init)
 

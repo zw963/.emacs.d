@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 ;; C-x v b 查看分支
 ;; C-x v l 查看 log
 ;; C-x v g, vc-annoate, 类似于 mo-git-blame, 但是有 blamer 只有, 似乎都不在需要了

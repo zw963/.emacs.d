@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 (require 'lsp-mode_init)
 (require 'lsp-dart)
 

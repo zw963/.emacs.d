@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 (require 'dape)
 
 (provide 'dape_init)

@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 (defun go-to-line-and-column-cond (lc-cond)
   "Allow a specification of LINE:COLUMN or LINE,COLUMN instead of just COLUMN.
 Just :COLUMN or ,COLUMN moves to the specified column on the current line.

@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 ;; seem like block-nav.el
 
 (require 'spatial-navigate)

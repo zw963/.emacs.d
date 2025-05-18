@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 (require 'eglot_init)
 (require 'project)
 

@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 (require 'prog-mode)
 (require 'meta-return-hack_init)
 

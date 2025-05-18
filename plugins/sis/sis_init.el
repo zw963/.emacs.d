@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 (require 'sis)
 
 (sis-ism-lazyman-config "1" "2" 'fcitx5)

@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 (require 'treesit-fold-indicators)
 
 (global-treesit-fold-indicators-mode)

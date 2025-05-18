@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 (require 'string-inflection)
 
 (defun my-string-inflection-cycle-auto ()

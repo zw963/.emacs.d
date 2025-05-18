@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 (require 'flx)
 
 (with-eval-after-load 'ido

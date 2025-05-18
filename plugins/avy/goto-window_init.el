@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 ;; ace-window 激活后，有一个有用的快捷键 m, 用来交换当前 window 和指定的 window.
 
 (require 'ace-window)

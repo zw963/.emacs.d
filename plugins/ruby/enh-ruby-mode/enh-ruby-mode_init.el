@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 (require 'enh-ruby-mode)
 
 (with-eval-after-load 'enh-ruby-mode

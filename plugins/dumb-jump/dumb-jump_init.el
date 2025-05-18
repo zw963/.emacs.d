@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 (require 'dumb-jump)
 
 (setq dumb-jump-prefer-searcher 'rg)

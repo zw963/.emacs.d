@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 (require 'symbol-overlay)
 
 ;; "i" -> symbol-overlay-put

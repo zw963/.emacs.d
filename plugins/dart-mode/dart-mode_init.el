@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 ;; (require 'project)
 
 ;; (defun project-try-dart (dir)

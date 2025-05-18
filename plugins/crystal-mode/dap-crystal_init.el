@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 (require 'dap-mode_init)
 运行 dap-codelldb-setup 来安装扩展
 (require 'dap-codelldb)

@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 ;; (require 'enh-ruby-mode_init)
 (require 'ruby-mode_init)
 (require 'ruby-ffap)

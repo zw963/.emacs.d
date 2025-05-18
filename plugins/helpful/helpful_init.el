@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 (require 'helpful)
 
 (global-set-key [remap describe-function] 'helpful-callable)

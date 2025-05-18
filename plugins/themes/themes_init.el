@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 ;; ------------------------------ Theme ------------------------------
 
 ;; popular themes: https://emacsthemes.com/popular/index.html

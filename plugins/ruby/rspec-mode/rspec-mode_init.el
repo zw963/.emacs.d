@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 (require 'rspec-mode)
 
 (eval-after-load 'rspec-mode

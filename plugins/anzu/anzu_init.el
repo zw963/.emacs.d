@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 (require 'anzu)
 
 (setq anzu-search-threshold 500)

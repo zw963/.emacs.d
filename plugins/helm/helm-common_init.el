@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 (require 'helm-autoloads)
 (require 'helm-files)
 (require 'helm-buffers)

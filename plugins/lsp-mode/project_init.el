@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 (require 'project)
 
 (defcustom project-root-markers

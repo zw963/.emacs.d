@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 (require 'ibuffer)
 (require 'ibuf-ext)                     ;隐藏系统 buffer.
 (setq ibuffer-expert t                  ;ibuffer 危险操作不确认提示.

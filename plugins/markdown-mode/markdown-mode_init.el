@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 ;; markdown-mode
 (require 'markdown-mode)
 

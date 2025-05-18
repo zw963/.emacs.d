@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 (require 'indent-bars-ts)
 
 (setq indent-bars-treesit-support t)

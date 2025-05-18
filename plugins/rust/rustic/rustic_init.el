@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 (require 'rustic)
 
 ;; 当开启 rustic-mode 时，会自动的 require 'lsp-rust,

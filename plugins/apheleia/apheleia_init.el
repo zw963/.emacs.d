@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 (require 'apheleia)
 
 ;; (add-to-list 'apheleia-mode-alist '(enh-ruby-mode . prettier-ruby))

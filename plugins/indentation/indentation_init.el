@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 (require 'snap-indent)
 
 (add-hook 'prog-mode-hook #'snap-indent-mode)

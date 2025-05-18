@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 ;; wgrep 用来支持编辑 helm-grep 的结果的。
 ;; 用法：
 ;; helm-git-grep 出来结果后，按下 F3, C-c C-p, 然后编辑，完成后 C-x C-s.（或 C-c C-c)

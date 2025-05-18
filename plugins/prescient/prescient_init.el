@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 (require 'prescient)
 
 ;; The modes handle sorting and filtering by default.

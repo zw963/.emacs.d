@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 (require 'lsp-mode_init)
 (setq lsp-elixir-ls-version "v0.23.0")
 (require 'lsp-elixir)

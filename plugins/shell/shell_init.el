@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 ;; 运行 shell 启动 shell-mode
 
 (custom-set-variables

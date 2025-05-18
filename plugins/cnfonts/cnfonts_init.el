@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 (require 'cnfonts)
 
 (setq cnfonts-use-face-font-rescale t)

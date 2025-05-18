@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 (require 'diff-hl)
 
 (setq vc-git-diff-switches '("--histogram"))

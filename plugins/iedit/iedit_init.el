@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 (require 'iedit)
 
 (setq-default iedit-occurrence-context-lines 0)

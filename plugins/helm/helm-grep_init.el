@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 (require 'helm-grep)
 
 (setq helm-grep-file-path-style 'relative)

@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 (require 'posframe)
 
 (with-eval-after-load 'ivy

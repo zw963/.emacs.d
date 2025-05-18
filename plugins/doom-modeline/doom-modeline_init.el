@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 (require 'doom-modeline)
 
 (require 'doom-modeline)

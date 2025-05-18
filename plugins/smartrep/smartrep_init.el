@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 (require 'smartrep)
 
 ;; used by back-button and diff-hl

@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 (require 'vundo-popup)
 (vundo-popup-mode 1)
 

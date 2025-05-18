@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 (require 'popper)
 (require 'popper-echo)
 

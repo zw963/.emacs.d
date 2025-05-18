@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 (require 'electric-operator)
 
 (add-hook 'crystal-mode-hook #'electric-operator-mode)

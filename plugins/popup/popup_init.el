@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 (require 'popup)
 (load "popup_doom_hack.el")
 (load "settings.el")
