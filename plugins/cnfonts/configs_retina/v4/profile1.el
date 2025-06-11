@@ -1,5 +1,3 @@
-;; -*- lexical-binding: t; -*-
-
 ;; `cnfonts--custom-set-fontsnames' 结构与 `cnfonts--fontnames-fallback' 相同。
 (setq cnfonts--custom-set-fontnames
       '(
