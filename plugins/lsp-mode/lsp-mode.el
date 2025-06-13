@@ -186,12 +186,12 @@ As defined by the Language Server Protocol 3.16."
      lsp-matlab lsp-mdx lsp-meson lsp-metals lsp-mint lsp-mojo lsp-move lsp-mssql
      lsp-nextflow lsp-nginx lsp-nim lsp-nix lsp-nushell lsp-ocaml lsp-openscad
      lsp-pascal lsp-perl lsp-perlnavigator lsp-php lsp-pls lsp-postgres
-     lsp-purescript lsp-pwsh lsp-pyls lsp-pylsp lsp-pyright lsp-python-ms
+     lsp-purescript lsp-pwsh lsp-pyls lsp-pylsp lsp-pyright lsp-python-ms lsp-python-ty
      lsp-qml lsp-r lsp-racket lsp-remark lsp-rf lsp-roc lsp-roslyn lsp-rubocop
      lsp-ruby-lsp lsp-ruby-syntax-tree lsp-ruff lsp-rust lsp-semgrep lsp-shader
      lsp-solargraph lsp-solidity lsp-sonarlint lsp-sorbet lsp-sourcekit
      lsp-sql lsp-sqls lsp-steep lsp-svelte lsp-tailwindcss lsp-terraform
-     lsp-tex lsp-tilt lsp-toml lsp-trunk lsp-ts-query lsp-ttcn3 lsp-typeprof
+     lsp-tex lsp-tilt lsp-toml lsp-toml-tombi lsp-trunk lsp-ts-query lsp-ttcn3 lsp-typeprof
      lsp-typespec lsp-v lsp-vala lsp-verilog lsp-vetur lsp-vhdl lsp-vimscript
      lsp-volar lsp-wgsl lsp-xml lsp-yaml lsp-yang lsp-zig)
   "List of the clients to be automatically required."
@@ -973,6 +973,7 @@ Changes take effect only when a new session is started."
     (zig-ts-mode . "zig")
     (text-mode . "plaintext")
     (markdown-mode . "markdown")
+    (markdown-ts-mode . "markdown")
     (gfm-mode . "markdown")
     (beancount-mode . "beancount")
     (conf-toml-mode . "toml")
@@ -2997,11 +2998,11 @@ and end-of-string meta-characters."
 (defun lsp-glob-to-regexps (glob-pattern)
   "Convert a GLOB-PATTERN to a list of Elisp regexps."
   (when-let*
-      ((glob-pattern (cond ((hash-table-p glob-pattern)
-                            (ht-get glob-pattern "pattern"))
-                           ((stringp glob-pattern) glob-pattern)
-                           (t (error "Unknown glob-pattern type: %s" glob-pattern))))
-       (trimmed-pattern (string-trim glob-pattern))
+      ((glob (pcase glob-pattern
+               ((pred stringp) glob-pattern)
+               ((lsp-interface RelativePattern :base-uri :pattern) (format "%s%s" base-uri pattern))
+               (_ (error "Unknown glob-pattern type: %s" glob-pattern))))
+       (trimmed-pattern (string-trim glob))
        (top-level-unbraced-patterns (lsp-glob-unbrace-at-top-level trimmed-pattern)))
     (seq-map #'lsp-glob-convert-to-wrapped-regexp
              top-level-unbraced-patterns)))
@@ -4563,12 +4564,12 @@ interface TextDocumentEdit {
     (lsp:set-position-line (max 0 line))
     (lsp:set-position-character (max 0 character))))
 
-(lsp-defun lsp--apply-text-edit-replace-buffer-contents ((edit &as
+(lsp-defun lsp--apply-text-edit-replace-region-contents ((edit &as
                                                                &TextEdit
                                                                :range (&Range :start :end)
                                                                :new-text))
   "Apply the edits described in the TextEdit object in TEXT-EDIT.
-The method uses `replace-buffer-contents'."
+The method uses `replace-region-contents'."
   (setq new-text (s-replace "\r" "" (or new-text "")))
   (lsp:set-text-edit-new-text edit new-text)
   (-let* ((source (current-buffer))
@@ -4580,21 +4581,12 @@ The method uses `replace-buffer-contents'."
         (with-current-buffer source
           (save-excursion
             (save-restriction
-              (narrow-to-region beg end)
-
-              ;; On emacs versions < 26.2,
-              ;; `replace-buffer-contents' is buggy - it calls
-              ;; change functions with invalid arguments - so we
-              ;; manually call the change functions here.
-              ;;
-              ;; See emacs bugs #32237, #32278:
-              ;; https://debbugs.gnu.org/cgi/bugreport.cgi?bug=32237
-              ;; https://debbugs.gnu.org/cgi/bugreport.cgi?bug=32278
               (let ((inhibit-modification-hooks t)
                     (length (- end beg)))
                 (run-hook-with-args 'before-change-functions
                                     beg end)
-                (replace-buffer-contents temp)
+                (replace-region-contents beg end
+                                         (lambda (&rest _) temp))
                 (run-hook-with-args 'after-change-functions
                                     beg (+ beg (length new-text))
                                     length)))))))))
@@ -4670,7 +4662,7 @@ OPERATION is symbol representing the source of this text edit."
              (reporter (make-progress-reporter message 0 howmany))
              (done 0)
              (apply-edit (if (not lsp--virtual-buffer)
-                             #'lsp--apply-text-edit-replace-buffer-contents
+                             #'lsp--apply-text-edit-replace-region-contents
                            #'lsp--apply-text-edit)))
         (unwind-protect
             (->> edits
@@ -6257,6 +6249,7 @@ one or more symbols, and STRUCTURE should be compatible with
     (scala-mode                 . scala-indent:step)                ; Scala
     (sgml-mode                  . sgml-basic-offset)                ; SGML
     (sh-mode                    . sh-basic-offset)                  ; Shell Script
+    (swift-mode                 . swift-mode:basic-offset)          ; Swift
     (toml-ts-mode               . toml-ts-mode-indent-offset)
     (typescript-mode            . typescript-indent-level)          ; Typescript
     (typescript-ts-mode         . typescript-ts-mode-indent-offset) ; Typescript (tree-sitter, Emacs29)
@@ -6654,11 +6647,13 @@ to check if server wants to apply any workspaceEdits after renamed."
                      :files (vector (lsp-make-file-rename
                                      :oldUri (lsp--path-to-uri old-name)
                                      :newUri (lsp--path-to-uri new-name))))))
-        (when-let* ((edits (lsp-request "workspace/willRenameFiles" params)))
-          (lsp--apply-workspace-edit edits 'rename-file)
-          (funcall old-func old-name new-name ok-if-already-exists?)
-          (when (lsp--send-did-rename-files-p)
-            (lsp-notify "workspace/didRenameFiles" params))))
+        (if-let* ((edits (lsp-request "workspace/willRenameFiles" params)))
+            (progn
+              (lsp--apply-workspace-edit edits 'rename-file)
+              (funcall old-func old-name new-name ok-if-already-exists?)
+              (when (lsp--send-did-rename-files-p)
+                (lsp-notify "workspace/didRenameFiles" params)))
+          (funcall old-func old-name new-name ok-if-already-exists?)))
     (funcall old-func old-name new-name ok-if-already-exists?)))
 
 (advice-add 'rename-file :around #'lsp--on-rename-file)
@@ -8367,7 +8362,7 @@ nil."
      ((and (f-absolute? path)
            (f-exists? path))
       path)
-     ((executable-find path t) path))))
+     ((executable-find path t)))))
 
 (defun lsp-package-path (dependency)
   "Path to the DEPENDENCY each of the registered providers."

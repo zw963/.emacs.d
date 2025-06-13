@@ -1,5 +1,3 @@
-;; -*- lexical-binding: t; -*-
-
 ;;; lsp-iedit.el --- `iedit' integration -*- lexical-binding: t -*-
 ;;
 ;; Copyright (C) 2020 emacs-lsp maintainers

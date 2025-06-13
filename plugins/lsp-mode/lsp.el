@@ -1,5 +1,3 @@
-;; -*- lexical-binding: t; -*-
-
 ;; The code was moved into lsp-mode.el. This file is kept only for backward compatibility. -*- lexical-binding: t -*-
 (require 'lsp-mode)
 

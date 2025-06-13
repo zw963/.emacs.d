@@ -1,5 +1,3 @@
-;; -*- lexical-binding: t; -*-
-
 ;;; lsp-dired.el --- `lsp-mode' diagnostics integrated into `dired' -*- lexical-binding: t -*-
 
 ;; Copyright (C) 2021

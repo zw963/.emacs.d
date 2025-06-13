@@ -1,5 +1,3 @@
-;; -*- lexical-binding: t; -*-
-
 ;;; lsp-move.el --- MOVE client settings -*- lexical-binding: t -*-
 
 ;; Copyright (C) 2023 Dmitri Makarov

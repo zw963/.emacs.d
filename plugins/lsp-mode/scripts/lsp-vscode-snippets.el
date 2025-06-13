@@ -1,5 +1,3 @@
-;; -*- lexical-binding: t; -*-
-
 
 (defun lsp-load-and-save-snippets (file-name mode dir)
   (ht-each

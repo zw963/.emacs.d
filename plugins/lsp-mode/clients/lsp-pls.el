@@ -1,5 +1,3 @@
-;; -*- lexical-binding: t; -*-
-
 ;;; lsp-pls.el --- PLS Integration for lsp-mode -*- lexical-binding: t -*-
 
 ;; Copyright (C) 2022 Alexander Adolf
