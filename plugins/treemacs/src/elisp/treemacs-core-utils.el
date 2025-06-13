@@ -1,5 +1,3 @@
-;; -*- lexical-binding: t; -*-
-
 ;;; treemacs.el --- A tree style file viewer package -*- lexical-binding: t -*-
 
 ;; Copyright (C) 2024 Alexander Miller
@@ -207,7 +205,7 @@ PATH: File Path"
          (file-name-directory)
          (treemacs--unslash)))))
 
-(defconst treemacs--buffer-name-prefix " *Treemacs-")
+(defconst treemacs--buffer-name-prefix " *Treemacs-Buffer-")
 
 (defconst treemacs-dir
   ;; locally we're in src/elisp, installed from melpa we're at the package root

@@ -1,5 +1,3 @@
-;; -*- lexical-binding: t; -*-
-
 ;;; treemacs-git-commit-diff-mode.el --- A tree style file viewer package -*- lexical-binding: t -*-
 
 ;; Copyright (C) 2024 Alexander Miller

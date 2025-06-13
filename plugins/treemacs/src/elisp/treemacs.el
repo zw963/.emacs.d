@@ -1,5 +1,3 @@
-;; -*- lexical-binding: t; -*-
-
 ;;; treemacs.el --- A tree style file explorer package -*- lexical-binding: t -*-
 
 ;; Copyright (C) 2024 Alexander Miller

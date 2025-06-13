@@ -1,5 +1,3 @@
-;; -*- lexical-binding: t; -*-
-
 ;;; treemacs-mu4e.el --- mu4e integration for treemacs -*- lexical-binding: t -*-
 
 ;; Copyright (C) 2024 Alexander Miller

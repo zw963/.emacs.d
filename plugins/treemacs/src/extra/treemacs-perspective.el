@@ -1,5 +1,3 @@
-;; -*- lexical-binding: t; -*-
-
 ;;; treemacs-perspective.el --- Perspective integration for treemacs -*- lexical-binding: t -*-
 
 ;; Copyright (C) 2024 Alexander Miller

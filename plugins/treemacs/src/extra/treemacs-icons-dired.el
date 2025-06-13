@@ -1,5 +1,3 @@
-;; -*- lexical-binding: t; -*-
-
 ;;; treemacs-icons-dired.el --- Treemacs icons for dired -*- lexical-binding: t -*-
 
 ;; Copyright (C) 2024 Alexander Miller

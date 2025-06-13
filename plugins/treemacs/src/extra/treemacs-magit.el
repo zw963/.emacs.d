@@ -1,5 +1,3 @@
-;; -*- lexical-binding: t; -*-
-
 ;;; treemacs-magit.el --- Magit integration for treemacs -*- lexical-binding: t -*-
 
 ;; Copyright (C) 2024 Alexander Miller

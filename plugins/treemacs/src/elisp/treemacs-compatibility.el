@@ -1,5 +1,3 @@
-;; -*- lexical-binding: t; -*-
-
 ;;; treemacs.el --- A tree style file viewer package -*- lexical-binding: t -*-
 
 ;; Copyright (C) 2024 Alexander Miller
@@ -85,7 +83,7 @@ For all other cases ORIGINAL-FN is called with original ARGS."
 
 (with-eval-after-load 'winum
   (when (boundp 'winum-ignored-buffers-regexp)
-    (add-to-list 'winum-ignored-buffers-regexp (regexp-quote (format "%sScoped-Buffer-" treemacs--buffer-name-prefix)))))
+    (add-to-list 'winum-ignored-buffers-regexp (regexp-quote treemacs--buffer-name-prefix))))
 
 (with-eval-after-load 'ace-window
   (when (boundp 'aw-ignored-buffers)
