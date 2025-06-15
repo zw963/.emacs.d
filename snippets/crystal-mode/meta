@@ -1,0 +1,5 @@
+# -*- mode: snippet -*-
+# name: meta
+# key: meta
+# --
+{{ read_file("/home/zw963/Dropbox/common/crystal/meta/meta.cr").id }}
