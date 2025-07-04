@@ -1,5 +1,3 @@
-;; -*- lexical-binding: t; -*-
-
 ;;; wgrep-rg.el --- Writable rg buffer and apply the changes to files
 
 ;; Author: Masahiro Hayashi <mhayashi1120@gmail.com>
@@ -177,7 +175,7 @@ with wgrep text properties to allow for wgrep to do its job."
 ;;;###autoload
 (defun wgrep-rg-setup ()
   "Setup wgrep rg support."
-  (set (make-local-variable 'wgrep-header/footer-parser)
+  (set (make-local-variable 'wgrep-header&footer-parser)
        'wgrep-rg-prepare-header/footer)
   (set (make-local-variable 'wgrep-results-parser)
        'wgrep-rg-parse-command-results)
