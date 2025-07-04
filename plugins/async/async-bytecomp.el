@@ -1,5 +1,3 @@
-;; -*- lexical-binding: t; -*-
-
 ;;; async-bytecomp.el --- Compile elisp files asynchronously -*- lexical-binding: t -*-
 
 ;; Copyright (C) 2014-2022 Free Software Foundation, Inc.
@@ -68,7 +66,7 @@ all packages are always compiled asynchronously."
   "The variable used by `async-inject-variables' when (re)compiling async.")
 
 (defun async-bytecomp--file-to-comp-buffer (file-or-dir &optional quiet type)
-  (let ((bn (file-name-nondirectory file-or-dir))
+  (let ((bn (file-name-nondirectory (directory-file-name file-or-dir)))
         (action-name (pcase type
                        ('file "File")
                        ('directory "Directory"))))

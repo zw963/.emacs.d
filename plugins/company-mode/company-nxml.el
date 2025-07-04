@@ -1,5 +1,3 @@
-;; -*- lexical-binding: t; -*-
-
 ;;; company-nxml.el --- company-mode completion backend for nxml-mode  -*- lexical-binding: t -*-
 
 ;; Copyright (C) 2009-2011, 2013-2015, 2017-2018, 2023  Free Software Foundation, Inc.

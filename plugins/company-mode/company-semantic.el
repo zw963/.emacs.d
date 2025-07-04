@@ -1,5 +1,3 @@
-;; -*- lexical-binding: t; -*-
-
 ;;; company-semantic.el --- company-mode completion backend using Semantic  -*- lexical-binding: t -*-
 
 ;; Copyright (C) 2009-2011, 2013-2018, 2023  Free Software Foundation, Inc.

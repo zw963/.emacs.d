@@ -1,5 +1,3 @@
-;; -*- lexical-binding: t; -*-
-
 ;;; company-files.el --- company-mode completion backend for file names  -*- lexical-binding: t -*-
 
 ;; Copyright (C) 2009-2011, 2013-2024  Free Software Foundation, Inc.

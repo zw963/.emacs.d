@@ -1,5 +1,3 @@
-;; -*- lexical-binding: t; -*-
-
 ;;; company-gtags.el --- company-mode completion backend for GNU Global  -*- lexical-binding: t -*-
 
 ;; Copyright (C) 2009-2011, 2013-2021, 2023  Free Software Foundation, Inc.

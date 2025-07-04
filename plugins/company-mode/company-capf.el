@@ -1,5 +1,3 @@
-;; -*- lexical-binding: t; -*-
-
 ;;; company-capf.el --- company-mode completion-at-point-functions backend -*- lexical-binding: t -*-
 
 ;; Copyright (C) 2013-2024  Free Software Foundation, Inc.

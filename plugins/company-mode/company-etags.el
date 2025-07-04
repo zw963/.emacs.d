@@ -1,5 +1,3 @@
-;; -*- lexical-binding: t; -*-
-
 ;;; company-etags.el --- company-mode completion backend for etags  -*- lexical-binding: t -*-
 
 ;; Copyright (C) 2009-2011, 2013-2015, 2018-2019, 2023-2024  Free Software Foundation, Inc.

@@ -1,5 +1,3 @@
-;; -*- lexical-binding: t; -*-
-
 ;;; company-cmake.el --- company-mode completion backend for CMake  -*- lexical-binding: t -*-
 
 ;; Copyright (C) 2013-2015, 2017-2018, 2020, 2023  Free Software Foundation, Inc.

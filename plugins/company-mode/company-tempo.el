@@ -1,5 +1,3 @@
-;; -*- lexical-binding: t; -*-
-
 ;;; company-tempo.el --- company-mode completion backend for tempo  -*- lexical-binding: t -*-
 
 ;; Copyright (C) 2009-2011, 2013-2016, 2023  Free Software Foundation, Inc.

@@ -1,5 +1,3 @@
-;; -*- lexical-binding: t; -*-
-
 ;;; apheleia.el --- Reformat buffer stably -*- lexical-binding: t -*-
 
 ;; Copyright (C) 2019-2022 Radian LLC and contributors
@@ -10,7 +8,7 @@
 ;; Keywords: tools
 ;; Package-Requires: ((emacs "27"))
 ;; SPDX-License-Identifier: MIT
-;; Version: 4.4
+;; Version: 4.4.1
 
 ;;; Commentary:
 

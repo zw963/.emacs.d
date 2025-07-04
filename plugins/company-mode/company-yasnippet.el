@@ -1,5 +1,3 @@
-;; -*- lexical-binding: t; -*-
-
 ;;; company-yasnippet.el --- company-mode completion backend for Yasnippet  -*- lexical-binding: t -*-
 
 ;; Copyright (C) 2014-2015, 2020-2023  Free Software Foundation, Inc.

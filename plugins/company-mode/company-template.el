@@ -1,5 +1,3 @@
-;; -*- lexical-binding: t; -*-
-
 ;;; company-template.el --- utility library for template expansion  -*- lexical-binding: t -*-
 
 ;; Copyright (C) 2009-2010, 2013-2017, 2019, 2023-2024  Free Software Foundation, Inc.

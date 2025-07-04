@@ -1,5 +1,3 @@
-;; -*- lexical-binding: t; -*-
-
 ;;; company-keywords.el --- A company backend for programming language keywords  -*- lexical-binding: t -*-
 
 ;; Copyright (C) 2009-2011, 2013-2018, 2020-2023  Free Software Foundation, Inc.
@@ -379,6 +377,11 @@
      "new" "null" "object" "override" "package" "private" "protected"
      "return" "sealed" "super" "this" "throw" "trait" "true" "try" "type" "val"
      "var" "while" "with" "yield")
+    (sh-mode
+     "break" "case" "continue" "do" "done" "elif" "else" "esac" "eval"
+     "exec" "exit" "export" "false" "fi" "for" "function" "if" "in" "readonly"
+     "return" "set" "shift" "test" "then" "time" "times" "trap" "true" "unset"
+     "until" "while")
     (swift-mode
      "Protocol" "Self" "Type" "and" "as" "assignment" "associatedtype"
      "associativity" "available" "break" "case" "catch" "class" "column" "continue"

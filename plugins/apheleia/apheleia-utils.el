@@ -1,5 +1,3 @@
-;; -*- lexical-binding: t; -*-
-
 ;;; apheleia-utils.el --- Formatter helpers. -*- lexical-binding: t -*-
 
 ;; SPDX-License-Identifier: MIT

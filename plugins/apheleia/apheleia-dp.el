@@ -1,5 +1,3 @@
-;; -*- lexical-binding: t; -*-
-
 ;;; apheleia-dp.el --- Dynamic programming -*- lexical-binding: t -*-
 
 ;; SPDX-License-Identifier: MIT

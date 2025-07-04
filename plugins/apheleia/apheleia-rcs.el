@@ -1,5 +1,3 @@
-;; -*- lexical-binding: t; -*-
-
 ;;; apheleia-rcs.el --- Apply RCS patches -*- lexical-binding: t -*-
 
 ;; SPDX-License-Identifier: MIT
@@ -133,6 +131,7 @@ contains the patch."
                                 -1)
                              (alist-get 'start addition)))
                  (let ((text-start (alist-get 'marker deletion)))
+                   (goto-char text-start)
                    (forward-line (alist-get 'lines deletion))
                    (let ((text-end (point)))
                      (dolist (pos-spec pos-list)

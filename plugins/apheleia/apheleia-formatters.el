@@ -1,5 +1,3 @@
-;; -*- lexical-binding: t; -*-
-
 ;;; apheleia-formatters.el --- Run formatters -*- lexical-binding: t -*-
 
 ;; SPDX-License-Identifier: MIT
@@ -34,6 +32,7 @@
     (black . ("black"
               (when (apheleia-formatters-extension-p "pyi") "--pyi")
               (apheleia-formatters-fill-column "--line-length")
+              "--stdin-filename" filepath
               "-"))
     (brittany . ("brittany"))
     (buildifier . ("buildifier" "-type"
@@ -93,6 +92,7 @@
                (apheleia-formatters-indent
                 "--indent-with-tabs" "--indent-spaces")
                (apheleia-formatters-fill-column "-wrap"))
+    (hurlfmt . ("hurlfmt" "--no-color"))
     (isort . ("isort" "-"))
     (js-beautify "js-beautify" "--file" "-" "--end-with-newline"
                  (apheleia-formatters-indent
@@ -105,6 +105,7 @@
     (mix-format . ("apheleia-from-project-root"
                    ".formatter.exs" "apheleia-mix-format" filepath))
     (nixfmt . ("nixfmt"))
+    (nomad . ("nomad" "fmt" "-"))
     (ocamlformat . ("ocamlformat" "-" "--name" filepath
                     "--enable-outside-detected-project"))
     (ocp-indent . ("ocp-indent"))
@@ -349,6 +350,7 @@ rather than using this system."
     (hcl-mode . hclfmt)
     (html-mode . prettier-html)
     (html-ts-mode . prettier-html)
+    (hurl-mode . hurlfmt)
     (java-mode . google-java-format)
     (java-ts-mode . google-java-format)
     (jinja2-mode . nil)
@@ -371,6 +373,7 @@ rather than using this system."
     (nasm-mode . asmfmt)
     (nix-mode . nixfmt)
     (nix-ts-mode . nixfmt)
+    (nomad-mode . nomad)
     (perl-mode . perltidy)
     (php-mode . phpcs)
     (purescript-mode . purs-tidy)
@@ -901,7 +904,10 @@ See `apheleia--run-formatters' for a description of REMOTE."
     (let ((ctx (apheleia-formatter--context)))
       (setf (apheleia-formatter--name ctx) nil ; Skip logging on failure
             (apheleia-formatter--arg1 ctx) "diff"
-            (apheleia-formatter--argv ctx) `("--rcs" "--strip-trailing-cr" "--"
+            (apheleia-formatter--argv ctx) `("--rcs"
+                                             "--strip-trailing-cr"
+                                             "--text"
+                                             "--"
                                              ,(or old-fname "-")
                                              ,(or new-fname "-"))
             (apheleia-formatter--remote ctx) remote

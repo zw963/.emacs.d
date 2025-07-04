@@ -1,5 +1,3 @@
-;; -*- lexical-binding: t; -*-
-
 ;;; company-abbrev.el --- company-mode completion backend for abbrev  -*- lexical-binding: t -*-
 
 ;; Copyright (C) 2009-2011, 2013-2015, 2021, 2023  Free Software Foundation, Inc.

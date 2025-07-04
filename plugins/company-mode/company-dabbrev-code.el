@@ -1,5 +1,3 @@
-;; -*- lexical-binding: t; -*-
-
 ;;; company-dabbrev-code.el --- dabbrev-like company-mode backend for code  -*- lexical-binding: t -*-
 
 ;; Copyright (C) 2009-2011, 2013-2016, 2021-2024  Free Software Foundation, Inc.

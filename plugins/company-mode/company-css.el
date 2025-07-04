@@ -1,5 +1,3 @@
-;; -*- lexical-binding: t; -*-
-
 ;;; company-css.el --- company-mode completion backend for css-mode  -*- lexical-binding: t -*-
 
 ;; Copyright (C) 2009-2011, 2013-2015, 2018  Free Software Foundation, Inc.

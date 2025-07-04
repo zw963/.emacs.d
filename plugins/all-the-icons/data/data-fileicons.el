@@ -1,4 +1,4 @@
-;; -*- lexical-binding: t; -*-
+;; -*- lexical-binding: t -*-
 
 (defvar all-the-icons-data/file-icon-alist
   '(

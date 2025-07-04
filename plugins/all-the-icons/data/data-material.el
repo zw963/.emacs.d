@@ -1,4 +1,4 @@
-;; -*- lexical-binding: t; -*-
+;; -*- lexical-binding: t -*-
 
 (defvar all-the-icons-data/material-icons-alist
   '(("3d_rotation" . "\xe84d")

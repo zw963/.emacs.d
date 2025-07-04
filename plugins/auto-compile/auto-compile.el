@@ -1,5 +1,3 @@
-;; -*- lexical-binding: t; -*-
-
 ;;; auto-compile.el --- Automatically compile Emacs Lisp libraries  -*- lexical-binding:t -*-
 
 ;; Copyright (C) 2008-2025 Jonas Bernoulli
@@ -8,7 +6,7 @@
 ;; Homepage: https://github.com/emacscollective/auto-compile
 ;; Keywords: compile convenience lisp
 
-;; Package-Version: 2.0.6
+;; Package-Version: 2.0.7
 ;; Package-Requires: ((emacs "26.1"))
 
 ;; SPDX-License-Identifier: GPL-3.0-or-later
