@@ -1,5 +1,3 @@
-;; -*- lexical-binding: t; -*-
-
 ;;; hydra-ox.el --- Org mode export widget implemented in Hydra
 
 ;; Copyright (C) 2015  Free Software Foundation, Inc.

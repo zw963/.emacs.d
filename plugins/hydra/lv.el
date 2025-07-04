@@ -1,5 +1,3 @@
-;; -*- lexical-binding: t; -*-
-
 ;;; lv.el --- Other echo area
 
 ;; Copyright (C) 2015  Free Software Foundation, Inc.
