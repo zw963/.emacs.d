@@ -5,7 +5,7 @@
 ;; Author: Hongyu Ding <rainstormstudio@yahoo.com>
 ;; Keywords: lisp
 ;; Version: 0.0.1
-;; Package-Requires: ((emacs "25.1") (nerd-icons "0.0.1"))
+;; Package-Requires: ((emacs "25.1") (nerd-icons "0.0.1") (compat "30"))
 ;; URL: https://github.com/rainstormstudio/nerd-icons-completion
 ;; Keywords: convenient, files, icons
 
@@ -31,12 +31,18 @@
 ;;; Code:
 
 (require 'nerd-icons)
+(require 'compat)
 
 (defgroup nerd-icons-completion nil
   "Add icons to completion candidates."
   :group 'appearance
   :group 'convenience
   :prefix "nerd-icons-completion")
+
+(defcustom nerd-icons-completion-icon-size 1.0
+  "The default icon size in completion."
+  :group 'nerd-icons-completion
+  :type 'float)
 
 (defface nerd-icons-completion-dir-face
   '((t nil))
@@ -51,9 +57,11 @@
   "Return the icon for the candidate CAND of completion category file."
   (cond ((string-match-p "\\/$" cand)
          (concat
-          (nerd-icons-icon-for-dir cand :face 'nerd-icons-completion-dir-face)
+          (nerd-icons-icon-for-dir cand :face 'nerd-icons-completion-dir-face
+                                        :height nerd-icons-completion-icon-size)
           " "))
-        (t (concat (nerd-icons-icon-for-file cand) " "))))
+        (t (concat (nerd-icons-icon-for-file cand :height nerd-icons-completion-icon-size)
+                   " "))))
 
 (cl-defmethod nerd-icons-completion-get-icon (cand (_cat (eql project-file)))
   "Return the icon for the candidate CAND of completion category project-file."
@@ -62,13 +70,14 @@
 (cl-defmethod nerd-icons-completion-get-icon (cand (_cat (eql buffer)))
   "Return the icon for the candidate CAND of completion category buffer."
   (let* ((mode (buffer-local-value 'major-mode (get-buffer cand)))
-         (icon (nerd-icons-icon-for-mode mode))
+         (icon (nerd-icons-icon-for-mode mode :height nerd-icons-completion-icon-size))
          (parent-icon (nerd-icons-icon-for-mode
-                       (get mode 'derived-mode-parent))))
+                       (get mode 'derived-mode-parent)
+                       :height nerd-icons-completion-icon-size)))
     (concat
      (if (symbolp icon)
          (if (symbolp parent-icon)
-             (nerd-icons-faicon "nf-fa-sticky_note_o")
+             (nerd-icons-faicon "nf-fa-sticky_note_o" :height nerd-icons-completion-icon-size)
            parent-icon)
        icon)
      " ")))
@@ -76,9 +85,11 @@
 (autoload 'bookmark-get-filename "bookmark")
 (cl-defmethod nerd-icons-completion-get-icon (cand (_cat (eql bookmark)))
   "Return the icon for the candidate CAND of completion category bookmark."
-  (if-let (fname (bookmark-get-filename cand))
+  (if-let* ((fname (bookmark-get-filename cand)))
       (nerd-icons-completion-get-icon fname 'file)
-    (concat (nerd-icons-octicon "nf-oct-bookmark" :face 'nerd-icons-completion-dir-face) " ")))
+    (concat (nerd-icons-octicon "nf-oct-bookmark"
+                                :face 'nerd-icons-completion-dir-face
+                                :height nerd-icons-completion-icon-size) " ")))
 
 (defun nerd-icons-completion-completion-metadata-get (orig metadata prop)
   "Meant as :around advice for `completion-metadata-get', Add icons as prefix.
@@ -88,7 +99,7 @@ PROP is the property which is looked up."
   (if (eq prop 'affixation-function)
       (let ((cat (funcall orig metadata 'category))
             (aff (or (funcall orig metadata 'affixation-function)
-                     (when-let ((ann (funcall orig metadata 'annotation-function)))
+                     (when-let* ((ann (funcall orig metadata 'annotation-function)))
                        (lambda (cands)
                          (mapcar (lambda (x) (list x "" (funcall ann x))) cands))))))
         (cond
@@ -139,8 +150,12 @@ PROP is the property which is looked up."
   "Add icons to completion candidates."
   :global t
   (if nerd-icons-completion-mode
-      (advice-add #'completion-metadata-get :around #'nerd-icons-completion-completion-metadata-get)
-    (advice-remove #'completion-metadata-get #'nerd-icons-completion-completion-metadata-get)))
+      (progn
+        (advice-add #'completion-metadata-get :around #'nerd-icons-completion-completion-metadata-get)
+        (advice-add (compat-function completion-metadata-get) :around #'nerd-icons-completion-completion-metadata-get))
+    (progn
+      (advice-remove #'completion-metadata-get #'nerd-icons-completion-completion-metadata-get)
+      (advice-remove (compat-function completion-metadata-get) #'nerd-icons-completion-completion-metadata-get))))
 
 (provide 'nerd-icons-completion)
 ;;; nerd-icons-completion.el ends here

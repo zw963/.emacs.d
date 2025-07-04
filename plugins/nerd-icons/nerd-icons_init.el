@@ -1,9 +1,8 @@
-;; -*- lexical-binding: t; -*-
-
 (require 'nerd-icons)
 
-(require 'nerd-icons-completion)
-(nerd-icons-completion-mode)
+;; 这个和 helm 冲突？暂时先关掉吧。
+;; (require 'nerd-icons-completion)
+;; (nerd-icons-completion-mode)
 
 (require 'nerd-icons-ibuffer)
 (add-hook 'ibuffer-mode-hook #'nerd-icons-ibuffer-mode)

@@ -1,5 +1,3 @@
-;; -*- lexical-binding: t; -*-
-
 ;;; nerd-icons-dired.el --- Shows icons for each file in dired mode -*- lexical-binding: t -*-
 
 ;; Copyright (C) 2023 Hongyu Ding <rainstormstudio@yahoo.com>
@@ -59,7 +57,11 @@
   "Add overlay to display STRING at POS."
   (let ((ov (make-overlay (1- pos) pos)))
     (overlay-put ov 'nerd-icons-dired-overlay t)
-    (overlay-put ov 'after-string string)))
+    (overlay-put ov 'after-string
+                 ;; Workaround for the issue where overlapping faces
+                 ;; are not applied
+                 ;; https://github.com/rainstormstudio/nerd-icons-dired/issues/1
+                 (propertize string 'display string))))
 
 (defun nerd-icons-dired--overlays-in (beg end)
   "Get all nerd-icons-dired overlays between BEG to END."
@@ -122,6 +124,8 @@
       (advice-add 'dired-narrow--internal :around #'nerd-icons-dired--refresh-advice))
     (with-eval-after-load 'dired-subtree
       (advice-add 'dired-subtree-toggle :around #'nerd-icons-dired--refresh-advice))
+    (with-eval-after-load 'wdired
+      (advice-add 'wdired-abort-changes :around #'nerd-icons-dired--refresh-advice))
     (nerd-icons-dired--refresh)))
 
 (defun nerd-icons-dired--teardown ()
@@ -136,6 +140,7 @@
   (advice-remove 'dired-create-directory #'nerd-icons-dired--refresh-advice)
   (advice-remove 'dired-do-redisplay #'nerd-icons-dired--refresh-advice)
   (advice-remove 'dired-kill-subdir #'nerd-icons-dired--refresh-advice)
+  (advice-remove 'wdired-abort-changes #'nerd-icons-dired--refresh-advice)
   (nerd-icons-dired--remove-all-overlays))
 
 ;;;###autoload

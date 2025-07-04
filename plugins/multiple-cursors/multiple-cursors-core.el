@@ -1,5 +1,3 @@
-;; -*- lexical-binding: t; -*-
-
 ;;; multiple-cursors-core.el --- An experiment in multiple cursors for emacs.
 
 ;; Copyright (C) 2012-2016 Magnar Sveen
@@ -336,7 +334,7 @@ values."
   (let ((mc-name (intern (concat "mc--" (symbol-name fn-name)))))
     `(progn
        (defun ,mc-name (orig-fun &rest args)
-         (if (not multiple-cursors-mode)
+         (if (not (bound-and-true-p multiple-cursors-mode))
              (apply orig-fun args)
            (let* ((cache-key (cons ,(symbol-name fn-name) (,args-cache-key-fn args)))
                   (cached-value (assoc cache-key mc--input-function-cache))
@@ -745,7 +743,7 @@ They are temporarily disabled when multiple-cursors are active.")
 
 (defun mc/temporarily-disable-minor-mode (mode)
   "If MODE is available and turned on, remember that and turn it off."
-  (when (and (boundp mode) (eval mode))
+  (when (and (boundp mode) (symbol-value mode))
     (add-to-list 'mc/temporarily-disabled-minor-modes mode)
     (funcall mode -1)))
 
