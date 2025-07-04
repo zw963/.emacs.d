@@ -11,7 +11,9 @@
 ;; (setenv "https_proxy" "")
 ;; (setenv "ftp_proxy" "")
 
-(require 'gcmh_init)
+;; igc 分支不使用 gcmh
+;; (require 'gcmh_init)
+
 (require 'auto-compile_init)
 
 ;; ;; 添加几个需要的前缀。
