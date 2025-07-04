@@ -1,5 +1,3 @@
-;; -*- lexical-binding: t; -*-
-
 ;; To use this file run: make benchmark
 ;;
 ;; Expected result is that electric-operator-post-self-insert-function takes
