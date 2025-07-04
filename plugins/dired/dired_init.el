@@ -107,10 +107,10 @@
 (define-key dired-mode-map  "/" 'dired-narrow-fuzzy)
 (define-key dired-mode-map  (kbd "<down-mouse-1>") 'dired-find-file)
 
-;; (require 'diredc)
-;; (global-set-key [(meta D)] 'diredc) ; 打开 dired buffer.
-;; (global-set-key [remap dired-other-frame] 'diredc)
-(global-set-key [(meta D)] (lambda () (interactive) (dired "./"))) ; 打开 dired buffer.
+(require 'diredc)
+(global-set-key [(meta D)] 'diredc) ; 打开 dired buffer.
+(global-set-key [remap dired-other-frame] 'diredc)
+;; (global-set-key [(meta D)] (lambda () (interactive) (dired "./"))) ; 打开 dired buffer.
 
 (require 'find-dupes-dired)
 

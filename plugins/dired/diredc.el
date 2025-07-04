@@ -1,5 +1,3 @@
-;; -*- lexical-binding: t; -*-
-
 ;;; diredc.el --- Midnight Commander features (plus) for dired -*- lexical-binding: t -*-
 
 ;; Copyright © 2020-2024, Boruch Baum <boruch_baum@gmx.com>
@@ -827,13 +825,14 @@ See also functions `diredc-bookmark-add' and
   :package-version '(diredc . "1.0"))
 
 (defcustom diredc-display-listing-switches-list
-    '(("classic long" . "-aFlv --group-directories-first --time-style=long-iso")
-      ("long, derefernce links, K sizes" . "-aFlv --block-size=K --group-directories-first")
-      ("long, inode, uid/gid, M sizes" . "-aFinlv  --block-size=M --group-directories-first")
-      ("long, sort by extension" .       "-aFlvX --group-directories-first"))
-;     ("classic ls-dired" . "-D")
-;     ("long, no group, K sizes" . "-oL")
-;     ("long, security context" . "-alZ")
+    '(("classic long" . "-aFlv --group-directories-first --time-style=long-iso --block-size='1")
+      ("long, derefernce links, K sizes" . "-aFlv --block-size='K --group-directories-first")
+      ("long, derefernce links, M sizes" . "-aFlv --block-size=M --group-directories-first")
+      ("long, inode, uid/gid, M sizes" . "-aFinlv  --block-size=M --group-directories-first"))
+;     ("long, sort by extension" .       "-aFlvX --group-directories-first "))
+;     ("classic ls-dired" . "-bD")
+;     ("long, no group, K sizes" . "-boL")
+;     ("long, security context" . "-ablZ")
 
 "How to display a `dired' buffer.
 This is merely a list of values suitable for defcustom
@@ -2433,7 +2432,7 @@ For keybindings and environment variables."
   (setq-local diredc--shell-point (point-max)) ; See kludge below.
   (funcall comint-input-sender
            (get-buffer-process (current-buffer))
-           (format " export INSIDE_DIREDC=\"%s\" d1=\"%s\" d2=\"%s\" f1=\"%s\" f2=\"%s\" t1=\"%s\" t2=\"%s\"; printf 'diredc-shell: Use C-c C-k to close this pop-up shell.\ndiredc-shell: Special variables: $d1 $d2 $f1 $f2 $t1 $t2%s\n'"
+           (format " export INSIDE_DIREDC=\"%s\" d1='%s' d2='%s' f1='%s' f2='%s' t1='%s' t2='%s'; printf 'diredc-shell: Use C-c C-k to close this pop-up shell.\ndiredc-shell: Special variables: $d1 $d2 $f1 $f2 $t1 $t2%s\n'"
                    diredc--version
                    d1 (or d2 "") (or f1 "") (or f2 "")
                    (diredc-shell--array-variable program t1)
@@ -3791,8 +3790,16 @@ and navigates to that location."
      (if new-dir
        (setq new-dir (expand-file-name new-dir))
       (setq new-dir
-        (expand-file-name (read-file-name "Select directory: "
-                                          dired-directory dired-directory t)))
+        (expand-file-name
+          (read-file-name "Select directory: "
+                          dired-directory
+                          dired-directory
+                          t
+                          nil
+                          (lambda (x) (and (file-directory-p x)
+                                           (if dired-omit-mode
+                                             (not (string-match dired-omit-files x))
+                                            t))))))
       (unless (file-directory-p new-dir)
         (if (file-exists-p new-dir)
           (setq new-file      new-dir
@@ -4060,6 +4067,10 @@ window, and if ARG is non-nil visits it in a second dired window
 on the same frame. If point is on a non-directory file, visits
 the file in another frame."
   (interactive)
+  (let ((target (substring-no-properties (dired-get-file-for-visit))))
+    (when (or (and (file-directory-p target) (not (file-accessible-directory-p target)))
+              (not (file-readable-p target)))
+      (user-error "Permission denied: %s" target)))
   ;; TODO: Maybe this check should be done more often.
   ;; TODO: If this is really a wide dired problem, report it to emacs.
   (diredc--abort-on-directory-deleted dired-directory)
