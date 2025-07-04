@@ -1,5 +1,3 @@
-;; -*- lexical-binding: t; -*-
-
 ;;; inf-ruby.el --- Run a Ruby process in a buffer -*- lexical-binding:t -*-
 
 ;; Copyright (C) 1999-2008 Yukihiro Matsumoto, Nobuyoshi Nakada
@@ -13,7 +11,7 @@
 ;; URL: http://github.com/nonsequitur/inf-ruby
 ;; Created: 8 April 1998
 ;; Keywords: languages ruby
-;; Version: 2.8.1
+;; Version: 2.9.0
 ;; Package-Requires: ((emacs "26.1"))
 
 ;; This program is free software: you can redistribute it and/or modify
@@ -105,6 +103,14 @@ returns a string."
                            inf-ruby-implementations))
   :group 'inf-ruby)
 
+(defcustom inf-ruby-wrapper-command nil
+  "Command template to format the auto-detected project console command.
+Useful for running the shell in another host or a container (such as Docker).
+So when used it must include %s.  Set to nil to disable."
+  :type '(choice (const :tag "Not used" nil)
+                 (string :tag "Command template"))
+  :group 'inf-ruby)
+
 (defun inf-ruby--irb-command ()
   (let ((command "irb --prompt default -r irb/completion --noreadline"))
     (when (inf-ruby--irb-needs-nomultiline-p)
@@ -112,10 +118,16 @@ returns a string."
     command))
 
 (defun inf-ruby--irb-needs-nomultiline-p (&optional with-bundler)
-  (let* ((output (shell-command-to-string
-                  (concat
-                   (when with-bundler "bundle exec ")
-                   "irb -v")))
+  "Check if IRB needs the --nomultiline argument.
+WITH-BUNDLER, the command is wrapped with `bundle exec'."
+  (let* ((command (format (or inf-ruby-wrapper-command "%s")
+                          (concat (when with-bundler "bundle exec ") "irb -v")))
+         (output
+          (with-output-to-string
+            (let ((status (call-process-shell-command command nil
+                                                      standard-output)))
+              (unless (eql status 0)
+                (error "%s exited with status %s" command status)))))
          (fields (split-string output "[ (]")))
     (if (equal (car fields) "irb")
         (version<= "1.2.0" (nth 1 fields))
@@ -137,6 +149,14 @@ over by a previous Ruby process, as long as it was launched in
 the same directory and used the same base name."
   :type 'boolean)
 
+(defcustom inf-ruby-interact-with-fromcomp t
+  "When non-nil, commands will use \"from compilation\" buffers.
+It's buffers that switched to `inf-ruby-mode' from a Compilation mode,
+such as `rspec-compilation-mode', either automatically upon seeing a
+\"breakpoint\" or manually. The commands in question will be such
+commands as `ruby-send-last-stmt' or `ruby-switch-to-inf'."
+  :type 'boolean)
+
 (defconst inf-ruby-prompt-format
   (concat
    (mapconcat
@@ -145,6 +165,7 @@ the same directory and used the same base name."
       "\\(^(rdb:1) *\\)"                  ; Debugger
       "\\(^(rdbg[^)]*) *\\)"              ; Ruby Debug Gem
       "\\(^(byebug) *\\)"                 ; byebug
+      "\\(^[a-z0-9-_]+([a-z0-9-_]+)%s *\\)" ; Rails 7+: project name and environment
       "\\(^\\(irb([^)]+)"                 ; IRB default
       "\\([[0-9]+] \\)?[Pp]ry ?([^)]+)"   ; Pry
       "\\(jruby-\\|JRUBY-\\)?[1-9]\\.[0-9]\\(\\.[0-9]+\\)*\\(-?p?[0-9]+\\)?" ; RVM
@@ -156,10 +177,12 @@ the same directory and used the same base name."
 Two placeholders: first char in the Simple prompt, and the last
 graphical char in all other prompts.")
 
-(defvar inf-ruby-first-prompt-pattern (format inf-ruby-prompt-format ">" ">")
+(defvar inf-ruby-first-prompt-pattern (format inf-ruby-prompt-format ">" ">" ">")
   "First prompt regex pattern of Ruby interpreter.")
 
-(defvar inf-ruby-prompt-pattern (format inf-ruby-prompt-format "[?>]" "[\]>*\"'/`]")
+(defvar inf-ruby-prompt-pattern
+  (let ((delims "[\]>*\"'/`]"))
+    (format inf-ruby-prompt-format "[?>]" delims delims))
   "Prompt regex pattern of Ruby interpreter.")
 
 (defvar inf-ruby-mode-hook nil
@@ -221,6 +244,7 @@ next one.")
     (define-key map (kbd "C-c C-l") 'ruby-load-file)
     (define-key map (kbd "C-c C-k") 'ruby-load-current-file)
     (define-key map (kbd "C-c C-s") 'inf-ruby)
+    (define-key map (kbd "C-c C-q") 'ruby-quit)
     (easy-menu-define
       inf-ruby-minor-mode-menu
       map
@@ -469,9 +493,24 @@ the buffer, defaults to \"ruby\"."
 See variable `inf-ruby-buffers'."
   (or (get-buffer-process (if (eq major-mode 'inf-ruby-mode)
                               (current-buffer)
-                            (or (inf-ruby-buffer)
-                                inf-ruby-buffer)))
+                            (or
+                             ;; Prioritize the first visible buffer,
+                             ;; e.g. for the case when it's inf-ruby
+                             ;; switched from compilation mode.
+                             (and inf-ruby-interact-with-fromcomp
+                                  (inf-ruby-fromcomp-buffer))
+                             (inf-ruby-buffer)
+                             inf-ruby-buffer)))
       (error "No current process. See variable inf-ruby-buffers")))
+
+(defun inf-ruby-fromcomp-buffer ()
+  "Return the first visible compilation buffer in `inf-ruby-mode'."
+  (cl-find-if
+   (lambda (buf)
+     (and (buffer-local-value 'inf-ruby-orig-compilation-mode buf)
+          (provided-mode-derived-p (buffer-local-value 'major-mode buf)
+                                   'inf-ruby-mode)))
+   (mapcar #'window-buffer (window-list))))
 
 ;; These commands are added to the inf-ruby-minor-mode keymap:
 
@@ -569,7 +608,9 @@ the overlay."
           (let* ((beg (if (consp where)
                           (car where)
 			(save-excursion
-                          (backward-sexp 1)
+                          (condition-case nil
+                              (backward-sexp 1)
+                            (scan-error nil))
                           (point))))
 		 (end (if (consp where)
                           (cdr where)
@@ -639,8 +680,7 @@ This function also removes itself from `pre-command-hook'."
 
 (defun ruby-print-result-value ()
   (let ((proc (inf-ruby-proc)))
-    (with-current-buffer (or (inf-ruby-buffer)
-                             inf-ruby-buffer)
+    (with-current-buffer (process-buffer proc)
       (while (not (and comint-last-prompt
                        (goto-char (car comint-last-prompt))
                        (looking-at inf-ruby-first-prompt-pattern)))
@@ -685,11 +725,17 @@ Optionally provide FILE and LINE metadata to Ruby."
                                     (format ", %S" (file-local-name file)))
                                   (when (and file line)
                                     (format ", %d" line))))
+         (proc (inf-ruby-proc))
+         (inf-ruby-eval-binding (if (buffer-local-value
+                                     'inf-ruby-orig-compilation-mode
+                                     (process-buffer proc))
+                                    "binding"
+                                  inf-ruby-eval-binding))
          (code (format "eval(\"%s\", %s%s)\n"
                        (ruby-shell--encode-string string)
                        inf-ruby-eval-binding
                        file-and-lineno)))
-    (if (or (null (process-tty-name (inf-ruby-proc)))
+    (if (or (null (process-tty-name proc))
             (<= (string-bytes code)
                 (or (bound-and-true-p comint-max-line-length)
                     1024))) ;; For Emacs < 28
@@ -705,6 +751,17 @@ Optionally provide FILE and LINE metadata to Ruby."
                                     tempfile-local-name
                                     inf-ruby-eval-binding
                                     file-and-lineno))))))
+
+(defun ruby-quit ()
+  "Send `exit' to the inferior Ruby process"
+  (interactive)
+  (process-send-string (inf-ruby-proc) "exit\r")
+  (let ((buffer (process-buffer (inf-ruby-proc))))
+    (when (buffer-local-value 'inf-ruby-orig-compilation-mode
+                              buffer)
+      (run-with-idle-timer 0 nil
+                           #'inf-ruby-switch-to-compilation
+                           buffer))))
 
 (defun ruby-send-definition ()
   "Send the current definition to the inferior Ruby process."
@@ -744,6 +801,7 @@ Optionally provide FILE and LINE metadata to Ruby."
   (interactive "P")
   (let (beg)
     (save-excursion
+      (skip-chars-backward " \t\n")
       (cond
        ((and (derived-mode-p 'ruby-mode)
              (bound-and-true-p smie-rules-function))
@@ -782,7 +840,10 @@ Optionally provide FILE and LINE metadata to Ruby."
 With argument, positions cursor at end of buffer."
   (interactive "P")
   (let ((buffer (current-buffer))
-        (inf-ruby-buffer* (or (inf-ruby-buffer) inf-ruby-buffer)))
+        (inf-ruby-buffer* (or (and inf-ruby-interact-with-fromcomp
+                                   (inf-ruby-fromcomp-buffer))
+                              (inf-ruby-buffer)
+                              inf-ruby-buffer)))
     (if inf-ruby-buffer*
         (progn
           (pop-to-buffer inf-ruby-buffer*)
@@ -914,7 +975,7 @@ Then switch to the process buffer."
                   (ruby-shell--encode-string line))))
             (process-send-string proc completion-snippet)
             (while (and (not (string-match inf-ruby-prompt-pattern kept))
-                        (accept-process-output proc 2)))
+                        (accept-process-output proc 2 nil 1)))
             (setq completions (butlast (split-string kept "\r?\n") 2))
             ;; Subprocess echoes output on Windows and OS X.
             (when (and completions (string= (concat (car completions) "\n") completion-snippet))
@@ -1003,26 +1064,33 @@ interactive mode, i.e. hits a debugger breakpoint."
         (delete-region (match-beginning 0) (point))
         (comint-output-filter proc line)))))
 
+(defun inf-ruby-switch-to-compilation (&optional buffer)
+  "Switch to compilation mode this buffer was in before
+`inf-ruby-switch-from-compilation' was called.
+When BUFFER is non-nil, do that in that buffer."
+  (with-current-buffer (or buffer (current-buffer))
+    (let ((orig-mode-line-process mode-line-process)
+          (proc (get-buffer-process (current-buffer)))
+          (arguments compilation-arguments)
+          (filter inf-ruby-orig-process-filter)
+          (errors inf-ruby-orig-error-regexp-alist)
+          (cst (bound-and-true-p compilation--start-time)))
+      (funcall inf-ruby-orig-compilation-mode)
+      (setq mode-line-process orig-mode-line-process)
+      (setq-local compilation-arguments arguments)
+      (setq-local compilation-error-regexp-alist errors)
+      (when cst
+        (setq-local compilation--start-time cst))
+      (when proc
+        (set-process-filter proc filter)))))
+
 (defun inf-ruby-maybe-switch-to-compilation ()
   "Switch to compilation mode this buffer was in before
 `inf-ruby-switch-from-compilation' was called, if it was.
 Otherwise, just toggle read-only status."
   (interactive)
   (if inf-ruby-orig-compilation-mode
-      (let ((orig-mode-line-process mode-line-process)
-            (proc (get-buffer-process (current-buffer)))
-            (arguments compilation-arguments)
-            (filter inf-ruby-orig-process-filter)
-            (errors inf-ruby-orig-error-regexp-alist)
-            (cst (bound-and-true-p compilation--start-time)))
-        (funcall inf-ruby-orig-compilation-mode)
-        (setq mode-line-process orig-mode-line-process)
-        (setq-local compilation-arguments arguments)
-        (setq-local compilation-error-regexp-alist errors)
-        (when cst
-          (setq-local compilation--start-time cst))
-        (when proc
-          (set-process-filter proc filter)))
+      (inf-ruby-switch-to-compilation)
     (read-only-mode)))
 
 ;;;###autoload
@@ -1082,11 +1150,8 @@ contains the configuration for the known project types."
     (funcall fun dir)))
 
 (defun inf-ruby-console-rails-p ()
-  (and (file-exists-p "Gemfile.lock")
-       (inf-ruby-file-contents-match "Gemfile.lock" "^ +railties ")
-       (file-exists-p "config/application.rb")
-       (inf-ruby-file-contents-match "config/application.rb"
-                                     "\\_<Rails::Application\\_>")))
+  (or (file-exists-p "bin/rails")
+      (file-exists-p "script/rails")))
 
 (defun inf-ruby-console-read-directory (type)
   (or
@@ -1101,7 +1166,9 @@ contains the configuration for the known project types."
           (capitalize (symbol-name type)))))
 
 (defun inf-ruby-console-run (command name)
-  (run-ruby-or-pop-to-buffer command name
+  "Ensure a buffer named NAME running the given COMMAND exists."
+  (run-ruby-or-pop-to-buffer (format (or inf-ruby-wrapper-command "%s") command)
+                             name
                              (inf-ruby-buffer-in-directory default-directory)))
 
 ;;;###autoload
@@ -1117,11 +1184,13 @@ contains the configuration for the known project types."
   "Run Rails console in DIR."
   (interactive (list (inf-ruby-console-read-directory 'rails)))
   (let* ((default-directory (file-name-as-directory dir))
-         (env (inf-ruby-console-rails-env))
-         (with-bundler (file-exists-p "Gemfile")))
+         (env (inf-ruby-console-rails-env)))
     (inf-ruby-console-run
-     (concat (when with-bundler "bundle exec ")
-             "rails console -e "
+     (concat (or
+              (cl-find-if #'file-exists-p
+                          '("bin/rails" "script/rails"))
+              (error "No Rails binstub found, use `rails app:update:bin'"))
+             " console -e "
              env
              ;; Note: this only has effect in Rails < 5.0 or >= 5.1.4
              ;; https://github.com/rails/rails/pull/29010

@@ -1,6 +1,6 @@
-task :default => %w[clean test:all compile]
+task :default => %w[clean compile test:all]
 
-el_files = Rake::FileList['**/*.el']
+el_files = Rake::FileList['**/enh-ruby-mode*.el']
 
 def run cmd
   sh cmd do |good|
@@ -33,6 +33,8 @@ desc "Clean the project"
 task :clean do
   rm_f Dir["**/*~", "**/*.elc"]
 end
+
+task :test => %w[ test:ruby test:elisp ]
 
 namespace :test do
   desc "Run tests for Ruby"

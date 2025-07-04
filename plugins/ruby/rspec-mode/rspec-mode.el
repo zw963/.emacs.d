@@ -1,5 +1,3 @@
-;; -*- lexical-binding: t; -*-
-
 ;;; rspec-mode.el --- Enhance ruby-mode for RSpec -*- lexical-binding: t -*-
 
 ;; Copyright (C) 2008-2015 Peter Williams <http://barelyenough.org> and others
@@ -86,7 +84,7 @@
 ;; 0.7 - follow RoR conventions for file in lib directory (Tim Harper)
 ;; 0.6 - support for arbitrary spec and rake commands (David Yeu)
 ;; 0.5 - minor changes from Tim Harper
-;; 0.4 - ansi colorization of compliation buffers (teaforthecat)
+;; 0.4 - ansi colorization of compilation buffers (teaforthecat)
 ;; 0.3 - Dave Nolan implements respect for spec.opts config and
 ;;       custom option to use 'rake spec' task or 'spec' command
 ;; 0.2 - Tim Harper implemented support for imenu to generate a basic
@@ -160,12 +158,27 @@
   :type 'boolean
   :group 'rspec-mode)
 
+(defvar rspec--docker-commands
+  '("docker exec"
+    "docker run"
+    "docker-compose exec"
+    "docker-compose run"
+    "nerdctl compose exec"
+    "nerdctl compose run"
+    "nerdctl exec"
+    "nerdctl run"
+    "podman exec"
+    "podman run"
+    "podman-compose exec"
+    "podman-compose run")
+  "List of acceptable docker commands to use.")
+
 (defcustom rspec-docker-command "docker-compose run"
   "Docker command to run."
   :type 'string
   :group 'rspec-mode
   :safe (lambda (value)
-          (member value '("docker-compose run" "docker-compose exec" "docker run" "docker exec"))))
+          (member value rspec--docker-commands)))
 
 (defcustom rspec-docker-container "rspec-container-name"
   "Name of the docker container to run rspec in."
@@ -200,7 +213,7 @@
   :group 'rspec-mode)
 
 (defcustom rspec-use-bundler-when-possible t
-  "When t and Gemfile is present, run specs with 'bundle exec'.
+  "When t and Gemfile is present, run specs with `bundle exec'.
 Not used when running specs using Zeus or Spring."
   :type 'boolean
   :group 'rspec-mode)
@@ -213,17 +226,17 @@ The command that will be used is defined by `rspec-docker-command'."
 
 (defcustom rspec-use-vagrant-when-possible nil
   "When t and Vagrant file is present, run specs inside Vagrant box.
-Use shell command 'vagrant ssh -c'."
+Use shell command `vagrant ssh -c'."
   :type 'boolean
   :group 'rspec-mode)
 
 (defcustom rspec-use-zeus-when-possible t
-  "When t and .zeus.sock is present, run specs with 'zeus'."
+  "When t and .zeus.sock is present, run specs with `zeus'."
   :type 'boolean
   :group 'rspec-mode)
 
 (defcustom rspec-use-spring-when-possible t
-  "When t and spring.pid is present, run specs with 'spring'."
+  "When t and spring.pid is present, run specs with `spring'."
   :type 'boolean
   :group 'rspec-mode)
 
@@ -272,7 +285,7 @@ info, are considered errors."
 
 (defcustom rspec-expose-dsl-globally nil
   "Defines whether the RSpec DSL is assumed to be exposed globally.
-If t, prepend snippets at the top level with 'RSpec.'."
+If t, prepend snippets at the top level with `RSpec.'."
   :type 'boolean
   :group 'rspec-mode)
 
@@ -343,7 +356,8 @@ buffers concurrently"
   :lighter "" :keymap `((,rspec-key-command-prefix . rspec-dired-mode-keymap)))
 
 (defconst rspec-imenu-generic-expression
-  '(("Examples"  "^\\( *\\(its?\\|specify\\|example\\|describe\\|context\\|feature\\|scenario\\) +.+\\)" 1))
+  '(("Methods" "^\\s *def\\s +\\([^\(\n; ]+\\)" 1)
+    ("Examples" "^\\( *\\(its?\\|specify\\|example\\|describe\\|context\\|feature\\|scenario\\) +.+\\)" 1))
   "The imenu regex to parse an outline of the rspec file")
 
 (defconst rspec-spec-file-name-re "\\(_\\|-\\)spec\\.rb\\'"
@@ -510,7 +524,7 @@ in long-running test suites."
                  (rspec-core-options)))
 
 (defun rspec-verify-all ()
-  "Run the 'spec' rake task for the project of the current file."
+  "Run the `spec' rake task for the project of the current file."
   (interactive)
   (rspec-run (rspec-core-options)))
 
@@ -752,12 +766,12 @@ file if it exists, or sensible defaults otherwise."
         (vagrant (rspec-vagrant-p)))
     (shell-quote-argument
      (cond
+      (rspec-use-relative-path (file-relative-name file (rspec-project-root)))
       (remote (substring file (length remote)))
       (docker (replace-regexp-in-string (regexp-quote (rspec-project-root))
                                          rspec-docker-cwd file))
       (vagrant (replace-regexp-in-string (regexp-quote (rspec-project-root))
                                          rspec-vagrant-cwd file))
-      (rspec-use-relative-path (file-relative-name file (rspec-project-root)))
       (t  file)))))
 
 (defun rspec--docker-default-wrapper (docker-command docker-container command)
@@ -1108,7 +1122,7 @@ Looks at FactoryGirl::Syntax::Methods usage in spec_helper."
 
 ;; Hook up all Ruby buffers.
 ;;;###autoload
-(dolist (hook '(ruby-mode-hook enh-ruby-mode-hook))
+(dolist (hook '(ruby-mode-hook ruby-ts-mode-hook enh-ruby-mode-hook))
   (add-hook hook 'rspec-enable-appropriate-mode))
 
 ;; Add verify related spec keybinding to rails minor mode buffers

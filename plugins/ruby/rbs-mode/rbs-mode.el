@@ -3,7 +3,7 @@
 ;; Copyright (C) 2020  Masafumi Koba
 
 ;; Author: Masafumi Koba
-;; Version: 0.3.1
+;; Version: 0.3.2
 ;; Package-Requires: ((emacs "24.5"))
 ;; Keywords: languages
 ;; URL: https://github.com/ybiquitous/rbs-mode
@@ -209,7 +209,8 @@
         "_ToPath"
         "_ToProc"
         "_ToS"
-        "_ToStr"))))
+        "_ToStr"))
+    word-end))
 
 (defconst rbs-mode--type-definition-regexp
   (rx
