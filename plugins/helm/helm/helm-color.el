@@ -1,5 +1,3 @@
-;; -*- lexical-binding: t; -*-
-
 ;;; helm-color.el --- colors and faces -*- lexical-binding: t -*-
 
 ;; Copyright (C) 2012 ~ 2025 Thierry Volpiatto
@@ -30,17 +28,16 @@
 ;;
 (defun helm-custom-faces-init ()
   "Initialize buffer for `helm-source-customize-face'."
-  (unless (helm-candidate-buffer)
-    (save-selected-window
-      (list-faces-display)
-      (message nil))
-    (helm-init-candidates-in-buffer
-        'global
-      (with-current-buffer (get-buffer "*Faces*")
-        (buffer-substring
-         (next-single-char-property-change (point-min) 'category)
-         (point-max))))
-    (kill-buffer "*Faces*")))
+  (save-selected-window
+    (list-faces-display)
+    (message nil))
+  (helm-init-candidates-in-buffer
+      'global
+    (with-current-buffer (get-buffer "*Faces*")
+      (buffer-substring
+       (next-single-char-property-change (point-min) 'category)
+       (point-max))))
+  (kill-buffer "*Faces*"))
 
 (defvar helm-source-customize-face
   (helm-build-in-buffer-source "Customize Face"
@@ -51,12 +48,12 @@
                           (intern (car (split-string candidate)))
                           'helm-describe-face))
     :persistent-help "Describe face"
-    :action '(("Customize"
-               . (lambda (line)
-                   (customize-face (intern (car (split-string line))))))
+    :action `(("Customize"
+               . ,(lambda (line)
+                    (customize-face (intern (car (split-string line))))))
               ("Copy name"
-               . (lambda (line)
-                   (kill-new (car (split-string line " " t)))))))
+               . ,(lambda (line)
+                    (kill-new (car (split-string line " " t)))))))
   "See (info \"(emacs)Faces\")")
 
 ;;; Colors browser

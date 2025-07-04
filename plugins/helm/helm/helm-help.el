@@ -1,5 +1,3 @@
-;; -*- lexical-binding: t; -*-
-
 ;;; helm-help.el --- Help messages for Helm. -*- lexical-binding: t -*-
 
 ;; Copyright (C) 2012 ~ 2025 Thierry Volpiatto
@@ -882,6 +880,41 @@ for specifying a port, i.e. host#2222, helm will add
 automatically \"-e 'ssh -p 2222'\" to the rsync command line
 unless you have specified yourself the \"-e\" option by editing
 rsync command line with a prefix arg (see above).
+
+*** Drag and drop files from Helm
+
+When mouse support is enabled in Helm (which is the default, see
+`helm-allow-mouse') you can drag and drop files to `default-directory'
+of the buffer you drag-and-drop in or in an external application.
+
+By default Helm copy files when using drag-and-drop, you can customize
+`helm-ff-drag-mouse-1-default-action' to modify this, however note that
+other actions than `copy' are not supported when dropping in dired buffers
+as of now, it works when dropping in external apps like Thunar though.
+
+Also drag-and-drop is not working when trying to drop in a window that
+is in another desktop, in this case use the following solution.
+
+To drag-and-drop to external applications you can also use the
+external application [[https://github.com/mwh/dragon][Dragon]] and use it as follow:
+
+#+begin_src elisp
+  (defun helm-ff-dragon (files)
+    \"Create a small window with FILES ready to drag and drop.
+Use this to drop files on externals applications or desktop.
+Dropping on emacs buffers with this is not supported.
+
+Needs `dragon' executable: https://github.com/mwh/dragon.\"
+    (interactive (list (helm-marked-candidates)))
+    (cl-assert (executable-find \"dragon\") nil \"Dragon executable not found\")
+    (apply #'call-process \"dragon\" nil nil nil \"--all\" \"--and-exit\" files))
+  (define-key helm-find-files-map (kbd \"C-c m\") 'helm-ff-dragon)
+#+end_src
+
+Tip: From the Dragon window, you can move your mouse to an other desktop
+where the external application you want to drag-and-drop is.
+
+NOTE: Drag-and-dropping from elsewhere to Helm is forbidden.
 
 *** Access files on Android phones from Helm
 

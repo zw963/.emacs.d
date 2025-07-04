@@ -1,5 +1,3 @@
-;; -*- lexical-binding: t; -*-
-
 ;;; helm-command.el --- Helm execute-exended-command. -*- lexical-binding: t -*-
 
 ;; Copyright (C) 2012 ~ 2025 Thierry Volpiatto
@@ -61,6 +59,17 @@ This value can be toggled with
   "When nil, do not sort helm-M-x's commands history."
   :type 'boolean)
 
+(defcustom helm-M-x-exclude-unusable-commands-in-mode t
+  "When non nil exclude commands not usable in current buffer.
+This will exclude only commands defined with `interactive' MODES argument, for
+other commands, they will be displayed even if unusable as long as they satisfies
+`commandp'.
+NOTE: As `interactive' MODES argument is relatively recent, not all commands are
+using it when they should, so do not expect ALL unuseful commands to be excluded
+in `helm-M-x'.  Also in Emacsen with a version of `interactive' not handling
+MODES, this will have no effect.  Regardless of this Helm commands unrelated to
+Helm will never appear in `helm-M-x' whatever the value of this var is."
+  :type 'boolean)
 
 ;;; Faces
 ;;
@@ -322,8 +331,8 @@ Arg HISTORY default to `extended-command-history'."
                        :fuzzy-match helm-M-x-fuzzy-match)))
          (prompt (concat (helm-acase helm-M-x-prefix-argument
                            (- "-")
-                           ((guard* (and (consp it) (car it)))
-                            (if (eq guard 4) "C-u " (format "%d " guard)))
+                           ((dst* (l &rest args))
+                            (if (eq l 4) "C-u " (format "%d " l)))
                            ((guard* (integerp it)) (format "%d " it)))
                          "M-x ")))
     (setq helm-M-x--timer (run-at-time 1 0.1 #'helm-M-x--notify-prefix-arg))
@@ -403,6 +412,20 @@ Save COMMAND to `extended-command-history'."
           (helm-mode 1))
       (read-extended-command)))))
 
+(defun helm-M-x--mode-predicate (symbol mj-mode lmm-modes)
+  "Check if SYMBOL is suitable for current buffer.
+MJ-MODE is used to pass major-mode and LMM-MODES to pass local-minor-modes.
+This predicate honors commands defined with the `interactive' MODES argument."
+  (let* ((sym   (helm-symbolify symbol))
+         (modes (command-modes sym)))
+    (and (commandp sym)
+         (if modes
+             (or (memq mj-mode modes)
+                 (cl-loop for m in modes thereis
+                          (or (memq m lmm-modes)
+                              (memq m global-minor-modes))))
+           t))))
+
 ;;;###autoload
 (defun helm-M-x (_arg)
   "Preconfigured `helm' for Emacs commands.
@@ -422,7 +445,14 @@ You can get help on each command by persistent action."
      (list current-prefix-arg)))
   (if (or defining-kbd-macro executing-kbd-macro)
       (helm-M-x--vanilla-M-x)
-  (helm-M-x-read-extended-command obarray)))
+    (let ((lmm-modes (and (boundp 'local-minor-modes) ; Only 28+ (issue#2719)
+                          (buffer-local-value 'local-minor-modes (current-buffer))))
+          (mj-mode major-mode))
+      (helm-M-x-read-extended-command
+       obarray (if (and (fboundp 'command-modes)
+                        helm-M-x-exclude-unusable-commands-in-mode)
+                   (lambda (sym) (helm-M-x--mode-predicate sym mj-mode lmm-modes))
+                 #'commandp)))))
 (put 'helm-M-x 'interactive-only 'command-execute)
 
 (provide 'helm-command)

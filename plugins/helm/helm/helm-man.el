@@ -1,5 +1,3 @@
-;; -*- lexical-binding: t; -*-
-
 ;;; helm-man.el --- Man and woman UI -*- lexical-binding: t -*-
 
 ;; Copyright (C) 2012 ~ 2025 Thierry Volpiatto

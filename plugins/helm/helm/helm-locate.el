@@ -1,5 +1,3 @@
-;; -*- lexical-binding: t; -*-
-
 ;;; helm-locate.el --- helm interface for locate. -*- lexical-binding: t -*-
 
 ;; Copyright (C) 2012 ~ 2025 Thierry Volpiatto
@@ -299,10 +297,10 @@ See also `helm-locate'."
             (:eval (format "L%s" (helm-candidate-number-at-point))) " "
             (:eval (propertize
                     (format "[%s process finished - (%s results)]"
+                            ,process-name
                             (max (1- (count-lines
                                       (point-min) (point-max)))
-                                 0)
-                            ,process-name)
+                                 0))
                     'face 'helm-locate-finish))))
     (force-mode-line-update)))
 
@@ -365,7 +363,8 @@ See also `helm-locate'."
                       (insert (concat "* Exit with code 1, no result found,"
                                       " command line was:\n\n "
                                       cmd)))))
-                 ((string= event "finished\n")
+                 ((or (string= event "finished\n")
+                      (process-get process 'reach-limit))
                   (when (and helm-locate-fuzzy-match
                              (not (string-match-p "\\s-" helm-pattern)))
                     (helm-redisplay-buffer))

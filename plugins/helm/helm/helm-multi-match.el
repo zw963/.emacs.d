@@ -1,5 +1,3 @@
-;; -*- lexical-binding: t; -*-
-
 ;;; helm-multi-match.el --- Multiple regexp matching methods for helm -*- lexical-binding: t -*-
 
 ;; Original Author: rubikitch
@@ -100,7 +98,8 @@ If GREP-SPACE is used translate escaped space to \"\\s\" instead of \"\\s-\"."
   helm-mm--exact-pattern-real)
 
 
-(cl-defun helm-mm-exact-match (candidate &optional (pattern helm-pattern))
+(defun helm-mm-exact-match (candidate &optional pattern)
+  (unless pattern (setq pattern helm-pattern))
   (if case-fold-search
       (string= (downcase candidate) (downcase pattern))
     (string= candidate pattern)))
@@ -149,7 +148,8 @@ If GREP-SPACE is used translate escaped space to \"\\s\" instead of \"\\s-\"."
           (concat "^" (helm-mm-1-make-regexp pattern))))
   helm-mm--1-pattern-real)
 
-(cl-defun helm-mm-1-match (candidate &optional (pattern helm-pattern))
+(defun helm-mm-1-match (candidate &optional pattern)
+  (unless pattern (setq pattern helm-pattern))
   (string-match (helm-mm-1-get-pattern pattern) candidate))
 
 (defun helm-mm-1-search (pattern &rest _ignore)
@@ -170,7 +170,8 @@ If GREP-SPACE is used translate escaped space to \"\\s\" instead of \"\\s-\"."
           (concat "^.*" (helm-mm-1-make-regexp pattern))))
   helm-mm--2-pattern-real)
 
-(cl-defun helm-mm-2-match (candidate &optional (pattern helm-pattern))
+(defun helm-mm-2-match (candidate &optional pattern)
+  (unless pattern (setq pattern helm-pattern))
   (string-match (helm-mm-2-get-pattern pattern) candidate))
 
 (defun helm-mm-2-search (pattern &rest _ignore)
@@ -209,7 +210,7 @@ E.g., ((identity . \"foo\") (not . \"bar\"))."
 
 (defvar helm-mm--match-on-diacritics nil)
 
-(cl-defun helm-mm-3-match (candidate &optional (pattern helm-pattern))
+(defun helm-mm-3-match (candidate &optional pattern)
   "Check if PATTERN match CANDIDATE.
 When PATTERN contains a space, it is splitted and matching is
 done with the several resulting regexps against CANDIDATE.
@@ -220,6 +221,7 @@ E.g., \"foo bar\"=>((identity . \"foo\") (identity . \"bar\")).
 Then each predicate of cons cell(s) is called with the regexp of
 the same cons cell against CANDIDATE.
 I.e. (identity (string-match \"foo\" \"foo bar\")) => t."
+  (unless pattern (setq pattern helm-pattern))
   (let ((pat (helm-mm-3-get-patterns pattern)))
     (cl-loop for (predicate . regexp) in pat
              for re = (if (and helm-mm--match-on-diacritics
@@ -338,7 +340,8 @@ sources."
                   (char-fold-to-regexp pattern))
                 str))
 
-(cl-defun helm-mm-3-migemo-match (candidate &optional (pattern helm-pattern))
+(defun helm-mm-3-migemo-match (candidate &optional pattern)
+  (unless pattern (setq pattern helm-pattern))
   (and helm-migemo-mode
        (cl-loop for (pred . re) in (helm-mm-3-get-patterns pattern)
                 always (funcall pred (helm-mm-migemo-string-match re candidate)))))
@@ -383,8 +386,9 @@ E.g. \"bar foo baz\" will match \"barfoobaz\" or \"barbazfoo\" but not
 ;;; Generic multi-match/search functions
 ;;
 ;;
-(cl-defun helm-mm-match (candidate &optional (pattern helm-pattern))
+(defun helm-mm-match (candidate &optional pattern)
   "Call `helm-mm-matching-method' function against CANDIDATE."
+  (unless pattern (setq pattern helm-pattern))
   (let ((fun (cl-ecase helm-mm-matching-method
                (multi1 #'helm-mm-1-match)
                (multi2 #'helm-mm-2-match)
@@ -392,8 +396,9 @@ E.g. \"bar foo baz\" will match \"barfoobaz\" or \"barbazfoo\" but not
                (multi3p #'helm-mm-3p-match))))
     (funcall fun candidate pattern)))
 
-(cl-defun helm-mm-3-match-on-diacritics (candidate &optional (pattern helm-pattern))
+(defun helm-mm-3-match-on-diacritics (candidate &optional pattern)
   "Same as `helm-mm-3-match' but match on diacritics if possible."
+  (unless pattern (setq pattern helm-pattern))
   (let ((helm-mm--match-on-diacritics t))
     (helm-mm-match candidate pattern)))
 

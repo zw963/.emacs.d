@@ -1,5 +1,3 @@
-;; -*- lexical-binding: t; -*-
-
 ;;; helm-id-utils.el --- Helm interface for id-utils. -*- lexical-binding: t -*-
 
 ;; Copyright (C) 2015 ~ 2025 Thierry Volpiatto
@@ -50,23 +48,25 @@ MacPorts to install id-utils, it should be `gid32'."
                                    concat (format " | grep --color=always %s"
                                                   (shell-quote-argument p))))
                 default-com))
+         (start-time (float-time))
          (proc (start-process-shell-command
                 "gid" helm-buffer cmd)))
     (set (make-local-variable 'helm-grep-last-cmd-line) cmd)
     (prog1 proc
       (set-process-sentinel
-       proc (lambda (_process event)
-              (when (string= event "finished\n")
+       proc (lambda (process event)
+              (when (or (string= event "finished\n")
+                        (process-get process 'reach-limit))
                 (helm-maybe-show-help-echo)
                 (with-helm-window
                   (setq mode-line-format
-                        '(" " mode-line-buffer-identification " "
+                        `(" " mode-line-buffer-identification " "
                           (:eval (format "L%s" (helm-candidate-number-at-point))) " "
                           (:eval (propertize
-                                  (format "[Helm Gid process finished - (%s results)]"
-                                          (max (1- (count-lines
-                                                    (point-min) (point-max)))
-                                               0))
+                                  (format "[%s process finished in %.2fs - (%s results)] "
+                                          ,(upcase (process-name process))
+                                          ,(- (float-time) start-time)
+                                          (helm-get-candidate-number))
                                   'face 'helm-locate-finish))))
                   (force-mode-line-update))
                 (helm-log "helm-gid-candidates-process" "Error: Gid %s"
@@ -90,7 +90,6 @@ MacPorts to install id-utils, it should be `gid32'."
    (filtered-candidate-transformer
     :initform #'helm-gid-filtered-candidate-transformer)
    (popup-info :initform #'helm-grep-popup-info-fn)
-   (candidate-number-limit :initform 99999)
    (action :initform (helm-make-actions
                       "Find File" 'helm-grep-action
                       "Find file other frame" 'helm-grep-other-frame

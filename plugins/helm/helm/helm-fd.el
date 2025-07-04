@@ -1,5 +1,3 @@
-;; -*- lexical-binding: t; -*-
-
 ;;; helm-fd.el --- helm interface for fd command line tool. -*- lexical-binding: t -*-
 
 ;; Copyright (C) 2012 ~ 2025 Thierry Volpiatto
@@ -40,7 +38,7 @@
 
 (defface helm-fd-finish
   `((t ,@(and (>= emacs-major-version 27) '(:extend t))
-       :foreground "Green"))
+       :foreground "green"))
   "Face used in mode line when fd process ends."
   :group 'helm-grep-faces)
 
@@ -102,8 +100,9 @@
     (prog1
         proc
       (set-process-sentinel
-       proc (lambda (_process event)
-              (if (string= event "finished\n")
+       proc (lambda (process event)
+              (if (or (string= event "finished\n")
+                      (process-get process 'reach-limit))
                   (with-helm-window
                     (when helm-fd-mode-line-function
                       (funcall helm-fd-mode-line-function start-time fd-version)

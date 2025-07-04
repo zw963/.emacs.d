@@ -1,5 +1,3 @@
-;; -*- lexical-binding: t; -*-
-
 ;;; helm-lib.el --- Helm routines. -*- lexical-binding: t -*-
 
 ;; Copyright (C) 2015 ~ 2025  Thierry Volpiatto
@@ -116,14 +114,10 @@ convenient to use a simple boolean value here."
 (defun helm-ff--setup-boring-regex (var val)
   (set var val)
   (setq helm-ff--boring-regexp
-          (cl-loop with last = (car (last val))
-                   for r in (butlast val)
-                   if (string-match "\\$\\'" r)
-                   concat (concat r "\\|") into result
-                   else concat (concat r "$\\|") into result
-                   finally return
-                   (concat result last
-                           (if (string-match "\\$\\'" last) "" "$")))))
+        (cl-loop for r on val
+                 if (cdr r)
+                 concat (concat (car r) "\\|")
+                 else concat (car r))))
 
 (defcustom helm-boring-file-regexp-list
   (mapcar (lambda (f)
@@ -131,13 +125,15 @@ convenient to use a simple boolean value here."
               (if (string-match-p "[^/]$" f)
                   ;; files: e.g .o => \\.o$
                   (concat rgx "$")
-                ;; directories: e.g .git/ => \.git\\(/\\|$\\)
-                (concat (substring rgx 0 -1) "\\(/\\|$\\)"))))
+                ;; To not ignore files with same prefix as directory names
+                ;; (bug#2009) use e.g. .git/ => \.git\?$.
+                ;; See also PR in bug#2012.
+                (concat rgx "?$"))))
           completion-ignored-extensions)
   "A list of regexps matching boring files.
 
 This list is build by default on `completion-ignored-extensions'.
-The directory names should end with \"/?\" e.g. \"\\.git/?\" and
+The directory names should end with \"/?$\" e.g. \"\\.git/?$\" and
 the file names should end with \"$\" e.g. \"\\.o$\".
 
 These regexps may be used to match the entire path, not just the
@@ -163,7 +159,10 @@ the customize functions e.g. `customize-set-variable' and NOT
 
 (defcustom helm-current-directory-alist
   '((dired-mode . dired-current-directory)
-    (mu4e-main-mode . mu4e-root-maildir))
+    (mu4e-main-mode . mu4e-root-maildir)
+    (gnus-group-mode . gnus-directory)
+    (gnus-summary-mode . gnus-directory)
+    (gnus-article-mode . gnus-directory))
   "Tell `helm-current-directory' what to use according to `major-mode'.
 Each element of alist is (MAJOR-MODE . SYMBOL) where SYMBOL is either a variable
 or a function."
@@ -1475,16 +1474,12 @@ If object is a lambda, return \"Anonymous\"."
 
 (defun helm-describe-class (class)
   "Display documentation of Eieio CLASS, a symbol or a string."
-  (let ((advicep (advice-member-p #'helm-source--cl--print-table 'cl--print-table)))
-    (unless advicep
-      (advice-add 'cl--print-table :override #'helm-source--cl--print-table '((depth . 100))))
-    (unwind-protect
-         (if (fboundp 'cl-describe-type)
-             (cl-describe-type (helm-symbolify class))
-           (let ((helm-describe-function-function 'describe-function))
-             (helm-describe-function (helm-symbolify class))))
-      (unless advicep
-        (advice-remove 'cl--print-table #'helm-source--cl--print-table)))))
+  (cl-letf (((symbol-function 'cl--print-table)
+             #'helm-source--cl--print-table))
+    (if (fboundp 'cl-describe-type)
+        (cl-describe-type (helm-symbolify class))
+      (let ((helm-describe-function-function 'describe-function))
+        (helm-describe-function (helm-symbolify class))))))
 
 (defun helm-describe-function (func)
   "Display documentation of FUNC, a symbol or string."
@@ -2025,7 +2020,10 @@ Directories expansion is not supported."
       (goto-char (point-min))
       (when (re-search-forward "^;;;?\\(.*\\) ---? \\(.*\\)" (pos-eol) t)
         (setq desc (match-string-no-properties 2)))
-      (if (or (null desc) (string= "" desc))
+      (if (or (null desc) (string= "" desc)
+              ;; Fix issue#2716 with an header line like
+              ;; ";; foo --- -*-[...]" i.e. desc is not provided.
+              (string-match "\\`-\\*-" desc))
           "Not documented"
         (car (split-string desc "-\\*-" nil "[ \t\n\r-]+"))))))
 
@@ -2272,6 +2270,7 @@ flex or helm-flex completion style if present."
 (add-hook 'helm-cleanup-hook 'helm-reset-yank-point)
 (add-hook 'helm-after-initialize-hook 'helm-reset-yank-point)
 
+
 ;;; Ansi
 ;;
 ;;

@@ -1,5 +1,3 @@
-;; -*- lexical-binding: t; -*-
-
 ;;; helm-elisp.el --- Elisp symbols completion for helm. -*- lexical-binding: t -*-
 
 ;; Copyright (C) 2012 ~ 2025 Thierry Volpiatto
@@ -441,13 +439,13 @@ the same time to variable and a function."
            finally return (sort lst #'helm-generic-sort-fn)))
 
 ;;;###autoload
-(cl-defun helm-get-first-line-documentation (sym &optional
-                                                   (name "describe-function")
-                                                   (end-column 72))
+(defun helm-get-first-line-documentation (sym &optional name end-column)
   "Return first line documentation of symbol SYM truncated at END-COLUMN.
 If SYM is not documented, return \"Not documented\".
 Argument NAME allows specifiying what function to use to display
 documentation when SYM name is the same for function and variable."
+  (unless name (setq name "describe-function"))
+  (unless end-column (setq end-column 72))
   (let ((doc (condition-case _err
                  (helm-acase sym
                    ((guard* (stringp it))
@@ -634,9 +632,9 @@ is only used to test DEFAULT."
                    . ,(lambda (candidate)
                         (let ((sym (helm-symbolify candidate)))
                           (set sym standard-value)))))))
-            '(("Customize variable" .
-               (lambda (candidate)
-                 (customize-option (helm-symbolify candidate)))))))
+            `(("Customize variable"
+               . ,(lambda (candidate)
+                    (customize-option (helm-symbolify candidate)))))))
           ((and val (with-helm-current-buffer (ring-p (symbol-value sym))))
            (append actions
                    '(("Clean ring" . helm-apropos-clean-ring))))

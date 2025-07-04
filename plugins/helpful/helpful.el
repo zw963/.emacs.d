@@ -5,7 +5,7 @@
 ;; Author: Wilfred Hughes <me@wilfred.me.uk>
 ;; URL: https://github.com/Wilfred/helpful
 ;; Keywords: help, lisp
-;; Version: 0.20
+;; Version: 0.22
 ;; Package-Requires: ((emacs "25") (dash "2.18.0") (s "1.11.0") (f "0.20.0") (elisp-refs "1.2"))
 
 ;; This program is free software; you can redistribute it and/or modify
@@ -56,6 +56,10 @@
 (require 'imenu)
 (require 'cc-langs)
 
+(declare-function org-link-types "ol" ())
+(declare-function org-link-store-props "ol" (&rest plist))
+(declare-function org-link-get-parameter "ol" (type key))
+
 (defvar-local helpful--sym nil)
 (defvar-local helpful--callable-p nil)
 (defvar-local helpful--associated-buffer nil
@@ -91,6 +95,12 @@ To disable cleanup entirely, set this variable to nil. See also
 (defcustom helpful-switch-buffer-function
   #'pop-to-buffer
   "Function called to display the *Helpful* buffer."
+  :type 'function
+  :group 'helpful)
+
+(defcustom helpful-set-variable-function
+  (if (< 29 emacs-major-version) #'setopt #'setq)
+  "Function used by `helpful--set' to interactively set variables."
   :type 'function
   :group 'helpful)
 
@@ -163,7 +173,7 @@ can make Helpful very slow.")
 
 (defun helpful--heading (text)
   "Propertize TEXT as a heading."
-  (format "%s\n" (propertize text 'face 'helpful-heading)))
+  (propertize (concat text "\n") 'face 'helpful-heading))
 
 (defun helpful--format-closure (sym form)
   "Given a closure, return an equivalent defun form."
@@ -596,6 +606,9 @@ overrides that to include previously opened buffers."
   (let* ((sym (button-get button 'symbol))
          (buf (button-get button 'buffer))
          (sym-value (helpful--sym-value sym buf))
+         (set-func (if (local-variable-p sym buf)
+                       "setq"
+                     (symbol-name helpful-set-variable-function)))
          ;; Inspired by `counsel-read-setq-expression'.
          (expr
           (minibuffer-with-setup-hook
@@ -604,7 +617,7 @@ overrides that to include previously opened buffers."
                               #'elisp-eldoc-documentation-function)
                 (run-hooks 'eval-expression-minibuffer-setup-hook)
                 (goto-char (minibuffer-prompt-end))
-                (forward-char (length (format "(setq %S " sym))))
+                (forward-char (length (format "(%s %S " set-func sym))))
             (read-from-minibuffer
              "Eval: "
              (format
@@ -612,9 +625,9 @@ overrides that to include previously opened buffers."
                       (and (symbolp sym-value)
                            (not (null sym-value))
                            (not (keywordp sym-value))))
-                  "(setq %s '%S)"
-                "(setq %s %S)")
-              sym sym-value)
+                  "(%s %s '%S)"
+                "(%s %s %S)")
+              set-func sym sym-value)
              read-expression-map t
              'read-expression-history))))
     (save-current-buffer
@@ -789,15 +802,17 @@ bound) or else highlight."
        sym-name)
       (propertize sym-name
                   'face 'font-lock-builtin-face))
-     ((and (boundp sym) (s-ends-with-p "variable " before-txt))
+     ((and (boundp sym) (s-ends-with-p "variable " (downcase before-txt)))
       (helpful--button
        sym-name
        'helpful-describe-exactly-button
        'symbol sym
        'callable-p nil))
-     ((and (fboundp sym) (or
-                          (s-starts-with-p " command" after-txt)
-                          (s-ends-with-p "function " before-txt)))
+     ((and (fboundp sym)
+           (or
+            (s-starts-with-p " command" (downcase after-txt))
+            (s-ends-with-p "command " (downcase before-txt))
+            (s-ends-with-p "function " (downcase before-txt))))
       (helpful--button
        sym-name
        'helpful-describe-exactly-button
@@ -979,7 +994,8 @@ vector suitable for `key-description', and COMMAND is a smbol."
    ;; Text of the form \\[foo-command]
    (rx "\\[" (group (+ (not (in "]")))) "]")
    (lambda (it)
-     (let* ((symbol-name (match-string 1 it))
+     (let* ((button-face (if (>= emacs-major-version 28) 'help-key-binding 'button))
+            (symbol-name (match-string 1 it))
             (symbol (intern symbol-name))
             (key (where-is-internal symbol keymap t))
             (key-description
@@ -990,7 +1006,8 @@ vector suitable for `key-description', and COMMAND is a smbol."
         key-description
         'helpful-describe-exactly-button
         'symbol symbol
-        'callable-p t)))
+        'callable-p t
+        'face button-face)))
    str
    t
    t))
@@ -1244,7 +1261,10 @@ If the source code cannot be found, return the sexp used."
                   ;; function.
                   (progn
                     (setq pos (line-beginning-position))
-                    (forward-list)
+                    ;; HACK Use the elisp syntax table even though the file is a
+                    ;; C file. This is a temporary workaround for issue #329.
+                    (with-syntax-table emacs-lisp-mode-syntax-table
+                      (forward-list))
                     (forward-char)
                     (narrow-to-region pos (point)))
                 ;; Narrow to the top-level definition.
@@ -1299,8 +1319,8 @@ Return nil otherwise."
        (package-version
         (format
          "This variable was added, or its default value changed, in %s version %s."
-         (car package-version)
-         (cdr package-version)))
+         (or (car-safe package-version) "unknown")
+         (or (cdr-safe package-version) "unknown")))
        (emacs-version
         (format
          "This variable was added, or its default value changed, in Emacs %s."
@@ -1491,7 +1511,7 @@ buffer."
           ;; that.
           (save-excursion
             (condition-case _err
-                (setq pos (cdr (find-variable-noselect sym 'defvar)))
+                (setq pos (cdr (find-variable-noselect sym library-name)))
               (search-failed nil)
               ;; If your current Emacs instance doesn't match the source
               ;; code configured in find-function-C-source-directory, we can
@@ -1577,7 +1597,7 @@ same bindings as `global-map'."
          (when (and key-sequences (not (eq keymap-sym 'widget-global-map)))
            (push (cons (symbol-name keymap-sym) key-sequences)
                  matching-keymaps))))
-     (-zip keymap-syms keymap-sym-vals))
+     (-zip-pair keymap-syms keymap-sym-vals))
 
     ;; Look for this command in keymaps used by minor modes that
     ;; aren't bound to variables.
@@ -1631,7 +1651,9 @@ Includes keybindings for aliases, unlike
           (push
            (format "%s %s"
                    (propertize map 'face 'font-lock-variable-name-face)
-                   key)
+                   (if (>= emacs-major-version 28)
+                       (propertize key 'face 'help-key-binding)
+                     key))
            (if (eq map 'global-map) global-lines mode-lines)))))
     (setq global-lines (-sort #'string< global-lines))
     (setq mode-lines (-sort #'string< mode-lines))
@@ -1759,7 +1781,7 @@ POSITION-HEADS takes the form ((123 (defun foo)) (456 (defun bar)))."
       (with-temp-buffer
         (declare-function cl--generic-describe "cl-generic" (function))
         (cl--generic-describe func)
-        (setf (point) (point-min))
+        (goto-char (point-min))
         (when (re-search-forward "^Implementations:$" nil t)
           (setq content (buffer-substring (point) (point-max)))))
       (when content
@@ -1952,6 +1974,11 @@ OBJ may be a symbol or a compiled function object."
             "special form"
             'helpful-info-button
             'info-node "(elisp)Special Forms"))
+          (user-option-button
+           (helpful--button
+            "customizable"
+            'helpful-info-button
+            'info-node "(elisp)Variable Definitions"))
           (keyboard-macro-button
            (helpful--button
             "keyboard macro"
@@ -1995,6 +2022,8 @@ OBJ may be a symbol or a compiled function object."
             (if (and callable-p (commandp sym)) interactive-button)
             (if compiled-p compiled-button)
             (if native-compiled-p native-compiled-button)
+            (if (and (not callable-p) (custom-variable-p sym))
+                user-option-button)
             (if (and (not callable-p) (local-variable-if-set-p sym))
                 buffer-local-button)))
           (description
@@ -2541,7 +2570,9 @@ For example, \"(some-func FOO &optional BAR)\"."
             (cond
              ((symbolp sym)
               (help-function-arglist sym))
-             ((byte-code-function-p sym)
+             ((or (byte-code-function-p sym)
+                  (if (fboundp 'interpreted-function-p)
+                      (interpreted-function-p sym)))
               ;; argdesc can be a list of arguments or an integer
               ;; encoding the min/max number of arguments. See
               ;; Byte-Code Function Objects in the elisp manual.
@@ -2688,7 +2719,7 @@ See also `helpful-function'."
      ((null sym)
       (user-error "No command is bound to %s"
                   (key-description key-sequence)))
-     ((commandp sym)
+     ((commandp sym t)
       (helpful--update-and-switch-buffer sym t))
      (t
       (user-error "%s is bound to %s which is not a command"
@@ -2726,12 +2757,13 @@ See also `helpful-macro', `helpful-function' and `helpful-command'."
            (not (eq symbol t)))))
 
 (defun helpful--bound-p (symbol)
-  "Return non-nil if SYMBOL is a variable or callable.
+  "Return non-nil if SYMBOL is a variable, callable, or face.
 
 This differs from `boundp' because we do not consider nil, t
 or :foo."
   (or (fboundp symbol)
-      (helpful--variable-p symbol)))
+      (helpful--variable-p symbol)
+      (facep symbol)))
 
 (defun helpful--bookmark-jump (bookmark)
   "Create and switch to helpful bookmark BOOKMARK."
@@ -2766,9 +2798,31 @@ nil if SYMBOL doesn't begin with \"F\" or \"V\"."
         prefix
         (s-replace "_" "-" string))))))
 
+(defun helpful--disambiguate (sym choices)
+  "Prompt the user to disambiguate SYM via a `read-char-choice' selection.
+
+CHOICES is a list of tuples of the form (FN DESC CHAR), where
+
+  CHAR is the input character associated with the choice
+  DESC is a short description of the choice to display in the prompt.
+  FN is the function being chosen, which takes SYM as an argument.
+
+For instance, the choice (#'helpful-variable \"[v]ariable\" ?v)
+calls (helpful-variable SYM) when the key `v' is pressed in the prompt."
+  (let* ((prompt (format "%s is ambiguous: describe %s ?"
+                         (propertize (symbol-name sym) 'face font-lock-keyword-face)
+                         (mapconcat (-lambda ((_ desc _)) desc)
+                                    choices " / ")))
+         (chars (mapcar (-lambda ((_ _ char)) char)
+                        choices))
+         (lookup (mapcar (-lambda ((fn _ char)) (cons char fn))
+                         choices))
+         (input (read-char-choice prompt chars)))
+    (funcall (alist-get input lookup) sym)))
+
 ;;;###autoload
 (defun helpful-symbol (symbol)
-  "Show help for SYMBOL, a variable, function or macro.
+  "Show help for SYMBOL, a variable, function, macro, or face.
 
 See also `helpful-callable' and `helpful-variable'."
   (interactive
@@ -2776,25 +2830,31 @@ See also `helpful-callable' and `helpful-variable'."
           "Symbol: "
           (helpful--symbol-at-point)
           #'helpful--bound-p)))
-  (let ((c-var-sym (helpful--convert-c-name symbol t))
-        (c-fn-sym (helpful--convert-c-name symbol nil)))
+  (let (choices)
+    (when-let (c-var-sym (helpful--convert-c-name symbol t))
+      (push (list (lambda (_) (helpful-variable c-var-sym))
+                  "c-style [V]ariable" ?V)
+            choices))
+    (when-let (c-fn-sym (helpful--convert-c-name symbol nil))
+      (push (list (lambda (_) (helpful-callable c-fn-sym))
+                  "c-style [F]unction" ?F)
+            choices))
+    (when (fboundp symbol)
+      (push (list #'helpful-callable "[c]allable" ?c) choices))
+    (when (boundp symbol)
+      (push (list #'helpful-variable "[v]ariable" ?v) choices))
+    (when (facep symbol)
+      (push (list (lambda (face)
+                    (describe-face face)
+                    (funcall helpful-switch-buffer-function (help-buffer)))
+                  "[f]ace" ?f)
+            choices))
     (cond
-     ((and (boundp symbol) (fboundp symbol))
-      (if (y-or-n-p
-           (format "%s is a both a variable and a callable, show variable?"
-                   symbol))
-          (helpful-variable symbol)
-        (helpful-callable symbol)))
-     ((fboundp symbol)
-      (helpful-callable symbol))
-     ((boundp symbol)
-      (helpful-variable symbol))
-     ((and c-fn-sym (fboundp c-fn-sym))
-      (helpful-callable c-fn-sym))
-     ((and c-var-sym (boundp c-var-sym))
-      (helpful-variable c-var-sym))
-     (t
-      (user-error "Not bound: %S" symbol)))))
+     ((null choices)
+      (user-error "Not bound: %S" symbol))
+     ((= 1 (length choices))
+      (funcall (caar choices) symbol))
+     (t (helpful--disambiguate symbol choices)))))
 
 ;;;###autoload
 (defun helpful-variable (symbol)
@@ -2943,6 +3003,10 @@ See also `helpful-max-buffers'."
 (defvar helpful-mode-map
   (let* ((map (make-sparse-keymap)))
     (define-key map (kbd "g") #'helpful-update)
+    (define-key map [remap revert-buffer] #'helpful-update)
+    (when (fboundp 'revert-buffer-quick)
+      (define-key map [remap revert-buffer-quick] #'helpful-update))
+
     (define-key map (kbd "RET") #'helpful-visit-reference)
 
     (define-key map (kbd "TAB") #'forward-button)
@@ -2961,6 +3025,66 @@ See also `helpful-max-buffers'."
 ;; TODO: find a cleaner solution.
 (defvar bookmark-make-record-function)
 
+(defun helpful--add-support-for-org-links ()
+  "Improve support for org \"help\" links through helpful."
+  (helpful--support-storing-org-links)
+  (helpful--prefer-helpful-when-following-org-link))
+
+(defun helpful--support-storing-org-links ()
+  "Make `org-store-link' in a helpful buffer return a \"help\" link."
+  (when (and (fboundp 'org-link-set-parameters)
+             (not (-contains-p (org-link-types) "helpful")))
+    (org-link-set-parameters "helpful"
+                             :store #'helpful--org-link-store)))
+
+(defun helpful--org-link-store ()
+  "Store \"help\" type link when in a helpful buffer."
+  (when (derived-mode-p 'helpful-mode)
+    ;; Create a "help" link instead of a dedicated "helpful" link: the
+    ;; author of the Org document uses helpful, but this is not
+    ;; necessarily the case of the reader of the document.
+    (org-link-store-props :type "help"
+                          :link (format "help:%s" helpful--sym)
+                          :description nil)))
+
+(defun helpful--prefer-helpful-when-following-org-link ()
+  "Prefer helpful when using `org-open-at-point' on a \"help\" link."
+  (when (fboundp 'org-link-set-parameters)
+    (let ((follow-function (org-link-get-parameter "help" :follow)))
+      (when (not (equal follow-function #'helpful--org-link-follow))
+        (org-link-set-parameters "help"
+                                 :follow #'helpful--org-link-follow)))))
+
+(defun helpful--org-link-follow (link _)
+  (helpful-symbol (intern link)))
+
+(defun helpful--outline-function (&optional bound move backward looking-at)
+  "`outline-search-function' for `helpful-mode`.
+See documentation of `outline-search-function' for BOUND, MOVE,
+BACKWARD and LOOKING-AT."
+  (if looking-at
+      (eq 'helpful-heading (get-text-property (point) 'face))
+    (let ((heading-found nil)
+          (bound (if bound bound (if backward (point-min) (point-max)))))
+      (save-excursion
+        (when (eq 'helpful-heading (get-text-property (point) 'face))
+          (forward-line (if backward -1 1)))
+        (if backward
+            (while (not (or (eq (point) bound)
+                            (eq 'helpful-heading (get-text-property (point) 'face))))
+              (goto-char (or (previous-single-property-change (point) 'face nil bound)
+                             bound)))
+          (goto-char (or (text-property-any (point) bound 'face 'helpful-heading)
+                         bound)))
+        (when (eq 'helpful-heading (get-text-property (point) 'face))
+          (setq heading-found (point))))
+      (if heading-found
+          (progn
+            (goto-char heading-found)
+            (set-match-data (list heading-found heading-found)))
+        (when move
+          (goto-char bound) nil)))))
+
 (define-derived-mode helpful-mode special-mode "Helpful"
   "Major mode for *Helpful* buffers."
   (add-hook 'xref-backend-functions #'elisp--xref-backend nil t)
@@ -2971,7 +3095,17 @@ See also `helpful-max-buffers'."
 
   ;; Enable users to bookmark helpful buffers.
   (set (make-local-variable 'bookmark-make-record-function)
-       #'helpful--bookmark-make-record))
+       #'helpful--bookmark-make-record)
+
+  ;; Enable outline support for Emacs 29 and newer
+  (unless (< emacs-major-version 29)
+    (setq-local outline-search-function #'helpful--outline-function))
+
+  ;; This function should normally only be called once after Org and
+  ;; helpful are loaded. To avoid using `eval-after-load' (which is
+  ;; only recommended in user init files), the function is called each
+  ;; time the major mode is used.
+  (helpful--add-support-for-org-links))
 
 (provide 'helpful)
 ;;; helpful.el ends here

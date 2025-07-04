@@ -1,5 +1,3 @@
-;; -*- lexical-binding: t; -*-
-
 ;;; helm-source.el --- Helm source creation. -*- lexical-binding: t -*-
 
 ;; Copyright (C) 2015 ~ 2025  Thierry Volpiatto
@@ -994,8 +992,7 @@ the keyword :name in your source, NAME will be used instead.
 Argument CLASS is a symbol defining an eieio class object.
 Arguments ARGS are keyword value pairs as defined in CLASS."
   (declare (indent 2))
-  (let ((source (apply #'make-instance class name args)))
-    (setf (slot-value source 'name) name)
+  (let ((source (apply #'make-instance class :name name args)))
     (helm--setup-source source)
     (helm-setup-user-source source)
     (helm--create-source source)))
@@ -1005,6 +1002,7 @@ Arguments ARGS are keyword value pairs as defined in CLASS."
     (setf (slot-value source 'name) nil)
     (helm--setup-source source)
     (helm--create-source source)))
+(make-obsolete 'helm-make-type 'helm-make-source "4.0.3")
 
 (defvar helm-mm-default-search-functions)
 (defvar helm-mm-default-match-functions)

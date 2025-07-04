@@ -1,5 +1,3 @@
-;; -*- lexical-binding: t; -*-
-
 ;;; helm-grep.el --- Helm Incremental Grep. -*- lexical-binding: t -*-
 
 ;; Copyright (C) 2012 ~ 2025 Thierry Volpiatto
@@ -429,13 +427,13 @@ Have no effect when grep backend use \"--color=\"."
 
 (defface helm-grep-lineno
   `((t ,@(and (>= emacs-major-version 27) '(:extend t))
-       :foreground "Darkorange1"))
+       :foreground "DarkOrange1"))
   "Face used to highlight grep number lines."
   :group 'helm-grep-faces)
 
 (defface helm-grep-finish
   `((t ,@(and (>= emacs-major-version 27) '(:extend t))
-       :foreground "Green"))
+       :foreground "green"))
   "Face used in mode line when grep is finish."
   :group 'helm-grep-faces)
 
@@ -661,6 +659,7 @@ Have no effect when grep backend use \"--color=\"."
                                        ,proc-name)
                                       'face 'helm-grep-finish))))))
                    ((or (string= event "finished\n")
+                        (process-get process 'reach-limit)
                         (and noresult
                              ;; This is a workaround for zgrep
                              ;; that exit with code 1
@@ -832,6 +831,7 @@ If N is positive go forward otherwise go backward."
   (interactive)
   (with-helm-window
     (helm-goto-next-or-prec-file 1)))
+(put 'helm-goto-next-file 'helm-only t)
 
 (helm-make-command-from-action helm-grep-run-default-action
   "Run grep default action from `helm-do-grep-1'."
@@ -1042,10 +1042,12 @@ Special commands:
 (defun helm-gm-next-file ()
   (interactive)
   (helm-goto-next-or-prec-file 1))
+(put 'helm-gm-next-file 'helm-only t)
 
 (defun helm-gm-precedent-file ()
   (interactive)
   (helm-goto-next-or-prec-file -1))
+(put 'helm-gm-precedent-file 'helm-only t)
 
 (defun helm-grep-mode-jump ()
   (interactive)
@@ -1202,7 +1204,6 @@ of grep."
   It is currently used only as an internal flag
   and doesn't set the backend by itself.
   You probably don't want to modify this.")
-   (candidate-number-limit :initform 9999)
    (help-message :initform 'helm-grep-help-message)
    (history :initform 'helm-grep-history)
    (action :initform 'helm-grep-actions)
@@ -1216,17 +1217,8 @@ of grep."
 
 (defvar helm-source-grep nil)
 
-(cl-defmethod helm--setup-source ((source helm-grep-class))
-  (cl-call-next-method)
-  (helm-aif (and helm-follow-mode-persistent
-                 (if (eq (slot-value source 'backend) 'git)
-                     helm-source-grep-git
-                     helm-source-grep))
-      (setf (slot-value source 'follow)
-            (assoc-default 'follow it))))
-
-(cl-defun helm-do-grep-1 (targets &optional recurse backend exts
-                                  default-input input (source 'helm-source-grep))
+(defun helm-do-grep-1 (targets &optional recurse backend exts
+                                  default-input input source)
   "Launch helm using backend BACKEND on a list of TARGETS files.
 
 When RECURSE is given and BACKEND is \\='grep' use -r option of
@@ -1250,6 +1242,7 @@ It is used currently to specify \\='zgrep' or \\='git'.
 When BACKEND \\='zgrep' is used don't prompt for a choice in
 recurse, and ignore EXTS, search being made recursively on files
 matching `helm-zgrep-file-extension-regexp' only."
+  (unless source (setq source 'helm-source-grep))
   (let* (non-essential
          (ack-rec-p (helm-grep-use-ack-p :where 'recursive))
          (exts (and recurse
@@ -1303,6 +1296,12 @@ matching `helm-zgrep-file-extension-regexp' only."
      'default-directory helm-ff-default-directory) ;; [1]
     ;; Setup the source.
     (set source (helm-make-source src-name 'helm-grep-class
+                  :header-name (and (eq backend 'git)
+                                    (lambda (name)
+                                      (format "%s [%s]"
+                                              name
+                                              (abbreviate-file-name
+                                               helm-ff-default-directory))))
                   :backend backend
                   :pcre (string-match-p "\\`ack" com)))
     (helm
@@ -1524,8 +1523,9 @@ non-file buffers."
       (message nil)
       (set-process-sentinel
        (get-buffer-process helm-buffer)
-       (lambda (_process event)
-           (if (string= event "finished\n")
+       (lambda (process event)
+           (if (or (string= event "finished\n")
+                   (process-get process 'reach-limit))
                (with-helm-window
                  (setq mode-line-format
                        '(" " mode-line-buffer-identification " "
@@ -1564,7 +1564,6 @@ non-file buffers."
                 :nohighlight t
                 :nomark t
                 :filter-one-by-one #'helm-grep-filter-one-by-one
-                :candidate-number-limit 9999
                 :history 'helm-grep-history
                 :keymap helm-pdfgrep-map
                 :help-message 'helm-pdfgrep-help-message
@@ -1679,7 +1678,8 @@ returns if available with current AG version."
                                      "[%s process finished - (no results)] "
                                      ,(upcase proc-name))
                                     'face 'helm-grep-finish))))))
-                 ((string= event "finished\n")
+                 ((or (string= event "finished\n")
+                      (process-get process 'reach-limit))
                   (helm-log "helm-grep-ag-init" "%s process finished with %s results in %fs"
                               proc-name
                               (helm-get-candidate-number)
@@ -1708,7 +1708,9 @@ returns if available with current AG version."
 (defun helm-grep-ag-search-results (_candidate)
   "Launch a new helm session on the current results.
 Allow narrowing the grep ag results to a specific file or pattern without
-continuing calling grep ag."
+continuing calling grep ag, i.e. once called, what you type in minibuffer will be
+searched with helm match functions in all the candidates found previously by
+grep ag."
   (with-helm-buffer
     (let* ((src        (helm-get-current-source))
            (candidates (nthcdr 1 (split-string
@@ -1752,7 +1754,6 @@ continuing calling grep ag."
    (popup-info :initform #'helm-grep-popup-info-fn)
    (persistent-action :initform 'helm-grep-persistent-action)
    (persistent-help :initform "Jump to line (`C-u' Record in mark ring)")
-   (candidate-number-limit :initform 99999)
    (directory :initarg :directory :initform nil
               :documentation
               "  Directory currently searched.")
@@ -1763,13 +1764,6 @@ continuing calling grep ag."
    (group :initform 'helm-grep)))
 
 (defvar helm-source-grep-ag nil)
-
-(cl-defmethod helm--setup-source ((source helm-grep-ag-class))
-  (cl-call-next-method)
-  (helm-aif (and helm-follow-mode-persistent
-                 helm-source-grep-ag
-                 (assoc-default 'follow helm-source-grep-ag))
-      (setf (slot-value source 'follow) it)))
 
 (defun helm-grep-ag-1 (directory &optional type input)
   "Start helm ag in DIRECTORY maybe searching in files of type TYPE.

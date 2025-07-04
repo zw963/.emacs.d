@@ -1,5 +1,3 @@
-;; -*- lexical-binding: t; -*-
-
 ;;; helm-font --- Font and ucs selection for Helm -*- lexical-binding: t -*-
 
 ;; Copyright (C) 2012 ~ 2025 Thierry Volpiatto
@@ -62,7 +60,7 @@
 (defface helm-ucs-char
   `((((class color) (background dark))
      ,@(and (>= emacs-major-version 27) '(:extend t))
-     :foreground "Gold"))
+     :foreground "gold"))
   "Face used to display ucs characters."
   :group 'helm-font)
 
@@ -80,12 +78,12 @@
             ;; Save current font so it can be restored in cleanup
             (setq helm-previous-font (cdr (assq 'font (frame-parameters)))))
     :candidates 'helm-xfonts-cache
-    :action '(("Copy font to kill ring" . (lambda (elm)
-                                            (kill-new elm)))
-              ("Set font" . (lambda (elm)
-                              (kill-new elm)
-                              (set-frame-font elm 'keep-size)
-                              (message "Font copied to kill ring"))))
+    :action `(("Copy font to kill ring" . ,(lambda (elm)
+                                             (kill-new elm)))
+              ("Set font" . ,(lambda (elm)
+                               (kill-new elm)
+                               (set-frame-font elm 'keep-size)
+                               (message "Font copied to kill ring"))))
     :cleanup (lambda ()
                ;; Restore previous font
                (set-frame-font helm-previous-font 'keep-size))

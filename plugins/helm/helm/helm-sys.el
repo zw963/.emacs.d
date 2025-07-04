@@ -1,5 +1,3 @@
-;; -*- lexical-binding: t; -*-
-
 ;;; helm-sys.el --- System related functions for helm. -*- lexical-binding: t -*-
 
 ;; Copyright (C) 2012 ~ 2025 Thierry Volpiatto
@@ -23,6 +21,8 @@
 (require 'helm)
 (require 'helm-help)
 (require 'helm-utils)
+
+(declare-function helm-comp-read "helm-mode")
 
 
 (defgroup helm-sys nil
@@ -223,26 +223,26 @@ Return empty string for non--valid candidates."
 Show actions only on line starting by a PID."
   (let ((disp (helm-get-selection nil t)))
     (cond ((string-match "\\` *[0-9]+" disp)
-           (list '("kill (SIGTERM)" . (lambda (_pid)
-                                        (helm-top-sh "TERM" (helm-top--marked-pids))))
-                 '("kill (SIGKILL)" . (lambda (_pid)
-                                        (helm-top-sh "KILL" (helm-top--marked-pids))))
-                 '("kill (SIGINT)" .  (lambda (_pid)
-                                        (helm-top-sh "INT" (helm-top--marked-pids))))
-                 '("kill (Choose signal)"
-                   . (lambda (_pid)
-                       (let ((pids (helm-top--marked-pids)))
-                         (helm-top-sh
-                          (helm-comp-read (format "Kill %d pids with signal: "
-                                                  (length pids))
-                                          '("ALRM" "HUP" "INT" "KILL" "PIPE" "POLL"
-                                            "PROF" "TERM" "USR1" "USR2" "VTALRM"
-                                            "STKFLT" "PWR" "WINCH" "CHLD" "URG"
-                                            "TSTP" "TTIN" "TTOU" "STOP" "CONT"
-                                            "ABRT" "FPE" "ILL" "QUIT" "SEGV"
-                                            "TRAP" "SYS" "EMT" "BUS" "XCPU" "XFSZ")
-                                          :must-match t)
-                          pids))))))
+           `(("kill (SIGTERM)" . ,(lambda (_pid)
+                                    (helm-top-sh "TERM" (helm-top--marked-pids))))
+             ("kill (SIGKILL)" . ,(lambda (_pid)
+                                    (helm-top-sh "KILL" (helm-top--marked-pids))))
+             ("kill (SIGINT)" .  ,(lambda (_pid)
+                                    (helm-top-sh "INT" (helm-top--marked-pids))))
+             ("kill (Choose signal)"
+              . ,(lambda (_pid)
+                   (let ((pids (helm-top--marked-pids)))
+                     (helm-top-sh
+                      (helm-comp-read (format "Kill %d pids with signal: "
+                                              (length pids))
+                                      '("ALRM" "HUP" "INT" "KILL" "PIPE" "POLL"
+                                        "PROF" "TERM" "USR1" "USR2" "VTALRM"
+                                        "STKFLT" "PWR" "WINCH" "CHLD" "URG"
+                                        "TSTP" "TTIN" "TTOU" "STOP" "CONT"
+                                        "ABRT" "FPE" "ILL" "QUIT" "SEGV"
+                                        "TRAP" "SYS" "EMT" "BUS" "XCPU" "XFSZ")
+                                      :must-match t)
+                      pids))))))
           (t actions))))
 
 (defun helm-top--marked-pids ()

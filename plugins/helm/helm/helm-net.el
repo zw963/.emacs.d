@@ -1,5 +1,3 @@
-;; -*- lexical-binding: t; -*-
-
 ;;; helm-net.el --- helm browse url and search web. -*- lexical-binding: t -*-
 
 ;; Copyright (C) 2012 ~ 2025 Thierry Volpiatto
@@ -119,27 +117,28 @@ This is a format string, don't forget the `%s'."
   :group 'helm-net)
 
 (defcustom helm-google-suggest-actions
-  '(("Google Search" . helm-google-suggest-action)
-    ("Wikipedia" . (lambda (candidate)
-                     (helm-search-suggest-perform-additional-action
-                      helm-search-suggest-action-wikipedia-url
-                      candidate)))
-    ("Youtube" . (lambda (candidate)
+  (helm-make-actions
+   "Google Search" 'helm-google-suggest-action
+   "Wikipedia" (lambda (candidate)
+                 (helm-search-suggest-perform-additional-action
+                  helm-search-suggest-action-wikipedia-url
+                  candidate))
+   "Youtube" (lambda (candidate)
+               (helm-search-suggest-perform-additional-action
+                helm-search-suggest-action-youtube-url
+                candidate))
+   "IMDb" (lambda (candidate)
+            (helm-search-suggest-perform-additional-action
+             helm-search-suggest-action-imdb-url
+             candidate))
+   "Google Maps" (lambda (candidate)
                    (helm-search-suggest-perform-additional-action
-                    helm-search-suggest-action-youtube-url
+                    helm-search-suggest-action-google-maps-url
+                    candidate))
+   "Google News" (lambda (candidate)
+                   (helm-search-suggest-perform-additional-action
+                    helm-search-suggest-action-google-news-url
                     candidate)))
-    ("IMDb" . (lambda (candidate)
-                (helm-search-suggest-perform-additional-action
-                 helm-search-suggest-action-imdb-url
-                 candidate)))
-    ("Google Maps" . (lambda (candidate)
-                       (helm-search-suggest-perform-additional-action
-                        helm-search-suggest-action-google-maps-url
-                        candidate)))
-    ("Google News" . (lambda (candidate)
-                       (helm-search-suggest-perform-additional-action
-                        helm-search-suggest-action-google-news-url
-                        candidate))))
   "List of actions for google suggest sources."
   :group 'helm-net
   :type '(alist :key-type string :value-type function))
@@ -284,7 +283,7 @@ Can be \"--new-tab\" (default), \"--new-window\" or \"--private-window\"."
     ("emacs" . eww-browse-url))
   "Alist of (browse_url_variable . function) to try to find a suitable url browser.")
 
-(cl-defun helm-generic-browser (url cmd-name &rest args)
+(defun helm-generic-browser (url cmd-name &rest args)
   "Browse URL with NAME browser."
   (let ((proc (concat cmd-name " " url)))
     (message "Starting %s..." cmd-name)

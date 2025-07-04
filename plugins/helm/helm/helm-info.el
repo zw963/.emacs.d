@@ -1,5 +1,3 @@
-;; -*- lexical-binding: t; -*-
-
 ;;; helm-info.el --- Browse info index with helm -*- lexical-binding: t -*-
 
 ;; Copyright (C) 2012 ~ 2025 Thierry Volpiatto
@@ -61,10 +59,11 @@ files with `helm-info-at-point'."
 
 ;;; Build info-index sources with `helm-info-source' class.
 
-(cl-defun helm-info-init (&optional (file (helm-get-attr 'info-file)))
+(defun helm-info-init (&optional file)
   "Initialize candidates for info FILE.
 If FILE have nodes, loop through all nodes and accumulate candidates
 found in each node, otherwise scan only the current info buffer."
+  (unless file (setq file (helm-get-attr 'info-file)))
   ;; Allow reinit candidate buffer when using edebug.
   (helm-aif (and debug-on-error
                  (helm-candidate-buffer))
@@ -362,10 +361,10 @@ a prefix arg."
   (helm-build-sync-source "Info Pages"
     :init #'helm-info-pages-init
     :candidates (lambda () helm-info--pages-cache)
-    :action '(("Show with Info" .
-               (lambda (node-str)
-                 (info (replace-regexp-in-string
-                        "^[^:]+: " "" node-str)))))
+    :action `(("Show with Info"
+               . ,(lambda (node-str)
+                    (info (replace-regexp-in-string
+                           "^[^:]+: " "" node-str)))))
     :requires-pattern 2)
   "Helm source for Info pages.")
 

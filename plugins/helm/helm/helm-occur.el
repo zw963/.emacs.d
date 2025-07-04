@@ -1,5 +1,3 @@
-;; -*- lexical-binding: t; -*-
-
 ;;; helm-occur.el --- Incremental Occur for Helm. -*- lexical-binding: t -*-
 
 ;; Copyright (C) 2012 ~ 2025 Thierry Volpiatto
@@ -174,20 +172,24 @@ This happen only in `helm-source-occur' which is always related to
               (string-equal helm-pattern ""))
     (with-helm-window
       (let ((lst '())
+            ;; `helm-source-occur' name is "Helm occur" when using `helm-occur'
+            ;; command (searching and starting from current-buffer), whereas it
+            ;; has the name of current-buffer when using `helm-multi-occur-1'.
             (name (helm-get-attr 'name helm-source-occur))
             closest beg end)
         (while-no-input
           (goto-char (point-min))
-          (if (string= name "Helm occur")
-              (setq beg (point)
-                    end (point-max))
-            (helm-awhile (helm-get-next-header-pos)
-              (when (string= name (buffer-substring-no-properties
-                                   (pos-bol) (pos-eol)))
-                (forward-line 1)
-                (setq beg (point)
-                      end (or (helm-get-next-header-pos) (point-max)))
-                (cl-return))))
+          (cond ((string= name "Helm occur")
+                 (setq beg (point)
+                       end (point-max)))
+                ;; The source corresponding to helm-current-buffer should be
+                ;; always on top, so no need to search for it by looping in
+                ;; helm-buffer.
+                ((string= name (buffer-substring-no-properties
+                                (pos-bol) (pos-eol)))
+                 (forward-line 1)
+                 (setq beg (point)
+                       end (or (helm-get-next-header-pos) (point-max)))))
           (save-excursion
             (when (and beg end)
               (goto-char beg)
@@ -412,8 +414,9 @@ helm-occur will start immediately with DEFAULT as INPUT.
 Always prefer using DEFAULT instead of INPUT, they have the same effect but
 DEFAULT keep the minibuffer empty, allowing the user to write immediately
 without having to delete its contents before."
-  (let* ((curbuf (current-buffer))
-         (bufs (if helm-occur-always-search-in-current
+  (let* ((curbuf (get-buffer (or helm-current-buffer (current-buffer))))
+         (bufs (if (or helm-occur-always-search-in-current
+                       (memql curbuf buffers))
                    (cons curbuf (remove curbuf buffers))
                  buffers))
          (helm-sources-using-default-as-input
@@ -433,7 +436,7 @@ without having to delete its contents before."
                              (cl-loop for b in bufs collect
                                       (buffer-chars-modified-tick
                                        (get-buffer b))))
-    (when (and helm-occur-always-search-in-current
+    (when (and (eql (car bufs) curbuf)
                helm-occur-keep-closest-position)
       (setq helm-source-occur
             (cl-loop for s in sources
@@ -455,11 +458,11 @@ without having to delete its contents before."
 
 ;;; Actions
 ;;
-(cl-defun helm-occur-action (lineno
-                                  &optional (method (quote buffer)))
+(defun helm-occur-action (lineno &optional method)
   "Jump to line number LINENO with METHOD.
 METHOD can be one of buffer, buffer-other-window, buffer-other-frame."
   (require 'helm-grep)
+  (unless method (setq method 'buffer))
   (let ((buf (if (eq major-mode 'helm-occur-mode)
                  (get-text-property (point) 'buffer-name)
                (helm-get-attr 'buffer-name)))

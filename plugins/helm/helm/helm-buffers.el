@@ -1,5 +1,3 @@
-;; -*- lexical-binding: t; -*-
-
 ;;; helm-buffers.el --- helm support for buffers. -*- lexical-binding: t -*-
 
 ;; Copyright (C) 2012 ~ 2025 Thierry Volpiatto
@@ -200,7 +198,7 @@ Don't use `setq' to set this."
 
 (defface helm-buffer-not-saved
   `((t ,@(and (>= emacs-major-version 27) '(:extend t))
-       :foreground "Indianred2"))
+       :foreground "IndianRed2"))
   "Face used for buffer files not already saved on disk."
   :group 'helm-buffers-faces)
 
@@ -233,7 +231,7 @@ Don't use `setq' to set this."
 
 (defface helm-buffer-process
   `((t ,@(and (>= emacs-major-version 27) '(:extend t))
-       :foreground "Sienna3"))
+       :foreground "sienna3"))
   "Face used for process status in buffer."
   :group 'helm-buffers-faces)
 
@@ -251,7 +249,7 @@ Don't use `setq' to set this."
 
 (defface helm-buffer-archive
   `((t ,@(and (>= emacs-major-version 27) '(:extend t))
-       :foreground "Gold"))
+       :foreground "gold"))
   "Face for archive file names in `helm-buffers-list'."
   :group 'helm-buffers-faces)
 
@@ -964,7 +962,7 @@ If REGEXP-FLAG is given use `query-replace-regexp'."
   'helm-grep-buffers)
 
 (helm-make-command-from-action helm-buffer-run-zgrep
-  "Run Grep action from `helm-source-buffers-list'."
+  "Run Zgrep action from `helm-source-buffers-list'."
   'helm-zgrep-buffers)
 
 (helm-make-command-from-action helm-buffer-run-query-replace-regexp
@@ -1043,8 +1041,14 @@ vertically."
       (helm-delete-current-selection))))
 
 (defun helm-buffers--quote-truncated-buffer (buffer)
+  "Quote the truncated buffer-name of BUFFER.
+buffer-name is truncated according to `helm-buffer-max-length' minus the length
+of icon if one."
   (let ((bufname (and (bufferp buffer)
-                      (buffer-name buffer))))
+                      (buffer-name buffer)))
+        (maxlen (if helm-buffers-show-icons
+                    (- helm-buffer-max-length 2)
+                  helm-buffer-max-length)))
     (when (and bufname
                (file-remote-p (with-current-buffer bufname
                                 default-directory)))
@@ -1053,32 +1057,37 @@ vertically."
       (regexp-quote
        (if (and helm-buffer-max-length
                 helm-buffer-details-flag)
-           (helm-substring-by-width
-            bufname helm-buffer-max-length
-            "")
+           (helm-substring-by-width bufname maxlen "")
          bufname)))))
 
 (defun helm-buffers-persistent-kill (_buffer)
-  (let ((marked (helm-marked-candidates))
-        (sel (helm-get-selection))
-        (msg "Buffer `%s' modified, please save it before kill"))
-    (unwind-protect
-         (cl-loop for b in marked
-                  do (if (and (buffer-file-name b) (buffer-modified-p b))
-                         (message msg (buffer-name b))
-                       ;; We need to preselect each marked because
-                       ;; helm-buffers-persistent-kill-1 is deleting
-                       ;; current selection.
-                       (helm-preselect
-                        (format "^%s"
-                                (helm-buffers--quote-truncated-buffer b)))
-                       (helm-buffers-persistent-kill-1 b)
-                       (message nil)
-                       (helm--remove-marked-and-update-mode-line b)))
-      (with-helm-buffer
+  (let* ((marked (helm-marked-candidates))
+         (msg "Buffer `%s' modified, please save it before kill")
+         ;; After marking, selection should be after the last marked unless user
+         ;; has not moved, if deleting current, use current selection after
+         ;; having deleted.
+         (sel (and (cdr marked) (helm-get-selection))))
+    (with-helm-buffer
+      (unwind-protect
+           (dolist (b marked)
+             (if (and (buffer-file-name b) (buffer-modified-p b))
+                 (progn (message msg (buffer-name b)) (sit-for 1))
+               ;; We need to preselect each marked because
+               ;; helm-buffers-persistent-kill-1 is deleting
+               ;; current selection.
+               (helm-preselect
+                (format "^[[:multibyte:] ]*%s"
+                        (helm-buffers--quote-truncated-buffer b)))
+               (helm-buffers-persistent-kill-1 b)
+               (helm--remove-marked-and-update-mode-line b)))
         (setq helm-marked-candidates nil
               helm-visible-mark-overlays nil))
-      (helm-force-update (helm-buffers--quote-truncated-buffer sel)))))
+      (helm-force-update (format "^[[:multibyte:] ]*%s"
+                                 (helm-buffers--quote-truncated-buffer
+                                  ;; Ensure user has not moved selection on one
+                                  ;; of marked.
+                                  (or (and (buffer-live-p sel) sel)
+                                      (helm-get-selection))))))))
 
 (defun helm-buffers-list-persistent-action (candidate)
   (let ((current (window-buffer helm-persistent-action-display-window)))

@@ -1,5 +1,3 @@
-;; -*- lexical-binding: t; -*-
-
 ;;; helm-types.el --- Helm types classes and methods. -*- lexical-binding: t -*-
 
 ;; Copyright (C) 2015 ~ 2025  Thierry Volpiatto
@@ -33,7 +31,7 @@
 (declare-function helm-make-actions "helm-lib")
 (declare-function helm-ediff-marked-buffers "helm-buffers")
 (declare-function helm-make-type "helm-source")
-
+(declare-function helm-marked-candidates "helm-core")
 
 ;;  Files
 (defclass helm-type-file (helm-source)
@@ -145,6 +143,7 @@
    "Bookmark edit annotation" 'bookmark-edit-annotation
    "Delete marked bookmark(s)" 'helm-delete-marked-bookmarks
    "Edit Bookmark" 'helm-bookmark-edit-bookmark
+   "Reset Bookmark to current pos" 'bookmark-set
    "Rename marked bookmark(s)" 'helm-bookmark-rename-marked
    "Relocate bookmark" 'bookmark-relocate)
   "Default actions for type bookmarks."
@@ -301,18 +300,18 @@
   "A class to define helm type timers.")
 
 (defcustom helm-type-timers-actions
-  '(("Cancel Timer" . (lambda (_timer)
-                        (let ((mkd (helm-marked-candidates)))
-                          (cl-loop for timer in mkd
-                                   do (cancel-timer timer)))))
-    ("Describe Function" . (lambda (tm)
-                             (describe-function (timer--function tm))))
-    ("Find Function" . (lambda (tm)
-                         (helm-aif (timer--function tm)
-                             (if (or (byte-code-function-p it)
-                                     (helm-subr-native-elisp-p it))
-                                 (message "Can't find anonymous function `%s'" it)
-                                 (find-function it))))))
+  `(("Cancel Timer" . ,(lambda (_timer)
+                         (let ((mkd (helm-marked-candidates)))
+                           (cl-loop for timer in mkd
+                                    do (cancel-timer timer)))))
+    ("Describe Function" . ,(lambda (tm)
+                              (describe-function (timer--function tm))))
+    ("Find Function" . ,(lambda (tm)
+                          (helm-aif (timer--function tm)
+                              (if (or (byte-code-function-p it)
+                                      (helm-subr-native-elisp-p it))
+                                  (message "Can't find anonymous function `%s'" it)
+                                (find-function it))))))
   "Default actions for type timers."
   :group 'helm-elisp
   :type '(alist :key-type string :value-type function))
@@ -330,12 +329,13 @@
 ;; Builders.
 (defun helm-build-type-file ()
   (helm-make-type 'helm-type-file))
-
+(make-obsolete 'helm-build-type-file 'helm-make-source "4.0.3")
 (defun helm-build-type-function ()
   (helm-make-type 'helm-type-function))
-
+(make-obsolete 'helm-build-type-function 'helm-make-source "4.0.3")
 (defun helm-build-type-command ()
   (helm-make-type 'helm-type-command))
+(make-obsolete 'helm-build-type-command 'helm-make-source "4.0.3")
 
 (provide 'helm-types)
 

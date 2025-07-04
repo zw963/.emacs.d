@@ -1,5 +1,3 @@
-;; -*- lexical-binding: t; -*-
-
 ;;; helm-bookmark.el --- Helm for Emacs regular Bookmarks. -*- lexical-binding: t -*-
 
 ;; Copyright (C) 2012 ~ 2025 Thierry Volpiatto
@@ -121,19 +119,19 @@ will be honored."
 
 (defface helm-bookmark-man
   `((t ,@(and (>= emacs-major-version 27) '(:extend t))
-       :foreground "Orange4"))
+       :foreground "orange4"))
   "Face used for Woman/man bookmarks."
   :group 'helm-bookmark-faces)
 
 (defface helm-bookmark-file
   `((t ,@(and (>= emacs-major-version 27) '(:extend t))
-       :foreground "Deepskyblue2"))
+       :foreground "DeepSkyBlue2"))
   "Face used for file bookmarks."
   :group 'helm-bookmark-faces)
 
 (defface helm-bookmark-file-not-found
   `((t ,@(and (>= emacs-major-version 27) '(:extend t))
-       :foreground "Slategray4"))
+       :foreground "SlateGray4"))
   "Face used for file bookmarks."
   :group 'helm-bookmark-faces)
 
@@ -239,10 +237,10 @@ will be honored."
       (list (or (and (not (string= helm-pattern ""))
                      helm-pattern)
                 "Enter a bookmark name to record")))
-    :action '(("Set bookmark" . (lambda (candidate)
-                                  (if (string= helm-pattern "")
-                                      (message "No bookmark name given for record")
-                                      (bookmark-set candidate))))))
+    :action `(("Set bookmark" . ,(lambda (candidate)
+                                   (if (string= helm-pattern "")
+                                       (message "No bookmark name given for record")
+                                     (bookmark-set candidate))))))
   "See (info \"(emacs)Bookmarks\").")
 
 
@@ -587,14 +585,14 @@ If `browse-url-browser-function' is set to something else than
 
 (cl-defmethod helm--setup-source ((source helm-bookmark-find-files-class))
   ;; Ensure `helm-source-in-buffer' method is called.
-  (cl-call-next-method)
   (setf (slot-value source 'action)
         (helm-append-at-nth
          (cl-loop for (name . action) in helm-type-bookmark-actions
                   ;; We don't want those actions in helm-find-files bookmarks.
                   unless (memq action '(helm-bookmark-jump-other-frame
                                         helm-bookmark-jump-other-window
-                                        helm-bookmark-jump-other-tab))
+                                        helm-bookmark-jump-other-tab
+                                        bookmark-set))
                   collect (cons name action))
          '(("Browse project" . helm-bookmark-browse-project)) 1))
   (setf (slot-value source 'keymap) helm-bookmark-find-files-map))

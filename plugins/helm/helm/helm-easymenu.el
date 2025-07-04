@@ -1,5 +1,3 @@
-;; -*- lexical-binding: t; -*-
-
 ;;; helm-easymenu.el --- Helm easymenu definitions. -*- lexical-binding: t -*-
 
 ;; Copyright (C) 2015 ~ 2025 Thierry Volpiatto
