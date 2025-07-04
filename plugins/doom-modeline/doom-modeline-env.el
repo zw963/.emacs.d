@@ -1,5 +1,3 @@
-;; -*- lexical-binding: t; -*-
-
 ;;; doom-modeline-env.el --- A environment parser for doom-modeline -*- lexical-binding: t -*-
 
 ;; Copyright (C) 2019-2025 Vincent Zhang, Justin Barclay
@@ -223,7 +221,6 @@ PARSER should be a function for parsing COMMAND's output line-by-line, to
                                            (or doom-modeline-env-python-executable
                                                python-shell-interpreter
                                                "python"))))
-                       ((executable-find "uv") (list "uv" "run" "--no-sync" "python" "--version"))
                        ((list (or doom-modeline-env-python-executable
                                   python-shell-interpreter
                                   "python")
