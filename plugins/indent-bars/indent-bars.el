@@ -4,7 +4,7 @@
 ;; Author: J.D. Smith <jdtsmith+elpa@gmail.com>
 ;; Homepage: https://github.com/jdtsmith/indent-bars
 ;; Package-Requires: ((emacs "27.1") (compat "30"))
-;; Version: 0.8.4
+;; Version: 0.9.1
 ;; Keywords: convenience
 
 ;; indent-bars is free software: you can redistribute it and/or
@@ -84,7 +84,7 @@
 (defvar indent-bars-custom-set nil)
 (defvar indent-bars--custom-set-inhibit nil)
 (defun indent-bars--custom-set (sym val)
-  "Set SYM to VAL, and reset indent-bars in the `other-window'."
+  "Set SYM to VAL, and reset `indent-bars' in all windows."
   (set-default-toplevel-value sym val)
   (when (and (not indent-bars--custom-set-inhibit) (boundp 'indent-bars-mode))
     (let ((indent-bars--custom-set-inhibit t)) ; prevent re-entry
@@ -658,7 +658,7 @@ instead of the :blend factor in `indent-bars-color'."
 If BLEND-OVERRIDE is set, the main color's :blend will be ignored
 and this value will be used instead, for blending into the frame
 background color.  See `indent-bars-color-by-depth'."
-  (when-let ((cbd (indent-bars--style style "color-by-depth")))
+  (when-let* ((cbd (indent-bars--style style "color-by-depth")))
     (cl-destructuring-bind (&key regexp face-bg palette blend) cbd
       (let ((colors
 	     (cond
@@ -678,7 +678,7 @@ background color.  See `indent-bars-color-by-depth'."
 A color or palette (vector) of colors is returned, which may be
 nil, in which case no special current depth-coloring is used.
 See `indent-bars-highlight-current-depth' for configuration."
-  (when-let ((hcd (indent-bars--style style "highlight-current-depth")))
+  (when-let* ((hcd (indent-bars--style style "highlight-current-depth")))
     (cl-destructuring-bind (&key color face face-bg
 				 blend palette &allow-other-keys)
 	hcd
@@ -698,7 +698,8 @@ See `indent-bars-highlight-current-depth' for configuration."
 	  (if (string= color "unspecified-fg")
 	      (setq color indent-bars-unspecified-fg-color))
 	  (if blend
-	      (if-let ((palette (indent-bars--depth-palette style))) ; blend into normal depth palette
+	      (if-let* ((palette (indent-bars--depth-palette style)))
+		  ;; blend into normal depth palette
 		  (vconcat
 		   (mapcar (lambda (c)
 			     (indent-bars--blend-colors color c blend))
@@ -726,6 +727,18 @@ color, if setup (see `indent-bars-highlight-current-depth')."
      (t (ibs/main-color style)))))
 
 ;;;;; Faces
+(defun indent-bars--window-font-space-width (&optional win)
+  "Return the space width of the font in window WIN.
+If WIN is not provided, the selected window is used.  This works for
+both variable pitch and fixed pitch fonts."
+  (let ((win (or win (selected-window))))
+    (with-selected-window win
+      (or (when-let* ((ff (face-font 'default))
+		      (fi (font-info ff))
+		      (space-width (aref fi 10)))
+	    (and (natnump space-width) (> space-width 0) space-width))
+	  (window-font-width)))))
+
 (defun indent-bars--stipple-face-spec (w h rot &optional style stipple)
   "Create a face specification for the stipple face for STYLE.
 Create for character size W x H with offset ROT.  If STIPPLE is
@@ -818,7 +831,7 @@ Additional `defcustom` keyword arguments can be given as R."
 			 type))
 		       (t (setq type `(choice ,type))))))
     ;; Add an unspecified choice
-    (when-let ((tag-pos (member :tag choice)))
+    (when-let* ((tag-pos (member :tag choice)))
       (setq choice (cdr tag-pos)))	;after tag
     (setcdr choice
 	    (push
@@ -930,17 +943,17 @@ Useful for calling after theme changes."
 	(ibs/no-stipple-chars style) (indent-bars--create-no-stipple-chars style 7))
 
   ;; Base stipple face
-  (face-spec-set
-   (ibs/stipple-face style)
-   (indent-bars--stipple-face-spec
-    (frame-char-width) (frame-char-height)
-    (indent-bars--stipple-rot (selected-window) (frame-char-width))
-    style))
+  (let ((width (indent-bars--window-font-space-width)))
+    (face-spec-set
+     (ibs/stipple-face style)
+     (indent-bars--stipple-face-spec width (frame-char-height)
+      (indent-bars--stipple-rot (selected-window) width)
+      style)))
 
   ;; Current depth highlight faces/stipple
   (setf (ibs/current-bg-color style)
 	(indent-bars--current-bg-color style))
-  (when-let ((stipple (indent-bars--current-depth-stipple nil nil nil style)))
+  (when-let* ((stipple (indent-bars--current-depth-stipple nil nil nil style)))
     (setf (ibs/current-stipple-face style)
 	  (indent-bars--tag "indent-bars%s-current-face" style))
     (face-spec-set (ibs/current-stipple-face style) nil)))
@@ -1005,7 +1018,7 @@ and can return an updated depth."
 	(forward-line 0)
 	(let* ((ppss (syntax-ppss))	; moves point!
 	       (string-start (and indent-bars-no-descend-string (nth 8 ppss)))
-	       (list-start (when-let
+	       (list-start (when-let*
 			       ((ndl indent-bars-no-descend-lists)
 				(open (nth 1 ppss))
 				((or (not (consp ndl)) (memq (char-after open) ndl))))
@@ -1272,8 +1285,7 @@ used to change the current depth highlight (aside from stipple changes).")
 
 (defun indent-bars--current-bg-color (style)
   "Return the current bar background color appropriate for STYLE."
-  (when-let ((hcd
-	      (indent-bars--style style "highlight-current-depth")))
+  (when-let* ((hcd (indent-bars--style style "highlight-current-depth")))
     (plist-get hcd :background)))
 
 (defun indent-bars--current-depth-stipple (&optional w h rot style)
@@ -1284,7 +1296,7 @@ ROT are as in `indent-bars--stipple', and have similar default values."
   (cl-destructuring-bind (&key width pad pattern zigzag &allow-other-keys)
       (indent-bars--style style "highlight-current-depth")
     (when (or width pad pattern zigzag)
-      (let* ((w (or w (window-font-width)))
+      (let* ((w (or w (indent-bars--window-font-space-width)))
 	     (h (or h (window-font-height)))
 	     (rot (or rot (indent-bars--stipple-rot nil w))))
 	(indent-bars--stipple w h rot style width pad pattern zigzag)))))
@@ -1295,7 +1307,7 @@ Works by remapping the appropriate indent-bars[-tag]-N face for
 all styles in the `indent-bars--styles' list.  DEPTH should be
 greater than or equal to zero (zero meaning: no highlight)."
   (dolist (s indent-bars--styles)
-    (when-let ((c (alist-get (ibs/tag s) indent-bars--remaps))) ; out with the old
+    (when-let* ((c (alist-get (ibs/tag s) indent-bars--remaps))) ; out with the old
       (face-remap-remove-relative c))
     (when (> depth 0)
       (let* ((face (indent-bars--face s depth))
@@ -1407,9 +1419,9 @@ ROT should be less than W."
 ;; So g = (mod marg+fringe w).
 ;;
 ;; When the block/zigzag/whatever stipple pattern is made, to align
-;; with characters, it must get shifted up (= right) by g bits, with
-;; carry over (wrap) around w=(window-font-width) bits (i.e the width
-;; of the bitmap).  The byte/bit pattern is first-lowest-leftmost.
+;; with characters, it must be shifted up (= right) by g bits, with
+;; carry over (wrap) around w=space-width bits (i.e the width of the
+;; bitmap in pixels).  The byte/bit pattern is first-lowest-leftmost.
 ;;
 ;; Note that different windows may have different g values
 ;; (e.g. left/right), which means the same bitmap cannot work for the
@@ -1494,9 +1506,9 @@ attributes are set via filtered face remaps.")
 
 (defun indent-bars--create-stipple-remaps (w h rot)
   "Create and store stipple remaps for the given font size and pixel start.
-W is the `window-font-width', H is the corresponding height, and
-ROT is the number of bits to rotate the pattern start.  An entry
-is created for each active style, for both :main[-styletag] and
+W is the space font width in pixels, H is the corresponding height, and
+ROT is the number of bits to rotate the pattern start.  An entry is
+created for each active style, for both :main[-styletag] and
 :current[-styletag] highlight contexts."
   (let* ((whr (indent-bars--whr w h rot))
 	 (filter `(:window indent-bars-whr ,whr))
@@ -1543,29 +1555,29 @@ is created for each active style, for both :main[-styletag] and
 WIN defaults to the selected window.  To be set as a local
 `window-state-change-functions' hook."
   (unless win (setq win (selected-window)))
-  (let* ((w (window-font-width win))
+  (let* ((w (indent-bars--window-font-space-width win))
 	 (h (window-font-height win))
 	 (rot (indent-bars--stipple-rot win w))
 	 (whr (indent-bars--whr w h rot))
 	 (cur-whr (window-parameter win 'indent-bars-whr)))
     (unless (eq cur-whr whr)
       (set-window-parameter win 'indent-bars-whr whr))
-    (when-let ((buf (window-buffer win))
-	       (ht (buffer-local-value 'indent-bars--stipple-remaps buf))
-	       ((null (gethash whr ht))))
+    (when-let* ((buf (window-buffer win))
+		(ht (buffer-local-value 'indent-bars--stipple-remaps buf))
+		((null (gethash whr ht))))
       (with-current-buffer buf ; we may be called from an arbitrary buffer
 	(indent-bars--create-stipple-remaps w h rot)
 	(indent-bars--schedule-remap-cleanup)))))
 
 (defun indent-bars--cleanup-stipple-remaps (buf)
   "Clean up unused stipple face remaps for buffer BUF."
-  (when-let (((buffer-live-p buf))
-	     (wins (get-buffer-window-list buf nil t))
-	     (whrs (cl-loop for win in wins
-			    collect (window-parameter win 'indent-bars-whr)))
-	     (rmp-hsh (buffer-local-value 'indent-bars--stipple-remaps buf))
-	     (rkeys (hash-table-keys rmp-hsh))
-	     (unneeded (seq-difference rkeys whrs)))
+  (when-let* (((buffer-live-p buf))
+	      (wins (get-buffer-window-list buf nil t))
+	      (whrs (cl-loop for win in wins
+			     collect (window-parameter win 'indent-bars-whr)))
+	      (rmp-hsh (buffer-local-value 'indent-bars--stipple-remaps buf))
+	      (rkeys (hash-table-keys rmp-hsh))
+	      (unneeded (seq-difference rkeys whrs)))
     (with-current-buffer buf ;N.B. face-remapping-alist is buffer-local
       (dolist (rk unneeded)
 	(indent-bars--remove-plist-remaps (gethash rk rmp-hsh))
@@ -1596,6 +1608,10 @@ Adapted from `highlight-indentation-mode'."
     scala-indent:step)
    ((and (derived-mode-p 'scala-mode) (boundp 'scala-mode-indent:step))
     scala-mode-indent:step)
+   ((and (derived-mode-p 'scala-ts-mode) (boundp 'scala-ts-indent-offset))
+    scala-ts-indent-offset)
+   ((and (derived-mode-p 'rust-ts-mode) (boundp 'rust-ts-mode-indent-offset))
+    rust-ts-mode-indent-offset)
    ((and (or (derived-mode-p 'scss-mode) (derived-mode-p 'css-mode))
 	 (boundp 'css-indent-offset))
     css-indent-offset)
@@ -1623,6 +1639,8 @@ Adapted from `highlight-indentation-mode'."
     (symbol-value c-ts-common-indent-offset))
    ((and (derived-mode-p 'yaml-mode) (boundp 'yaml-indent-offset))
     yaml-indent-offset)
+   ((and (derived-mode-p 'yaml-pro-mode) (boundp 'yaml-pro-indent))
+    yaml-pro-indent)
    ((and (derived-mode-p 'elixir-mode) (boundp 'elixir-smie-indent-basic))
     elixir-smie-indent-basic)
    ((and (derived-mode-p 'lisp-data-mode) (boundp 'lisp-body-indent))
@@ -1643,6 +1661,10 @@ Adapted from `highlight-indentation-mode'."
     js-indent-level)
    ((and (derived-mode-p 'sh-base-mode) (boundp 'sh-basic-offset))
     sh-basic-offset)
+   ((and (derived-mode-p 'java-ts-mode) (boundp 'java-ts-mode-indent-offset))
+    java-ts-mode-indent-offset)
+   ((and (derived-mode-p 'tcl-mode) (boundp 'tcl-indent-level))
+    tcl-indent-level)
    ((and (boundp 'standard-indent) standard-indent))
    (t 4))) 				; backup
 
@@ -1663,7 +1685,9 @@ Adapted from `highlight-indentation-mode'."
 			(not (any ?\t ?\s ?\n)))
 		       ;; group 2: multi-line blank regions
 		       ,@(if indent-bars-display-on-blank-lines
-			     '((group (* (or ?\s ?\t ?\n)) ?\n))))))))
+			     '((group (* (or ?\s ?\t ?\n)) ?\n)))))))
+  (unless font-lock-defaults (setq font-lock-defaults '(nil t)))
+  (unless font-lock-mode (font-lock-mode 1)))
 
 (declare-function indent-bars--ts-mode "indent-bars-ts")
 (defun indent-bars-setup ()
