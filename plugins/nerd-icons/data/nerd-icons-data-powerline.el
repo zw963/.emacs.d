@@ -1,5 +1,3 @@
-;; -*- lexical-binding: t; -*-
-
 ;;; nerd-icons-data-powerline.el --- glyphset powerline -*- lexical-binding: t -*-
 
 ;; Copyright (C) 2023 Hongyu Ding <rainstormstudio@yahoo.com>
@@ -23,7 +21,7 @@
 ;;; Commentary:
 
 ;; powerline
-;; from Nerd Font Version: 3.3.0
+;; from Nerd Font Version: 3.4.0
 
 ;;; Code:
 

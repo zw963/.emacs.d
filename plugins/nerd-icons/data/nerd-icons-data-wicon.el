@@ -1,5 +1,3 @@
-;; -*- lexical-binding: t; -*-
-
 ;;; nerd-icons-data-wicon.el --- glyphset wicon -*- lexical-binding: t -*-
 
 ;; Copyright (C) 2023 Hongyu Ding <rainstormstudio@yahoo.com>
@@ -23,7 +21,7 @@
 ;;; Commentary:
 
 ;; wicon
-;; from Nerd Font Version: 3.3.0
+;; from Nerd Font Version: 3.4.0
 
 ;;; Code:
 

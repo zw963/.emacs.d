@@ -1,5 +1,3 @@
-;; -*- lexical-binding: t; -*-
-
 ;;; nerd-icons.el --- Emacs Nerd Font Icons Library -*- lexical-binding: t -*-
 
 ;; Copyright (C) 2023 Hongyu Ding <rainstormstudio@yahoo.com>
@@ -647,7 +645,7 @@
     (org-agenda-mode                   nerd-icons-octicon "nf-oct-checklist"          :face nerd-icons-lgreen)
     (cfw:calendar-mode                 nerd-icons-octicon "nf-oct-calendar")
     (ibuffer-mode                      nerd-icons-faicon "nf-fa-files_o"              :face nerd-icons-dsilver)
-    (messages-buffer-mode              nerd-icons-faicon "nf-fa-file_o"               :face nerd-icons-dsilver)
+    (messages-buffer-mode              nerd-icons-octicon "nf-oct-log"                :face nerd-icons-yellow)
     (help-mode                         nerd-icons-faicon "nf-fa-info"                 :face nerd-icons-purple)
     (helpful-mode                      nerd-icons-faicon "nf-fa-info"                 :face nerd-icons-purple)
     (Info-mode                         nerd-icons-faicon "nf-fa-info"                 :face nerd-icons-blue)
@@ -932,6 +930,7 @@
     ("^\\(https?://\\)?\\(www\\.\\)?jsfiddle\\.net"           nerd-icons-faicon "nf-fa-jsfiddle")
     ("^\\(https?://\\)?\\(www\\.\\)?maxcdn\\.com"             nerd-icons-faicon "nf-fa-maxcdn")
     ("^\\(https?://\\)?\\(www\\.\\)?stackoverflow\\.com"      nerd-icons-faicon "nf-fa-stack_overflow")
+    ("^\\(https?://\\)?\\(www\\.\\)?codeberg\\.org"           nerd-icons-flicon "nf-linux-codeberg")
     ;; Video
     ("^\\(https?://\\)?\\(www\\.\\)?twitch\\.tv"              nerd-icons-faicon "nf-fa-twitch")
     ("^\\(https?://\\)?\\(www\\.\\)?vimeo\\.com"              nerd-icons-faicon "nf-fa-vimeo")
