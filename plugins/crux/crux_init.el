@@ -50,6 +50,7 @@
 (require 'move-dup)
 ;; (require 'mark-lines)
 
+(global-set-key [(control g)] 'crux-keyboard-quit-dwim)
 (global-set-key [(control x) (\4) (t)] 'crux-transpose-windows)
 ;; (global-set-key [(control k)] 'crux-smart-kill-line)
 (global-set-key [(control shift return)] 'crux-smart-open-line-above)
