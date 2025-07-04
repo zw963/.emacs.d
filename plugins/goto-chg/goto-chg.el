@@ -1,6 +1,4 @@
-;; -*- lexical-binding: t; -*-
-
-;;; goto-chg.el --- Go to last change
+;;; goto-chg.el --- Go to last change -*- lexical-binding: t -*-
 ;;--------------------------------------------------------------------
 ;;
 ;; Copyright (C) 2002-2008,2013 David Andersson
