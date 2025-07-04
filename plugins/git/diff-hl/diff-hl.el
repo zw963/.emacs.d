@@ -1,8 +1,6 @@
-;; -*- lexical-binding: t; -*-
-
 ;;; diff-hl.el --- Highlight uncommitted changes using VC -*- lexical-binding: t -*-
 
-;; Copyright (C) 2012-2024  Free Software Foundation, Inc.
+;; Copyright (C) 2012-2025  Free Software Foundation, Inc.
 
 ;; Author:   Dmitry Gutov <dmitry@gutov.dev>
 ;; URL:      https://github.com/dgutov/diff-hl
@@ -116,6 +114,20 @@
 (defcustom diff-hl-ask-before-revert-hunk t
   "Non-nil to ask for confirmation before revert a hunk."
   :group 'diff-hl
+  :type 'boolean)
+
+(defcustom diff-hl-fallback-to-margin t
+  "Non-nil to use margin instead of fringe on non-graphic displays.
+
+This resizes the margin to 1 if it's not visible."
+  :group 'diff-hl
+  :type 'boolean)
+
+(defcustom diff-hl-autohide-margin nil
+  "Non-nil to reset margin width to 0 when no indicators shown.
+
+When you use it, it's recommended to verify first that other enabled
+features don't use margin for their indicators."
   :type 'boolean)
 
 (defcustom diff-hl-highlight-function 'diff-hl-highlight-on-fringe
@@ -310,6 +322,7 @@ It can be a relative expression as well, such as \"HEAD^\" with Git, or
 
 (defvar vc-svn-diff-switches)
 (defvar vc-fossil-diff-switches)
+(defvar vc-jj-diff-switches)
 
 (defmacro diff-hl-with-diff-switches (body)
   `(let ((vc-git-diff-switches
@@ -325,6 +338,7 @@ It can be a relative expression as well, such as \"HEAD^\" with Git, or
          (vc-hg-diff-switches nil)
          (vc-svn-diff-switches nil)
          (vc-fossil-diff-switches '("-c" "0"))
+         (vc-jj-diff-switches '("--git" "--context=0"))
          (vc-diff-switches '("-U0"))
          ,@(when (boundp 'vc-disable-async-diff)
              '((vc-disable-async-diff t))))
@@ -350,21 +364,24 @@ It can be a relative expression as well, such as \"HEAD^\" with Git, or
   (if (and (eq backend 'Git)
            (not diff-hl-reference-revision)
            (not diff-hl-show-staged-changes))
-      (apply #'vc-git-command buffer 1
+      (apply #'vc-git-command buffer
+             (if (diff-hl--use-async-p) 'async 1)
              (list file)
              "diff-files"
              (cons "-p" (vc-switches 'git 'diff)))
     (condition-case err
         (vc-call-backend backend 'diff (list file)
                          diff-hl-reference-revision nil
-                         buffer)
+                         buffer
+                         (diff-hl--use-async-p))
       (error
        ;; https://github.com/dgutov/diff-hl/issues/117
        (when (string-match-p "\\`Failed (status 128)" (error-message-string err))
          (vc-call-backend backend 'diff (list file)
                           "4b825dc642cb6eb9a060e54bf8d69288fbee4904"
                           nil
-                          buffer)))))
+                          buffer
+                          (diff-hl--use-async-p))))))
   buffer)
 
 (defun diff-hl-changes ()
@@ -381,14 +398,19 @@ It can be a relative expression as well, such as \"HEAD^\" with Git, or
          ((eq state 'removed)
           `((1 ,(line-number-at-pos (point-max)) delete))))))))
 
+(defun diff-hl-process-wait (buf)
+  (let ((proc (get-buffer-process buf)))
+    (while (process-live-p proc)
+      (accept-process-output proc 0.01))))
+
 (defun diff-hl-changes-from-buffer (buf)
+  (diff-hl-process-wait buf)
   (with-current-buffer buf
     (let (res)
       (goto-char (point-min))
       (unless (eobp)
         ;; TODO: When 27.1 is the minimum requirement, we can drop
         ;; these bindings: that version, in addition to switching over
-        ;; to the diff-refine var, also added the
         ;; called-interactively-p check, so refinement can't be
         ;; triggered by code calling the navigation functions, only by
         ;; direct interactive invocations.
@@ -415,18 +437,26 @@ It can be a relative expression as well, such as \"HEAD^\" with Git, or
               (push (list line len type) res)))))
       (nreverse res))))
 
+(defun diff-hl--use-async-p ()
+  (and diff-hl-update-async
+       (not
+        (run-hook-with-args-until-success 'diff-hl-async-inhibit-functions
+                                          default-directory))))
+
 (defun diff-hl-update ()
   "Updates the diff-hl overlay."
-  (if (and diff-hl-update-async
-           (not
-            (run-hook-with-args-until-success 'diff-hl-async-inhibit-functions
-                                              default-directory)))
+  (if (diff-hl--use-async-p)
       ;; TODO: debounce if a thread is already running.
-      (let ((buf (current-buffer)))
+      (let ((buf (current-buffer))
+            (temp-buffer
+             (if (< emacs-major-version 28)
+                 (generate-new-buffer " *temp*")
+               (generate-new-buffer " *temp*" t))))
         ;; Switch buffer temporarily, to "unlock" it for other threads.
-        (with-temp-buffer
+        (with-current-buffer temp-buffer
           (make-thread
            (lambda ()
+             (kill-buffer temp-buffer)
              (when (buffer-live-p buf)
                (set-buffer buf)
                (diff-hl--update-safe)))
@@ -449,6 +479,8 @@ It can be a relative expression as well, such as \"HEAD^\" with Git, or
   (let ((changes (diff-hl-changes))
         (current-line 1))
     (diff-hl-remove-overlays)
+    (when (not changes)
+      (diff-hl--autohide-margin))
     (save-excursion
       (save-restriction
         (widen)
@@ -479,6 +511,16 @@ It can be a relative expression as well, such as \"HEAD^\" with Git, or
                 (overlay-put h 'insert-in-front-hooks hook)
                 (overlay-put h 'insert-behind-hooks hook)))))))))
 
+(defun diff-hl--autohide-margin ()
+  (let ((width-var (intern (format "%s-margin-width" diff-hl-side))))
+    (when (and diff-hl-autohide-margin
+               (> (symbol-value width-var) 0))
+      (if (eql (default-value width-var) 0)
+          (kill-local-variable width-var)
+        (set width-var 0))
+      (dolist (win (get-buffer-window-list))
+        (set-window-buffer win (current-buffer))))))
+
 (defvar-local diff-hl--modified-tick nil)
 
 (put 'diff-hl--modified-tick 'permanent-local t)
@@ -494,9 +536,14 @@ It can be a relative expression as well, such as \"HEAD^\" with Git, or
     (funcall diff-hl-highlight-function o type shape)
     o))
 
+(autoload 'diff-hl-highlight-on-margin "diff-hl-margin")
+
 (defun diff-hl-highlight-on-fringe (ovl type shape)
-  (overlay-put ovl 'before-string (diff-hl-fringe-spec type shape
-                                                       diff-hl-side)))
+  (if (and diff-hl-fallback-to-margin
+           (not (display-graphic-p)))
+      (diff-hl-highlight-on-margin ovl type shape)
+    (overlay-put ovl 'before-string (diff-hl-fringe-spec type shape
+                                                         diff-hl-side))))
 
 (defun diff-hl-remove-overlays (&optional beg end)
   (save-restriction
@@ -542,7 +589,11 @@ It can be a relative expression as well, such as \"HEAD^\" with Git, or
       (let ((revs (diff-hl-diff-read-revisions rev1)))
         (setq rev1 (car revs)
               rev2 (cdr revs))))
-    (vc-diff-internal t (vc-deduce-fileset) rev1 rev2 t)
+    (vc-diff-internal
+     (if (boundp 'vc-allow-async-diff)
+         vc-allow-async-diff
+       t)
+     (vc-deduce-fileset) rev1 rev2 t)
     (vc-run-delayed (if (< (line-number-at-pos (point-max)) 3)
                         (with-current-buffer buffer (diff-hl-remove-overlays))
                       (when (or (not rev2) diff-hl-goto-hunk-old-revisions)
@@ -631,6 +682,7 @@ in the source file, or the last line of the hunk above it."
     (let* ((diff-buffer (get-buffer-create
                          (generate-new-buffer-name "*diff-hl*")))
            (buffer (current-buffer))
+           (diff-hl-update-async nil)
            (line (save-excursion
                    (diff-hl-find-current-hunk)
                    (line-number-at-pos)))
@@ -802,7 +854,9 @@ Only supported with Git."
     (with-current-buffer dest-buffer
       (let ((inhibit-read-only t))
         (erase-buffer)))
-    (diff-hl-diff-buffer-with-reference file dest-buffer nil 3)
+    (let (diff-hl-reference-revision
+          diff-hl-update-async)
+      (diff-hl-diff-buffer-with-reference file dest-buffer nil 3))
     (with-current-buffer dest-buffer
       (with-no-warnings
         (let (diff-auto-refine-mode)
@@ -977,7 +1031,8 @@ The value of this variable is a mode line template as in
     (remove-hook 'magit-revert-buffer-hook 'diff-hl-update t)
     (remove-hook 'magit-not-reverted-hook 'diff-hl-update t)
     (remove-hook 'text-scale-mode-hook 'diff-hl-maybe-redefine-bitmaps t)
-    (diff-hl-remove-overlays)))
+    (diff-hl-remove-overlays)
+    (diff-hl--autohide-margin)))
 
 (defun diff-hl-after-checkin ()
   (let ((fileset (vc-deduce-fileset t)))
@@ -1112,6 +1167,11 @@ the user should be returned."
 
 (declare-function diff-no-select "diff")
 
+(defvar diff-hl-temporary-directory (if (and (eq system-type 'gnu/linux)
+                                             (file-directory-p "/dev/shm/"))
+                                        "/dev/shm/"
+                                      temporary-file-directory))
+
 (defun diff-hl-diff-buffer-with-reference (file &optional dest-buffer backend context-lines)
   "Compute the diff between the current buffer contents and reference in BACKEND.
 The diffs are computed in the buffer DEST-BUFFER. This requires
@@ -1122,10 +1182,7 @@ CONTEXT-LINES is the size of the unified diff context, defaults to 0."
   (save-current-buffer
     (let* ((dest-buffer (or dest-buffer "*diff-hl-diff-buffer-with-reference*"))
            (backend (or backend (vc-backend file)))
-           (temporary-file-directory
-            (if (and (eq system-type 'gnu/linux) (file-directory-p "/dev/shm/"))
-                "/dev/shm/"
-              temporary-file-directory))
+           (temporary-file-directory diff-hl-temporary-directory)
            (rev
             (if (and (eq backend 'Git)
                      (not diff-hl-reference-revision)
@@ -1138,12 +1195,10 @@ CONTEXT-LINES is the size of the unified diff context, defaults to 0."
                (or (diff-hl-resolved-reference-revision backend)
                    (diff-hl-working-revision file backend)))))
            (switches (format "-U %d --strip-trailing-cr" (or context-lines 0))))
-      (diff-no-select rev (current-buffer) switches 'noasync
+      (diff-no-select rev (current-buffer) switches (not (diff-hl--use-async-p))
                       (get-buffer-create dest-buffer))
-      (with-current-buffer dest-buffer
-        (let ((inhibit-read-only t))
-          ;; Function `diff-sentinel' adds a final line, so remove it
-          (delete-matching-lines "^Diff finished.*")))
+      ;; Function `diff-sentinel' adds a summary line, but that seems fine.
+      ;; In all commands which use exact text we call it synchronously.
       (get-buffer-create dest-buffer))))
 
 (defun diff-hl-resolved-reference-revision (backend)

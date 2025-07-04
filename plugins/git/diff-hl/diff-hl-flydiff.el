@@ -1,5 +1,3 @@
-;; -*- lexical-binding: t; -*-
-
 ;; Copyright (C) 2015-2021 Free Software Foundation, Inc. -*- lexical-binding: t -*-
 
 ;; Author:   Jonathan Hayase <PythonNut@gmail.com>

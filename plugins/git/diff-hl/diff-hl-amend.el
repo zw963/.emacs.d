@@ -1,5 +1,3 @@
-;; -*- lexical-binding: t; -*-
-
 ;; Copyright (C) 2012-2013, 2020-2024  Free Software Foundation, Inc. -*- lexical-binding: t -*-
 
 ;; Author:   Dmitry Gutov <dmitry@gutov.dev>

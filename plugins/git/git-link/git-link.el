@@ -1,5 +1,3 @@
-;; -*- lexical-binding: t; -*-
-
 ;;; git-link.el --- Get the GitHub/Bitbucket/GitLab URL for a buffer location -*- lexical-binding: t -*-
 
 ;; Copyright (C) 2013-2022 Skye Shaw and others
@@ -422,10 +420,11 @@ Return nil,
 (defun git-link--parse-vc-revision (filename)
 "If FILENAME appears to be from `vc-revision-other-window'
 return (FILENAME . REVISION) otherwise nil."
-  (when (and (string-match "\\(.+\\)\\.~\\([^~]+\\)~$" filename)
-             (file-exists-p (match-string 1 filename)))
-    (cons (match-string 1 filename)
-          (match-string 2 filename))))
+  (let ((default-directory (git-link--repo-root)))
+    (when (and (string-match "\\(.+\\)\\.~\\([^~]+\\)~$" filename)
+               (file-exists-p (match-string 1 filename)))
+      (cons (match-string 1 filename)
+            (match-string 2 filename)))))
 
 (defvar magit-buffer-file-name)
 
@@ -452,7 +451,7 @@ return (FILENAME . REVISION) otherwise nil."
 (defun git-link--parse-remote (url)
   "Parse URL and return a list as (HOST DIR).  DIR has no leading slash or `git' extension."
   (let (host path parsed)
-    (unless (string-match "^[a-zA-Z0-9]+://" url)
+    (unless (string-match "^[a-zA-Z0-9+]+://" url)
       (setq url (concat "ssh://" url)))
 
     (setq parsed (url-generic-parse-url url)
