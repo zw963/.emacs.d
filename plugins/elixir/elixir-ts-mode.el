@@ -625,6 +625,10 @@ This variable is obsolete.  Use elixir-ts-sigil-name-face instead."
      (unary_operator operand: (identifier) @font-lock-variable-name-face)
      (interpolation (identifier) @font-lock-variable-name-face)
      (do_block (identifier) @font-lock-variable-name-face)
+     (rescue_block (identifier) @font-lock-variable-use-face)
+     (catch_block (identifier) @font-lock-variable-use-face)
+     (else_block (identifier) @font-lock-variable-use-face)
+     (after_block (identifier) @font-lock-variable-use-face)
      (access_call target: (identifier) @font-lock-variable-name-face)
      (access_call "[" key: (identifier) @font-lock-variable-name-face "]"))
 
@@ -829,9 +833,6 @@ Return nil if NODE is not a defun node or doesn't have a name."
     ;; Embedded Heex.
     (when (treesit-ready-p 'heex)
       (setq-local treesit-range-settings elixir-ts--treesit-range-rules)
-
-      (setq-local treesit-simple-indent-rules
-                  (append treesit-simple-indent-rules heex-ts--indent-rules))
 
       (setq-local treesit-font-lock-settings
                   (append treesit-font-lock-settings
