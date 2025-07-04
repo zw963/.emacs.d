@@ -1,65 +1,22 @@
-;; -*- lexical-binding: t; -*-
-
 ;;; emacsql.el --- High-level SQL database front-end  -*- lexical-binding:t -*-
 
 ;; This is free and unencumbered software released into the public domain.
 
 ;; Author: Christopher Wellons <wellons@nullprogram.com>
-;; Maintainer: Jonas Bernoulli <jonas@bernoul.li>
+;; Maintainer: Jonas Bernoulli <emacs.emacsql@jonas.bernoulli.dev>
 ;; Homepage: https://github.com/magit/emacsql
 
-;; Package-Version: 3.1.1-git
-;; Package-Requires: ((emacs "25.1"))
+;; Package-Version: 4.3.1
+;; Package-Requires: ((emacs "26.1"))
+
 ;; SPDX-License-Identifier: Unlicense
 
 ;;; Commentary:
 
-;; EmacSQL is a high-level Emacs Lisp front-end for SQLite
-;; (primarily), PostgreSQL, MySQL, and potentially other SQL
-;; databases. On MELPA, each of the backends is provided through
-;; separate packages: emacsql-sqlite, emacsql-psql, emacsql-mysql.
+;; EmacSQL is a high-level Emacs Lisp front-end for SQLite.
 
-;; Most EmacSQL functions operate on a database connection. For
-;; example, a connection to SQLite is established with
-;; `emacsql-sqlite'. For each such connection a sqlite3 inferior
-;; process is kept alive in the background. Connections are closed
-;; with `emacsql-close'.
-
-;;     (defvar db (emacsql-sqlite "company.db"))
-
-;; Use `emacsql' to send an s-expression SQL statements to a connected
-;; database. Identifiers for tables and columns are symbols. SQL
-;; keywords are lisp keywords. Anything else is data.
-
-;;     (emacsql db [:create-table people ([name id salary])])
-
-;; Column constraints can optionally be provided in the schema.
-
-;;     (emacsql db [:create-table people ([name (id integer :unique) salary])])
-
-;; Insert some values.
-
-;;     (emacsql db [:insert :into people
-;;                  :values (["Jeff"  1000 60000.0] ["Susan" 1001 64000.0])])
-
-;; Currently all actions are synchronous and Emacs will block until
-;; SQLite has indicated it is finished processing the last command.
-
-;; Query the database for results:
-
-;;     (emacsql db [:select [name id] :from employees :where (> salary 60000)])
-;;     ;; => (("Susan" 1001))
-
-;; Queries can be templates -- $i1, $s2, etc. -- so they don't need to
-;; be built up dynamically:
-
-;;     (emacsql db
-;;              [:select [name id] :from employees :where (> salary $s1)]
-;;              50000)
-;;     ;; => (("Jeff" 1000) ("Susan" 1001))
-
-;; The letter declares the type (identifier, scalar, vector, Schema)
-;; and the number declares the argument position.
+;; PostgreSQL and MySQL are also supported, but use of these connectors
+;; is not recommended.
 
 ;; See README.md for much more complete documentation.
 
@@ -68,39 +25,39 @@
 (require 'cl-lib)
 (require 'cl-generic)
 (require 'eieio)
+
 (require 'emacsql-compiler)
 
 (defgroup emacsql nil
   "The EmacSQL SQL database front-end."
   :group 'comm)
 
-(defconst emacsql-version "3.1.1-git")
+(defconst emacsql-version "4.3.1")
 
 (defvar emacsql-global-timeout 30
   "Maximum number of seconds to wait before bailing out on a SQL command.
-If nil, wait forever.")
-
-(defvar emacsql-data-root
-  (file-name-directory (or load-file-name buffer-file-name))
-  "Directory where EmacSQL is installed.")
+If nil, wait forever.  This is used by the `mysql', `pg' and `psql'.  It
+is not being used by the `sqlite-builtin' and `sqlite-module' back-ends,
+which respect `emacsql-sqlite-busy-timeout' instead.")
 
 ;;; Database connection
 
 (defclass emacsql-connection ()
-  ((process :type process
-            :initarg :process
-            :accessor emacsql-process)
+  ((handle :initarg :handle
+           :documentation "Internal connection handler.
+The value is a record-like object and should not be accessed
+directly.  Depending on the concrete implementation, `type-of'
+may return `process', `user-ptr' or `sqlite' for this value.")
    (log-buffer :type (or null buffer)
                :initarg :log-buffer
                :initform nil
-               :accessor emacsql-log-buffer
                :documentation "Output log (debug).")
    (finalizer :documentation "Object returned from `make-finalizer'.")
    (types :allocation :class
           :initform nil
           :reader emacsql-types
           :documentation "Maps EmacSQL types to SQL types."))
-  (:documentation "A connection to a SQL database.")
+  "A connection to a SQL database."
   :abstract t)
 
 (cl-defgeneric emacsql-close (connection)
@@ -111,29 +68,28 @@ If nil, wait forever.")
 
 (cl-defmethod emacsql-live-p ((connection emacsql-connection))
   "Return non-nil if CONNECTION is still alive and ready."
-  (not (null (process-live-p (emacsql-process connection)))))
+  (and (process-live-p (oref connection handle)) t))
 
 (cl-defgeneric emacsql-types (connection)
   "Return an alist mapping EmacSQL types to database types.
 This will mask `emacsql-type-map' during expression compilation.
 This alist should have four key symbols: integer, float, object,
-nil (default type). The values are strings to be inserted into a
-SQL expression.")
+nil (default type).  The values are strings to be inserted into
+a SQL expression.")
 
 (cl-defmethod emacsql-buffer ((connection emacsql-connection))
   "Get process buffer for CONNECTION."
-  (process-buffer (emacsql-process connection)))
+  (process-buffer (oref connection handle)))
 
 (cl-defmethod emacsql-enable-debugging ((connection emacsql-connection))
   "Enable debugging on CONNECTION."
-  (unless (buffer-live-p (emacsql-log-buffer connection))
-    (setf (emacsql-log-buffer connection)
-          (generate-new-buffer " *emacsql-log*"))))
+  (unless (buffer-live-p (oref connection log-buffer))
+    (oset connection log-buffer (generate-new-buffer " *emacsql-log*"))))
 
 (cl-defmethod emacsql-log ((connection emacsql-connection) message)
   "Log MESSAGE into CONNECTION's log.
 MESSAGE should not have a newline on the end."
-  (let ((buffer (emacsql-log-buffer connection)))
+  (let ((buffer (oref connection log-buffer)))
     (when buffer
       (unless (buffer-live-p buffer)
         (setq buffer (emacsql-enable-debugging connection)))
@@ -151,7 +107,7 @@ MESSAGE should not have a newline on the end."
   (emacsql-log connection message))
 
 (cl-defmethod emacsql-clear ((connection emacsql-connection))
-  "Clear the process buffer for CONNECTION-SPEC."
+  "Clear the connection buffer for CONNECTION-SPEC."
   (let ((buffer (emacsql-buffer connection)))
     (when (and buffer (buffer-live-p buffer))
       (with-current-buffer buffer
@@ -163,11 +119,11 @@ MESSAGE should not have a newline on the end."
 (cl-defmethod emacsql-wait ((connection emacsql-connection) &optional timeout)
   "Block until CONNECTION is waiting for further input."
   (let* ((real-timeout (or timeout emacsql-global-timeout))
-         (end (when real-timeout (+ (float-time) real-timeout))))
+         (end (and real-timeout (+ (float-time) real-timeout))))
     (while (and (or (null real-timeout) (< (float-time) end))
                 (not (emacsql-waiting-p connection)))
       (save-match-data
-        (accept-process-output (emacsql-process connection) real-timeout)))
+        (accept-process-output (oref connection handle) real-timeout)))
     (unless (emacsql-waiting-p connection)
       (signal 'emacsql-timeout (list "Query timed out" real-timeout)))))
 
@@ -176,8 +132,8 @@ MESSAGE should not have a newline on the end."
 
 (defun emacsql-compile (connection sql &rest args)
   "Compile s-expression SQL for CONNECTION into a string."
-  (let* ((mask (when connection (emacsql-types connection)))
-         (emacsql-type-map (or mask emacsql-type-map)))
+  (let ((emacsql-type-map (or (and connection (emacsql-types connection))
+                              emacsql-type-map)))
     (concat (apply #'emacsql-format (emacsql-prepare sql) args) ";")))
 
 (cl-defgeneric emacsql (connection sql &rest args)
@@ -192,21 +148,23 @@ MESSAGE should not have a newline on the end."
 
 ;;; Helper mixin class
 
-(defclass emacsql-protocol-mixin ()
-  ()
-  (:documentation
-   "A mixin for back-ends following the EmacSQL protocol.
-The back-end prompt must be a single \"]\" character. This prompt
-value was chosen because it is unreadable. Output must have
-exactly one row per line, fields separated by whitespace. NULL
-must display as \"nil\".")
+(defclass emacsql-protocol-mixin () ()
+  "A mixin for back-ends following the EmacSQL protocol.
+The back-end prompt must be a single \"]\" character.  This prompt
+value was chosen because it is unreadable.  Output must have
+exactly one row per line, fields separated by whitespace.  NULL
+must display as \"nil\"."
   :abstract t)
 
 (cl-defmethod emacsql-waiting-p ((connection emacsql-protocol-mixin))
-  "Return true if the end of the buffer has a properly-formatted prompt."
-  (with-current-buffer (emacsql-buffer connection)
-    (and (>= (buffer-size) 2)
-         (string= "#\n" (buffer-substring (- (point-max) 2) (point-max))))))
+  "Return t if the end of the buffer has a properly-formatted prompt.
+Also return t if the connection buffer has been killed."
+  (let ((buffer (emacsql-buffer connection)))
+    (or (not (buffer-live-p buffer))
+        (with-current-buffer buffer
+          (and (>= (buffer-size) 2)
+               (string= "#\n"
+                        (buffer-substring (- (point-max) 2) (point-max))))))))
 
 (cl-defmethod emacsql-handle ((_ emacsql-protocol-mixin) code message)
   "Signal a specific condition for CODE from CONNECTION.
@@ -220,21 +178,19 @@ specific error conditions."
     (goto-char (point-min))
     (let* ((standard-input (current-buffer))
            (value (read)))
-      (if (eql value 'error)
+      (if (eq value 'error)
           (emacsql-handle connection (read) (read))
         (prog1 value
-          (unless (eq 'success (read))
+          (unless (eq (read) 'success)
             (emacsql-handle connection (read) (read))))))))
-
-(provide 'emacsql) ; end of generic function declarations
 
 ;;; Automatic connection cleanup
 
 (defun emacsql-register (connection)
   "Register CONNECTION for automatic cleanup and return CONNECTION."
-  (let ((finalizer (make-finalizer (lambda () (emacsql-close connection)))))
-    (prog1 connection
-      (setf (slot-value connection 'finalizer) finalizer))))
+  (prog1 connection
+    (oset connection finalizer
+          (make-finalizer (lambda () (emacsql-close connection))))))
 
 ;;; Useful macros
 
@@ -261,7 +217,7 @@ This macro can be nested indefinitely, wrapping everything in a
 single transaction at the lowest level.
 
 Warning: BODY should *not* have any side effects besides making
-changes to the database behind CONNECTION. Body may be evaluated
+changes to the database behind CONNECTION.  Body may be evaluated
 multiple times before the changes are committed."
   (declare (indent 1))
   `(let ((emacsql--connection ,connection)
@@ -275,10 +231,10 @@ multiple times before the changes are committed."
                  (when (= 1 emacsql--transaction-level)
                    (emacsql emacsql--connection [:begin]))
                  (let ((result (progn ,@body)))
-                   (setf emacsql--result result)
+                   (setq emacsql--result result)
                    (when (= 1 emacsql--transaction-level)
                      (emacsql emacsql--connection [:commit]))
-                   (setf emacsql--completed t)))
+                   (setq emacsql--completed t)))
              (emacsql-locked (emacsql emacsql--connection [:rollback])
                              (sleep-for 0.05))))
        (when (and (= 1 emacsql--transaction-level)
@@ -303,8 +259,8 @@ A statement can be a list, containing a statement with its arguments."
 Returns the result of the last evaluated BODY.
 
 All column names must be provided in the query ($ and * are not
-allowed). Hint: all of the bound identifiers must be known at
-compile time. For example, in the expression below the variables
+allowed).  Hint: all of the bound identifiers must be known at
+compile time.  For example, in the expression below the variables
 `name' and `phone' will be bound for the body.
 
   (emacsql-with-bind db [:select [name phone] :from people]
@@ -318,16 +274,16 @@ compile time. For example, in the expression below the variables
 Each column must be a plain symbol, no expressions allowed here."
   (declare (indent 2))
   (let ((sql (if (vectorp sql-and-args) sql-and-args (car sql-and-args)))
-        (args (unless (vectorp sql-and-args) (cdr sql-and-args))))
+        (args (and (not (vectorp sql-and-args)) (cdr sql-and-args))))
     (cl-assert (eq :select (elt sql 0)))
     (let ((vars (elt sql 1)))
-      (when (eq '* vars)
-        (error "Must explicitly list columns in `emacsql-with-bind'."))
+      (when (eq vars '*)
+        (error "Must explicitly list columns in `emacsql-with-bind'"))
       (cl-assert (cl-every #'symbolp vars))
       `(let ((emacsql--results (emacsql ,connection ,sql ,@args))
              (emacsql--final nil))
          (dolist (emacsql--result emacsql--results emacsql--final)
-           (setf emacsql--final
+           (setq emacsql--final
                  (cl-destructuring-bind ,(cl-coerce vars 'list) emacsql--result
                    ,@body)))))))
 
@@ -354,14 +310,7 @@ Each column must be a plain symbol, no expressions allowed here."
            (sql-mode)
            (with-no-warnings ;; autoloaded by previous line
              (sql-highlight-sqlite-keywords))
-           (if (and (fboundp 'font-lock-flush)
-                    (fboundp 'font-lock-ensure))
-               (save-restriction
-                 (widen)
-                 (font-lock-flush)
-                 (font-lock-ensure))
-             (with-no-warnings
-               (font-lock-fontify-buffer)))
+           (font-lock-ensure)
            (emacsql--indent)
            (buffer-string))))
     (with-current-buffer (get-buffer-create emacsql-show-buffer-name)
@@ -406,22 +355,24 @@ A prefix argument causes the SQL to be printed into the current buffer."
     (save-excursion
       (beginning-of-defun)
       (let ((containing-sexp (elt (parse-partial-sexp (point) start) 1)))
-        (when containing-sexp
-          (goto-char containing-sexp)
-          (looking-at "\\["))))))
+        (and containing-sexp
+             (progn (goto-char containing-sexp)
+                    (looking-at "\\[")))))))
 
-(defadvice calculate-lisp-indent (around emacsql-vector-indent disable)
+(defun emacsql--calculate-vector-indent (fn &optional parse-start)
   "Don't indent vectors in `emacs-lisp-mode' like lists."
   (if (save-excursion (beginning-of-line) (emacsql--inside-vector-p))
       (let ((lisp-indent-offset 1))
-        ad-do-it)
-    ad-do-it))
+        (funcall fn parse-start))
+    (funcall fn parse-start)))
 
 (defun emacsql-fix-vector-indentation ()
   "When called, advise `calculate-lisp-indent' to stop indenting vectors.
-Once activate, vector contents no longer indent like lists."
+Once activated, vector contents no longer indent like lists."
   (interactive)
-  (ad-enable-advice 'calculate-lisp-indent 'around 'emacsql-vector-indent)
-  (ad-activate 'calculate-lisp-indent))
+  (advice-add 'calculate-lisp-indent :around
+              #'emacsql--calculate-vector-indent))
+
+(provide 'emacsql)
 
 ;;; emacsql.el ends here

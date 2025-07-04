@@ -1,83 +1,25 @@
-;; -*- lexical-binding: t; -*-
-
-;;; emacsql-sqlite.el --- EmacSQL back-end for SQLite  -*- lexical-binding:t -*-
+;;; emacsql-sqlite.el --- Code used by both SQLite back-ends  -*- lexical-binding:t -*-
 
 ;; This is free and unencumbered software released into the public domain.
 
-;; Author: Christopher Wellons <wellons@nullprogram.com>
-;; Maintainer: Jonas Bernoulli <jonas@bernoul.li>
-;; Homepage: https://github.com/magit/emacsql
+;; Author: Jonas Bernoulli <emacs.emacsql@jonas.bernoulli.dev>
+;; Maintainer: Jonas Bernoulli <emacs.emacsql@jonas.bernoulli.dev>
 
-;; Package-Version: 3.1.1-git
-;; Package-Requires: ((emacs "25.1") (emacsql "3.1.1"))
 ;; SPDX-License-Identifier: Unlicense
 
 ;;; Commentary:
 
-;; This package provides the original EmacSQL back-end for SQLite,
-;; which uses a custom binary for communicating with a SQLite database.
-
-;; During package installation an attempt is made to compile the binary.
+;; This library contains code that is used by both SQLite back-ends.
 
 ;;; Code:
 
-(require 'cl-lib)
-(require 'cl-generic)
-(require 'eieio)
 (require 'emacsql)
 
-;;; SQLite connection
+;;; Base class
 
-(defvar emacsql-sqlite-data-root
-  (file-name-directory (or load-file-name buffer-file-name))
-  "Directory where EmacSQL is installed.")
-
-(defvar emacsql-sqlite-executable-path
-  (if (memq system-type '(windows-nt cygwin ms-dos))
-      "sqlite/emacsql-sqlite.exe"
-    "sqlite/emacsql-sqlite")
-  "Relative path to emacsql executable.")
-
-(defvar emacsql-sqlite-executable
-  (expand-file-name emacsql-sqlite-executable-path
-                    (if (or (file-writable-p emacsql-sqlite-data-root)
-                            (file-exists-p (expand-file-name
-                                            emacsql-sqlite-executable-path
-                                            emacsql-sqlite-data-root)))
-                        emacsql-sqlite-data-root
-                      (expand-file-name
-                       (concat "emacsql/" emacsql-version)
-                       user-emacs-directory)))
-  "Path to the EmacSQL backend (this is not the sqlite3 shell).")
-
-(defconst emacsql-sqlite-reserved
-  (emacsql-register-reserved
-   '( ABORT ACTION ADD AFTER ALL ALTER ANALYZE AND AS ASC ATTACH
-      AUTOINCREMENT BEFORE BEGIN BETWEEN BY CASCADE CASE CAST CHECK
-      COLLATE COLUMN COMMIT CONFLICT CONSTRAINT CREATE CROSS
-      CURRENT_DATE CURRENT_TIME CURRENT_TIMESTAMP DATABASE DEFAULT
-      DEFERRABLE DEFERRED DELETE DESC DETACH DISTINCT DROP EACH ELSE END
-      ESCAPE EXCEPT EXCLUSIVE EXISTS EXPLAIN FAIL FOR FOREIGN FROM FULL
-      GLOB GROUP HAVING IF IGNORE IMMEDIATE IN INDEX INDEXED INITIALLY
-      INNER INSERT INSTEAD INTERSECT INTO IS ISNULL JOIN KEY LEFT LIKE
-      LIMIT MATCH NATURAL NO NOT NOTNULL NULL OF OFFSET ON OR ORDER
-      OUTER PLAN PRAGMA PRIMARY QUERY RAISE RECURSIVE REFERENCES REGEXP
-      REINDEX RELEASE RENAME REPLACE RESTRICT RIGHT ROLLBACK ROW
-      SAVEPOINT SELECT SET TABLE TEMP TEMPORARY THEN TO TRANSACTION
-      TRIGGER UNION UNIQUE UPDATE USING VACUUM VALUES VIEW VIRTUAL WHEN
-      WHERE WITH WITHOUT))
-  "List of all of SQLite's reserved words.
-Also see http://www.sqlite.org/lang_keywords.html.")
-
-(defvar emacsql-sqlite-c-compilers '("cc" "gcc" "clang")
-  "List of names to try when searching for a C compiler.
-
-Each is queried using `executable-find', so full paths are
-allowed. Only the first compiler which is successfully found will
-used.")
-
-(defclass emacsql-sqlite-connection (emacsql-connection emacsql-protocol-mixin)
+(defclass emacsql--sqlite-base (emacsql-connection)
   ((file :initarg :file
+         :initform nil
          :type (or null string)
          :documentation "Database file name.")
    (types :allocation :class
@@ -86,119 +28,268 @@ used.")
                       (float "REAL")
                       (object "TEXT")
                       (nil nil))))
-  (:documentation "A connection to a SQLite database."))
+  :abstract t)
 
-(cl-defmethod initialize-instance :after
-  ((connection emacsql-sqlite-connection) &rest _rest)
-  (emacsql-sqlite-ensure-binary)
-  (let* ((process-connection-type nil)  ; use a pipe
-         (coding-system-for-write 'utf-8-auto)
-         (coding-system-for-read 'utf-8-auto)
-         (file (slot-value connection 'file))
-         (buffer (generate-new-buffer " *emacsql-sqlite*"))
-         (fullfile (if file (expand-file-name file) ":memory:"))
-         (process (start-process
-                   "emacsql-sqlite" buffer emacsql-sqlite-executable fullfile)))
-    (setf (slot-value connection 'process) process)
-    (setf (process-sentinel process)
-          (lambda (proc _) (kill-buffer (process-buffer proc))))
-    (emacsql-wait connection)
-    (emacsql connection [:pragma (= busy-timeout $s1)]
-             (/ (* emacsql-global-timeout 1000) 2))
-    (emacsql-register connection)))
+;;; Constants
 
-(cl-defun emacsql-sqlite (file &key debug)
-  "Open a connected to database stored in FILE.
-If FILE is nil use an in-memory database.
+(defconst emacsql-sqlite-reserved
+  '( ABORT ACTION ADD AFTER ALL ALTER ANALYZE AND AS ASC ATTACH
+     AUTOINCREMENT BEFORE BEGIN BETWEEN BY CASCADE CASE CAST CHECK
+     COLLATE COLUMN COMMIT CONFLICT CONSTRAINT CREATE CROSS
+     CURRENT_DATE CURRENT_TIME CURRENT_TIMESTAMP DATABASE DEFAULT
+     DEFERRABLE DEFERRED DELETE DESC DETACH DISTINCT DROP EACH ELSE END
+     ESCAPE EXCEPT EXCLUSIVE EXISTS EXPLAIN FAIL FOR FOREIGN FROM FULL
+     GLOB GROUP HAVING IF IGNORE IMMEDIATE IN INDEX INDEXED INITIALLY
+     INNER INSERT INSTEAD INTERSECT INTO IS ISNULL JOIN KEY LEFT LIKE
+     LIMIT MATCH NATURAL NO NOT NOTNULL NULL OF OFFSET ON OR ORDER
+     OUTER PLAN PRAGMA PRIMARY QUERY RAISE RECURSIVE REFERENCES REGEXP
+     REINDEX RELEASE RENAME REPLACE RESTRICT RIGHT ROLLBACK ROW
+     SAVEPOINT SELECT SET TABLE TEMP TEMPORARY THEN TO TRANSACTION
+     TRIGGER UNION UNIQUE UPDATE USING VACUUM VALUES VIEW VIRTUAL WHEN
+     WHERE WITH WITHOUT)
+  "List of all of SQLite's reserved words.
+Also see http://www.sqlite.org/lang_keywords.html.")
 
-:debug LOG -- When non-nil, log all SQLite commands to a log
-buffer. This is for debugging purposes."
-  (let ((connection (make-instance 'emacsql-sqlite-connection :file file)))
+(defconst emacsql-sqlite-error-codes
+  '((1  SQLITE_ERROR      emacsql-error      "SQL logic error")
+    (2  SQLITE_INTERNAL   emacsql-internal   nil)
+    (3  SQLITE_PERM       emacsql-access     "access permission denied")
+    (4  SQLITE_ABORT      emacsql-error      "query aborted")
+    (5  SQLITE_BUSY       emacsql-locked     "database is locked")
+    (6  SQLITE_LOCKED     emacsql-locked     "database table is locked")
+    (7  SQLITE_NOMEM      emacsql-memory     "out of memory")
+    (8  SQLITE_READONLY   emacsql-access     "attempt to write a readonly database")
+    (9  SQLITE_INTERRUPT  emacsql-error      "interrupted")
+    (10 SQLITE_IOERR      emacsql-access     "disk I/O error")
+    (11 SQLITE_CORRUPT    emacsql-corruption "database disk image is malformed")
+    (12 SQLITE_NOTFOUND   emacsql-error      "unknown operation")
+    (13 SQLITE_FULL       emacsql-access     "database or disk is full")
+    (14 SQLITE_CANTOPEN   emacsql-access     "unable to open database file")
+    (15 SQLITE_PROTOCOL   emacsql-access     "locking protocol")
+    (16 SQLITE_EMPTY      emacsql-corruption nil)
+    (17 SQLITE_SCHEMA     emacsql-error      "database schema has changed")
+    (18 SQLITE_TOOBIG     emacsql-error      "string or blob too big")
+    (19 SQLITE_CONSTRAINT emacsql-constraint "constraint failed")
+    (20 SQLITE_MISMATCH   emacsql-error      "datatype mismatch")
+    (21 SQLITE_MISUSE     emacsql-error      "bad parameter or other API misuse")
+    (22 SQLITE_NOLFS      emacsql-error      "large file support is disabled")
+    (23 SQLITE_AUTH       emacsql-access     "authorization denied")
+    (24 SQLITE_FORMAT     emacsql-corruption nil)
+    (25 SQLITE_RANGE      emacsql-error      "column index out of range")
+    (26 SQLITE_NOTADB     emacsql-corruption "file is not a database")
+    (27 SQLITE_NOTICE     emacsql-warning    "notification message")
+    (28 SQLITE_WARNING    emacsql-warning    "warning message"))
+  "Alist mapping SQLite error codes to EmacSQL conditions.
+Elements have the form (ERRCODE SYMBOLIC-NAME EMACSQL-ERROR
+ERRSTR).  Also see https://www.sqlite.org/rescode.html.")
+
+;;; Variables
+
+(defvar emacsql-include-header nil
+  "Whether to include names of columns as an additional row.
+Never enable this globally, only let-bind it around calls to `emacsql'.
+Currently only supported by `emacsql-sqlite-builtin-connection' and
+`emacsql-sqlite-module-connection'.")
+
+(defvar emacsql-sqlite-busy-timeout 20
+  "Seconds to wait when trying to access a table blocked by another process.
+See https://www.sqlite.org/c3ref/busy_timeout.html.")
+
+;;; Utilities
+
+(defun emacsql-sqlite-connection (variable file &optional setup use-module)
+  "Return the connection stored in VARIABLE to the database in FILE.
+
+If the value of VARIABLE is a live database connection, return that.
+
+Otherwise open a new connection to the database in FILE and store the
+connection in VARIABLE, before returning it.  If FILE is nil, use an
+in-memory database.  Always enable support for foreign key constrains.
+If optional SETUP is non-nil, it must be a function, which takes the
+connection as only argument.  This function can be used to initialize
+tables, for example.
+
+If optional USE-MODULE is non-nil, then use the external module even
+when Emacs was built with SQLite support.  This is intended for testing
+purposes."
+  (or (let ((connection (symbol-value variable)))
+        (and connection (emacsql-live-p connection) connection))
+      (set variable (emacsql-sqlite-open file nil setup use-module))))
+
+(defun emacsql-sqlite-open (file &optional debug setup use-module)
+  "Open a connection to the database stored in FILE using an SQLite back-end.
+
+Automatically use the best available back-end, as returned by
+`emacsql-sqlite-default-connection'.
+
+If FILE is nil, use an in-memory database.  If optional DEBUG is
+non-nil, log all SQLite commands to a log buffer, for debugging
+purposes.  Always enable support for foreign key constrains.
+
+If optional SETUP is non-nil, it must be a function, which takes the
+connection as only argument.  This function can be used to initialize
+tables, for example.
+
+If optional USE-MODULE is non-nil, then use the external module even
+when Emacs was built with SQLite support.  This is intended for testing
+purposes."
+  (when file
+    (make-directory (file-name-directory file) t))
+  (let* ((class (emacsql-sqlite-default-connection use-module))
+         (connection (make-instance class :file file)))
     (when debug
       (emacsql-enable-debugging connection))
+    (emacsql connection [:pragma (= foreign-keys on)])
+    (when setup
+      (funcall setup connection))
     connection))
 
-(cl-defmethod emacsql-close ((connection emacsql-sqlite-connection))
-  "Gracefully exits the SQLite subprocess."
-  (let ((process (emacsql-process connection)))
-    (when (process-live-p process)
-      (process-send-eof process))))
+(defun emacsql-sqlite-default-connection (&optional use-module)
+  "Determine and return the best SQLite connection class.
 
-(cl-defmethod emacsql-send-message ((connection emacsql-sqlite-connection) message)
-  (let ((process (emacsql-process connection)))
-    (process-send-string process (format "%d " (string-bytes message)))
-    (process-send-string process message)
-    (process-send-string process "\n")))
+Signal an error if none of the connection classes can be used.
 
-(defconst emacsql-sqlite-condition-alist
-  '(((1 4 9 12 17 18 20 21 22 25) emacsql-error)
-    ((2)                          emacsql-internal)
-    ((3 8 10 13 14 15 23)         emacsql-access)
-    ((5 6)                        emacsql-locked)
-    ((7)                          emacsql-memory)
-    ((11 16 24 26)                emacsql-corruption)
-    ((19)                         emacsql-constraint)
-    ((27 28)                      emacsql-warning))
-  "Alist mapping SQLite error codes to EmacSQL conditions.
-Each key is a list of error codes (integers).
-Also see https://www.sqlite.org/rescode.html.")
+If optional USE-MODULE is non-nil, then use the external module even
+when Emacs was built with SQLite support.  This is intended for testing
+purposes."
+  (or (and (not use-module)
+           (fboundp 'sqlite-available-p)
+           (sqlite-available-p)
+           (require 'emacsql-sqlite-builtin)
+           'emacsql-sqlite-builtin-connection)
+      (and (boundp 'module-file-suffix)
+           module-file-suffix
+           (condition-case nil
+               ;; Failure modes:
+               ;; 1. `libsqlite' shared library isn't available.
+               ;; 2. User chooses to not compile `libsqlite'.
+               ;; 3. `libsqlite' compilation fails.
+               (and (require 'sqlite3)
+                    (require 'emacsql-sqlite-module)
+                    'emacsql-sqlite-module-connection)
+             (error
+              (display-warning 'emacsql "\
+Since your Emacs does not come with
+built-in SQLite support [1], but does support C modules, we can
+use an EmacSQL backend that relies on the third-party `sqlite3'
+package [2].
 
-(cl-defmethod emacsql-handle ((_ emacsql-sqlite-connection) code message)
-  "Get condition for MESSAGE provided from SQLite."
-  (signal
-   (or (cl-second (cl-assoc code emacsql-sqlite-condition-alist :test #'memql))
-       'emacsql-error)
-   (list message code)))
+Please install the `sqlite3' Elisp package using your preferred
+Emacs package manager, and install the SQLite shared library
+using your distribution's package manager.  That package should
+be named something like `libsqlite3' [3] and NOT just `sqlite3'.
 
-;;; SQLite compilation
+The legacy backend, which uses a custom SQLite executable, has
+been remove, so we can no longer fall back to that.
 
-(defun emacsql-sqlite-compile-switches ()
-  "Return the compilation switches from the Makefile under sqlite/."
-  (let ((makefile (expand-file-name "sqlite/Makefile" emacsql-sqlite-data-root))
-        (case-fold-search nil))
-    (with-temp-buffer
-      (insert-file-contents makefile)
-      (goto-char (point-min))
-      (cl-loop while (re-search-forward "-D[A-Z0-9_=]+" nil :no-error)
-               collect (match-string 0)))))
+[1]: Supported since Emacs 29.1, provided it was not disabled
+     with `--without-sqlite3'.
+[2]: https://github.com/pekingduck/emacs-sqlite3-api
+[3]: On Debian https://packages.debian.org/buster/libsqlite3-0")
+              ;; The buffer displaying the warning might immediately
+              ;; be replaced by another buffer, before the user gets
+              ;; a chance to see it.  We cannot have that.
+              (let (fn)
+                (setq fn (lambda ()
+                           (remove-hook 'post-command-hook fn)
+                           (pop-to-buffer (get-buffer "*Warnings*"))))
+                (add-hook 'post-command-hook fn))
+              nil)))
+      (error "EmacSQL could not find or compile a back-end")))
 
-(defun emacsql-sqlite-compile (&optional o-level async)
-  "Compile the SQLite back-end for EmacSQL, returning non-nil on success.
-If called with non-nil ASYNC the return value is meaningless."
-  (let* ((cc (cl-loop for option in emacsql-sqlite-c-compilers
-                      for path = (executable-find option)
-                      if path return it))
-         (src (expand-file-name "sqlite" emacsql-sqlite-data-root))
-         (files (mapcar (lambda (f) (expand-file-name f src))
-                        '("sqlite3.c" "emacsql.c")))
-         (cflags (list (format "-I%s" src) (format "-O%d" (or o-level 2))))
-         (ldlibs (cl-case system-type
-                   (windows-nt (list))
-                   (berkeley-unix (list "-lm"))
-                   (otherwise (list "-lm" "-ldl"))))
-         (options (emacsql-sqlite-compile-switches))
-         (output (list "-o" emacsql-sqlite-executable))
-         (arguments (nconc cflags options files ldlibs output)))
-    (cond ((not cc)
-           (prog1 nil
-             (message "Could not find C compiler, skipping SQLite build")))
-          (t (message "Compiling EmacSQL SQLite binary ...")
-             (mkdir (file-name-directory emacsql-sqlite-executable) t)
-             (let ((log (get-buffer-create byte-compile-log-buffer)))
-               (with-current-buffer log
-                 (let ((inhibit-read-only t))
-                   (insert (mapconcat #'identity (cons cc arguments) " ") "\n")
-                   (eql 0 (apply #'call-process cc nil (if async 0 t) t
-                                 arguments)))))))))
+(defun emacsql-sqlite-set-busy-timeout (connection)
+  (when emacsql-sqlite-busy-timeout
+    (emacsql connection [:pragma (= busy-timeout $s1)]
+             (* emacsql-sqlite-busy-timeout 1000))))
 
-;;; Ensure the SQLite binary is available
+(defun emacsql-sqlite-read-column (string)
+  (let ((value nil)
+        (beg 0)
+        (end (length string)))
+    (while (< beg end)
+      (let ((v (read-from-string string beg)))
+        (push (car v) value)
+        (setq beg (cdr v))))
+    (nreverse value)))
 
-(defun emacsql-sqlite-ensure-binary ()
-  "Ensure the EmacSQL SQLite binary is available, signaling an error if not."
-  (unless (file-exists-p emacsql-sqlite-executable)
-    ;; try compiling at the last minute
-    (unless (ignore-errors (emacsql-sqlite-compile 2))
-      (error "No EmacSQL SQLite binary available, aborting"))))
+(defun emacsql-sqlite-list-tables (connection)
+  "Return a list of symbols identifying tables in CONNECTION.
+Tables whose names begin with \"sqlite_\", are not included
+in the returned value."
+  (mapcar #'car
+          (emacsql connection
+                   [:select name
+                    ;; The new name is `sqlite-schema', but this name
+                    ;; is supported by old and new SQLite versions.
+                    ;; See https://www.sqlite.org/schematab.html.
+                    :from sqlite-master
+                    :where (and (= type 'table)
+                                (not-like name "sqlite_%"))
+                    :order-by [(asc name)]])))
+
+(defun emacsql-sqlite-dump-database (connection &optional versionp)
+  "Dump the database specified by CONNECTION to a file.
+
+The dump file is placed in the same directory as the database
+file and its name derives from the name of the database file.
+The suffix is replaced with \".sql\" and if optional VERSIONP is
+non-nil, then the database version (the `user_version' pragma)
+and a timestamp are appended to the file name.
+
+Dumping is done using the official `sqlite3' binary.  If that is
+not available and VERSIONP is non-nil, then the database file is
+copied instead."
+  (let* ((version (caar (emacsql connection [:pragma user-version])))
+         (db (oref connection file))
+         (db (if (symbolp db) (symbol-value db) db))
+         (name (file-name-nondirectory db))
+         (output (concat (file-name-sans-extension db)
+                         (and versionp
+                              (concat (format "-v%s" version)
+                                      (format-time-string "-%Y%m%d-%H%M")))
+                         ".sql")))
+    (cond
+     ((locate-file "sqlite3" exec-path)
+      (when (and (file-exists-p output) versionp)
+        (error "Cannot dump database; %s already exists" output))
+      (with-temp-file output
+        (message "Dumping %s database to %s..." name output)
+        (unless (zerop (save-excursion
+                         (call-process "sqlite3" nil t nil db ".dump")))
+          (error "Failed to dump %s" db))
+        (when version
+          (insert (format "PRAGMA user_version=%s;\n" version)))
+        ;; The output contains "PRAGMA foreign_keys=OFF;".
+        ;; Change that to avoid alarming attentive users.
+        (when (re-search-forward "^PRAGMA foreign_keys=\\(OFF\\);" 1000 t)
+          (replace-match "ON" t t nil 1))
+        (message "Dumping %s database to %s...done" name output)))
+     (versionp
+      (setq output (concat (file-name-sans-extension output) ".db"))
+      (message "Cannot dump database because sqlite3 binary cannot be found")
+      (when (and (file-exists-p output) versionp)
+        (error "Cannot copy database; %s already exists" output))
+      (message "Copying %s database to %s..." name output)
+      (copy-file db output)
+      (message "Copying %s database to %s...done" name output))
+     ((error "Cannot dump database; sqlite3 binary isn't available")))))
+
+(defun emacsql-sqlite-restore-database (db dump)
+  "Restore database DB from DUMP.
+
+DUMP is a file containing SQL statements.  DB can be the file
+in which the database is to be stored, or it can be a database
+connection.  In the latter case the current database is first
+dumped to a new file and the connection is closed.  Then the
+database is restored from DUMP.  No connection to the new
+database is created."
+  (unless (stringp db)
+    (emacsql-sqlite-dump-database db t)
+    (emacsql-close (prog1 db (setq db (oref db file)))))
+  (with-temp-buffer
+    (unless (zerop (call-process "sqlite3" nil t nil db
+                                 (format ".read %s" dump)))
+      (error "Failed to read %s: %s" dump (buffer-string)))))
 
 (provide 'emacsql-sqlite)
 
