@@ -1,6 +1,6 @@
 ;;; smartparens-config.el --- Default configuration for smartparens package  -*- lexical-binding: t; -*-
 
-;; Copyright (C) 2013-2016 Matus Goljer
+;; Copyright (C) 2013-2020, 2022-2023 Matus Goljer
 
 ;; Author: Matus Goljer <matus.goljer@gmail.com>
 ;; Maintainer: Matus Goljer <matus.goljer@gmail.com>
@@ -70,11 +70,38 @@ ID, ACTION, CONTEXT."
               ;; do not consider punctuation
               (not (looking-at "[?.,;!]"))))))))
 
-;; emacs is lisp hacking enviroment, so we set up some most common
+(defun sp-lisp-insert-space-after-slurp (_id action _context)
+  (-let (((&plist :ok-orig :next-thing) sp-handler-context))
+    (when (and (eq action 'slurp-forward)
+               (sp-get ok-orig (/= :beg-in :end-in)))
+      (save-excursion
+        (sp-get ok-orig (goto-char :end-in))
+        (skip-syntax-backward " ")
+        (unless (looking-at-p (rx (or whitespace eol)))
+          (insert " "))))))
+
+;; emacs is lisp hacking environment, so we set up some most common
 ;; lisp modes too
 (sp-with-modes sp-lisp-modes
+  (sp-local-pair "(" nil :post-handlers '(:add sp-lisp-insert-space-after-slurp))
+  (sp-local-pair "[" nil :post-handlers '(:add sp-lisp-insert-space-after-slurp))
   ;; disable ', it's the quote character!
   (sp-local-pair "'" nil :actions nil))
+
+(eval-after-load 'org
+  '(progn
+     (defun sp-lisp-in-lisp-src-block-p (_id _action _context)
+       (when (org-in-src-block-p)
+         (let* ((el (org-element-at-point))
+                (lang (org-element-property :language el))
+                (mode (intern (concat
+                               (if (string= lang "elisp") "emacs-lisp" lang)
+                               "-mode"))))
+           (memq mode sp-lisp-modes))))
+
+     ;; Disable ' pairing in lisp org source blocks
+     (sp-local-pair 'org-mode "'" "'"
+                    :unless '(:add sp-lisp-in-lisp-src-block-p))))
 
 (sp-with-modes (-difference sp-lisp-modes sp-clojure-modes)
   ;; also only use the pseudo-quote inside strings where it serve as
@@ -101,11 +128,17 @@ ID, ACTION, CONTEXT."
 ;; automatically.  If you want to call sp-local-pair outside this
 ;; macro, you MUST supply the major mode argument.
 
-(eval-after-load 'cc-mode                  '(require 'smartparens-c))
-(eval-after-load 'clojure-mode             '(require 'smartparens-clojure))
+(--each '(cc-mode c-ts-mode)
+  (eval-after-load it                      '(require 'smartparens-c)))
+(--each '(clojure-mode clojure-ts-mode)
+  (eval-after-load it                      '(require 'smartparens-clojure)))
+(eval-after-load 'coq-mode                 '(require 'smartparens-coq))
 (eval-after-load 'crystal-mode             '(require 'smartparens-crystal))
-(eval-after-load 'elixir-mode              '(require 'smartparens-elixir))
+(--each '(elixir-mode elixir-ts-mode)
+  (eval-after-load it                      '(require 'smartparens-elixir)))
 (eval-after-load 'enh-ruby-mode            '(require 'smartparens-ruby))
+(--each '(erlang-mode erlang-ts-mode)
+  (eval-after-load it                      '(require 'smartparens-erlang)))
 (eval-after-load 'ess                      '(require 'smartparens-ess))
 (eval-after-load 'go-mode                  '(require 'smartparens-go))
 (eval-after-load 'haskell-interactive-mode '(require 'smartparens-haskell))
@@ -114,22 +147,26 @@ ID, ACTION, CONTEXT."
   (eval-after-load it                      '(require 'smartparens-html)))
 (eval-after-load 'latex                    '(require 'smartparens-latex))
 (eval-after-load 'lua-mode                 '(require 'smartparens-lua))
+(eval-after-load 'lua-ts-mode              '(require 'smartparens-lua))
 (eval-after-load 'markdown-mode            '(require 'smartparens-markdown))
-(--each '(python-mode python)
+(--each '(python-mode python-ts-mode python)
   (eval-after-load it                      '(require 'smartparens-python)))
 (eval-after-load 'org                      '(require 'smartparens-org))
 (eval-after-load 'racket-mode              '(require 'smartparens-racket))
 (eval-after-load 'rst                      '(require 'smartparens-rst))
 (eval-after-load 'ruby-mode                '(require 'smartparens-ruby))
 (eval-after-load 'rust-mode                '(require 'smartparens-rust))
+(eval-after-load 'rust-ts-mode             '(require 'smartparens-rust))
 (eval-after-load 'rustic                   '(require 'smartparens-rust))
 (eval-after-load 'scala-mode               '(require 'smartparens-scala))
-(eval-after-load 'swift-mode               '(require 'smartparens-swift))
+(--each '(swift-mode swift-ts-mode)
+  (eval-after-load it                      '(require 'smartparens-swift)))
 (eval-after-load 'tex-mode                 '(require 'smartparens-latex))
 (eval-after-load 'text-mode                '(require 'smartparens-text))
 (eval-after-load 'tuareg                   '(require 'smartparens-ml))
 (eval-after-load 'fsharp-mode              '(require 'smartparens-ml))
-(--each '(js js2-mode)
+(eval-after-load 'unisonlang-mode          '(require 'smartparens-unison))
+(--each '(js js2-mode typescript-ts-mode)
   (eval-after-load it                      '(require 'smartparens-javascript)))
 (provide 'smartparens-config)
 

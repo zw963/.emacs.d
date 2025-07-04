@@ -1,5 +1,3 @@
-;; -*- lexical-binding: t; -*-
-
 ;;; rust-prog-mode.el --- old rust-mode without treesitter -*-lexical-binding: t-*-
 ;;; Commentary:
 

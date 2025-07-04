@@ -1,5 +1,7 @@
 ;;; smartparens-c.el --- Additional configuration for C/C++ mode.  -*- lexical-binding: t; -*-
 ;;
+;; Copyright (C) 2019-2020, 2022 Naoya Yamashita, Matus Goljer
+;;
 ;; Author: Naoya Yamashita <conao3@gmail.com>
 ;; Maintainer: Matus Goljer <matus.goljer@gmail.com>
 ;; Created: 23 June 2019
@@ -47,6 +49,11 @@
   (sp-local-pair "{" nil :post-handlers '(("||\n[i]" "RET")))
   (sp-local-pair "/*" "*/" :post-handlers '(("| " "SPC")
                                             ("* ||\n[i]" "RET"))))
+
+;; inline formulas for doxygen
+(sp-with-modes sp-c-modes
+  (sp-local-pair "\\f[" "\\f]" :when '(sp-in-comment-p))
+  (sp-local-pair "\\f$" "\\f$" :when '(sp-in-comment-p)))
 
 (provide 'smartparens-c)
 ;;; smartparens-c.el ends here

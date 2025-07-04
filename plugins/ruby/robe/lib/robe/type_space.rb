@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'robe/sash'
 
 module Robe
@@ -14,6 +16,7 @@ module Robe
 
     def scan_with(scanner)
       return unless (obj = target_type)
+
       modules = obj.ancestors
       modules -= obj.included_modules unless instance
 
@@ -26,8 +29,8 @@ module Robe
       modules.push(Kernel) if instance && !obj.is_a?(Class)
 
       if instance
-        if defined? ActiveSupport::Concern and obj.is_a?(ActiveSupport::Concern)
-          deps = obj.instance_variable_get("@_dependencies")
+        if defined? ActiveSupport::Concern && obj.is_a?(ActiveSupport::Concern)
+          deps = obj.instance_variable_get('@_dependencies')
           modules += deps if deps
         end
       end
@@ -37,10 +40,8 @@ module Robe
       unless instance
         singleton_ancestors = obj.singleton_class.ancestors
 
-        if RUBY_VERSION >= "2.1.0"
-          # Ruby 2.1 includes all singletons in the ancestors chain
-          singleton_ancestors.reject!(&:__singleton_class__?)
-        end
+        # Ruby 2.1+ includes all singletons in the ancestors chain
+        singleton_ancestors.reject!(&:singleton_class?)
 
         scanner.scan(singleton_ancestors, true, false)
       end
@@ -51,7 +52,8 @@ module Robe
     def guess_target_type(target, mod)
       @target_type = visor.resolve_context(target, mod)
       if @target_type && !(@target_type.is_a? Module)
-        @target_type, @instance = @target_type.class, true
+        @target_type = @target_type.class
+        @instance = true
       end
     rescue Visor::SearchError
       # skip

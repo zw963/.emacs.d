@@ -1,6 +1,6 @@
 ;;; smartparens-lua.el --- Additional configuration for Lua based modes.  -*- lexical-binding: t; -*-
 
-;; Copyright (C) 2013-2014 Matus Goljer
+;; Copyright (C) 2013-2014, 2016-2018 Matus Goljer
 
 ;; Author: Matus Goljer <matus.goljer@gmail.com>
 ;; Maintainer: Matus Goljer <matus.goljer@gmail.com>
@@ -66,7 +66,7 @@
 
 ;; all the pairs are expanded only if followed by "SPC" event.  This
 ;; will reduce false positives like 'dIFficult' to trigger.
-(sp-with-modes '(lua-mode)
+(sp-with-modes '(lua-mode lua-ts-mode)
   (sp-local-pair "if" "end"
                  :when '(("SPC"))
                  :unless '(sp-in-comment-p sp-in-string-p)

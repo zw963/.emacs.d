@@ -6,7 +6,7 @@
 ;; Created: 03 October 2001. (as utility functions in my `.emacs' file.)
 ;;          14 March   2010. (re-written as library `volatile-highlights.el')
 ;; Keywords: emulations convenience wp
-;; Revision: $Id: 0d46c45a307888b7c7579bc06d1897b1d4d97bb5 $
+;; Revision: $Id: ee417dc115c4e1c37d95a33e6663ee5756fbf597 $
 ;; URL: http://www.emacswiki.org/emacs/download/volatile-highlights.el
 ;; GitHub: http://github.com/k-talo/volatile-highlights.el
 ;; Version: 1.15
@@ -650,7 +650,6 @@ extensions."
   (defun vhl/ext/etags/on ()
   "Turn on volatile highlighting for `etags'."
   (interactive)
-  (require 'etags)
   (advice-add 'find-tag :after #'vhl/ext/etags/.after-find-tag))
 
 (defun vhl/ext/etags/off ()

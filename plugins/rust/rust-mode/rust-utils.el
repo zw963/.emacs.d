@@ -1,5 +1,3 @@
-;; -*- lexical-binding: t; -*-
-
 ;;; rust-utils.el --- Various Rust utilities        -*- lexical-binding:t -*-
 ;;; Commentary:
 

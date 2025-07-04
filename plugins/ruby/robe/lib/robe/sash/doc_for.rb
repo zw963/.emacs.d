@@ -1,8 +1,9 @@
+# frozen_string_literal: true
+
 require 'pry'
-require 'ostruct'
 
 begin
-  require 'pry-doc' if RUBY_ENGINE == "ruby"
+  require 'pry-doc' if RUBY_ENGINE == 'ruby'
 rescue LoadError
   # Whatever, it's optional.
 end
@@ -10,20 +11,20 @@ end
 module Robe
   class Sash
     class DocFor
+      MethodInfo = Struct.new(:docstring, :source, :aliases, :visibility)
+
       def initialize(method)
         @method = method
       end
 
       def format
-        info = self.class.method_struct(@method)
-        {docstring: info.docstring,
-         source: info.source,
-         aliases: info.aliases,
-         visibility: visibility}
+        self.class.method_struct(@method).to_h
       end
 
-      def visibility
-        owner, name = @method.owner, @method.name
+      def self.visibility(method)
+        owner = method.owner
+        name = method.name
+
         if owner.__public_instance_methods__(false).include?(name)
           :public
         elsif owner.__protected_instance_methods__(false).include?(name)
@@ -34,23 +35,22 @@ module Robe
       end
 
       def self.method_struct(method)
-        begin
-          info = Pry::Method.new(method)
+        info = Pry::Method.new(method)
 
-          if info.dynamically_defined?
-            doc = ""
-            source = "# This method was defined outside of a source file."
-          else
-            doc = info.doc
-            source = (info.source? ? info.source : "# Not available.")
-          end
+        aliases = info.aliases.map(&:to_sym)
 
-          OpenStruct.new(docstring: doc, source: source,
-                         aliases: info.aliases.map(&:to_sym))
-        rescue Pry::CommandError
-          message = $!.message =~ /pry-doc/ ? $!.message : ""
-          return OpenStruct.new(docstring: message)
+        if info.dynamically_defined?
+          doc = ''
+          source = '# This method was defined outside of a source file.'
+        else
+          doc = info.doc
+          source = (info.source? ? info.source : '# Not available.')
         end
+
+        DocFor::MethodInfo.new(doc, source, aliases, visibility(method))
+      rescue Pry::CommandError
+        message = $ERROR_INFO.message =~ /pry-doc/ ? $ERROR_INFO.message : ''
+        DocFor::MethodInfo.new(message, nil, aliases, visibility(method))
       end
     end
   end

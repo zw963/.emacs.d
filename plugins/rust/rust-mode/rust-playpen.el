@@ -1,5 +1,3 @@
-;; -*- lexical-binding: t; -*-
-
 ;;; rust-playpen.el --- Support for the Rust Playground  -*- lexical-binding:t -*-
 ;;; Commentary:
 

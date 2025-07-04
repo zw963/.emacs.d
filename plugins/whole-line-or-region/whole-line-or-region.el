@@ -1,5 +1,3 @@
-;; -*- lexical-binding: t; -*-
-
 ;;; whole-line-or-region.el --- Operate on current line if region undefined  -*- lexical-binding: t -*-
 
 ;; This file is not part of Emacs
@@ -13,7 +11,7 @@
 ;; Created:         July 1, 2001
 ;; Keywords:        convenience wp
 ;; Package-Version: 0
-;; Package-Requires: ((emacs "24.1") (cl-lib "0.6"))
+;; Package-Requires: ((emacs "24.4"))
 ;; Homepage:  https://github.com/purcell/whole-line-or-region
 
 ;; This program is free software; you can redistribute it and/or modify
@@ -175,11 +173,9 @@ The binding ensure killed strings have a yank handler attached."
     `(let* ((,orig filter-buffer-substring-function)
             (filter-buffer-substring-function
              (lambda (&rest args)
-               (let ((s (apply ,orig args)))
-                 (put-text-property 0 (length s) 'yank-handler
-                                    '(whole-line-or-region-yank-handler nil t)
-                                    s)
-                 s))))
+               (propertize (apply ,orig args)
+                           'yank-handler
+                           '(whole-line-or-region-yank-handler nil t)))))
        ,@body)))
 
 (defun whole-line-or-region-wrap-region-kill (f num-lines)
@@ -232,9 +228,12 @@ preceding point."
   (if (whole-line-or-region-use-region-p)
       (apply f rest)
     (save-excursion
-      (set-mark (line-beginning-position 1))
-      (goto-char (line-beginning-position (+ 1 num-lines)))
-      (apply f rest))))
+      (let
+          ;; The subsequent function call might require Transient Mark Mode awareness
+          ((transient-mark-mode 'lambda))
+        (set-mark (line-beginning-position 1))
+        (goto-char (line-beginning-position (+ 1 num-lines)))
+        (apply f rest)))))
 
 
 ;;; Wrappers for commonly-used functions

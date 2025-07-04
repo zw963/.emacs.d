@@ -1,8 +1,8 @@
-;;; smartparens-go.el --- Additional configuration for go-mode.  -*- lexical-binding: t; -*-
+;;; smartparens-erlang.el --- Additional configuration for erlang-mode.  -*- lexical-binding: t; -*-
 
-;; Copyright (C) 2022 Jimmy Yuen Ho Wong
+;; Copyright (C) 2022 Johnny Ruiz
 
-;; Created: 10 June 2022
+;; Created: 6 September 2022
 ;; Keywords: abbrev convenience editing
 ;; URL: https://github.com/Fuco1/smartparens
 
@@ -27,14 +27,14 @@
 
 ;;; Commentary:
 
-;; This file provides some additional configuration for Go.  To use
+;; This file provides some additional configuration for Erlang.  To use
 ;; it, simply add:
 ;;
 ;; (require 'smartparens-config)
 ;;
 ;; alternatively, you can explicitly load these preferences:
 ;;
-;; (require 'smartparens-go)
+;; (require 'smartparens-erlang)
 ;;
 ;; in your configuration.
 
@@ -44,19 +44,13 @@
 ;;; Code:
 (require 'smartparens)
 
-(declare-function go-mode "go-mode")
-(declare-function go-ts-mode "go-ts-mode")
+(declare-function erlang-mode "erlang-mode")
 
-(sp-with-modes '(go-mode go-ts-mode)
-  (sp-local-pair "{" nil :post-handlers '(("||\n[i]" "RET")))
-  (sp-local-pair "/*" "*/" :post-handlers '(("| " "SPC")
-                                            ("* ||\n[i]" "RET"))))
+(sp-with-modes '(erlang-mode erlang-ts-mode)
+  (sp-local-pair "`" "'"
+                 :when '(sp-in-comment-p))
+  (sp-local-pair "<<" ">>")
+  (sp-local-pair "#{" "}"))
 
-;; Go has no sexp suffices.  This fixes slurping
-;; (|foo).bar -> (foo.bar)
-(add-to-list 'sp-sexp-suffix (list #'go-mode 'regexp ""))
-(add-to-list 'sp-sexp-suffix (list #'go-ts-mode 'regexp ""))
-
-(provide 'smartparens-go)
-
-;;; smartparens-go.el ends here
+(provide 'smartparens-erlang)
+;;; smartparens-erlang.el ends here

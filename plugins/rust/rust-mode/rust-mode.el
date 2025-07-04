@@ -1,5 +1,3 @@
-;; -*- lexical-binding: t; -*-
-
 ;;; rust-mode.el --- A major-mode for editing Rust source code -*-lexical-binding: t-*-
 
 ;; Version: 1.0.6

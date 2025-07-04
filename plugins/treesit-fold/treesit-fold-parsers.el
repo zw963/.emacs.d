@@ -90,6 +90,7 @@
 (declare-function treesit-fold-range-cmake-body "treesit-fold.el")
 (declare-function treesit-fold-range-editorconfig-section "treesit-fold.el")
 (declare-function treesit-fold-range-pascal-comment "treesit-fold.el")
+(declare-function treesit-fold-range-python-block "treesit-fold.el")
 (declare-function treesit-fold-range-python-def "treesit-fold.el")
 (declare-function treesit-fold-range-python-expression-statement "treesit-fold.el")
 (declare-function treesit-fold-range-rst-body "treesit-fold.el")
@@ -471,6 +472,13 @@
     (repeat_statement     . treesit-fold-range-lua-repeat)
     (comment              . treesit-fold-range-lua-comment)))
 
+(defun treesit-fold-parsers-magik ()
+  "Rule set for Magik."
+  '((method . treesit-fold-range-seq)
+    (comment
+     . (lambda (node offset)
+         (treesit-fold-range-line-comment node offset "#")))))
+
 (defun treesit-fold-parsers-make ()
   "Rule set for Make."
   '((recipe . treesit-fold-range-make-recipe)
@@ -587,6 +595,16 @@
     (future_import_statement  . treesit-fold-range-seq)
     (function_definition      . treesit-fold-range-python-def)
     (class_definition         . treesit-fold-range-python-def)
+    (while_statement          . treesit-fold-range-python-block)
+    (for_statement            . treesit-fold-range-python-block)
+    (if_statement             . treesit-fold-range-python-block)
+    (elif_clause              . treesit-fold-range-python-block)
+    (else_clause              . treesit-fold-range-python-block)
+    (match_statement          . treesit-fold-range-python-block)
+    (case_clause              . treesit-fold-range-python-block)
+    (try_statement            . treesit-fold-range-python-block)
+    (except_clause            . treesit-fold-range-python-block)
+    (with_statement           . treesit-fold-range-python-block)
     (list                     . treesit-fold-range-seq)
     (dictionary               . treesit-fold-range-seq)
     (parenthesized_expression . treesit-fold-range-seq)

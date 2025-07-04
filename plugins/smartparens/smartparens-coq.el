@@ -1,11 +1,11 @@
-;;; smartparens-rst.el --- Additional configuration for rst based modes.  -*- lexical-binding: t; -*-
+;;; smartparens-coq.el --- Additional configuration for Coq proof assistant -*- lexical-binding: t; -*-
 
-;; Copyright (C) 2019-2020 Matus Goljer
+;; Copyright (C) 2024 Matus Goljer
 
 ;; Author: Matus Goljer <matus.goljer@gmail.com>
 ;; Maintainer: Matus Goljer <matus.goljer@gmail.com>
-;; Created: 28th January 2019
-;; Keywords: abbrev convenience editing
+;; Created: 29 June 2024
+;; Keywords: smartparens, coq
 ;; URL: https://github.com/Fuco1/smartparens
 
 ;; This file is not part of GNU Emacs.
@@ -29,10 +29,10 @@
 
 ;;; Commentary:
 
-;; This file provides some additional configuration for rst based
-;; modes.  To use it, simply add:
+;; This file provides some additional configuration for Coq proof
+;; assistant.  To use it, simply add:
 ;;
-;; (require 'smartparens-rst)
+;; (require 'smartparens-coq)
 ;;
 ;; into your configuration.  You can use this in conjunction with the
 ;; default config or your own configuration.
@@ -46,21 +46,15 @@
 ;;; Code:
 
 (require 'smartparens)
-(require 'smartparens-text)
-(require 'smartparens-markdown)
 
-(defun sp-rst-point-after-backtick (_id action _context)
-  (when (eq action 'insert)
-    (sp--looking-back-p "`_")))
+(sp-with-modes '(coq-mode)
+  ;; Disable ' because it is used in pattern-matching
+  (sp-local-pair "'" nil :actions nil)
+  ;; Disable ` because it is used in polymorphic variants
+  (sp-local-pair "`" nil :actions nil)
+  (sp-local-pair "(*" "*)"
+                 :post-handlers '(("| " "SPC")
+                                  (" | " "*"))))
 
-(sp-with-modes 'rst-mode
-  (sp-local-pair "*" "*"
-                 :unless '(sp--gfm-point-after-word-p sp-point-at-bol-p)
-                 :post-handlers '(("[d1]" "SPC"))
-                 :skip-match 'sp--gfm-skip-asterisk)
-  (sp-local-pair "**" "**")
-  (sp-local-pair "_" "_" :unless '(sp-point-after-word-p sp-rst-point-after-backtick))
-  (sp-local-pair "``" "``"))
-
-(provide 'smartparens-rst)
-;;; smartparens-rst.el ends here
+(provide 'smartparens-coq)
+;;; smartparens-coq.el ends here

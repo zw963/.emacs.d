@@ -116,7 +116,7 @@ Set after the modes may have no effect.")
 Set after the modes may have no effect.")
 
 (defvar sis-prefix-override-keys
-  (list "C-c" "C-x" "C-h")
+  (list "C-c" "C-x" "C-h" "C-r" "M-SPC")
   "Prefix keys to be overrided.")
 
 (defvar sis-prefix-override-recap-triggers
@@ -1391,16 +1391,20 @@ If POSITION is not provided, then default to be the current position."
   sis-inline-mode
   sis-inline-mode)
 
+(defsubst sis--evil-not-insert-state-p ()
+  "In Evil but not at insert state."
+  (and (featurep 'evil)
+       (or (evil-normal-state-p)
+           (evil-visual-state-p)
+           (evil-motion-state-p)
+           (evil-operator-state-p))))
+
 (defsubst sis--inline-effect-space-inserted-p ()
-  "A effective space is inserted."
+  "An effective space is inserted."
   (and sis-inline-mode
        (not (overlayp sis--inline-overlay))
        (not (button-at (point)))
-       (not (and (featurep 'evil)
-                 (or (evil-normal-state-p)
-                     (evil-visual-state-p)
-                     (evil-motion-state-p)
-                     (evil-operator-state-p))))
+       (not (sis--evil-not-insert-state-p))
        ;; around char is <spc> <DBC spc>
        (memq (preceding-char) (list ?\s 12288))))
 
@@ -1426,7 +1430,6 @@ input source to English."
         (cond
          (;inline english region
           (and sis-inline-with-english
-               (sis--context-other-p back-detect fore-detect (1- (point)))
                (equal sis--for-buffer 'other))
           (sis--inline-activate 'english (1- (point))))
 
@@ -1524,9 +1527,14 @@ START: start position of the inline region."
   (let* ((back-detect (sis--back-detect-chars))
          (back-to (sis-back-detect-to back-detect))
          (back-char (sis-back-detect-char back-detect)))
-
-
     (cond
+     (;if in evil but not insert state
+      (sis--evil-not-insert-state-p)
+      (sis-set-english))
+     (;if cursor is not at the end of the overlay
+      (and sis-context-mode
+           (/= (point) (sis--inline-overlay-end)))
+      (sis-context))
      (; inline english region
       (eq sis--inline-lang 'english)
       (sis-set-other))

@@ -1,5 +1,3 @@
-;; -*- lexical-binding: t; -*-
-
 ;;; rust-common.el --- Common code for both modes -*-lexical-binding: t-*-
 ;;; Commentary:
 
