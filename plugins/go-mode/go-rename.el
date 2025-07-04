@@ -1,5 +1,3 @@
-;; -*- lexical-binding: t; -*-
-
 ;;; go-rename.el --- Integration of the 'gorename' tool into Emacs.
 
 ;; Copyright 2014 The Go Authors. All rights reserved.

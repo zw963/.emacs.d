@@ -1,5 +1,3 @@
-;; -*- lexical-binding: t; -*-
-
 ;;; go-mode.el --- Major mode for the Go programming language
 
 ;;; Commentary:
@@ -99,9 +97,10 @@ constant is changed.")
 (defconst go--case-or-default-regexp (concat "\\(" go--case-regexp "\\|"  "[[:space:]]*default:\\)"))
 
 (defconst go-builtins
-  '("append" "cap"   "close"   "complex" "copy"
-    "delete" "imag"  "len"     "make"    "new"
-    "panic"  "print" "println" "real"    "recover")
+  '("append"  "cap"    "clear"   "close" "complex"
+    "copy"    "delete" "imag"    "len"   "make"
+    "max"     "min"    "new"     "panic" "print"
+    "println" "real"   "recover")
   "All built-in functions in the Go language.  Used for font locking.")
 
 (defconst go-mode-keywords
@@ -2842,7 +2841,7 @@ If BUFFER, return the number of characters in that buffer instead."
   "Syntax table for `go-dot-mod-mode'.")
 
 (defconst go-dot-mod-mode-keywords
-  '("module" "go" "require" "replace" "exclude")
+  '("module" "go" "toolchain" "require" "exclude" "replace" "retract")
   "All keywords for go.mod files.  Used for font locking.")
 
 (defgroup go-dot-mod nil
@@ -2892,7 +2891,7 @@ If BUFFER, return the number of characters in that buffer instead."
 (add-to-list 'auto-mode-alist '("go\\.mod\\'" . go-dot-mod-mode))
 
 (defconst go-dot-work-mode-keywords
-  '("go" "replace" "use")
+  '("go" "toolchain" "use" "replace")
   "All keywords for go.work files.  Used for font locking.")
 
 ;;;###autoload
@@ -3051,6 +3050,72 @@ This handles multi-line comments with a * prefix on each line."
    (lambda () (comment-indent-new-line arg))))
 
 
+
+;; Convenient go-* functions for gopls features available through code
+;; actions, that work across LSP clients:
+
+(defun go-mode--code-action (kind)
+  "Request and invoke the specified kind of code actions for the current selection."
+  (cond
+   ((and (boundp 'eglot--managed-mode) eglot--managed-mode)
+    (let ((beg-end (eglot--code-action-bounds)))
+      (eglot-code-actions (car beg-end) (cadr beg-end) kind t)))
+   ((and (boundp 'lsp-mode) lsp-mode)
+    (lsp-execute-code-action-by-kind kind))
+   (error "buffer is not managed by a known LSP client")))
+
+(defun go-browse-freesymbols ()
+  "View free symbols referenced by the current selection in a browser. Requires gopls v0.16."
+  (interactive)
+  (go-mode--code-action "source.freesymbols"))
+
+(defun go-browse-doc ()
+  "View documentation for the current Go package in a browser. Requires gopls v0.16."
+  (interactive)
+  (go-mode--code-action "source.doc"))
+
+(defun go-browse-assembly ()
+  "View assembly for the enclosing Go function in a browser. Requires gopls v0.16."
+  (interactive)
+  (go-mode--code-action "source.assembly"))
+
+(defun go-rename ()
+  "Rename a Go symbol, prompting for the new name."
+  (interactive)
+  (cond
+   ((and (boundp 'eglot--managed-mode) eglot--managed-mode)
+    (call-interactively #'eglot-rename))
+   ((and (boundp 'lsp-mode) lsp-mode)
+    (call-interactively #'lsp-rename))
+   (error "buffer is not managed by a known LSP client")))
+
+;;;###autoload
+(define-derived-mode go-asm-mode asm-mode "Go assembly"
+  "Major mode for Go assembly (.s) files."
+  (set (make-local-variable 'comment-start) "// ")
+  (set (make-local-variable 'comment-end)   "")
+  (set (make-local-variable 'comment-use-syntax) t)
+  (set (make-local-variable 'comment-start-skip) "\\(//+\\)\\s *")
+  (setq indent-tabs-mode t))
+
+;;;###autoload
+(add-to-list 'magic-mode-alist (cons #'go--is-go-asm #'go-asm-mode))
+
+;;;###autoload
+(defun go--is-go-asm ()
+  "Determine whether a file is (probably) a Go assembly file."
+  (when (string-suffix-p ".s" (buffer-file-name))
+	(let ((directory (file-name-directory (buffer-file-name))))
+	  (when directory
+		(cl-some (lambda (s) (or (string-suffix-p ".go" s) (string-suffix-p ".mod" s)))
+				 (condition-case nil
+					 ;; We only look at 8192 files, to avoid heavy I/O in
+					 ;; case the user opens a .s file in a giant directory.
+					 ;; If it weren't for that, we could set the count to 1
+					 ;; and use the 'match' argument of directory-files to
+					 ;; look for the first '.go' file.
+					 (directory-files directory nil nil t 8192)
+				   (error nil)))))))
 
 (provide 'go-mode)
 
