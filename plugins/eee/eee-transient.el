@@ -76,8 +76,8 @@ global value."
 
 Meant to be called when `ee-menu' is active."
   (cl-some (lambda (s) (and (stringp s) (string-prefix-p ":" s)
-                            (substring s 1)))
-           args))
+                       (substring s 1)))
+                  args))
 
 (defun ee--instructions-make-overlay (text &optional ov)
   "Make or move overlay OV with TEXT."
@@ -104,7 +104,7 @@ Meant to be called when `ee-menu' is active."
      ov 'after-string
      (concat (propertize (concat "DIRECTIVE: " text)
                          'font-lock-face '(:inherit shadow :weight bold  :box t))
-             "\n"))
+      "\n"))
     ov))
 
 (defconst ee--read-with-prefix-help
@@ -126,11 +126,11 @@ will toggle its visibility state."
   (unless (minibufferp)
     (user-error "This command is intended to be used in the minibuffer."))
   (let* ((update
-          (lambda (ov s)
-            (overlay-put
-             ov 'after-string
-             (and s (concat (propertize (concat "\n" s "\n") 'face 'shadow)
-                            (make-separator-line))))))
+         (lambda (ov s)
+           (overlay-put
+            ov 'after-string
+            (and s (concat (propertize (concat "\n" s "\n") 'face 'shadow)
+                           (make-separator-line))))))
          (max-width (- (window-width) (minibuffer-prompt-end)))
          (max (or max-mini-window-height 0.4))
          (max-height (- (or (and (natnump max) max)
@@ -167,7 +167,7 @@ will toggle its visibility state."
              (overlay-put ov 'gptel 'hide)
              (funcall update ov nil)))
           ('prefix (overlay-put ov 'gptel 'hide)
-                   (funcall update ov nil))
+                 (funcall update ov nil))
           (_ (overlay-put ov 'gptel 'partial)
              (funcall update ov (truncate-string-to-width
                                  prefix max-width nil nil
@@ -288,14 +288,14 @@ which see."
 
 (cl-defmethod transient-format-value ((obj ee--switches))
   (with-slots (value display-if-true display-if-false) obj
-    (format
-     (propertize "(%s)" 'face 'transient-delimiter)
-     (concat
-      (propertize display-if-false
-                  'face (if value 'transient-inactive-value 'transient-value))
-      (propertize "|" 'face 'transient-delimiter)
-      (propertize display-if-true
-                  'face (if value 'transient-value 'transient-inactive-value))))))
+      (format
+       (propertize "(%s)" 'face 'transient-delimiter)
+       (concat
+        (propertize display-if-false
+                    'face (if value 'transient-inactive-value 'transient-value))
+        (propertize "|" 'face 'transient-delimiter)
+        (propertize display-if-true
+                    'face (if value 'transient-value 'transient-inactive-value))))))
 
 (defclass ee--scope (ee--switches)
   ((display-if-true :initarg :display-if-true :initform "buffer")
@@ -315,17 +315,17 @@ This is used only for setting this variable via `ee-menu'.")
 
 (cl-defmethod transient-format-value ((obj ee--scope))
   (with-slots (value display-if-true display-if-false) obj
-    (format
-     (propertize "(%s)" 'face 'transient-delimiter)
-     (concat
-      (propertize display-if-false
-                  'face (if (null value) 'transient-value 'transient-inactive-value))
-      (propertize "|" 'face 'transient-delimiter)
-      (propertize display-if-true
-                  'face (if (eq value t) 'transient-value 'transient-inactive-value))
-      (propertize "|" 'face 'transient-delimiter)
-      (propertize "oneshot" 'face
-                  (if (eql value 1) 'transient-value 'transient-inactive-value))))))
+      (format
+       (propertize "(%s)" 'face 'transient-delimiter)
+       (concat
+        (propertize display-if-false
+                    'face (if (null value) 'transient-value 'transient-inactive-value))
+        (propertize "|" 'face 'transient-delimiter)
+        (propertize display-if-true
+                    'face (if (eq value t) 'transient-value 'transient-inactive-value))
+        (propertize "|" 'face 'transient-delimiter)
+        (propertize "oneshot" 'face
+                    (if (eql value 1) 'transient-value 'transient-inactive-value))))))
 
 (cl-defmethod transient-infix-set ((obj ee--scope) value)
   (funcall (oref obj set-value)
@@ -377,10 +377,10 @@ Also format its value in the Transient menu."
         (oset obj overlay (ee--instructions-make-overlay value ov)))
       (letrec ((ov-clear-hook
                 (lambda () (when-let* ((ov (oref obj overlay))
-                                       ((overlayp ov)))
-                             (remove-hook 'transient-exit-hook
-                                          ov-clear-hook)
-                             (delete-overlay ov)))))
+                                  ((overlayp ov)))
+                        (remove-hook 'transient-exit-hook
+                                     ov-clear-hook)
+                        (delete-overlay ov)))))
         (add-hook 'transient-exit-hook ov-clear-hook)))
     ;; Updating transient menu display
     (if value
@@ -399,19 +399,19 @@ Also format its value in the Transient menu."
   "Change parameters of prompt to send to the LLM."
   ;; :incompatible '(("-m" "-n" "-k" "-e"))
   [:description ee-system-prompt--format
-                [""
-                 :if (lambda () (not (ee--model-capable-p 'nosystem)))
-                 "Instructions"
-                 ("s" "Set system message" ee-system-prompt :transient t)
-                 (ee--infix-add-directive)]
-                [:pad-keys t
-                           ""
-                           "Context"
-                           (ee--infix-context-add-region)
-                           (ee--infix-context-add-buffer)
-                           (ee--infix-context-add-file)
-                           (ee--infix-context-remove-all)
-                           (ee--suffix-context-buffer)]]
+   [""
+    :if (lambda () (not (ee--model-capable-p 'nosystem)))
+    "Instructions"
+    ("s" "Set system message" ee-system-prompt :transient t)
+    (ee--infix-add-directive)]
+   [:pad-keys t
+    ""
+    "Context"
+    (ee--infix-context-add-region)
+    (ee--infix-context-add-buffer)
+    (ee--infix-context-add-file)
+    (ee--infix-context-remove-all)
+    (ee--suffix-context-buffer)]]
   [["Request Parameters"
     :pad-keys t
     (ee--infix-variable-scope)
@@ -419,7 +419,7 @@ Also format its value in the Transient menu."
     (ee--infix-max-tokens)
     (ee--infix-num-messages-to-send
      :if (lambda () (and ee-expert-commands
-                         (or ee-mode ee-track-response))))
+                    (or ee-mode ee-track-response))))
     (ee--infix-temperature :if (lambda () ee-expert-commands))
     (ee--infix-use-context)
     (ee--infix-track-response
@@ -431,7 +431,7 @@ Also format its value in the Transient menu."
     ("y" "Kill-ring instead" "y")
     ""
     ("i" "Respond in place" "i")]
-   [" >Response to"
+    [" >Response to"
     ("e" "Echo area" "e")
     ("g" "gptel session" "g"
      :class transient-option
@@ -457,14 +457,14 @@ Also format its value in the Transient menu."
     (ee--suffix-send)
     ("M-RET" "Regenerate" ee--regenerate :if ee--in-response-p)]
    [:description (lambda () (concat (and ee--rewrite-overlays "Continue ")
-                                    "Rewrite"))
-                 :if (lambda () (or (use-region-p)
-                                    (and ee--rewrite-overlays
-                                         (ee--rewrite-sanitize-overlays))))
-                 ("r"
-                  (lambda () (if (get-char-property (point) 'ee-rewrite)
-                                 "Iterate" "Rewrite"))
-                  ee-rewrite)]
+                               "Rewrite"))
+    :if (lambda () (or (use-region-p)
+                  (and ee--rewrite-overlays
+                       (ee--rewrite-sanitize-overlays))))
+    ("r"
+     (lambda () (if (get-char-property (point) 'ee-rewrite)
+               "Iterate" "Rewrite"))
+     ee-rewrite)]
    ["Tweak Response" :if ee--in-response-p :pad-keys t
     ("SPC" "Mark" ee--mark-response)
     ("P" "Previous variant" ee--previous-variant
@@ -562,15 +562,15 @@ More extensive system messages can be useful for specific tasks.
 
 Customize `ee-directives' for task-specific prompts."
   [:description ee-system-prompt--format
-                [(ee--suffix-system-message)]
-                [(ee--infix-variable-scope)]]
-  [:class transient-column
-          :setup-children
-          (lambda (_) (transient-parse-suffixes
-                       'ee-system-prompt
-                       (ee--setup-directive-menu
-                        'ee--system-message "Directive" t)))
-          :pad-keys t])
+   [(ee--suffix-system-message)]
+   [(ee--infix-variable-scope)]]
+   [:class transient-column
+    :setup-children
+    (lambda (_) (transient-parse-suffixes
+            'ee-system-prompt
+            (ee--setup-directive-menu
+             'ee--system-message "Directive" t)))
+    :pad-keys t])
 
 
 ;; * Transient Infixes
@@ -749,8 +749,8 @@ supports.  See `ee-track-media' for more information."
   :transient 'transient--do-stay
   :key "-r"
   :if (lambda () (or (use-region-p)
-                     (and (fboundp 'ee-context--at-point)
-                          (ee-context--at-point))))
+                (and (fboundp 'ee-context--at-point)
+                     (ee-context--at-point))))
   :description
   (lambda ()
     (if (and (fboundp 'ee-context--at-point)
@@ -893,7 +893,7 @@ Or in an extended conversation:
                          (truncate-string-to-width resp 30))))))
      ((setq ee-buffer-name
             (cl-some (lambda (s) (and (stringp s) (string-prefix-p "g" s)
-                                      (substring s 1)))
+                                 (substring s 1)))
                      args))
       (setq output-to-other-buffer-p t)
       (let ((reduced-prompt             ;For inserting into the gptel buffer as
@@ -946,23 +946,23 @@ Or in an extended conversation:
               (setq position (point)))))))
      ((setq ee-buffer-name
             (cl-some (lambda (s) (and (stringp s) (string-prefix-p "b" s)
-                                      (substring s 1)))
+                                 (substring s 1)))
                      args))
       (setq output-to-other-buffer-p t)
       (setq buffer (get-buffer-create ee-buffer-name))
       (with-current-buffer buffer (setq position (point)))))
 
     (prog1 (ee-request prompt
-                       :buffer (or buffer (current-buffer))
-                       :position position
-                       :in-place (and in-place (not output-to-other-buffer-p))
-                       :stream stream
-                       :system
-                       (if system-extra
-                           (ee--merge-additional-directive system-extra)
-                         ee--system-message)
-                       :callback callback
-                       :dry-run dry-run)
+             :buffer (or buffer (current-buffer))
+             :position position
+             :in-place (and in-place (not output-to-other-buffer-p))
+             :stream stream
+             :system
+             (if system-extra
+                 (ee--merge-additional-directive system-extra)
+               ee--system-message)
+             :callback callback
+             :dry-run dry-run)
 
       (unless dry-run
         (ee--update-status " Waiting..." 'warning))
@@ -1014,7 +1014,7 @@ for details."
             (setcar copy (concat (car copy) "\n\n" additional))
             copy))
     (function (lambda () (ee--merge-additional-directive
-                          additional (funcall full))))
+                     additional (funcall full))))
     (otherwise additional)))
 
 ;; Allow calling from elisp
@@ -1059,19 +1059,19 @@ This uses the prompts in the variable
                 (if (eq action 'metadata)
                     `(metadata
                       (affixation-function .
-                                           (lambda (cands)
-                                             (mapcar
-                                              (lambda (c)
-                                                (list c ""
-                                                      (concat (propertize " " 'display '(space :align-to 22))
-                                                              " " (propertize (gethash c ee--crowdsourced-prompts)
-                                                                              'face 'completions-annotations))))
-                                              cands))))
+                       (lambda (cands)
+                         (mapcar
+                          (lambda (c)
+                            (list c ""
+                             (concat (propertize " " 'display '(space :align-to 22))
+                              " " (propertize (gethash c ee--crowdsourced-prompts)
+                               'face 'completions-annotations))))
+                          cands))))
                   (complete-with-action action ee--crowdsourced-prompts str pred)))
               nil t)))
         (when-let ((prompt (gethash choice ee--crowdsourced-prompts)))
-          (setq ee--system-message prompt)
-          (call-interactively #'ee--suffix-system-message)))
+            (setq ee--system-message prompt)
+            (call-interactively #'ee--suffix-system-message)))
     (message "No prompts available.")))
 
 (transient-define-suffix ee--suffix-system-message (&optional cancel)
@@ -1156,10 +1156,10 @@ it is run after exiting the edit."
                                (buffer-substring-no-properties msg-start (point-max))))
                           (with-current-buffer orig-buf
                             (ee--set-with-scope sym
-                                                (if (cdr-safe directive) ;Handle list of strings
-                                                    (prog1 directive (setcar directive system-message))
-                                                  system-message)
-                                                ee--set-buffer-locally)))
+                                                   (if (cdr-safe directive) ;Handle list of strings
+                                                       (prog1 directive (setcar directive system-message))
+                                                     system-message)
+                                                   ee--set-buffer-locally)))
                         (funcall quit-to-menu))
             "C-c C-k" quit-to-menu)
           text-mode-map))))))

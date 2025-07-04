@@ -11,10 +11,55 @@ EEE_FIND_SCRIPT=${CURR_DIR}/eee-find.sh
 
 FZF_BINDS="\
 f1:become(${EEE_RG_SCRIPT}),\
-f2:become(${EEE_FIND_SCRIPT} {}),\
-f3:execute(${EEE_SYMBOL_SCRIPT} {})\
+f2:become(${EEE_FIND_SCRIPT} {})\
 "
-# FZF_F1_BIND="f1:become(${EEE_FIND_SCRIPT} {})"
-# FZF_F2_BIND="f2:become(${EEE_RG_SCRIPT} {})"
 
-logger -t eee.el -- EEE_F1_BIND=${FZF_F1_BIND}
+error() {
+    echo "error: $*"
+    exit 1
+} >&2
+
+check_tools() {
+    local tool
+    for tool; do
+        case "$tool" in
+            bat)
+                __lookup_tool BAT bat batcat
+                ;;
+
+            devicon-lookup)
+                __lookup_tool DEVICON_LOOKUP devicon-lookup
+                ;;
+
+            fd)
+                __lookup_tool FD fd fdfind
+                ;;
+
+            fzf)
+                __lookup_tool FZF fzf
+                ;;
+
+            rg)
+                __lookup_tool RG rg
+                ;;
+
+            *)
+                error "unknown tool '$tool'"
+        esac
+    done
+}
+
+__lookup_tool() {
+    local var knownas t p
+    var=$1
+    shift
+    knownas=$1
+    for t; do
+        p="$(command -v $t)" && {
+            eval "$var='$p'"
+            return 0
+        }
+    done
+
+    error "tool '$knownas' not installed"
+}
