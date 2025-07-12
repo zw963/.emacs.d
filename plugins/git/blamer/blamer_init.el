@@ -1,12 +1,8 @@
 ;; -*- lexical-binding: t; -*-
 
 (require 'blamer)
-(require 'git-messenger)
 
-(setq git-messenger:show-detail t)
-(setq popup-enable-display-line-number-mode-p t)
-(global-set-key [(control x) (v) (m)] 'git-messenger:popup-message)
-
+;;(setq blamer-type 'posframe-popup)
 ;; (setq blamer-show-avatar-p nil)
 (setq blamer-idle-time 1)
 (setq blamer-max-lines 1)
@@ -18,6 +14,14 @@
 ;;                        :italic t)))
 
 (global-blamer-mode 1)
+
+;; ;; -----------------------------------------------------------------
+
+;; (require 'git-messenger)
+
+;; (setq git-messenger:show-detail t)
+;; (setq popup-enable-display-line-number-mode-p t)
+;; (global-set-key [(control x) (v) (m)] 'git-messenger:popup-message)
 
 (provide 'blamer_init)
 
