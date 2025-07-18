@@ -2320,7 +2320,8 @@ Example:
   "Hooks after fetching GitHub notifications.")
 
 (defun doom-modeline--github-fetch-notifications ()
-  "Fetch GitHub notifications."
+  "Fetch GitHub notifications.
+It requires `async' and `ghub' packages."
   (when (and doom-modeline-github
              (require 'async nil t))
     (async-start
@@ -2331,12 +2332,13 @@ Example:
         (when (require 'ghub nil t)
           (with-timeout (10)
             (ignore-errors
-              (when-let* ((username (ghub--username ghub-default-host))
-                          (token (or (ghub--token ghub-default-host username 'forge t)
-                                     (ghub--token ghub-default-host username 'ghub t))))
+              (when-let* ((host (alist-get 'github ghub-default-host-alist))
+			              (username (ghub--username host))
+                          (token (or (ghub--token host username 'forge t)
+                                     (ghub--token host username 'ghub t))))
                 (ghub-get "/notifications"
                           '((notifications . t))
-                          :host ghub-default-host
+                          :host host
                           :username username
                           :auth token
                           :unpaginate t
@@ -3361,6 +3363,17 @@ Otherwise, it displays the message like `message' would."
                   (apply #'format-message format-string args)))
           (force-mode-line-update)))
     (apply #'message format-string args)))
+
+;;
+;; Speedbar
+;;
+
+(doom-modeline-def-segment speedbar-info
+  (concat
+   (propertize "%l"
+               'face (doom-modeline-face)
+               'mouse-face 'doom-modeline-highlight)
+   (doom-modeline-spc)))
 
 ;;
 ;; Kubernetes
