@@ -91,7 +91,7 @@
 
 ;; M-1~M-7, select tab
 ;; M-9 left-tab, M-0 right-tab.
-(require 'sort-tab_init)
+;; (require 'sort-tab_init)
 
 ;; C-x 然后连续按下左右方向键, 本文件历史，
 ;;或 C-x Ctrl 不放, 连续按下左右方向键, 全局历史
@@ -170,9 +170,9 @@
 
 ;; 二选一
 ;; Ctrl + Alt + r, F3 使用 wgrep 编辑
-;; (require 'color-rg_init)
+(require 'color-rg_init)
 ;; (require 'eee_init) ;; 这个打开，覆盖 color-rg 的 Ctrl + Alt + R
-(require 'deadgrep_init)
+;; (require 'deadgrep_init)
 
 ;; 记住 C-c ' 编辑代码块中的代码.
 (require 'markdown-mode_init)
