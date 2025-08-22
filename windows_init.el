@@ -20,21 +20,20 @@
              ))
     ;; (require 'demap)
     ;; (setq demap-minimap-window-width 15)
-    ;; (run-with-idle-timer 0.2 nil '(lambda ()
-    ;;                                 (demap-open nil nil)
-    ;;                                 ;; (toggle-frame-maximized)
-    ;;                                 )
-    ;;                      )
-    )
-  )
+    (run-with-idle-timer 0.2 nil '(lambda ()
+                                    ;; (demap-open nil nil)
+                                    (toggle-frame-maximized)
+                                    ))))
 
 ;; NOTICE: 传送给aftar-make-frame-function的函数必须有且只能有一个参数用来表示新建立的frame.
 
+;; 升级最新版本 igc 之后，不知道是不是 arch 的问题，启动窗口后会最小化
+;; 需要将下面的代码加回来才可以。
 (if (and (fboundp 'daemonp) (daemonp))
     (add-hook 'after-make-frame-functions 'initialize-frame-delay t)
   )
-
 (add-hook 'window-setup-hook 'toggle-frame-maximized t)
+
 (global-set-key [(f5)] (lambda ()
                          (interactive)
                          (toggle-frame-maximized)
