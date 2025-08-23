@@ -22,6 +22,7 @@
 (require 'helm)
 (require 'helm-help)
 (require 'helm-regexp)
+(require 'project)
 
 ;;; load wgrep proxy if it's available
 (require 'wgrep-helm nil t)
@@ -669,7 +670,7 @@ Have no effect when grep backend use \"--color=\"."
                               proc-name
                               (helm-get-candidate-number)
                               (- (float-time) start-time))
-                    (helm-maybe-show-help-echo)
+                    (helm-maybe-show-popup-tip-info)
                     (with-helm-window
                       (setq mode-line-format
                             `(" " mode-line-buffer-identification " "
@@ -1684,7 +1685,7 @@ returns if available with current AG version."
                               proc-name
                               (helm-get-candidate-number)
                               (- (float-time) start-time))
-                  (helm-maybe-show-help-echo)
+                  (helm-maybe-show-popup-tip-info)
                   (with-helm-window
                     (setq mode-line-format
                           `(" " mode-line-buffer-identification " "
@@ -1718,7 +1719,7 @@ grep ag."
                                    (point-min) (point-max))
                                   "\n")))
            (transfo    (helm-get-attr 'filtered-candidate-transformer src))
-           (actions    (helm-get-attr 'action src))
+           (actions    helm-grep-actions)
            (name       (helm-get-attr 'name src))
            (directory  (helm-get-attr 'directory src)))
       (helm :sources (helm-build-sync-source (format "Search in %s" name)
@@ -1765,9 +1766,10 @@ grep ag."
 
 (defvar helm-source-grep-ag nil)
 
-(defun helm-grep-ag-1 (directory &optional type input)
+(defun helm-grep-ag-1 (directory &optional type input default)
   "Start helm ag in DIRECTORY maybe searching in files of type TYPE.
-If INPUT is provided, use it as the search string."
+Arg DEFAULT is what you will have with `next-history-element',
+arg INPUT is what you will have by default at prompt on startup."
   (setq helm-source-grep-ag
         (helm-make-source (upcase (helm-grep--ag-command)) 'helm-grep-ag-class
           :header-name (lambda (name)
@@ -1787,6 +1789,7 @@ If INPUT is provided, use it as the search string."
   (helm :sources 'helm-source-grep-ag
         :history 'helm-grep-ag-history
         :input input
+        :default default
         :truncate-lines helm-grep-truncate-lines
         :buffer (format "*helm %s*" (helm-grep--ag-command))))
 
@@ -1847,6 +1850,22 @@ version."
   (interactive "P")
   (require 'helm-files)
   (helm-grep-ag (expand-file-name default-directory) arg))
+
+;;;###autoload
+(defun helm-do-grep-ag-project (arg)
+  "Preconfigured `helm' for grepping with AG from the current project root.
+If no project found use `default-directory'.
+With prefix arg prompt for type if available with your AG version."
+  (interactive "P")
+  (require 'helm-files)
+  (require 'project)
+  (let ((project-root (helm-acase (project-current)
+                        ;; vc returns (type backend path).
+                        ((dst* (_type _backend path)) path)
+                        ;; projectile returns (type . path).
+                        ((dst* (_type . path)) path)
+                        (t default-directory))))
+    (helm-grep-ag (expand-file-name project-root) arg)))
 
 ;;;###autoload
 (defun helm-grep-do-git-grep (arg)

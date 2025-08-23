@@ -28,6 +28,21 @@
 (declare-function dired-async-mode-line-message "ext:dired-async.el")
 
 
+;; Urls for cloning.
+(defvar helm-packages-recipes-alist '(("melpa" . "https://melpa.org/packages/elpa-packages.eld")
+                                      ("gnu"   . "https://elpa.gnu.org/packages/elpa-packages.eld")
+                                      ("nongnu" . "https://elpa.nongnu.org/nongnu/elpa-packages.eld"))
+  "Adresses where to find recipes or urls for packages.")
+
+;; Caches for recipes (elpa-packages.eld contents).
+(defvar helm-packages--gnu-elpa-recipes-cache nil)
+(defvar helm-packages--nongnu-elpa-recipes-cache nil)
+(defvar helm-packages--melpa-recipes-cache nil)
+
+;; EmacsMirror
+(defvar helm-packages-fallback-url-for-cloning "https://github.com/emacsmirror/%s")
+
+
 (defgroup helm-packages nil
   "Helm interface for package.el."
   :group 'helm)
@@ -58,6 +73,15 @@
   "The function to isolate package.
 `package-isolate' is available only in emacs-30+."
   :type 'function)
+
+(defcustom helm-packages-default-clone-directory nil
+  "Default directory where to clone packages."
+  :type 'string)
+
+(defcustom helm-packages-clone-after-hook nil
+  "Hook that run after cloning a package.
+It is called with two args respectively PACKAGE as a string and DIRECTORY."
+  :type 'hook)
 
 ;;; Actions
 ;;
@@ -80,17 +104,18 @@
   "Helm action for describing package CANDIDATE."
   (describe-package candidate))
 
+(defun helm-packages-get-homepage-url (candidate)
+  "Get package CANDIDATE home page url."
+  (let* ((id     (package-get-descriptor candidate))
+         (extras (package-desc-extras id)))
+    (and (listp extras) (cdr-safe (assoc :url extras)))))
+
 (defun helm-packages-visit-homepage (candidate)
   "Helm action for visiting package CANDIDATE home page."
-  (let* ((id (package-get-descriptor candidate))
-         (name (package-desc-name id))
-         (extras (package-desc-extras id))
-         (url (and (listp extras) (cdr-safe (assoc :url extras)))))
+  (let ((url (helm-packages-get-homepage-url candidate)))
     (if (stringp url)
         (browse-url url)
-      (message "Package %s has no homepage"
-               (propertize (symbol-name name)
-                           'face 'font-lock-keyword-face)))))
+      (message "Package `%s' has no homepage" candidate))))
 
 (defun helm-packages-package-reinstall (_candidate)
   "Helm action for reinstalling marked packages."
@@ -211,6 +236,132 @@ Arg PACKAGES is a list of strings."
         (expand-file-name (package-desc-dir pkg))
       package-user-dir)))
 
+;;; Cloning packages
+;;
+(defun helm-packages-fetch-recipe (url)
+  "Fetch package recipes from URL.
+They are generally contained in a file named elpa-packages.eld on remote which
+contains the urls needed for cloning packages, each entry is like
+\(foo :url \"somewhere\") and may contain as well :branch."
+  (with-temp-buffer
+    (url-insert-file-contents url)
+    (goto-char (point-min))
+    (let ((data (read (current-buffer))))
+      ;; Recipes do not have the same form depending from
+      ;; where we fetch them, they may be like
+      ;; ((foo :url "somewhere")
+      ;;  (bar :url "somewhere"))
+      ;; or
+      ;; (((foo :url "somewhere")
+      ;;   (bar :url "somewhere"))
+      ;;  :version "1" :else "")
+      (if (keywordp (cadr data)) (car data) data))))
+
+(defun helm-packages-get-package-url (package provider)
+  "Get PACKAGE url from PROVIDER's recipe.
+Returns a plist like (:url <url> :branch <branch>).
+PROVIDER can be one of \"melpa\", \"gnu\" or \"nongnu\"."
+  (let* ((address (assoc-default provider helm-packages-recipes-alist))
+         (cache (helm-acase provider
+                  ("gnu"    'helm-packages--gnu-elpa-recipes-cache)
+                  ("nongnu" 'helm-packages--nongnu-elpa-recipes-cache)
+                  ("melpa"  'helm-packages--melpa-recipes-cache)))
+         (recipe  (or (symbol-value cache)
+                      (set cache (helm-packages-fetch-recipe address))))
+         (package-recipe (assq package recipe))
+         (core (plist-get (cdr package-recipe) :core))
+         (url (or (plist-get (cdr package-recipe) :url)
+                  ;; Assume that when :url = nil the package is maintained in
+                  ;; elpa or nongnu. When recipe is fetched from package-archives
+                  ;; addresses the url is always specified or the package if not
+                  ;; clonable not present at all e.g. cond-star.
+                  (helm-acase provider
+                    ("gnu"    "https://git.sv.gnu.org/git/emacs/elpa.git")
+                    ("nongnu" "https://git.sv.gnu.org/git/emacs/nongnu.git"))))
+         (branch (plist-get (cdr package-recipe) :branch)))
+    (cl-assert package-recipe nil (format "Couldn't find package '%s'" package))
+    (cl-assert (null core) nil
+               (format "Package '%s' already provided in Emacs at '%s'"
+                       package core))
+    (unless (stringp url)
+      ;; Sometimes the recipe for a package refers to the same url as another
+      ;; package by setting :url to the name of this package (symbol) e.g.
+      ;; In nongnu recipe, we have:
+      ;; (helm :url "https://...") and (helm-core :url helm)
+      (setq url (and url (plist-get (cdr (assq url recipe)) :url))))
+    `(:url ,url :branch ,branch)))
+
+(defun helm-packages-get-provider (package)
+  (let ((desc (assq package package-archive-contents)))
+    (package-desc-archive (cadr desc))))
+
+(defun helm-packages-get-recipe-for-cloning (package)
+  (let ((provider (helm-packages-get-provider package)))
+    (helm-packages-get-package-url package provider)))
+
+(defun helm-packages-clone-package (package)
+  "Git clone PACKAGE."
+  (let* ((name      (symbol-name package))
+         (directory (read-directory-name
+                     "Clone in directory: "
+                     helm-packages-default-clone-directory nil t))
+         (recipe (helm-packages-get-recipe-for-cloning package))
+         (url (plist-get recipe :url))
+         (branch (plist-get recipe :branch))
+         (fix-url (if (or (string-match "\\.git\\'" url)
+                          ;; For git-remote-hg.
+                          (string-match "\\`hg::" url))
+                      url
+                    (concat url ".git")))
+         ;; In gnu archive all packages maintained on Elpa are pointing to
+         ;; "https://git.sv.gnu.org/git/emacs/elpa.git", to be able to clone a
+         ;; package from such url we have to use:
+         ;; git clone --single-branch -b externals/<PACKAGE> URL PACKAGE-NAME.
+         ;; This create a directory named PACKAGE-NAME with only PACKAGE inside.
+         ;; If PACKAGE-NAME is ommited this create a repo named elpa which clash if
+         ;; such a dir already exists.  Another case is packages coming either
+         ;; from nongnu or melpa giving the nongnu url as :url and specifying a
+         ;; branch, example:
+         ;; (ws-butler :url "https://git.savannah.gnu.org/git/emacs/nongnu.git"
+         ;;            :branch "elpa/ws-butler")
+         (switches (append
+                    (if (string-match "\\(elpa\\|nongnu\\)\\.git\\'" url)
+                        `("clone" "--single-branch"
+                                  "-b" ,(or branch (format "externals/%s" package)))
+                      (delq nil `("clone" ,(and branch "-b") ,branch)))
+                    `(,fix-url ,name))))
+    (cl-assert (not (file-directory-p (expand-file-name name directory)))
+               nil (format "Package already exists in %s" directory))
+    (with-helm-default-directory directory
+      (let (process-connection-type
+            (proc (apply #'start-process
+                         "git" "*helm packages clone*"
+                         "git" switches)))
+        (save-selected-window
+          (display-buffer (process-buffer proc)
+                          '(display-buffer-below-selected
+                            (window-height . fit-window-to-buffer)
+                            (preserve-size . (nil . t)))))
+        (set-process-filter proc #'helm-packages--clone-filter-process)
+        (set-process-sentinel
+         proc (lambda (proc event)
+                (let ((status (process-exit-status proc)))
+                  (if (string= event "finished\n")
+                      (message "Cloning package %s done" package)
+                    (message "Cloning package %s failed" package))
+                  (when (= status 0)
+                    (quit-window t (get-buffer-window (process-buffer proc)))
+                    (run-hook-with-args
+                     'helm-packages-clone-after-hook
+                     (symbol-name package) directory)))))
+        (message "Cloning package %s..." package)))))
+
+(defun helm-packages--clone-filter-process (proc string)
+  (when (buffer-live-p (process-buffer proc))
+    (with-current-buffer (process-buffer proc)
+      (erase-buffer)
+      (insert (car (split-string string ""))))))
+
 ;;; Transformers
 ;;
 ;;
@@ -280,7 +431,16 @@ Arg PACKAGES is a list of strings."
 
 (defvar helm-packages--updated nil)
 (defun helm-packages--refresh-contents ()
-  (unless helm-packages--updated (package-refresh-contents))
+  (unless helm-packages--updated
+    (setq helm-packages--gnu-elpa-recipes-cache nil
+          helm-packages--nongnu-elpa-recipes-cache nil
+          helm-packages--melpa-recipes-cache nil)
+    (setq package-menu--old-archive-contents package-archive-contents)
+    (setq package-menu--new-package-list nil)
+    ;; `package-desc-status' adds the status 'new' to a package according to
+    ;; `package-menu--new-package-list'.
+    (package-menu--populate-new-package-list)
+    (package-refresh-contents))
   (helm-set-local-variable 'helm-packages--updated t))
 
 (defun helm-finder--list-matches (key)
@@ -318,7 +478,8 @@ Arg PACKAGES is a list of strings."
                         '(("Install packages(s)"
                            . helm-packages-install)))))
             :action '(("Describe package" . helm-packages-describe)
-                      ("Visit homepage" . helm-packages-visit-homepage)))
+                      ("Visit homepage" . helm-packages-visit-homepage)
+                      ("Clone package" . helm-packages-clone-package)))
           :buffer "*helm finder results*")))
 
 (defun helm-package--upgradeable-packages (&optional include-builtins)
@@ -338,6 +499,7 @@ Arg PACKAGES is a list of strings."
              for available = (and pkg (not (package-disabled-p sym cversion)) pkg)
              ;; Exclude packages installed with package-vc (issue#2692).
              when (and available
+                       (not (package-vc-p desc))
                        (or (and include-builtins (not cversion))
                            (and cversion
                                 (version-list-<
@@ -381,7 +543,8 @@ to avoid errors with outdated packages no more availables."
                                  . helm-packages-package-reinstall)
                                 ("Recompile package(s)" . helm-packages-recompile)
                                 ("Uninstall package(s)" . helm-packages-uninstall)
-                                ("Isolate package(s)" . helm-packages-isolate)))
+                                ("Isolate package(s)" . helm-packages-isolate)
+                                ("Clone package" . helm-packages-clone-package)))
                     (helm-make-source "Available external packages" 'helm-packages-class
                       :data (cl-loop for p in package-archive-contents
                                      for sym = (car p)
@@ -394,8 +557,8 @@ to avoid errors with outdated packages no more availables."
                                      nconc (list (car p)))
                       :action '(("Describe package" . helm-packages-describe)
                                 ("Visit homepage" . helm-packages-visit-homepage)
-                                ("Install packages(s)"
-                                 . helm-packages-install)))
+                                ("Install packages(s)" . helm-packages-install)
+                                ("Clone package" . helm-packages-clone-package)))
                     (helm-make-source "Available built-in packages" 'helm-packages-class
                       :data (cl-loop for p in package--builtins
                                      ;; Show only builtins that are available as
@@ -406,8 +569,7 @@ to avoid errors with outdated packages no more availables."
                                      collect (car p))
                       :action '(("Describe package" . helm-packages-describe)
                                 ("Visit homepage" . helm-packages-visit-homepage)
-                                ("Install packages(s)"
-                                 . helm-packages-install))))
+                                ("Install packages(s)" . helm-packages-install))))
           :buffer "*helm packages*")))
 
 ;;;###autoload

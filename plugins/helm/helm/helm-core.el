@@ -4,7 +4,7 @@
 
 ;; Author: Thierry Volpiatto <thievol@posteo.net>
 ;; URL: https://emacs-helm.github.io/helm/
-;; Version: 4.0.4
+;; Version: 4.0.5
 ;; Package-Requires: ((emacs "25.1") (async "1.9.9"))
 
 ;; This program is free software; you can redistribute it and/or modify
@@ -45,7 +45,7 @@
 (declare-function transient--delete-window "ext:transient" ())
 (declare-function transient--preserve-window-p "ext:transient"
                   (&optional nohide))
-(declare-function helm-maybe-show-help-echo "helm-utils")
+(declare-function helm-maybe-show-popup-tip-info "helm-utils")
 
 (defvar helm-marked-buffer-name)
 (defvar display-buffer-function)
@@ -196,9 +196,11 @@ window handling a buffer, it is this one we store.")
   "[INTERNAL] Recenter when deleting minibuffer-contents and preselecting.
 This is a flag used internally.")
 (defvar helm--minibuffer-completing-file-name nil
-  "A flag notifying Helm is in file completion.
+  "[INTERNAL] A flag notifying Helm is in file completion.
 It is let-bounded in `helm-read-file-name'. Same as
-`minibuffer-completing-file-name' but doesn't affect `file-directory-p'.")
+`minibuffer-completing-file-name' but doesn't affect `file-directory-p' when
+called on remote files.
+WARN: Use this only in `helm-read-file-name'.")
 
 ;;; Multi keys
 ;;
@@ -523,7 +525,9 @@ Default to Helm group when group is not defined in source."
     (helm-run-after-exit 'helm-customize-group-1 (helm-get-attr 'group source))))
 (put 'helm-customize-group 'helm-only t)
 
-(defun helm--action-at-nth-set-fn-1 (value &optional negative)
+(defun helm--action-at-nth-set-fn-1 (value &optional negative unset)
+  "Bind VALUE to (+-)nth candidate depending of NEGATIVE arg value.
+If UNSET is specified unbind VALUE instead."
   (dotimes (n 9)
     (let ((key (format value (1+ n)))
           (fn (lambda ()
@@ -531,15 +535,16 @@ Default to Helm group when group is not defined in source."
                 (helm-execute-selection-action-at-nth
                  (if negative (- (1+ n)) (1+ n))))))
       (define-key helm-map (kbd key) nil)
-      (define-key helm-map (kbd key) fn))))
+      (unless unset
+        (define-key helm-map (kbd key) fn)))))
 
-(defun helm--action-at-nth-set-fn- (var val)
-  (set var val)
-  (helm--action-at-nth-set-fn-1 val 'negative))
+(defun helm--action-at-nth-set-fn- (val &optional unset)
+  ;; Bind `helm-action-at-nth-negative-prefix-key' to `helm-map'.
+  (helm--action-at-nth-set-fn-1 val 'negative unset))
 
-(defun helm--action-at-nth-set-fn+ (var val)
-  (set var val)
-  (helm--action-at-nth-set-fn-1 val))
+(defun helm--action-at-nth-set-fn+ (val &optional unset)
+  ;; Bind `helm-action-at-nth-positive-prefix-key' to `helm-map'.
+  (helm--action-at-nth-set-fn-1 val nil unset))
 
 (defcustom helm-action-at-nth-negative-prefix-key "M-%d"
   "The prefix key to execute default action on nth <-n> candidate.
@@ -547,13 +552,11 @@ Default to Helm group when group is not defined in source."
 This is a format spec where %d will be replaced by the candidate
 number.
 
-This is useful when `helm-display-line-numbers-mode' is turned on.
-
-NOTE: `setq' have no effect until you restart Emacs, use
-customize for immediate effect."
+This is activated only when `helm-display-line-numbers-mode' is turned on.
+Note that default value `M-<n>' defeat the usage of `M-<n>' as prefix argument
+in `helm-M-x'."
   :group 'helm
-  :type 'string
-  :set #'helm--action-at-nth-set-fn-)
+  :type 'string)
 
 (defcustom helm-action-at-nth-positive-prefix-key "C-%d"
   "The prefix key to execute default action on nth <+n> candidate.
@@ -561,13 +564,11 @@ customize for immediate effect."
 This is a format spec where %d will be replaced by the candidate
 number.
 
-This is useful when `helm-display-line-numbers-mode' is turned on.
-
-NOTE: `setq' have no effect until you restart Emacs, use
-customize for immediate effect."
+This is activated only when `helm-display-line-numbers-mode' is turned on.
+Note that default value `C-<n>' defeat the usage of `C-<n>' as prefix argument
+in `helm-M-x'."
   :group 'helm
-  :type 'string
-  :set #'helm--action-at-nth-set-fn+)
+  :type 'string)
 
 
 ;;; User variables
@@ -1139,6 +1140,13 @@ A prefix arg reverse the behavior of this variable."
           (const :tag "Kill display" display)
           (const :tag "Kill real"    real)))
 
+(defcustom helm-follow-input-idle-delay 0.5
+  "`helm-follow-mode' will execute action after this delay once idle.
+Note that if the `follow-delay' attr is present in source, it
+will take precedence over this."
+  :group 'helm
+  :type 'float)
+
 (defvar helm-update-edebug nil
   "Development feature.
 If set to true then all functions invoked after `helm-update' can be
@@ -1669,7 +1677,13 @@ Only simple bindings are available and they are defined in
 `helm-help-hkmap', which is a simple alist of (key . function).
 You can define or redefine bindings in help with
 `helm-help-define-key' or by adding/removing entries directly in
-`helm-help-hkmap'.
+`helm-help-hkmap'.  For example if you want to replace isearch by [[https://github.com/thierryvolpiatto/isearch-light][isl-search]]
+to have multi match like helm use:
+
+    (helm-help-define-key \"C-s\" nil)
+    (helm-help-define-key \"C-r\" nil)
+    (helm-help-define-key \"C-s\" 'isl-search))
+
 See `helm-help-hkmap' for restrictions on bindings and functions.
 
 The documentation of default bindings are:
@@ -1821,7 +1835,7 @@ You can also toggle line numbers with
 buffer.
 
 Of course when enabling `global-display-line-numbers-mode' Helm
-buffers will have line numbers as well. \(Don't forget to
+buffers will have line numbers as well. (Don't forget to
 customize `display-line-numbers-type' to relative).
 
 In Emacs versions < to 26 you will have to use
@@ -1829,19 +1843,19 @@ In Emacs versions < to 26 you will have to use
 package and `helm-linum-relative-mode'.
 
 Then when line numbers are enabled with one of the methods above
-the following keys are available([1]):
+the following keys are available:
 
-C-x <n>: Execute default action on the n-th candidate before
+<negative prefix> <n>: Execute default action on the n-th candidate before
 currently selected candidate.
 
-C-c <n>: Execute default action on the n-th candidate after
-current selected candidate.
+<positive prefix> <n>: Execute default action on the n-th candidate after
+currently selected candidate.
 
-\"n\" is limited to 1-9.  For larger jumps use other navigation
-keys.
+Where <negative prefix> and <positive prefix> are respectively the value of
+the customizable variables `helm-action-at-nth-negative-prefix-key' and
+`helm-action-at-nth-positive-prefix-key'.
 
-\[1] Note that the key bindings are always available even if line
-numbers are not displayed.  They are just useless in this case.
+<n> is limited to 1-9.
 
 ** Mouse control in Helm
 
@@ -3042,7 +3056,6 @@ HISTORY args see `helm'."
   (helm-log "helm-internal" "prompt = %S" prompt)
   (helm-log "helm-internal" "preselect = %S" preselect)
   (helm-log "helm-internal" "buffer = %S" buffer)
-  (helm-log "helm-internal" "keymap = %S" keymap)
   (helm-log "helm-internal" "default = %S" default)
   (helm-log "helm-internal" "history = %S" history)
   (setq helm--prompt (or prompt "pattern: "))
@@ -4243,6 +4256,7 @@ WARNING: Do not use this mode yourself, it is internal to Helm."
       (setq mode-line-format (default-value 'mode-line-format))
       (remove-hook 'post-command-hook 'helm--maybe-update-keymap)
       (remove-hook 'post-command-hook 'helm--update-header-line)
+      (helm-display-line-numbers-mode -1)
       ;; Be sure we call cleanup functions from helm-buffer.
       (helm-compute-attr-in-sources 'cleanup)
       ;; Delete or make invisible helm frame.
@@ -5047,25 +5061,21 @@ emacs-27 to provide such scoring in emacs<27."
 
 (defun helm-render-source (source matches)
   "Display MATCHES from SOURCE according to its settings."
-  (helm-log "helm-render-source" "Source = %S" (remove (assq 'keymap source) source))
   (when matches
     (helm-insert-header-from-source source)
-    (cl-loop with separate = nil
-             with start = (point)
-             with singleline = (null (assq 'multiline source))
-             for m in matches
-             for count from 1
-             if singleline
-             do (helm-insert-match m 'insert count source)
-             else
-             do (progn
-                  (if separate
-                      (helm-insert-candidate-separator)
-                    (setq separate t))
-                  (helm-insert-match m 'insert count source))
-             finally (and (null singleline)
-                          (put-text-property start (point)
-                                             'helm-multiline t)))))
+    (let ((start (point))
+          (multiline (assq 'multiline source))
+          (count 1)
+          separate)
+      (dolist (m matches)
+        (when multiline
+          (if separate
+              (helm-insert-candidate-separator)
+            (setq separate t)))
+        (helm-insert-match m 'insert count source)
+        (cl-incf count))
+      (when multiline
+        (put-text-property start (point) 'helm-multiline t)))))
 
 (defmacro helm-while-no-input (&rest body)
   "Same as `while-no-input' but returns either BODY or nil.
@@ -5087,10 +5097,15 @@ Unlike `while-no-input' this macro ensure to not returns `t'."
 (defmacro helm--maybe-use-while-no-input (&rest body)
   "Wrap BODY in `helm-while-no-input' unless initializing a remote connection."
   `(progn
+     ;; Tramp would ask for passwd, so don't use `helm-while-no-input' until
+     ;; connected to remote.
      (if (or (and (file-remote-p helm-pattern)
                   (not (file-remote-p helm-pattern nil t)))
-             helm-update-edebug)
-         ;; Tramp will ask for passwd, don't use `helm-while-no-input'.
+             helm-update-edebug
+             ;; Don't use while-no-input on initial helm-update before minibuffer
+             ;; is not ready (Issue #2729), this happen in
+             ;; `helm-read-from-minibuffer'.
+             (not (helm-active-minibuffer-window)))
          ,@body
        (helm-log "helm--maybe-use-while-no-input"
                  "Using here `helm-while-no-input'")
@@ -5102,6 +5117,10 @@ Unlike `while-no-input' this macro ensure to not returns `t'."
               (and (boundp 'while-no-input-ignore-events)
                    (cons 'dbus-event while-no-input-ignore-events))))
          (helm-while-no-input ,@body)))))
+
+(defun helm-active-minibuffer-window ()
+  "Check if helm-window has an active minibuffer."
+  (helm-aand (helm-window) (minibuffer-window-active-p it)))
 
 (defun helm--collect-matches (src-list)
   "Return a list of matches for each source in SRC-LIST.
@@ -5194,10 +5213,9 @@ without recomputing them, it should be a list of lists."
              ;; Compute matches without rendering the sources.
              ;; This prevent the helm-buffer flickering when constantly
              ;; updating.
-             (helm-log "helm-update" "Matches: %S"
-                       (setq matches (or candidates (helm--collect-matches sources))))
+             (setq matches (or candidates (helm--collect-matches sources)))
              ;; If computing matches finished and is not interrupted
-             ;; erase the helm-buffer and render results (Fix #1157).
+             ;; erase the helm-buffer and render results (Fix bug#1157).
              (when matches ;; nil only when interrupted by while-no-input.
                (erase-buffer)
                (cl-loop for src in sources
@@ -5474,7 +5492,7 @@ specified as respectively `helm-cand-num' and `helm-cur-source'."
               (forward-line 1)))
           (helm-mark-current-line)
           (when helm-popup-tip-mode
-            (helm-maybe-show-help-echo))
+            (helm-maybe-show-popup-tip-info))
           (helm-follow-execute-persistent-action-maybe))
       (select-window (minibuffer-window))
       (set-buffer (window-buffer window)))))
@@ -5535,9 +5553,17 @@ This will work only in Emacs-26+, i.e. Emacs versions that have
                "`display-line-numbers' not available")
     (if helm-display-line-numbers-mode
         (with-helm-buffer
-          (setq display-line-numbers 'relative))
+          (setq display-line-numbers 'relative)
+          (helm--action-at-nth-set-fn+
+           helm-action-at-nth-positive-prefix-key)
+          (helm--action-at-nth-set-fn-
+           helm-action-at-nth-negative-prefix-key))
       (with-helm-buffer
-        (setq display-line-numbers nil)))))
+        (setq display-line-numbers nil)
+        (helm--action-at-nth-set-fn+
+         helm-action-at-nth-positive-prefix-key 'unset)
+        (helm--action-at-nth-set-fn-
+         helm-action-at-nth-negative-prefix-key 'unset)))))
 (put 'helm-display-line-numbers-mode 'helm-only t)
 
 
@@ -5623,8 +5649,7 @@ See `helm-default-output-filter'."
       (with-selected-window it
         (helm-skip-noncandidate-line 'next)
         (helm-mark-current-line nil 'nomouse)
-        ;; FIXME Don't hardcode follow delay.
-        (helm-follow-execute-persistent-action-maybe 0.5)
+        (helm-follow-execute-persistent-action-maybe)
         (helm-display-mode-line (helm-get-current-source))
         (helm-log-run-hook "helm-output-filter--post-process"
                            'helm-after-update-hook)
@@ -6510,14 +6535,19 @@ message \\='no match'."
 
 (defun helm--set-minibuffer-completion-confirm (src)
   "Return the value of a REQUIRE-MATCH arg in a `completing-read'."
-  ;; Set `minibuffer-completion-confirm' to 'noexit or
-  ;; 'exit, according to MUST-MATCH value (possibly a function).
+  ;; Set `minibuffer-completion-confirm' to 'noexit,'exit or 'confirm  according
+  ;; to MUST-MATCH value (possibly a function).
   (with-helm-buffer
     (setq minibuffer-completion-confirm
           (helm-acase (helm-get-attr 'must-match src)
             ((guard* (and (functionp it)
-                         (helm-get-selection nil nil src)))
-             (if (funcall it guard) 'exit 'noexit))
+                          (helm-get-selection nil nil src)))
+             (helm-acase (funcall it guard)
+               ;; Alow using 'confirm as the output of a REQUIRE-MATCH fn even
+               ;; if this feature is not available in Emacs.
+               ((confirm confirm-after-completion) it)
+               ((guard* (eq nil it)) 'noexit)
+               (t 'exit)))
             (t it)))))
 
 (defun helm-read-string (prompt &optional initial-input history
@@ -6620,8 +6650,7 @@ If action buffer is displayed, kill it."
 (defun helm-default-debug-function ()
   "Collect sources of helm current session without their keymap.
 This is the default function for `helm-debug-function'."
-  (cl-loop for source in (with-helm-buffer helm-sources)
-           collect (remove (assq 'keymap source) source)))
+  (with-helm-buffer helm-sources))
 
 (defun helm-debug-output-function ()
   (let ((local-vars (buffer-local-variables (get-buffer helm-buffer)))
@@ -6768,25 +6797,23 @@ Used generally to modify current selection."
     (helm-reset-yank-point)
     (unless (zerop (length input))
       ;; minibuffer is not empty, delete contents from end
-      ;; of FROM-STR and update.
+      ;; or FROM-STR and update.
       (helm-set-pattern from-str t)
+      (setq helm-input from-str) ; Needed by helm-fuzzy-matching-highlight-fn.
       (helm-update presel src))))
 
 (defun helm-delete-minibuffer-contents (&optional arg)
   "Delete minibuffer contents.
 When `helm-delete-minibuffer-contents-from-point' is non-nil, delete
-minibuffer contents from point instead of deleting all.  With a prefix
-ARG reverse this behaviour.  When at the end of minibuffer, delete all
-but if a prefix ARG were given also preselect current selection when
-updating if possible (selection may be beyond candidate-number-limit)."
+minibuffer contents from point instead of deleting all.  When at the end
+of minibuffer, delete all but if a prefix ARG were given also preselect
+current selection when updating if possible (selection may be beyond
+candidate-number-limit, or display may have completely changed e.g. HFF)."
   (interactive "P")
   (with-helm-alive-p
-    (let ((str (if helm-delete-minibuffer-contents-from-point
-                   (if (or arg (eobp))
-                       "" (helm-minibuffer-completion-contents))
-                 (if (and arg (not (eobp)))
-                     (helm-minibuffer-completion-contents) "")))
-          (presel (and arg (eobp)
+    (let ((str (if (or (eobp) (not helm-delete-minibuffer-contents-from-point))
+                   "" (helm-minibuffer-completion-contents)))
+          (presel (and arg
                        (concat "^" (regexp-quote (helm-get-selection nil t)) "$"))))
       (helm--delete-minibuffer-contents-from str presel))))
 (put 'helm-delete-minibuffer-contents 'no-helm-mx t)
@@ -6970,7 +6997,7 @@ To customize `helm-candidates-in-buffer' behaviour, use `search',
                                          (not (consp pos-lst)))
                                     ;; If match-part attr is present, or if SEARCHER fn
                                     ;; returns a cons cell, collect PATTERN only if it
-                                    ;; match the part of CAND specified by
+                                    ;; matches the part of CAND specified by
                                     ;; the match-part func.
                                     (helm-search-match-part cand pattern diacritics)))
                          do (progn
@@ -6995,14 +7022,17 @@ computed by match-part-fn and stored in the match-part property."
                        (t 'string-match))))
     (condition-case _err
         (if (string-match " " pattern)
+            ;; FIXME use helm-mm-3-match here.
             (cl-loop for i in (helm-mm-split-pattern pattern) always
                      (if (string-match "\\`!" i)
                          (not (funcall matchfn (substring i 1) part))
                        (funcall matchfn i part)))
+          ;; A pattern with no spaces that starts with "!".
           (if (string-match "\\`!" pattern)
               (if helm--in-fuzzy
                   ;; Fuzzy regexp have already been
-                  ;; computed with substring 1.
+                  ;; computed with substring 1 i.e. the leading "!" has been
+                  ;; removed.
                   (not (string-match fuzzy-regexp part))
                 (not (funcall matchfn (substring pattern 1) part)))
             (funcall matchfn (if helm--in-fuzzy fuzzy-regexp pattern) part)))
@@ -8022,11 +8052,6 @@ The real value of each candidate is used."
 ;;; Follow-mode: Automatic execution of persistent-action
 ;;
 ;;
-(defvar helm-follow-input-idle-delay nil
-  "`helm-follow-mode' will execute its persistent action after this delay.
-Note that if the `follow-delay' attr is present in source, it
-will take precedence over this.")
-
 (defun helm-follow-mode (&optional arg)
   "Execute persistent action every time the cursor is moved.
 
@@ -8107,15 +8132,8 @@ They are bound by default to \\[helm-follow-action-forward] and
   "Execute persistent action in mode `helm-follow-mode'.
 
 This happen after: DELAY or the \\='follow-attr value of current
-source or `helm-follow-input-idle-delay' or
-`helm-input-idle-delay' secs."
+source or `helm-follow-input-idle-delay'."
   (let* ((src (helm-get-current-source))
-         (at (or delay
-                 (assoc-default 'follow-delay src)
-                 helm-follow-input-idle-delay
-                 (or (and helm-input-idle-delay
-                          (max helm-input-idle-delay 0.01))
-                     0.01)))
          (suspend (and helm--in-update
                        ;; Specific to helm-find-files.
                        (assoc-default 'suspend-follow-in-update src))))
@@ -8129,9 +8147,35 @@ source or `helm-follow-input-idle-delay' or
                (null (eq (assoc-default 'follow src) 'never))
                (helm-get-selection nil nil src))
       (helm-follow-mode-set-source 1 src)
-      (run-with-idle-timer at nil (lambda ()
-                                    (when helm-alive-p
-                                      (helm-execute-persistent-action)))))))
+      (helm--execute-persistent-action-when-idle delay src))))
+
+;; We could use a simple idle timer here as before with a delay fixed at minimum
+;; 0.5, the effect is the same but it creates a timer at each call, with this
+;; code a new timer is created only after being idle 0.5 and restarting
+;; scrolling.  That's mean that when hitting C-n continuously no new timer is
+;; created, we reuse `helm--execute-persistent-action-timer' until it is not
+;; consumed i.e. the PA is executed because we are idle.
+(defvar helm--execute-persistent-action-timer nil)
+(defun helm--execute-persistent-action-when-idle (&optional delay src)
+  "Call persistent action only once idle DELAY that many seconds.
+SRC is used to check if there is a delay specified for this source.
+Also avoid creating needlessly a timer at each call."
+  ;; More or less similar to what the debounce fn in timeout package does,
+  ;; except the timer is stored in a global var instead of beeing stored in a
+  ;; closure and there is no default output, we just execute
+  ;; helm-execute-persistent-action once emacs is idle.
+  (when helm-alive-p
+    (let ((at (or delay
+                  (assoc-default 'follow-delay src)
+                  helm-follow-input-idle-delay)))
+      (unless (timerp helm--execute-persistent-action-timer)
+        (setq helm--execute-persistent-action-timer
+              (run-with-idle-timer
+               at nil
+               (lambda ()
+                 (cancel-timer helm--execute-persistent-action-timer)
+                 (setq helm--execute-persistent-action-timer nil)
+                 (helm-execute-persistent-action))))))))
 
 (defun helm-follow-mode-p (&optional source)
   (with-helm-buffer

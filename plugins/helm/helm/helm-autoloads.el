@@ -771,9 +771,10 @@ by git or hg, otherwise it has no effect.
 (autoload 'helm-browse-project "helm-files" "\
 Preconfigured helm to browse projects.
 Browse files and see status of project with its VCS.
-Only HG and GIT are supported for now.
+GIT, HG and SVN are supported for now, but only git is fully featured with
+`helm-ls-git' package.
 Fall back to `helm-browse-project-find-files' if current
-directory is not under control of one of those VCS.
+directory is not under control or one of those VCS.
 With a prefix ARG browse files recursively, with two prefix ARG
 rebuild the cache.
 If the current directory is found in the cache, start
@@ -781,10 +782,10 @@ If the current directory is found in the cache, start
 NOTE: The prefix ARG have no effect on the VCS controlled
 directories.
 
-Needed dependencies for VCS:
+Needed dependencies for VCS (not mandatory, pickup what you need):
 <https://github.com/emacs-helm/helm-ls-git>
-and
-<https://github.com/emacs-helm/helm-ls-hg>.
+<https://github.com/emacs-helm/helm-ls-hg>
+<http://melpa.org/#/helm-ls-svn>.
 
 \(fn ARG)" t)
 
@@ -902,6 +903,13 @@ modifications in `current-buffer'." t)
 Preconfigured `helm' for grepping with AG in `default-directory'.
 With prefix arg prompt for type if available with your AG
 version.
+
+\(fn ARG)" t)
+
+(autoload 'helm-do-grep-ag-project "helm-grep" "\
+Preconfigured `helm' for grepping with AG from the current project root.
+If no project found use `default-directory'.
+With prefix arg prompt for type if available with your AG version.
 
 \(fn ARG)" t)
 

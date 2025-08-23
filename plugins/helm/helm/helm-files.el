@@ -50,6 +50,7 @@
 (declare-function eshell-resume-eval "esh-cmd")
 (declare-function helm-ls-git "ext:helm-ls-git")
 (declare-function helm-hg-find-files-in-project "ext:helm-ls-hg")
+(declare-function helm-ls-svn-ls "ext:helm-ls-svn")
 (declare-function helm-gid "helm-id-utils.el")
 (declare-function helm-find-1 "helm-find")
 (declare-function helm-fd-1 "helm-fd")
@@ -98,6 +99,7 @@
 (declare-function async-byte-compile-file "async-bytecomp.el")
 (declare-function async-byte-recompile-directory "async-bytecomp.el")
 (declare-function dnd-begin-drag-files "dnd.el")
+(declare-function vc-deduce-backend "vc")
 
 (defvar term-char-mode-point-at-process-mark)
 (defvar term-char-mode-buffer-read-only)
@@ -959,6 +961,19 @@ working only when dropping on an external application (only thunar tested)."
           (const :tag "Copy" copy)
           (const :tag "Move" move)
           (const :tag "Link" link)))
+
+(defcustom helm-find-files-ignore-diacritics nil
+  "Ignore diacritics on basename of files when non nil.
+Note that this happens only when switching to multimatch, i.e. adding spaces in
+pattern, this may slowdown a little matching of candidates when non nil.
+Setting this with `setq' may have no effect on this variable, use
+`customize-set-variable'.  This variable affects as well `read-file-name'."
+  :type 'boolean
+  :set (lambda (var val)
+         (set var val)
+         ;; Force rebuilding the source to pass diacritics fn to diacritics
+         ;; slot.
+         (setq helm-source-find-files nil)))
 
 ;;; Faces
 ;;
@@ -1147,6 +1162,16 @@ Used when showing tramp host completions."
                        (remhash helm-ff-default-directory
                                 helm-ff--list-directory-cache)))
    (match-on-real :initform t)
+   ;; We don't want to have here matchfns loaded uselessly.
+   ;; By using diacritics :match should expand to:
+   ;; '(helm-mm-exact-match helm-mm-3f-match-on-diacritics helm-mm-3-migemo-match)
+   ;; If helm-find-files-ignore-diacritics is nil we should fallback to:
+   ;; '(helm-mm-exact-match helm-mm-3f-match helm-mm-3-migemo-match)
+   ;; See `helm-source-mm-get-search-or-match-fns'.
+   (match :initform (unless helm-find-files-ignore-diacritics
+                      'helm-mm-3f-match))
+   (diacritics :initform (and helm-find-files-ignore-diacritics
+                              'helm-mm-3f-match-on-diacritics))
    (filtered-candidate-transformer
     :initform '(helm-ff-fct
                 helm-ff-maybe-show-thumbnails
@@ -2588,29 +2613,30 @@ at end of pattern using \\<helm-map>\\[backward-char] and
   (setq helm-ff--deleting-char-backward nil))
 
 (defvar helm-ff--RET-disabled nil)
-(defun helm-ff-RET-1 (&optional must-match)
-  "Used for RET action in `helm-find-files'.
-See `helm-ff-RET' for details.
-If MUST-MATCH is specified exit with
-`helm-confirm-and-exit-minibuffer' which handle must-match mechanism."
-  (let ((sel   (helm-get-selection))
-        ;; Ensure `file-directory-p' works on remote files.
-        non-essential)
-    (cl-assert sel nil "Trying to exit with no candidates")
-    (if (and (or (file-directory-p sel)
-                 (helm-ff--invalid-tramp-name-p sel))
-             ;; Allows exiting with default action when a prefix arg
-             ;; is specified.
-             (null current-prefix-arg)
-             (null helm-ff--RET-disabled)
-             (or (and (file-remote-p sel)
-                      (string= "." (helm-basename sel))
-                      (string-match-p "\\`[/].*:.*:\\'"
-                                      helm-pattern))
-                 (not (string= "." (helm-basename sel)))))
-        (helm-execute-persistent-action)
-      (if must-match
-          (helm-confirm-and-exit-minibuffer)
+(defun helm-ff-RET-1 ()
+  "Used for RET action in `helm-find-files' and `helm-read-file-name'.
+See `helm-ff-RET' for details."
+  (catch 'must-match
+    (let ((sel (helm-get-selection))
+          ;; Ensure `file-directory-p' works on remote files.
+          non-essential)
+      ;; `helm--minibuffer-completing-file-name' is non nil that's mean we are
+      ;; in `helm-read-file-name'.
+      (if (and helm--minibuffer-completing-file-name (null sel))
+          (throw 'must-match (minibuffer-message "[No match]"))
+        (cl-assert sel nil "Trying to exit with no candidates"))
+      (if (and (or (file-directory-p sel)
+                   (helm-ff--invalid-tramp-name-p sel))
+               ;; Allows exiting with default action when a prefix arg
+               ;; is specified.
+               (null current-prefix-arg)
+               (null helm-ff--RET-disabled)
+               (or (and (file-remote-p sel)
+                        (string= "." (helm-basename sel))
+                        (string-match-p "\\`[/].*:.*:\\'"
+                                        helm-pattern))
+                   (not (string= "." (helm-basename sel)))))
+          (helm-execute-persistent-action)
         (helm-maybe-exit-minibuffer)))))
 
 (defun helm-ff-RET ()
@@ -2647,11 +2673,6 @@ Called with a prefix arg open menu unconditionally."
   (interactive "P")
   (helm-ff-TAB-1 arg))
 (put 'helm-ff-TAB 'helm-only t)
-
-(defun helm-ff-RET-must-match ()
-  "Same as `helm-ff-RET' but used in must-match map."
-  (interactive)
-  (helm-ff-RET-1 t))
 
 (helm-make-command-from-action helm-ff-run-grep
     "Run Grep action from `helm-source-find-files'."
@@ -3898,9 +3919,9 @@ This is meant to run in `tramp-cleanup-connection-hook'."
         if (assq i bad) concat (cdr it)
         else concat (string i)))
 
-(defun helm-ff-fuzzy-matching-p ()
-  (and helm-ff-fuzzy-matching
-       (not (memq helm-mm-matching-method '(multi1 multi3p)))))
+;; Keep it like this i.e. a function for evaluation in source definition.
+(defun helm-ff--fuzzy-matching-p ()
+  helm-ff-fuzzy-matching)
 
 (defun helm-ff--transform-pattern-for-completion (pattern)
   "Maybe return PATTERN with it's basename modified as a regexp.
@@ -3936,7 +3957,7 @@ If PATTERN is a valid directory name, return PATTERN unchanged."
       ;; This allow showing all files/dirs matching BN (Bug#518).
       ;; FIXME: some multi-match methods may not work here.
       (dir-p (concat (regexp-quote bd) " " (regexp-quote bn)))
-      ((or (not (helm-ff-fuzzy-matching-p))
+      ((or (not (helm-ff--fuzzy-matching-p))
            (string-match "[ !]" bn))    ; Fall back to multi-match.
        (concat (regexp-quote bd) " " bn))
       ((or (string-match "[*][.]?.*" bn) ; Allow entering wildcard.
@@ -5570,7 +5591,7 @@ Show the first `helm-ff-history-max-length' elements of
       (if comp-read
           (let ((src (helm-build-sync-source "Helm Find Files History"
                        :candidates helm-ff-history
-                       :fuzzy-match (helm-ff-fuzzy-matching-p)
+                       :fuzzy-match (helm-ff--fuzzy-matching-p)
                        :persistent-action 'ignore
                        :migemo t
                        :action (lambda (candidate)
@@ -7056,11 +7077,12 @@ by git or hg, otherwise it has no effect."
   (interactive "P")
   (setq helm-browse-project-history
         (cl-loop for p in helm-browse-project-history
-                 when (file-directory-p p)
+                 when (and (stringp p) (file-directory-p p))
                  collect p))
   (helm :sources
         (helm-build-sync-source "Project history"
           :candidates helm-browse-project-history
+          :filtered-candidate-transformer 'helm-adaptive-sort
           :action (helm-make-actions
                    "Browse project"
                    (lambda (candidate)
@@ -7080,9 +7102,10 @@ by git or hg, otherwise it has no effect."
 (defun helm-browse-project (arg)
   "Preconfigured helm to browse projects.
 Browse files and see status of project with its VCS.
-Only HG and GIT are supported for now.
+GIT, HG and SVN are supported for now, but only git is fully featured with
+`helm-ls-git' package.
 Fall back to `helm-browse-project-find-files' if current
-directory is not under control of one of those VCS.
+directory is not under control or one of those VCS.
 With a prefix ARG browse files recursively, with two prefix ARG
 rebuild the cache.
 If the current directory is found in the cache, start
@@ -7090,37 +7113,48 @@ If the current directory is found in the cache, start
 NOTE: The prefix ARG have no effect on the VCS controlled
 directories.
 
-Needed dependencies for VCS:
+Needed dependencies for VCS (not mandatory, pickup what you need):
 <https://github.com/emacs-helm/helm-ls-git>
-and
-<https://github.com/emacs-helm/helm-ls-hg>."
+<https://github.com/emacs-helm/helm-ls-hg>
+<http://melpa.org/#/helm-ls-svn>."
   (interactive "P")
   (require 'helm-x-files)
-  (let ((helm-type-buffer-actions
-         (remove (assoc "Browse project from buffer"
-                        helm-type-buffer-actions)
-                 helm-type-buffer-actions))
-        (helm-buffers-in-project-p t))
+  (require 'vc)
+  (let* ((helm-type-buffer-actions
+          (remove (assoc "Browse project from buffer"
+                         helm-type-buffer-actions)
+                  helm-type-buffer-actions))
+         (helm-buffers-in-project-p t)
+         (git-project (and (require 'helm-ls-git nil t)
+                           (fboundp 'helm-ls-git-root-dir)
+                           (helm-ls-git-root-dir)))
+         (hg-project (and (require 'helm-ls-hg nil t)
+                          (fboundp 'helm-hg-root)
+                          (helm-hg-root)))
+         (svn-project (and (require 'helm-ls-svn nil t)
+                           (fboundp 'helm-ls-svn-root-dir)
+                           (helm-ls-svn-root-dir)))
+         ;; handle nested projects (Hg inside Git or vice versa) issue#2723.
+         (project-type (vc-deduce-backend)))
     (cl-flet ((push-to-hist (root)
                 (setq helm-browse-project-history
                       (cons root (delete root helm-browse-project-history)))))
-      (helm-acond ((and (require 'helm-ls-git nil t)
-                        (fboundp 'helm-ls-git-root-dir)
-                        (helm-ls-git-root-dir))
+      (helm-acond ((and (equal project-type 'Git) git-project)
                    (push-to-hist it)
                    (helm-ls-git))
-                  ((and (require 'helm-ls-hg nil t)
-                        (fboundp 'helm-hg-root)
-                        (helm-hg-root))
+                  ((and (equal project-type 'Hg) hg-project)
                    (push-to-hist it)
                    (helm-hg-find-files-in-project))
+                  ((and (equal project-type 'Svn) svn-project)
+                   (push-to-hist it)
+                   (helm-ls-svn-ls))
                   ((helm-browse-project-get--root-dir (helm-current-directory))
                    (if (or arg (gethash it helm--browse-project-cache))
                        (progn
-                         (push-to-hist it)
+                         (push-to-hist (abbreviate-file-name it))
                          (helm-browse-project-find-files it (equal arg '(16))))
-                       (helm :sources (helm-browse-project-build-buffers-source it)
-                             :buffer "*helm browse project*")))))))
+                     (helm :sources (helm-browse-project-build-buffers-source it)
+                           :buffer "*helm browse project*")))))))
 
 (defun helm-browse-project-get--root-dir (directory)
   (cl-loop with dname = (file-name-as-directory directory)

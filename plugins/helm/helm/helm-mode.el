@@ -299,6 +299,12 @@ Where FUNCTION is a function suitable for `helm-quit-and-find-file'.")
     '((t :inherit font-lock-property-name-face))
   "Face used to highlight annotations in completion."
   :group 'helm-mode)
+
+(defface helm-completions-key-binding
+  '((t :inherit font-lock-constant-face))
+  "Face used to highlight key binding in completion."
+  :group 'helm-mode)
+
 
 (defvar helm-comp-read-map
   (let ((map (make-sparse-keymap)))
@@ -1047,9 +1053,11 @@ that use `helm-comp-read'.  See `helm-M-x' for example."
                (flags . (helm-completing-read--buffer-lgst-mode))))
     (symbol-help . (metadata
                     (affixation-function . helm-symbol-completion-table-affixation)
+                    (persistent-fn . t)
                     (category . symbol-help)))
     (command-help . (metadata
                      (prefix-arg . t)
+                     (persistent-fn . t)
                      (affixation-function . helm-symbol-completion-table-affixation)
                      (category . symbol-help)))
     (eww-help . (metadata ;; Emacs-30 only
@@ -1117,6 +1125,7 @@ FLAGS is a list of variables to renitialize to nil when exiting or quitting.")
     ("trace-function-foreground" . symbol-help)
     ("trace-function-background" . symbol-help)
     ("describe-minor-mode" . symbol-help)
+    ("toggle-option" . symbol-help)
     ("where-is" . symbol-help)
     ("execute-extended-command" . symbol-help)
     ("execute-extended-command-for-buffer" . command-help)
@@ -1295,7 +1304,7 @@ is used."
     (let* ((key     (and (commandp sym) (where-is-internal sym nil 'first-only)))
            (binding (and key (key-description key))))
       (when binding
-        (propertize (format " (%s)" binding) 'face 'shadow)))))
+        (propertize (format " (%s)" binding) 'face 'helm-completions-key-binding)))))
 
 (defun helm-completion-package-affixation (_completions)
   (lambda (comp)
@@ -1520,7 +1529,7 @@ dynamically otherwise use `helm-completing-read-default-2'."
                       metadata 'display-sort-function)
                      (lambda (candidates)
                        (sort candidates #'helm-generic-sort-fn)))))
-         popup-info flags pref-arg keymap)
+         popup-info flags pref-arg pers-fn keymap)
     (helm-aif (and (null category)
                    (assoc-default name helm-completing-read-command-categories))
         (setq metadata `(metadata (category . ,it))
@@ -1534,6 +1543,8 @@ dynamically otherwise use `helm-completing-read-default-2'."
                 afix (completion-metadata-get metadata 'affixation-function)
                 ;; prefix-arg metadata is only in command-help category.
                 pref-arg (completion-metadata-get metadata 'prefix-arg)
+                pers-fn  (and (completion-metadata-get metadata 'persistent-fn)
+                              (helm-mode--get-persistent-fn name))
                 popup-info (completion-metadata-get metadata 'popup-info-function)
                 flags (completion-metadata-get metadata 'flags))))
     (setq keymap (if pref-arg
@@ -1545,7 +1556,8 @@ dynamically otherwise use `helm-completing-read-default-2'."
           prompt (if pref-arg
                      (concat (helm-acase helm-M-x-prefix-argument
                                (- "-")
-                               ((dst* l &rest args)
+                               ;; Why &rest? isn't this always a list of one arg?
+                               ((dst* (l &rest args))
                                 (if (eq l 4) "C-u " (format "%d " l)))
                                ((guard* (integerp it)) (format "%d " it)))
                              prompt)
@@ -1575,8 +1587,8 @@ dynamically otherwise use `helm-completing-read-default-2'."
               :alistp alistp
               :diacritics helm-mode-ignore-diacritics
               :help-message #'helm-comp-read-help-message
-              :persistent-action (and pref-arg #'helm-M-x-persistent-action)
-              :persistent-help (if pref-arg "Toggle Describe command" "DoNothing")
+              :persistent-action pers-fn
+              :persistent-help (if pers-fn (format "Toggle %s" name) "DoNothing")
               :name name
               :requires-pattern (if (and (stringp default)
                                          (string= default "")
@@ -1614,6 +1626,16 @@ dynamically otherwise use `helm-completing-read-default-2'."
              (advice-add 'command-execute :around #'helm--advice-command-execute)))
       (when pref-arg (helm-M-x--unwind-forms))
       (dolist (f flags) (set f nil)))))
+
+(defun helm-mode--get-persistent-fn (name)
+  "Return a lambda to use in symbol-help persistent-action for NAME."
+  (lambda (candidate)
+    (helm-elisp--persistent-help
+     candidate
+     (helm-acase name
+       ("describe-symbol"   'helm-describe-symbol)
+       ("describe-variable" 'helm-describe-variable)
+       (t                   'helm-describe-function)))))
 
 (defun helm--advice-command-execute (old--fn &rest args)
   (helm-M-x--unwind-forms 'done)
@@ -2158,8 +2180,8 @@ Keys description:
           (unless (eq must-match t)
             ;; Non existing file or dir source.
             (helm-build-dummy-source "New file or directory"
-              :keymap 'helm-read-file-map
-              :must-match must-match
+              :keymap helm-read-file-map
+              :must-match must-match ; Merge must-match-map and helm-read-file-map.
               :all-marked all-marked
               :nomark nomark
               :filtered-candidate-transformer
@@ -2182,7 +2204,6 @@ Keys description:
              :persistent-action-if persistent-action-if
              :persistent-help persistent-help
              :keymap helm-read-file-map
-             :must-match must-match
              :nomark nomark
              :action action-fn)
            ;; List files source.
@@ -2214,6 +2235,10 @@ Keys description:
                        (remhash helm-ff-default-directory
                                 helm-ff--list-directory-cache))
              :match-on-real t
+             :match (unless helm-find-files-ignore-diacritics
+                      'helm-mm-3f-match)
+             :diacritics (and helm-find-files-ignore-diacritics
+                              'helm-mm-3f-match-on-diacritics)
              :filtered-candidate-transformer '(helm-ff-fct
                                                helm-ff-maybe-show-thumbnails
                                                helm-ff-sort-candidates)
@@ -2221,8 +2246,12 @@ Keys description:
              :persistent-action-if persistent-action-if
              :persistent-help persistent-help
              :volatile t
+             ;; Because we don't use :must-match in this source,
+             ;; helm-read-file-map is NOT merged with must-match map, this to
+             ;; not override helm-ff-RET, so MUST-MATCH == t is handled by
+             ;; helm-ff-RET, otherwise the dummy source enter in action and
+             ;; handle the other possible values of MUST-MATCH.
              :keymap helm-read-file-map
-             :must-match must-match
              :cleanup 'helm-find-files-cleanup
              :nomark nomark
              :action action-fn)))
@@ -2242,7 +2271,8 @@ Keys description:
                   :default default
                   :buffer buffer
                   :full-frame nil
-                  :preselect preselect)))
+                  :preselect preselect))
+         (helm-mm-matching-method 'multi3f))
     (or
      (cond ((and result (stringp result)
                  (string= result "") ""))

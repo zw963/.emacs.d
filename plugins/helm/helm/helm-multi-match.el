@@ -31,26 +31,22 @@
   "Helm multi match."
   :group 'helm)
 
-(defcustom helm-mm-matching-method 'multi3
+(defvar helm-mm-matching-method 'multi3
   "Matching method for helm match plugin.
 You can set here different methods to match candidates in helm.
 Here are the possible value of this symbol and their meaning:
 - multi1: Respect order, prefix of pattern must match.
 - multi2: Same but with partial match.
 - multi3: The best, multiple regexp match, allow negation.
+- multi3f: Same as multi3 but for files only (HFF and friends).
 - multi3p: Same but prefix must match.
 
 Default is multi3, you should keep this for a better experience.
 
-Note that multi1 and multi3p are incompatible with fuzzy matching
-in file completion and by the way fuzzy matching will be disabled there
-when these options are used."
-  :type  '(radio :tag "Matching methods for helm"
-           (const :tag "Multiple regexp 1 ordered with prefix match"         multi1)
-           (const :tag "Multiple regexp 2 ordered with partial match"        multi2)
-           (const :tag "Multiple regexp 3 matching no order, partial, best." multi3)
-           (const :tag "Multiple regexp 3p matching with prefix match"       multi3p))
-  :group 'helm-multi-match)
+The multi3f method is meant to be used within `helm-find-files' or at
+least when matching on a list of files or strings with a leading common
+part like the basedir of an absolute filename from the same directory
+but never globally.")
 
 
 ;; Internal
@@ -108,35 +104,9 @@ If GREP-SPACE is used translate escaped space to \"\\s\" instead of \"\\s-\"."
   (helm-re-search-forward (helm-mm-exact-get-pattern pattern) nil t))
 
 
-;;; Prefix match
-;;
-;;
-;; Internal
-(defvar helm-mm--prefix-pattern-str nil)
-(defvar helm-mm--prefix-pattern-real nil)
-
-(defun helm-mm-prefix-get-pattern (pattern)
-  (unless (equal pattern helm-mm--prefix-pattern-str)
-    (setq helm-mm--prefix-pattern-str pattern
-          helm-mm--prefix-pattern-real (concat "\n" pattern)))
-  helm-mm--prefix-pattern-real)
-
-(defun helm-mm-prefix-match (candidate &optional pattern)
-  ;; In filename completion basename and basedir may be
-  ;; quoted, unquote them for string comparison (Bug#1283).
-  (setq pattern (replace-regexp-in-string
-                 "\\\\" "" (or pattern helm-pattern)))
-  (let ((len (length pattern)))
-    (and (<= len (length candidate))
-         (string= (substring candidate 0 len) pattern ))))
-
-(defun helm-mm-prefix-search (pattern &rest _ignore)
-  (search-forward (helm-mm-prefix-get-pattern pattern) nil t))
-
-
 ;;; Multiple regexp patterns 1 (order is preserved / prefix).
 ;;
-;;
+;; Same as "^foo.*bar.*baz"
 ;; Internal
 (defvar helm-mm--1-pattern-str nil)
 (defvar helm-mm--1-pattern-real nil)
@@ -158,7 +128,7 @@ If GREP-SPACE is used translate escaped space to \"\\s\" instead of \"\\s-\"."
 
 ;;; Multiple regexp patterns 2 (order is preserved / partial).
 ;;
-;;
+;; Same as "^.*foo.*bar.*baz"
 ;; Internal
 (defvar helm-mm--2-pattern-str nil)
 (defvar helm-mm--2-pattern-real nil)
@@ -221,8 +191,7 @@ E.g., \"foo bar\"=>((identity . \"foo\") (identity . \"bar\")).
 Then each predicate of cons cell(s) is called with the regexp of
 the same cons cell against CANDIDATE.
 I.e. (identity (string-match \"foo\" \"foo bar\")) => t."
-  (unless pattern (setq pattern helm-pattern))
-  (let ((pat (helm-mm-3-get-patterns pattern)))
+  (let ((pat (helm-mm-3-get-patterns (or pattern helm-pattern))))
     (cl-loop for (predicate . regexp) in pat
              for re = (if (and helm-mm--match-on-diacritics
                                (not (helm-mm-regexp-p regexp)))
@@ -251,27 +220,36 @@ i.e (identity (re-search-forward \"foo\" (pos-eol) t)) => t."
                                   (not (helm-mm-regexp-p regex)))
                              (char-fold-to-regexp regex)
                            regex)
+           with prefix-search = (eq searchfn1 'helm-mm-prefix-search)
+           ;; First pattern is a negation.
            when (eq (caar pat) 'not) return
            ;; Pass the job to `helm-search-match-part'.
-           ;; We now forward-line from helm-search-from-candidate-buffer, see
+           ;; We now forward-line from `helm-search-from-candidate-buffer', see
            ;; comments about bug#2650 there.
            (list (pos-bol) (pos-eol))
+           ;; Start searching the first pattern [1].
            while (condition-case _err
                      (funcall searchfn1 (or regex1 "") nil t)
                    (invalid-regexp nil))
            for bol = (pos-bol)
            for eol = (pos-eol)
+           for end = (and prefix-search (+ bol (match-end 0))) ; End of prefix.
+           ;; Now search subsequent patterns on this line.
            if (cl-loop for (pred . str) in (cdr pat)
                        for regexp = (if (and helm-mm--match-on-diacritics
                                              (not (helm-mm-regexp-p str)))
                                         (char-fold-to-regexp str)
                                       str)
                        always
-                       (progn (goto-char bol)
+                       ;; Search from end of initial match (prefix) or from bol.
+                       (progn (goto-char (or end bol))
                               (funcall pred (condition-case _err
                                                 (funcall searchfn2 regexp eol t)
                                               (invalid-regexp nil)))))
+           ;; When all patterns match on line move at eol or next line and exit
+           ;; with t.
            do (helm-mm-3--search-move-forward bol eol) and return t
+           ;; if no matches continue [1] until the next matching line and so on.
            else do (helm-mm-3--search-move-forward bol eol)
            finally return nil))
 
@@ -287,8 +265,70 @@ Forward line on empty lines, otherwise goto eol."
 (defun helm-mm-3-search-on-diacritics (pattern &rest _ignore)
   (let ((helm-mm--match-on-diacritics t))
     (helm-mm-3-search pattern)))
+
 
-;;; mp-3 with migemo
+;;; mm-3f (match on filenames)
+;;
+;;
+;; When this is called by HFF, the pattern is transformed like this:
+;; "/home/you/foo/foo bar" => "/home/you/foo/ foo bar" so the prefix is always
+;; the basedir.
+(defun helm-mm-3f-match (candidate &optional pattern)
+  "Same as `helm-mm-3-match' but for files or prefix matching.
+Once the first pattern is matched, the subsequent patterns match on the part of
+CANDIDATE starting at end of first match.
+Diacritics regexp is never used on the first pattern, the basedir."
+  ;; When matching a filename like "/home/you/github/foo-bar.txt" there is no
+  ;; problems with `helm-mm-3-match' as long as one of the patterns doesn't
+  ;; match the basedir of filename but as soon as you try to match a file with a
+  ;; name matching basedir we would match all the file of directory instead of
+  ;; just the files we want e.g. with a pattern like "/home/you/github/ foo git"
+  ;; you would match all files of directory instead of matching only
+  ;; "/home/you/github/foo-git.el" because "git" will always match "github".
+  (let ((pat (helm-mm-3-get-patterns (or pattern helm-pattern))))
+    (cl-loop with end = nil
+             for (predicate . regexp) in pat
+             for re = (if (and helm-mm--match-on-diacritics
+                               (not (helm-mm-regexp-p regexp)))
+                          (char-fold-to-regexp regexp)
+                        regexp)
+             ;; Use `char-fold-to-regexp' on subsequent patterns only.
+             for pref-re = (if end re (concat "\\`" regexp))
+             always (funcall predicate
+                             (prog1 (condition-case _err
+                                        (string-match pref-re candidate end)
+                                      (invalid-regexp nil))
+                               (unless end
+                                 (setq end (match-end 0))))))))
+
+(defun helm-mm-3f-match-on-diacritics (candidate &optional pattern)
+  "Ignore diacritics in basename of files.
+This happens as soon as you enter multi matching i.e. you add space(s) after
+basedir."
+  (let ((helm-mm--match-on-diacritics t))
+    (helm-mm-3f-match candidate (or pattern helm-pattern))))
+
+;;; multiple regexp pattern 3 with prefix search
+;;
+;;
+(defalias 'helm-mm-3p-match #'helm-mm-3f-match
+  "Check if PATTERN match CANDIDATE.
+Same as `helm-mm-3-match' but only for the cdr of patterns, the car of
+patterns must always match CANDIDATE prefix.
+E.g. \"bar foo baz\" will match \"barfoobaz\" or \"barbazfoo\" but not
+\"foobarbaz\" whereas `helm-mm-3-match' would match all.")
+
+;; This is just a wrapper around helm-re-search-forward but we need it in
+;; helm-mm-3-search-base to decide if we use prefix search or not by comparing
+;; symbols.
+(defun helm-mm-prefix-search (pattern &rest _ignore)
+  (helm-re-search-forward pattern nil t))
+
+(defun helm-mm-3p-search (pattern &rest _ignore)
+  (helm-mm-3-search-base
+   pattern 'helm-mm-prefix-search 'helm-re-search-forward))
+
+;;; mm-3 with migemo
 ;;  Needs https://github.com/emacs-jp/migemo
 ;;
 (defvar helm-mm--previous-migemo-info nil
@@ -363,26 +403,6 @@ sources."
         pattern 'helm-mm-migemo-forward 'helm-mm-migemo-forward)))
 
 
-;;; mp-3p- (multiple regexp pattern 3 with prefix search)
-;;
-;;
-(defun helm-mm-3p-match (candidate &optional pattern)
-  "Check if PATTERN match CANDIDATE.
-Same as `helm-mm-3-match' but only for the cdr of patterns, the car of
-patterns must always match CANDIDATE prefix.
-E.g. \"bar foo baz\" will match \"barfoobaz\" or \"barbazfoo\" but not
-\"foobarbaz\" whereas `helm-mm-3-match' would match all."
-  (let* ((pat (helm-mm-3-get-patterns (or pattern helm-pattern)))
-         (first (car pat)))
-    (and (funcall (car first) (helm-mm-prefix-match candidate (cdr first)))
-         (cl-loop for (predicate . regexp) in (cdr pat)
-               always (funcall predicate (string-match regexp candidate))))))
-
-(defun helm-mm-3p-search (pattern &rest _ignore)
-  (helm-mm-3-search-base
-   pattern 'helm-mm-prefix-search 're-search-forward))
-
-
 ;;; Generic multi-match/search functions
 ;;
 ;;
@@ -393,6 +413,7 @@ E.g. \"bar foo baz\" will match \"barfoobaz\" or \"barbazfoo\" but not
                (multi1 #'helm-mm-1-match)
                (multi2 #'helm-mm-2-match)
                (multi3 #'helm-mm-3-match)
+               (multi3f #'helm-mm-3f-match)
                (multi3p #'helm-mm-3p-match))))
     (funcall fun candidate pattern)))
 
@@ -408,7 +429,7 @@ E.g. \"bar foo baz\" will match \"barfoobaz\" or \"barbazfoo\" but not
                (multi1 #'helm-mm-1-search)
                (multi2 #'helm-mm-2-search)
                (multi3 #'helm-mm-3-search)
-               (multi3p #'helm-mm-3p-search))))
+               ((multi3p multi3f) #'helm-mm-3p-search))))
     (funcall fun pattern)))
 
 
