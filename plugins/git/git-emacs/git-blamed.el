@@ -414,7 +414,7 @@ See also function `git-blamed-mode'."
 (defun git-blamed-delayed-update ()
   (setq git-blamed-idle-timer nil)
   (if git-blamed-update-queue
-      (let ((first (pop git-blamed-update-queue))
+      (let ((cl-first (pop git-blamed-update-queue))
             (cursor-intangible-mode t))
         (git-blamed-update-region (car first) (cdr first)))))
 

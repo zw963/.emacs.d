@@ -27,7 +27,7 @@ of mode-line-format."
                  (const :tag "No decoration" nil)
                  (function :tag "Other"))
   :group 'git-emacs
-)
+  )
 
 (defun git--interpret-state-mode-color (stat)
   "Return a mode line status color appropriate for STAT (a state symbol)."
@@ -46,7 +46,7 @@ of mode-line-format."
 (defun git-state-decoration-small-dot(stat)
   (git--state-mark-modeline-dot
    (git--interpret-state-mode-color stat) stat
-"/* XPM */
+   "/* XPM */
 static char * data[] = {
 \"14 7 3 1\",
 \" 	c None\",
@@ -63,7 +63,7 @@ static char * data[] = {
 (defun git-state-decoration-large-dot(stat)
   (git--state-mark-modeline-dot
    (git--interpret-state-mode-color stat) stat
-"/* XPM */
+   "/* XPM */
 static char * data[] = {
 \"18 13 3 1\",
 \" 	c None\",
@@ -84,15 +84,15 @@ static char * data[] = {
 \"                  \"};"))
 
 (defun git--interpret-state-mode-letter(stat)
-   (cl-case stat
-     ((modified) "M")
-     ((unknown)  "?")
-     ((added)    "A")
-     ((deleted)  "D")
-     ((unmerged) "!")
-     ((uptodate) "U")
-     ((staged)   "S")
-     (t "")))
+  (cl-case stat
+    ((modified) "M")
+    ((unknown)  "?")
+    ((added)    "A")
+    ((deleted)  "D")
+    ((unmerged) "!")
+    ((uptodate) "U")
+    ((staged)   "S")
+    (t "")))
 
 (defsubst git--state-mark-tooltip(stat)
   (format "File status in git: %s" stat))
@@ -138,7 +138,7 @@ static char * data[] = {
                               (unless (eq (car-safe mode)
                                           'git--state-mark-modeline)
                                 mode))
-                   mode-line-format)))
+                          mode-line-format)))
   )
 
 ;; autoload entry point
@@ -160,10 +160,10 @@ doing update--state-mark for each buffer."
       ;; intervention. The hash table is filename -> (buffer . stat).
       (let ((file-index (make-hash-table :test #'equal :size (length buffers)))
             (default-directory
-              (git--get-top-dir
-                (if repo-or-filelist
-                    (file-name-directory (first repo-or-filelist))
-                  default-directory)))
+             (git--get-top-dir
+              (if repo-or-filelist
+                  (file-name-directory (cl-first repo-or-filelist))
+                default-directory)))
             (all-relative-names nil))
         (dolist (buffer buffers)
           (let ((relative-name
@@ -191,7 +191,7 @@ doing update--state-mark for each buffer."
                        (with-current-buffer (car buffer-stat)
                          (git--update-state-mark (cdr buffer-stat)))))
                  file-index)))))
-      
+
 ;; example on state-modeline-mark
 ;; 
 ;;(git--install-state-mark-modeline 'modified)

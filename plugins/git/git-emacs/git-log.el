@@ -68,26 +68,26 @@
 
 ;; Menu
 (easy-menu-define
- git-log-view-menu git-log-view-mode-map
- "Git"
- `("Git-Log"
-   ["Next Commit" log-view-msg-next t]
-   ["Previous Commit" log-view-msg-prev t]
-   ["Next Interesting Commit" git-log-view-interesting-commit-next t]
-   ["Previous Interesting Commit" git-log-view-interesting-commit-prev t]
-   "---"
-   ["Mark Commits for Diff" set-mark-command t]
-   ["Diff Commit(s)" git-log-view-diff-preceding t]
-   ["Diff against Current" git-log-view-diff-current t]
-   "---"
-   ["Reset Branch to Commit" git-log-view-reset t]
-   ["Checkout" git-log-view-checkout t]
-   ["Cherry-pick" git-log-view-cherry-pick t]
-   ["Revert Commit" git-log-view-revert t]
-   ["Tag this Commit..." git-log-view-tag t]
-   "---"
-   ["Refresh" git-log-view-refresh t]
-   ["Quit" git--quit-buffer t]))
+  git-log-view-menu git-log-view-mode-map
+  "Git"
+  `("Git-Log"
+    ["Next Commit" log-view-msg-next t]
+    ["Previous Commit" log-view-msg-prev t]
+    ["Next Interesting Commit" git-log-view-interesting-commit-next t]
+    ["Previous Interesting Commit" git-log-view-interesting-commit-prev t]
+    "---"
+    ["Mark Commits for Diff" set-mark-command t]
+    ["Diff Commit(s)" git-log-view-diff-preceding t]
+    ["Diff against Current" git-log-view-diff-current t]
+    "---"
+    ["Reset Branch to Commit" git-log-view-reset t]
+    ["Checkout" git-log-view-checkout t]
+    ["Cherry-pick" git-log-view-cherry-pick t]
+    ["Revert Commit" git-log-view-revert t]
+    ["Tag this Commit..." git-log-view-tag t]
+    "---"
+    ["Refresh" git-log-view-refresh t]
+    ["Quit" git--quit-buffer t]))
 
 
 ;; Extra navigation
@@ -97,8 +97,8 @@
 (defvar git-log-view-interesting-commit-re "^Merge[: ]?"
   "Regular expression defining \"interesting commits\" for easy navigation")
 (easy-mmode-define-navigation
- git-log-view-interesting-commit git-log-view-interesting-commit-re
- "interesting commit")
+    git-log-view-interesting-commit git-log-view-interesting-commit-re
+    "interesting commit")
 
 
 ;; Implementation
@@ -117,9 +117,9 @@ given commit. Assumes it is being run from a buffer whose
 default-directory is inside the repo."
   (let* ((rel-filenames (mapcar #'file-relative-name files))
          (log-qualifier (cl-case (length files)
-                               (0 (abbreviate-file-name (git--get-top-dir)))
-                               (1 (first rel-filenames))
-                               (t (format "%d files" (length files)))))
+                          (0 (abbreviate-file-name (git--get-top-dir)))
+                          (1 (cl-first rel-filenames))
+                          (t (format "%d files" (length files)))))
          (log-buffer-name (format "*git log: %s%s*"
                                   log-qualifier
                                   (if start-commit (format " from %s"
@@ -140,9 +140,9 @@ default-directory is inside the repo."
       (set (make-local-variable 'git-log-view-filenames) rel-filenames)
       ;; Subtle: the buffer may already exist and have the wrong directory
       (cd saved-default-directory)
-	  ;; Set the logs-count while it's omitted
-	  (if (or (equal "" logs-count) (equal nil logs-count))
-		  (setq logs-count "50"))
+      ;; Set the logs-count while it's omitted
+      (if (or (equal "" logs-count) (equal nil logs-count))
+	  (setq logs-count "50"))
       ;; vc-do-command does almost everything right. Beware, it misbehaves
       ;; if not called with current buffer (undoes our setup)
       (apply #'vc-do-command buffer 'async "git" nil "log" "--follow" (format "-%s" logs-count)
@@ -162,9 +162,9 @@ git-status-mode."
   (interactive)
   (git--require-buffer-in-git)
   (git--log-view (git--if-in-status-mode
-                     (git--status-view-marked-or-file)
-                   (list buffer-file-name))))
- 
+                  (git--status-view-marked-or-file)
+                  (list buffer-file-name))))
+
 (defun git-log (&optional logs-count)
   "Launch the git log view for the whole repository"
   (interactive "slogs count: ")
@@ -199,15 +199,15 @@ a branch."
     (when display
       ;; Delete the frame on quit if we created it and nothing else displayed
       (add-hook 'kill-buffer-hook
-              (lexical-let ((git-log-gnuserv-frame frame))
-                #'(lambda()
-                    (dolist (window (get-buffer-window-list (current-buffer)))
-                      (when (and (eq (next-window window) window)
-                                 (eq (window-frame window)
-                                     git-log-gnuserv-frame))
-                          (delete-frame (window-frame window))))))
-              t t))                      ; hook is append, local
-  ""))
+                (lexical-let ((git-log-gnuserv-frame frame))
+                             #'(lambda()
+                                 (dolist (window (get-buffer-window-list (current-buffer)))
+                                   (when (and (eq (next-window window) window)
+                                              (eq (window-frame window)
+                                                  git-log-gnuserv-frame))
+                                     (delete-frame (window-frame window))))))
+                t t))                      ; hook is append, local
+    ""))
 
 ;; Actions
 (defun git-log-view-checkout ()
@@ -250,18 +250,18 @@ branch."
 If a region is active, diff the first and last commits in the region."
   (interactive)
   (let* ((commit (git--abbrev-commit
-                 (log-view-current-tag (when mark-active (region-beginning)))))
-        (preceding-commit
-         (git--abbrev-commit
-          (save-excursion
-            (when mark-active
-              (goto-char (region-end))
-              ;; Go back one to get before the lowest commit, then
-              ;; msg-next will find it properly. Unless the region is empty.
-              (unless (equal (region-beginning) (region-end))
-                (backward-char 1)))
-            (log-view-msg-next)
-            (log-view-current-tag)))))
+                  (log-view-current-tag (when mark-active (region-beginning)))))
+         (preceding-commit
+          (git--abbrev-commit
+           (save-excursion
+             (when mark-active
+               (goto-char (region-end))
+               ;; Go back one to get before the lowest commit, then
+               ;; msg-next will find it properly. Unless the region is empty.
+               (unless (equal (region-beginning) (region-end))
+                 (backward-char 1)))
+             (log-view-msg-next)
+             (log-view-current-tag)))))
     ;; TODO: ediff if single file, but git--ediff does not allow revisions
     ;; for both files
     (git--diff-many git-log-view-filenames preceding-commit commit t)))
@@ -272,7 +272,7 @@ the working dir."
   (interactive)
   (let* ((commit (git--abbrev-commit (log-view-current-tag))))
     (if (eq 1 (length git-log-view-filenames))
-        (git--diff (first git-log-view-filenames)
+        (git--diff (cl-first git-log-view-filenames)
                    (concat commit ":" ))
       (git--diff-many git-log-view-filenames commit nil))))
 

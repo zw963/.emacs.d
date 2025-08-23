@@ -371,7 +371,7 @@ are very deep (used when repositioning mark on refresh)."
 (defun git--status-add-size (fileinfo)
   "Fill in the size field of a fileinfo"
   (let ((attrs (file-attributes (git--fileinfo->name fileinfo))))
-    (when (and attrs (not (first attrs)))
+    (when (and attrs (not (cl-first attrs)))
       (setf (git--fileinfo->size fileinfo) (elt attrs 7)))))
 
 (defun git--status-new ()
@@ -870,7 +870,7 @@ current line. You can think of this as the \"selected files\"."
                                        (format " (%s)" status-warning)
                                      ""))
            (msg (if (eq 1 (length files))
-                    (format "%s%s" (first files) status-warning-include)
+                    (format "%s%s" (cl-first files) status-warning-include)
                   (format "%s files%s" (length files) status-warning-include))))
       (unless (y-or-n-p (format "Really %s %s? "
                                 (git--bold-face "delete")
