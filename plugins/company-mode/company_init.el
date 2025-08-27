@@ -105,6 +105,7 @@
                 sh-mode-hook
                 bash-ts-mode-hook
                 crystal-mode
+                web-mode
                 ;; mint-mode
                 ))
   (add-hook hook

@@ -61,9 +61,10 @@
 (require 'ligature_init)
 (require 'nerd-icons_init)
 (require 'shackle_init)
+(require 'tailwindcss_init)
 
 ;; (require 'tabnine_init) ;; lsp-bridge 默认会开启 tabnine
-(require 'codeium_init)
+;; (require 'codeium_init)
 
 ;; =============== 下面是绑定快捷键的模式 ===============
 
