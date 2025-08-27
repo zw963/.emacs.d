@@ -1,5 +1,3 @@
-;; -*- lexical-binding: t; -*-
-
 ;;; lsp-ui-imenu.el --- Lsp-Ui-Imenu  -*- lexical-binding: t -*-
 
 ;; Copyright (C) 2018 Sebastien Chapuis

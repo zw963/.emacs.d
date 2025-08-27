@@ -1,5 +1,3 @@
-;; -*- lexical-binding: t; -*-
-
 ;;; lsp-ui-doc.el --- Lsp-Ui-Doc  -*- lexical-binding: t -*-
 
 ;; Copyright (C) 2017 Sebastien Chapuis

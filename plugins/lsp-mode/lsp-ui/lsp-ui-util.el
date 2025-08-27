@@ -1,5 +1,3 @@
-;; -*- lexical-binding: t; -*-
-
 ;;; lsp-ui-util.el --- Utility module for Lsp-Ui  -*- lexical-binding: t -*-
 
 ;; Copyright (C) 2020-2024 Shen, Jen-Chieh
