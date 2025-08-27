@@ -2,7 +2,7 @@
 
 (require 'company)
 ;; For better performance and results, use company-capf (default)
-(require 'company-capf)
+;; (require 'company-capf)
 
 (require 'company-dabbrev-code)
 (setq company-dabbrev-other-buffers t) ;; 设为 true, 则仅在同一个 major-mode buffer 里面找
@@ -104,8 +104,8 @@
                 conf-mode-hook
                 sh-mode-hook
                 bash-ts-mode-hook
-                crystal-mode
-                web-mode
+                crystal-mode-hook
+                web-mode-hook
                 ;; mint-mode
                 ))
   (add-hook hook

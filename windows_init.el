@@ -32,7 +32,7 @@
 (if (and (fboundp 'daemonp) (daemonp))
     (add-hook 'after-make-frame-functions 'initialize-frame-delay t)
   )
-(add-hook 'window-setup-hook 'toggle-frame-maximized t)
+;; (add-hook 'window-setup-hook 'toggle-frame-maximized t)
 
 (global-set-key [(f5)] (lambda ()
                          (interactive)

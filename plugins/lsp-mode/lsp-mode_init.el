@@ -65,7 +65,7 @@
   )
 
 (setq lsp-auto-configure nil)
-(setq lsp-enable-dap-auto-configure t)
+(setq lsp-enable-dap-auto-configure nil)
 
 ;; (defun lsp-mode-common-hooks ()
 ;;   (when (featurep 'treemacs) (save-selected-window (treemacs-select-window)))
