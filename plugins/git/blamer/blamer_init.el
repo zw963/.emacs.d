@@ -2,10 +2,10 @@
 
 (require 'blamer)
 
-;;(setq blamer-type 'posframe-popup)
+;;(setq blamer-type 'echo-area)
 ;; (setq blamer-show-avatar-p nil)
-(setq blamer-idle-time 1)
-(setq blamer-max-lines 1)
+;;(setq blamer-idle-time 1)
+;;(setq blamer-max-lines 1)
 
 ;; (global-set-key [(control x) (v) (m)] 'blamer-show-posframe-commit-info)
 ;; (setq blamer-face '((t :foreground "#7a88cf"

@@ -5,7 +5,7 @@
 ;; Author: Artur Yaroshenko <artawower@protonmail.com>
 ;; URL: https://github.com/artawower/blamer.el
 ;; Package-Requires: ((emacs "27.1") (posframe "1.1.7") (async "1.9.8"))
-;; Version: 0.9.4
+;; Version: 0.10.0
 
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -129,7 +129,8 @@ This types are used only for single line blame.
                  (const :tag "Pretty posframe popup" posframe-popup)
                  (const :tag "Visual and selected" both)
                  (const :tag "Margin overlay" margin-overlay)
-                 (const :tag "Selected only" selected)))
+                 (const :tag "Selected only" selected)
+                 (const :tag "Echo area" echo-area)))
 
 (defcustom blamer--overlay-popup-position 'bottom
   "Position of rendered popup.
@@ -325,6 +326,21 @@ May be useful in some cases where the accuser unexpectedly
 moves to the next line."
   :group 'blamer
   :type 'integer)
+
+(defcustom blamer-echo-area-inset 3
+  "Number of prefix characters to remove from the formatted
+commit message in echo-area. This is a workaround to use the same format
+for both overlay and echo-area, while both look good."
+  :group 'blamer
+  :type 'integer)
+
+(defcustom blamer-echo-area-strip-face-attributes '(:background)
+  "A list of face-attributes to remove when printing COMMIT-INFO to
+the echo-area. This is a workaround for using the same format for
+both overlay echo-area while removing e.g. :background, to look good
+in the echo-area."
+  :group 'blamer
+  :type '(repeat symbol))
 
 (defvar blamer-idle-timer nil
   "Current timer before commit info showing.")
@@ -878,6 +894,24 @@ Return list of strings."
     (overlay-put ov 'window (get-buffer-window))
     (add-to-list 'blamer--overlays ov)))
 
+(defun blamer--render-echo-area (commit-info)
+  "Render COMMIT-INFO in the echo-area"
+  (let* ((msg (blamer--format-commit-info (plist-get commit-info :commit-hash)
+                                          (plist-get commit-info :commit-message)
+                                          (plist-get commit-info :commit-author)
+                                          (plist-get commit-info :commit-date)
+                                          (plist-get commit-info :commit-time)
+                                          0
+                                          commit-info))
+         (msg (substring msg (or blamer-echo-area-inset 0)))
+         (face-props (get-text-property 0 'face msg)))
+
+    (dolist (prop blamer-echo-area-strip-face-attributes nil)
+      (plist-put face-props prop (face-attribute 'default prop)))
+    (put-text-property 0 (length msg) 'face face-props msg)
+    (let ((message-log-max nil))
+      (message "%s" msg))))
+
 (defun blamer--render-right-overlay (commit-info render-point)
   "Render COMMIT-INFO as overlay at RENDER-POINT position."
   (when-let ((ov (progn (move-end-of-line nil)
@@ -943,6 +977,7 @@ when not provided `blamer-type' will be used."
   (with-current-buffer buffer
     (save-excursion
       (cond ((eq (or type blamer-type) 'overlay-popup) (blamer--render-overlay-popup commit-info))
+            ((eq (or type blamer-type) 'echo-area) (blamer--render-echo-area commit-info))
             ((eq (or type blamer-type) 'posframe-popup) (blamer--render-posframe-popup commit-info))
             ((eq (or type blamer-type) 'margin-overlay) (blamer--render-margin-overlay commit-info render-point))
             (t (blamer--render-right-overlay commit-info render-point))))))
@@ -1051,7 +1086,8 @@ Optional TYPE argument will override global `blamer-type'."
   (let ((blamer-type (or type blamer-type))
         (long-region-p (blamer--long-region-p)))
     (unless (or (and (or (eq blamer-type 'overlay-popup)
-                         (eq blamer-type 'visual))
+                         (eq blamer-type 'visual)
+                         (eq blamer-type 'echo-area))
                      (use-region-p))
                 long-region-p
                 blamer--block-render-p)
@@ -1096,7 +1132,8 @@ LOCAL-TYPE is force replacement of current `blamer-type' for handle rendering."
                    (eq type 'margin-overlay)
                    (and (eq type 'visual) (not (use-region-p)))
                    (and (eq type 'overlay-popup) (not (use-region-p)))
-                   (and (eq type 'selected) (use-region-p)))
+                   (and (eq type 'selected) (use-region-p))
+                   (eq type 'echo-area))
                (or (not blamer--previous-line-number)
                    (not (eq blamer--previous-window-width (blamer--real-window-width)))
                    (not (eq blamer--previous-line-number (line-number-at-pos)))
