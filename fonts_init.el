@@ -102,12 +102,11 @@
   (add-hook 'window-state-change-hook 'meomacs-dynamic-set-font)
   )
 
-;; 开启这个，可以该注释文本的字体。（但是现在字体太大了）
+;; 开启这个，可以改注释文本的字体。（但是现在字体太大了）
 ;; (custom-set-faces
 ;;  '(font-lock-comment-face ((t (:slant italic :family "Victor Mono" :height 140)))))
 
 ;; (load-my-fonts)
-(require 'cnfonts_init)
 
 (defun my-better-hybird-font ()
   ;; 设置混合字体

@@ -47,7 +47,8 @@
 (require 'whole-line-or-region_init)
 (require 'multiple-cursors_init)
 
-(relative-load "fonts_init.el")
+(require 'cnfonts_init)
+;; (relative-load "fonts_init.el")
 (relative-load "windows_init.el")
 (relative-load "autoloads.el")
 (relative-load "functions.el")

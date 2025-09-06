@@ -36,7 +36,7 @@
 
 (global-set-key [(control x) (\1)] 'treemacs-delete-other-windows)
 
-(setq treemacs-width 42)
+(setq treemacs-width 35)
 
 ;; (require 'treemacs-icons-dired)
 ;; ;; 让 dired 使用 treemacs 图标。
