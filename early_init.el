@@ -25,11 +25,12 @@
 (setq zw/cursor-color-default "#00FF00")
 (setq create-lockfiles nil)
 
-(require 'server)
+;; edit-server 不需要这些设置
+;;(require 'server)
 ;; Emacs server 设定
-(setq server-use-tcp t) ;使用 `tcp-ip连接' 代替本地 `socket链接'.
+;;(setq server-use-tcp t) ;使用 `tcp-ip连接' 代替本地 `socket链接'.
 ;; (setq server-host "127.0.0.1") ;指定本emacs server是否允许远程连接.
-(setq server-port 9299)
+;;(setq server-port 9299)
 
 (setq inhibit-startup-screen t ;关闭启动帮助画面
       initial-scratch-message "

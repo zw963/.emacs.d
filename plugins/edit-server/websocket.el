@@ -1,5 +1,3 @@
-;; -*- lexical-binding: t; -*-
-
 ;;; websocket.el --- Emacs WebSocket client and server  -*- lexical-binding:t -*-
 
 ;; Copyright (c) 2013, 2016-2017  Free Software Foundation, Inc.
