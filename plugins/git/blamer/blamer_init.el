@@ -5,7 +5,7 @@
                        :height 140
                        :italic t)))
 
-;; (setq blamer-max-lines 1)
+(setq blamer-max-lines 1)
 ;;(setq blamer-type 'echo-area)
 ;; (setq blamer-show-avatar-p nil)
 ;;(setq blamer-idle-time 1)
@@ -17,7 +17,7 @@
                 (global-blamer-mode 1)
                 )))
 
-(global-set-key [(control x) (v) (m)] 'blamer-show-posframe-commit-info)
+(global-set-key [(control x) (v) (m)] 'blamer-show-commit-info)
 
 (provide 'blamer_init)
 
