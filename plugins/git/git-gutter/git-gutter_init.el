@@ -15,7 +15,13 @@
  )
 
 (add-to-list 'git-gutter:update-commands 'ace-window)
+(add-to-list 'git-gutter:update-commands 'windmove-left)
+(add-to-list 'git-gutter:update-commands 'windmove-right)
+(add-to-list 'git-gutter:update-commands 'windmove-up)
+(add-to-list 'git-gutter:update-commands 'windmove-down)
 
+(global-set-key [(control x) (v) (n)] 'git-gutter:next-hunk)
+(global-set-key [(control x) (v) (p)] 'git-gutter:previous-hunk)
 (global-set-key [(control x) (v) (u)] 'git-gutter:stage-hunk)
 (global-set-key [(control x) (v) (R)] 'git-gutter:revert-hunk)
 ;; (global-set-key [(control x) (v) (r)] 'git-gutter:update-all-windows)
