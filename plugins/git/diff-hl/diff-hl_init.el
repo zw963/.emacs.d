@@ -7,6 +7,9 @@
 ;; (add-hook 'prog-mode-hook 'turn-on-diff-hl-mode)
 (global-diff-hl-mode 1)
 
+(require 'diff-hl-margin)
+(diff-hl-margin-mode)
+
 (require 'diff-hl-flydiff)
 (diff-hl-flydiff-mode 1)
 
@@ -17,11 +20,11 @@
 ;; Ctrl v * active diff-hl-show-hunk, or use mouse
 (global-diff-hl-show-hunk-mouse-mode 1)
 
-(setq diff-hl-show-staged-changes t)
-(setq diff-hl-ask-before-revert-hunk t)
+;; (setq diff-hl-show-staged-changes t)
+;; (setq diff-hl-ask-before-revert-hunk t)
 (setq diff-hl-disable-on-remote t)
 
-(setq-default fringes-outside-margins t)
+;; (setq-default fringes-outside-margins t)
 
 (setq diff-hl-fringe-bmp-function
       (lambda (&rest _)

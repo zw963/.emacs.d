@@ -16,7 +16,7 @@
 
 (add-to-list 'git-gutter:update-commands 'ace-window)
 
-;; (global-set-key [(control x) (v) (u)] 'git-gutter:stage-hunk)
+(global-set-key [(control x) (v) (u)] 'git-gutter:stage-hunk)
 (global-set-key [(control x) (v) (R)] 'git-gutter:revert-hunk)
 ;; (global-set-key [(control x) (v) (r)] 'git-gutter:update-all-windows)
 (global-set-key [(control x) (v) (?\s)] 'git-gutter:mark-hunk)
