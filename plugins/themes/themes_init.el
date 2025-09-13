@@ -13,10 +13,15 @@
 ;; (setq zenburn-scale-org-headlines t)
 ;; (setq zenburn-scale-outline-headlines t)
 ;; (load-theme 'zenburn t)
+
 (require 'modus-themes)
+(load-theme 'modus-vivendi-tritanopia t)
+
 ;; (load-theme 'modus-operandi-tinted t)
 ;; (load-theme 'modus-operandi-deuteranopia t)
-(load-theme 'modus-vivendi-tritanopia t)
+
+;; (require 'naysayer-theme)
+;; (load-theme 'naysayer t)
 
 ;; (require 'nano-theme)
 ;; (load-theme 'nano-dark t)
