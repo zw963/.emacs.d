@@ -7,6 +7,8 @@
 
 (defconst cnfonts-personal-fontnames
   '(;; 英文字体
+    ("Iosevka Curly Light")
+    ("Iosevka Curly")
     ("Fira Code")
     ;; 中文字体
     ("霞鹜文楷等宽")

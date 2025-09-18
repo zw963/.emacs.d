@@ -120,7 +120,7 @@
     (add-to-list 'initial-frame-alist param)
     ))
 
-;; (my-better-hybird-font)
+(my-better-hybird-font)
 
 (provide 'fonts_init)
 
