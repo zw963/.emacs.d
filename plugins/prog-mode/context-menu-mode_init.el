@@ -29,13 +29,13 @@
     (mouse-set-point click)
     (if (hs-already-hidden-p)
         (define-key-after menu [hs-show-block]
-          '(menu-item "Unfold block"
+          '(menu-item "Unfold"
                       (lambda (click) (interactive "e")
                         (save-excursion
                           (mouse-set-point click)
                           (hs-show-block)))))
       (define-key-after menu [hs-hide-block]
-        '(menu-item "Fold block"
+        '(menu-item "Fold"
                     (lambda (click) (interactive "e")
                       (save-excursion
                         (mouse-set-point click)
@@ -74,7 +74,8 @@
                 (lambda (click) (interactive "e")
                   (save-excursion
                     (mouse-set-point click)
-                    (git-messenger:popup-message)
+                    (blamer-show-posframe-commit-info)
+                    ;; (git-messenger:popup-message)
                     ))))
   (define-key-after menu [hs-separator] menu-bar-separator)
   menu)
@@ -140,6 +141,7 @@
                    (add-to-list 'context-menu-functions 'context-menu-show-git-message)
 
                    (add-to-list 'context-menu-functions 'context-menu-hideshow)
+                   (define-key lsp-mode-map [mouse-3] 'nil)
                    )))
 
 ;; (dolist (hook '(
@@ -168,6 +170,8 @@
                    (add-to-list 'context-menu-functions 'context-menu-split/close-window)
                    (add-to-list 'context-menu-functions 'context-menu-show-git-message)
                    (add-to-list 'context-menu-functions 'context-menu-hideshow)
+                   ;; 开启 context-menu-mode 之后，lsp-mode 仍旧会在我们自定义的菜单之后，重新弹出 lsp 定义的右键菜单，关闭它
+                   (define-key lsp-mode-map [mouse-3] 'nil)
                    )))
 
 (context-menu-mode t)
