@@ -7,7 +7,7 @@
 
 (setq blamer-max-lines 1)
 ;;(setq blamer-type 'echo-area)
-;; (setq blamer-show-avatar-p nil)
+(setq blamer-show-avatar-p nil)
 ;;(setq blamer-idle-time 1)
 
 (if (and (fboundp 'daemonp) (daemonp))

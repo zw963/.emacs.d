@@ -74,7 +74,7 @@
                 (lambda (click) (interactive "e")
                   (save-excursion
                     (mouse-set-point click)
-                    (blamer-show-posframe-commit-info)
+                    (blamer-show-commit-info)
                     ;; (git-messenger:popup-message)
                     ))))
   (define-key-after menu [hs-separator] menu-bar-separator)
@@ -171,7 +171,8 @@
                    (add-to-list 'context-menu-functions 'context-menu-show-git-message)
                    (add-to-list 'context-menu-functions 'context-menu-hideshow)
                    ;; 开启 context-menu-mode 之后，lsp-mode 仍旧会在我们自定义的菜单之后，重新弹出 lsp 定义的右键菜单，关闭它
-                   (define-key lsp-mode-map [mouse-3] 'nil)
+                   ;; (define-key lsp-mode-map [mouse-3] 'nil)
+                   (keymap-set lsp-mode-map "<mouse-3>" #'ignore)
                    )))
 
 (context-menu-mode t)
