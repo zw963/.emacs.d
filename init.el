@@ -42,7 +42,8 @@
 (require 'sis_init)
 (require 'page-break-lines_init)
 
-;; 记得这个最大的问题是, 无法在 daemon 模式下恢复保存的  workspace?
+;; 记得这个最大的问题是, 无法在 daemon 模式下恢复保存的 workspace?
+;; Ctrl-x w s 可以执行一个 Emacs 默认提供的的函数 window-toggle-side-windows，非常好用。
 ;; (require 'burly_init)
 
 ;; ---------------- 编程相关 ----------------
