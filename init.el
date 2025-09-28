@@ -200,7 +200,7 @@
 ;; 如果 flycheck 检测到错误, 整个 mode-line 都是红色的
 ;; 当前使用的 mode line, 右侧可以看到 flycheck 的状态, 鼠标点击, 出来一个菜单, 可以选择下一个错误.
 (require 'flycheck_init)
-(require 'flyover_init)
+;; (require 'flyover_init)
 
 ;; Alt + u, 变换光标前后的符号
 ;; Shift + Alt + u, 仅仅变换光标前符号到全部大写
