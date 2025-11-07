@@ -53,7 +53,7 @@
   (define-key company-active-map (kbd "S-TAB") 'company-select-previous)
   )
 
-;; (set-company-tab)
+(set-company-tab)
 
 ;; (global-set-key (kbd "<tab>") #'company-indent-or-complete-common)
 (define-key company-active-map (kbd "C-s") 'company-filter-candidates) ;; 这个可以随时 C-o 随时切换
