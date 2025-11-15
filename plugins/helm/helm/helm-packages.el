@@ -333,10 +333,10 @@ PROVIDER can be one of \"melpa\", \"gnu\" or \"nongnu\"."
     (cl-assert (not (file-directory-p (expand-file-name name directory)))
                nil (format "Package already exists in %s" directory))
     (with-helm-default-directory directory
-      (let (process-connection-type
-            (proc (apply #'start-process
-                         "git" "*helm packages clone*"
-                         "git" switches)))
+      (let* (process-connection-type
+             (proc (apply #'start-process
+                          "git" "*helm packages clone*"
+                          "git" switches)))
         (save-selected-window
           (display-buffer (process-buffer proc)
                           '(display-buffer-below-selected
@@ -437,10 +437,8 @@ PROVIDER can be one of \"melpa\", \"gnu\" or \"nongnu\"."
           helm-packages--melpa-recipes-cache nil)
     (setq package-menu--old-archive-contents package-archive-contents)
     (setq package-menu--new-package-list nil)
-    ;; `package-desc-status' adds the status 'new' to a package according to
-    ;; `package-menu--new-package-list'.
-    (package-menu--populate-new-package-list)
-    (package-refresh-contents))
+    (package-refresh-contents)
+    (package-menu--populate-new-package-list))
   (helm-set-local-variable 'helm-packages--updated t))
 
 (defun helm-finder--list-matches (key)
@@ -520,7 +518,11 @@ to avoid errors with outdated packages no more availables."
   (when arg (helm-packages--refresh-contents))
   (let ((upgrades (helm-package--upgradeable-packages
                    helm-package-install-upgrade-built-in))
-        (removables (package--removable-packages)))
+        (removables (package--removable-packages))
+        (standard-actions '(("Describe package" . helm-packages-describe)
+                            ("Visit homepage" . helm-packages-visit-homepage)
+                            ("Install packages(s)" . helm-packages-install)
+                            ("Clone package" . helm-packages-clone-package))))
     (helm :sources (list
                     (helm-make-source "Availables for upgrade" 'helm-packages-class
                       :init (lambda ()
@@ -545,31 +547,39 @@ to avoid errors with outdated packages no more availables."
                                 ("Uninstall package(s)" . helm-packages-uninstall)
                                 ("Isolate package(s)" . helm-packages-isolate)
                                 ("Clone package" . helm-packages-clone-package)))
+                    (helm-make-source "New packages" 'helm-packages-class
+                      :data (lambda ()
+                              (cl-loop for p in package-archive-contents
+                                       for sym = (car p)
+                                       for id = (package-get-descriptor sym)
+                                       for status = (and id (package-desc-status id))
+                                       when (equal status "new")
+                                       nconc (list (car p))))
+                      :action standard-actions)
                     (helm-make-source "Available external packages" 'helm-packages-class
-                      :data (cl-loop for p in package-archive-contents
-                                     for sym = (car p)
-                                     for id = (package-get-descriptor sym)
-                                     for status = (package-desc-status id)
-                                     unless (or (and id (member
-                                                         status
-                                                         '("installed" "dependency" "source")))
-                                                (and id (assoc sym package--builtins)))
-                                     nconc (list (car p)))
-                      :action '(("Describe package" . helm-packages-describe)
-                                ("Visit homepage" . helm-packages-visit-homepage)
-                                ("Install packages(s)" . helm-packages-install)
-                                ("Clone package" . helm-packages-clone-package)))
+                      :data (lambda ()
+                              (cl-loop for p in package-archive-contents
+                                       for sym = (car p)
+                                       for id = (package-get-descriptor sym)
+                                       for status = (package-desc-status id)
+                                       unless (or (and id (member
+                                                           status
+                                                           '("new" "installed"
+                                                             "dependency" "source")))
+                                                  (and id (assoc sym package--builtins)))
+                                       nconc (list (car p))))
+                      :action standard-actions)
                     (helm-make-source "Available built-in packages" 'helm-packages-class
-                      :data (cl-loop for p in package--builtins
-                                     ;; Show only builtins that are available as
-                                     ;; well on (m)elpa. Other builtins don't
-                                     ;; have a package-descriptor, the format is
-                                     ;; (sym . [version reqs summary]).
-                                     when (package-desc-p (package-get-descriptor (car p)))
-                                     collect (car p))
-                      :action '(("Describe package" . helm-packages-describe)
-                                ("Visit homepage" . helm-packages-visit-homepage)
-                                ("Install packages(s)" . helm-packages-install))))
+                      :data (lambda ()
+                              (cl-loop for p in package--builtins
+                                       ;; Show only builtins that are available as
+                                       ;; well on (m)elpa. Other builtins don't
+                                       ;; have a package-descriptor, the format is
+                                       ;; (sym . [version reqs summary]).
+                                       when (package-desc-p (package-get-descriptor (car p)))
+                                       collect (car p)))
+                      :action (remove (assoc "Clone package" standard-actions)
+                                      standard-actions)))
           :buffer "*helm packages*")))
 
 ;;;###autoload
@@ -577,8 +587,8 @@ to avoid errors with outdated packages no more availables."
   "Helm interface to find packages by keywords with `finder'.
 To have more actions on packages, use `helm-packages'."
   (interactive "P")
-  (when arg (package-refresh-contents))
-  (package-initialize) ; needed to feed package-archive-contents.
+  (package-initialize)
+  (when arg (helm-packages--refresh-contents))
   (helm :sources
         (helm-build-in-buffer-source "helm finder"
           :data (cl-loop for p in package-archive-contents

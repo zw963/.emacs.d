@@ -117,6 +117,7 @@
 (defvar wfnames-buffer)
 (defvar Info-current-file)
 (defvar generated-autoload-file)
+(defvar recentf-max-saved-items)
 
 ;;; Internal vars
 ;;
@@ -256,7 +257,7 @@ Should not be used among other sources.")
     (define-key map (kbd "C-l")           'helm-find-files-up-one-level)
     (define-key map (kbd "C-:")           'helm-ff-complete-tramp-methods)
     (define-key map (kbd "C-_")           'helm-ff-undo)
-    (define-key map (kbd "C-r")           'helm-find-files-down-last-level)
+    (define-key map (kbd "C-;")           'helm-find-files-down-last-level)
     (define-key map (kbd "C-c r")         'helm-ff-run-find-file-as-root)
     (define-key map (kbd "C-x C-v")       'helm-ff-run-find-alternate-file)
     (define-key map (kbd "C-c @")         'helm-ff-run-insert-org-link)
@@ -285,7 +286,7 @@ Should not be used among other sources.")
     (define-key map (kbd "C-l")           'helm-find-files-up-one-level)
     (define-key map (kbd "C-:")           'helm-ff-complete-tramp-methods)
     (define-key map (kbd "C-_")           'helm-ff-undo)
-    (define-key map (kbd "C-r")           'helm-find-files-down-last-level)
+    (define-key map (kbd "C-;")           'helm-find-files-down-last-level)
     (define-key map (kbd "C-c h")         'helm-ff-file-name-history)
     (define-key map (kbd "C-x r b")       'helm-ff-bookmark-insert-location)
     (define-key map (kbd "C-<backspace>") 'helm-ff-run-toggle-auto-update)
@@ -397,10 +398,6 @@ a whole tree."
   "Hide tooltips automatically after this many seconds."
   :type 'integer)
 
-(defcustom helm-ff-file-name-history-use-recentf nil
-  "Use `recentf-list' instead of `file-name-history' in `helm-find-files'."
-  :type 'boolean)
-
 (defcustom helm-ff-skip-boring-files nil
   "Non-nil to skip boring files.
 I.e. the files matching regexps in `helm-boring-file-regexp-list'.
@@ -417,7 +414,7 @@ Note that when non-nil this will slow down slightly
 `helm-find-files'."
   :type 'boolean)
 
-(defcustom helm-ff-candidate-number-limit 5000
+(defcustom helm-ff-candidate-number-limit 500
   "The `helm-candidate-number-limit' for `helm-find-files' and friends.
 Note that when going one level up with
 `\\<helm-find-files-map>\\[helm-find-files-up-one-level]' the
@@ -427,28 +424,25 @@ directory/file if this one is situated lower than
 `helm-ff-candidate-number-limit' num candidate."
   :type 'integer)
 
-(defcustom helm-ff-preselect-ignore-large-dirs nil
-  "Preselect directory belonging to current-buffer even if large."
+(defvar helm-ff-preselect-ignore-large-dirs nil
+  "This variable has no effect, use `helm-ff-dynamic-candidate-number-limit'.")
+(make-obsolete-variable 'helm-ff-preselect-ignore-large-dirs
+                        'helm-ff-dynamic-candidate-number-limit
+                        "4.0.6")
+
+(defvaralias 'helm-ff-up-one-level-preselect 'helm-ff-dynamic-candidate-number-limit)
+(defcustom helm-ff-dynamic-candidate-number-limit t
+  " When non-nil `candidate-number-limit' source value is modified dynamically.
+This when going one level up if the position of previous candidate in
+its directory is > to `helm-ff-candidate-number-limit' This ensure
+preselection on previous directory when going one level up possible.  It
+can be helpful to disable this and reduce
+`helm-ff-candidate-number-limit' if you often navigate across very large
+directories."
   :type 'boolean)
-
-(defcustom helm-ff-up-one-level-preselect t
-  "Always preselect previous directory when going one level up.
-
-When non-nil `candidate-number-limit' source value is modified
-dynamically when going one level up if the position of previous
-candidate in its directory is > to
-`helm-ff-candidate-number-limit'.
-
-It can be helpful to disable this and reduce
-`helm-ff-candidate-number-limit' if you often navigate across
-very large directories."
-  :type 'boolean)
-
-(defcustom helm-files-save-history-extra-sources
-  '("Find" "Fd" "Locate" "Recentf"
-    "Files from Current Directory" "File Cache" "Etags")
-  "Extras source that save candidate to `file-name-history'."
-  :type '(repeat (choice string)))
+(make-obsolete-variable 'helm-ff-up-one-level-preselect
+                        'helm-ff-dynamic-candidate-number-limit
+                        "4.0.6")
 
 (defcustom helm-find-files-before-init-hook nil
   "Hook that run before initialization of `helm-find-files'."
@@ -918,13 +912,6 @@ to nil to avoid error messages when using `helm-find-files'."
   "Delay in seconds between each image in slideshow."
   :type 'integer)
 
-(defcustom helm-file-name-history-hide-deleted nil
-  "Hide deleted files in file-name-history when non nil.
-
-This can be toggled at any time from `helm-ff-file-name-history' with \
-\\<helm-file-name-history-map>\\[helm-file-name-history-show-or-hide-deleted]."
-  :type 'boolean)
-
 (defcustom helm-file-name-history-max-length 72
   "Max length of candidates in helm file name history before truncating."
   :type 'integer)
@@ -974,6 +961,11 @@ Setting this with `setq' may have no effect on this variable, use
          ;; Force rebuilding the source to pass diacritics fn to diacritics
          ;; slot.
          (setq helm-source-find-files nil)))
+
+(defcustom helm-turn-on-recentf t
+  "Automatically turn on `recentf-mode' when non-nil."
+  :group 'helm-files
+  :type 'boolean)
 
 ;;; Faces
 ;;
@@ -2604,8 +2596,7 @@ at end of pattern using \\<helm-map>\\[backward-char] and
       (setq helm-ff--deleting-char-backward t)
       (call-interactively
        (lookup-key (current-global-map)
-                   (read-kbd-macro "DEL")))
-      (helm--update-header-line))))
+                   (read-kbd-macro "DEL"))))))
 (put 'helm-ff-delete-char-backward 'helm-only t)
 
 (defun helm-ff-delete-char-backward--exit-fn ()
@@ -3026,7 +3017,7 @@ If prefix numeric arg is given go ARG level up."
             ;; predicate is used e.g. images and the default is a non
             ;; file image.
             (helm-set-attr 'candidate-number-limit
-                           (if helm-ff-up-one-level-preselect
+                           (if helm-ff-dynamic-candidate-number-limit
                                (max (gethash new-pattern
                                              helm-ff--directory-files-length
                                              helm-ff-candidate-number-limit)
@@ -3728,7 +3719,10 @@ Add a `helm-ff-dir' property on each fname ending with \"/\"."
     (cl-loop with files = (helm-file-name-all-completions-internal directory)
              for f in (sort files (or sort-method 'string-lessp))
              for split = (split-string f "->" t)
-             for fname = (replace-regexp-in-string " $" "" (car split))
+             ;; For some reasons adb (or tramp) add a "*" at end of fnames, but
+             ;; the real name is without the ending "*".
+             for fname = (helm-aand (replace-regexp-in-string " $" "" (car split))
+                                    (replace-regexp-in-string "\\*\\'" "" it))
              for truename = (cadr split)
              collect (cond ((string-match "/\\'" fname)
                             (propertize (helm--dir-file-name fname directory)
@@ -3974,9 +3968,14 @@ If PATTERN is a valid directory name, return PATTERN unchanged."
                ;; bn as well.
                (regexp-quote bn)))
       (t (concat (regexp-quote bd)
-                 (if (>= (length bn) 2) ; wait 2nd char before concating.
+                 ;; wait 2nd char before transforming to fuzzy.
+                 (if (>= (length bn) 2)
                      (helm--mapconcat-pattern bn)
-                     (concat ".*" (regexp-quote bn))))))))
+                   ;; Here BN length is 1, we were previously matching
+                   ;; everything before BN i.e. (concat ".*" (regexp-quote bn))
+                   ;; but it is too slow on large directories. We could use
+                   ;; previous clause for this but keep it here for clarity.
+                   (regexp-quote bn)))))))
 
 (defalias 'helm-dir-is-dot 'helm-ff-dot-file-p)
 (make-obsolete 'helm-dir-is-dot 'helm-ff-dot-file-p "3.8.8")
@@ -4578,7 +4577,7 @@ Arg FILE is the real part of candidate, a filename with no props."
                          (lambda (f)
                            (string-match "autoloads\\|loaddefs" f)))))
     (if (fboundp 'loaddefs-generate)
-        (loaddefs-generate default-directory file)
+        (loaddefs-generate default-directory file nil nil nil t)
       (let ((generated-autoload-file file))
         (update-directory-autoloads default-directory)))))
 
@@ -5016,7 +5015,10 @@ file."
                                        (delete-minibuffer-contents)
                                        (set-text-properties 0 (length fname)
                                                             nil fname)
-                                       (insert fname))))))
+                                       ;; Backup files have "!" to replace "/"
+                                       ;; in their basenames.
+                                       (insert (replace-regexp-in-string
+                                                "/!" "/\\\\!" fname)))))))
     (helm-set-attr 'candidate-number-limit helm-ff-candidate-number-limit)
     (unless (helm-ff--maybe-follow candidate)
       (when follow
@@ -5715,17 +5717,13 @@ Use it for non-interactive calls of `helm-find-files'."
       (helm-set-attr 'follow -1 helm-source-find-files))
     ;; If preselected candidate is further than `helm-ff-candidate-number-limit'
     ;; in the directory file list, we have to increase `candidate-number-limit'
-    ;; attr to have this candidate visible for preselection.  NOTE:
-    ;; When HFF has yet not been launched in this directory the maximum length
-    ;; of this directory is unknown and candidate will NOT be selected until
-    ;; next time we call HFF on this same buffer.
-    (helm-aif (and preselect
-                   (not helm-ff-preselect-ignore-large-dirs)
-                   (gethash fname helm-ff--directory-files-length
-                            helm-ff-candidate-number-limit))
-        (helm-set-attr 'candidate-number-limit
-                       (max it helm-ff-candidate-number-limit)
-                       helm-source-find-files))
+    ;; attr to have this candidate visible for preselection.
+    (when (and preselect helm-ff-dynamic-candidate-number-limit)
+      (helm-set-attr 'candidate-number-limit
+                     (helm-aif (gethash fname helm-ff--directory-files-length)
+                         (max it helm-ff-candidate-number-limit)
+                       99999)
+                     helm-source-find-files))
     (helm-ff-setup-update-hook)
     (add-hook 'helm-resume-after-hook 'helm-ff--update-resume-after-hook)
     (unwind-protect
@@ -5747,7 +5745,8 @@ Use it for non-interactive calls of `helm-find-files'."
   (helm-build-dummy-source "New file or directory"
     :filtered-candidate-transformer
     (lambda (_candidates _source)
-      (unless (file-exists-p helm-pattern)
+      ;; Unquote helm-pattern maybe quoted by PA.
+      (unless (file-exists-p (replace-regexp-in-string "\\s\\" "" helm-pattern))
         (list (helm-ff-filter-candidate-one-by-one helm-pattern nil t))))
     :all-marked t
     :keymap 'helm-find-files-map
@@ -6797,42 +6796,10 @@ be existing directories."
 (helm-make-command-from-action helm-ff-run-mcp
     "Copy the car of marked candidates to the remaining marked candidates."
   'helm-ff-mcp)
+
 ;;; File name history
 ;;
 ;;
-(defun helm-files-save-file-name-history (&optional force)
-  "Save marked files to `file-name-history'."
-  (let* ((src (helm-get-current-source))
-         (src-name (assoc-default 'name src)))
-    (when (or force (helm-file-completion-source-p src)
-              (member src-name helm-files-save-history-extra-sources))
-      (let ((mkd (helm-marked-candidates :with-wildcard t))
-            (history-delete-duplicates t))
-        (cl-loop for sel in mkd
-                 when (and sel
-                           (stringp sel)
-                           ;; If file was one of HFF candidates assume it
-                           ;; is an existing file, so no need to call
-                           ;; file-exists-p which is costly on remote candidates.
-                           ;; (file-exists-p sel)
-                           (not (helm-ff--file-directory-p sel))
-                           ;; When creating a new directory previous test
-                           ;; check for file-directory-p BEFORE its
-                           ;; creation, so check for ending slash as
-                           ;; well to know if it is a future directory.
-                           (not (string-match "/\\'" sel)))
-                 do
-                 ;; we use `abbreviate-file-name' here because
-                 ;; other parts of Emacs seems to,
-                 ;; and we don't want to introduce duplicates.
-                 (add-to-history 'file-name-history
-                                 (abbreviate-file-name
-                                  (expand-file-name
-                                   ;; See comments in `helm-recentf-source'
-                                   ;; about bug#2709.
-                                   (substring-no-properties sel)))))))))
-(add-hook 'helm-exit-minibuffer-hook 'helm-files-save-file-name-history)
-
 (defvar helm-source-file-name-history
   (helm-build-sync-source "File Name History"
     :candidates 'file-name-history
@@ -6842,17 +6809,9 @@ be existing directories."
     :filtered-candidate-transformer #'helm-file-name-history-transformer
     :action 'helm-type-file-actions))
 
-(defun helm-file-name-history-show-or-hide-deleted ()
-  (interactive)
-  (setq helm-file-name-history-hide-deleted
-        (not helm-file-name-history-hide-deleted))
-  (helm-update))
-(put 'helm-file-name-history-show-or-hide-deleted 'helm-only t)
-
 (defvar helm-file-name-history-map
   (let ((map (make-sparse-keymap)))
     (set-keymap-parent map helm-map)
-    (define-key map (kbd "C-c d")   'helm-file-name-history-show-or-hide-deleted)
     (define-key map (kbd "C-x C-f") 'helm-ff-file-name-history-run-ff)
     map))
 
@@ -6873,8 +6832,8 @@ be existing directories."
                                 (concat (propertize c 'face 'helm-ff-file)
                                         (make-string (1+ (- lgst (length c))) ? )
                                         last-access))))
-                            (t (unless helm-file-name-history-hide-deleted
-                                 (propertize c 'face 'helm-history-deleted))))
+                            ;; Should not happen as long as we use recentf.
+                            (t (propertize c 'face 'helm-history-deleted)))
            when disp
            collect (cons (if helm-ff-icon-mode
                              (concat (helm-x-icons-icon-for-file
@@ -6891,32 +6850,20 @@ be existing directories."
   "Switch back to current HFF session with selection as preselect."
   'helm-ff-file-name-history-ff)
 
-(defun helm-ff-file-name-history-delete-item (_candidate)
-  (let ((files (helm-marked-candidates)))
-    (with-helm-display-marked-candidates
-      helm-marked-buffer-name
-      (helm-ff--count-and-collect-dups files)
-      (when (y-or-n-p "Delete file(s) from history? ")
-        (cl-loop for f in files do
-                 (setq file-name-history (delete f file-name-history))))
-      (message nil))))
-
 (defun helm-ff-file-name-history ()
-  "Switch to `file-name-history' without quitting `helm-find-files'."
+  "Switch to `recentf' without quitting `helm-find-files'."
   (interactive)
+  (when helm-turn-on-recentf (recentf-mode 1))
   (let ((src (helm-build-sync-source "File name history"
-               :init (lambda ()
-                       (with-helm-alive-p
-                         (when helm-ff-file-name-history-use-recentf
-                           (require 'recentf)
-                           (or recentf-mode (recentf-mode 1)))))
-               :candidate-number-limit (helm-aand (or (get 'file-name-history 'history-length)
-                                                      history-length)
-                                                  (and (numberp it) it))
-               :candidates (lambda ()
-                             (if helm-ff-file-name-history-use-recentf
-                                 recentf-list
-                               file-name-history))
+               :candidate-number-limit
+               (helm-aand
+                (or
+                 (and (boundp 'recentf-max-saved-items)
+                      recentf-max-saved-items)
+                 (get 'file-name-history 'history-length)
+                 history-length)
+                (and (numberp it) it))
+               :candidates (lambda () recentf-list)
                :help-message 'helm-file-name-history-help-message
                :fuzzy-match t
                :persistent-action 'ignore
@@ -6927,8 +6874,7 @@ be existing directories."
                                       (helm-set-pattern
                                        (expand-file-name candidate))
                                       (with-helm-after-update-hook (helm-exit-minibuffer)))
-                        "Find file in helm" 'helm-ff-file-name-history-ff
-                        "Delete candidate(s)" 'helm-ff-file-name-history-delete-item)
+                        "Find file in helm" 'helm-ff-file-name-history-ff)
                :keymap helm-file-name-history-map)))
     (with-helm-alive-p
       (helm :sources src

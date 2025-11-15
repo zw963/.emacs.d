@@ -1,8 +1,6 @@
-;; -*- lexical-binding: t; -*-
-
 ;;; helm-ls-git.el --- The git project manager for helm. -*- lexical-binding: t -*-
 
-;; Copyright (C) 2012 ~ 2023 Thierry Volpiatto
+;; Copyright (C) 2012 ~ 2025 Thierry Volpiatto
 
 ;; Package-Requires: ((helm "3.9.5") (emacs "25.3"))
 ;; URL: https://github.com/emacs-helm/helm-ls-git
@@ -536,10 +534,6 @@ Icons are displayed like in `helm-find-files' when `helm-ff-icon-mode' is enable
 ")
 
 
-;; Append visited files from `helm-source-ls-git' to `file-name-history'.
-(add-to-list 'helm-files-save-history-extra-sources "Git files")
-
-
 (defvar helm-ls-git-log-file nil) ; Set it for debugging.
 
 
@@ -826,8 +820,11 @@ Icons are displayed like in `helm-find-files' when `helm-ff-icon-mode' is enable
       (kill-buffer "*git log diff*"))
     (helm :sources (helm-build-in-buffer-source "Git log"
                      :header-name (lambda (sname)
-                                    (format "%s (%s)"
-                                            sname (substring-no-properties name)))
+                                    (format "%s (%s:%s)"
+                                            sname (substring-no-properties name)
+                                            (if file
+                                                (file-relative-name file)
+                                              "All files")))
                      :init (lambda ()
                              (helm-init-candidates-in-buffer 'global
                                (helm-ls-git-log
@@ -844,8 +841,10 @@ Icons are displayed like in `helm-find-files' when `helm-ff-icon-mode' is enable
                                       helm-ls-git-log--last-number-commits "0"
                                       helm-ls-git-log--is-full nil))
                      :help-message 'helm-ls-git-help-message
-                     :action '(("Show commit" . helm-ls-git-log-show-commit)
-                               ("Find file at rev" . helm-ls-git-log-find-file)
+                     :action `(("Show commit" . helm-ls-git-log-show-commit)
+                               ("Find file at rev" . ,(lambda (candidate)
+                                                        (helm-ls-git-log-find-file-1
+                                                         candidate (and file (file-relative-name file)))))
                                ("Ediff file at revs" . helm-ls-git-ediff-file-at-revs)
                                ("Kill rev as short hash" .
                                 helm-ls-git-log-kill-short-hash)
@@ -993,30 +992,28 @@ Icons are displayed like in `helm-find-files' when `helm-ff-icon-mode' is enable
                                       :data (helm-ls-git-list-files))
                            :buffer "*helm-ls-git cat-file*")))
            ;; Git command line needs 1234:lisp/foo.
-           (fname (concat rev ":" file))
+           (fname (and file (concat rev ":" file)))
            ;; Whereas the file created will be lisp/1234:foo.
-           (path (expand-file-name
-                  (concat (helm-basedir file) rev ":" (helm-basename file))
-                  (helm-ls-git-root-dir)))
+           (path (and file (expand-file-name
+                            (concat (helm-basedir file) rev ":" (helm-basename file))
+                            (helm-ls-git-root-dir))))
            str status buf)
-      (setq str (with-output-to-string
-                  (with-current-buffer standard-output
-                    (setq status (process-file
-                                  "git" nil t nil "cat-file" "-p" fname)))))
-      (if (zerop status)
-          (progn
-            (with-current-buffer (setq buf (find-file-noselect path))
-              (insert str)
-              ;; Prevent kill-buffer asking after ediff ends.
-              (set-buffer-modified-p (not buffer-only))
-              (goto-char (point-min))
-              (unless buffer-only
-                (save-buffer)))
-            (if buffer-only buf (find-file path)))
-        (error "No such file %s at %s" file rev)))))
-
-(defun helm-ls-git-log-find-file (candidate)
-  (helm-ls-git-log-find-file-1 candidate))
+      (when file
+        (setq str (with-output-to-string
+                    (with-current-buffer standard-output
+                      (setq status (process-file
+                                    "git" nil t nil "cat-file" "-p" fname)))))
+        (if (zerop status)
+            (progn
+              (with-current-buffer (setq buf (find-file-noselect path))
+                (insert str)
+                ;; Prevent kill-buffer asking after ediff ends.
+                (set-buffer-modified-p (not buffer-only))
+                (goto-char (point-min))
+                (unless buffer-only
+                  (save-buffer)))
+              (if buffer-only buf (find-file path)))
+          (error "No such file %s at %s" file rev))))))
 
 (defun helm-ls-git-ediff-file-at-revs (_candidate)
   (let* ((marked (helm-marked-candidates))
@@ -1255,25 +1252,34 @@ object will be passed git rebase i.e. git rebase -i <hash>."
 
 (defun helm-ls-git-push (_candidate)
   (with-helm-default-directory (helm-default-directory)
-    (let ((branch (helm-ls-git--branch))
-          pr tm)
-      (when (y-or-n-p (format "Really push branch `%s' on remote ?" branch))
+    (let* ((branch (helm-ls-git--branch))
+           (force (and helm-current-prefix-arg "FORCE "))
+           pr tm)
+      (when (y-or-n-p (format "Really %spush branch `%s' on remote ?"
+                              (if force force "") branch))
         (setq pr (make-progress-reporter
                   (format "Pushing branch `%s' on remote..." branch))
               tm (run-at-time 1 0.1 #'progress-reporter-update pr))
         (let ((proc (start-file-process
-                     "git" "*helm-ls-git push*" "git" "push" "origin" "HEAD")))
+                     "git" "*helm-ls-git push*" "git" "push" "-q" "origin"
+                     (format "%sHEAD" (if force "+" "")))))
+          (with-current-buffer (process-buffer proc) (erase-buffer))
+          (set-process-filter proc 'helm-ls-git--filter-process)
+          (save-selected-window
+            (display-buffer (process-buffer proc)))
           (set-process-sentinel
-           proc (lambda (_process event)
-                  (if (string= event "finished\n")
-                      (progress-reporter-done pr)
-                    (message "Failed to push branch `%s' on remote" branch))
-                  (cancel-timer tm))))))))
+           proc (lambda (process event)
+                  (let ((status (process-exit-status process)))
+                    (if (string= event "finished\n")
+                        (progress-reporter-done pr)
+                      (message "Failed to push branch `%s' on remote" branch))
+                    (when (= status 0)
+                      (quit-window t (get-buffer-window (process-buffer process))))
+                    (cancel-timer tm)))))))))
 
-(defun helm-ls-git-run-push ()
-  (interactive)
-  (with-helm-alive-p
-    (helm-exit-and-execute-action #'helm-ls-git-push)))
+(helm-make-command-from-action helm-ls-git-run-push
+    "Run `helm-ls-git-push' action."
+  'helm-ls-git-push)
 (put 'helm-ls-git-run-push 'no-helm-mx t)
 
 (defun helm-ls-git-remotes ()
@@ -1284,22 +1290,21 @@ object will be passed git rebase i.e. git rebase -i <hash>."
 
 (defun helm-ls-git--pull-or-fetch (command &rest args)
   (with-helm-default-directory (helm-default-directory)
-    (let* ((remote "origin")
-           (pcommand (capitalize command))
+    (let* ((pcommand (capitalize command))
+           (remote (if current-prefix-arg
+                       (helm-comp-read
+                        (format "%s from: " pcommand)
+                        (split-string
+                         (helm-ls-git-remotes)
+                         "\n")
+                        :allow-nest t)
+                     "origin"))
            (branch (helm-ls-git--branch))
            ;; A `C-g' in helm-comp-read will quit function as well.
-           (switches (if current-prefix-arg
-                         (append (list command)
-                                 args
-                                 (list (setq remote
-                                             (helm-comp-read
-                                              (format "%s from: " pcommand)
-                                              (split-string
-                                               (helm-ls-git-remotes)
-                                               "\n")
-                                              :allow-nest t)))
-                                 (list branch))
-                       (append (list command) args)))
+           (switches (append (list command)
+                             args
+                             (list remote)
+                             (list branch)))
            (pr (make-progress-reporter
                 (format "%sing from `%s/%s'..." pcommand remote branch)))
            (tm (run-at-time 1 0.1 (lambda () (progress-reporter-update pr))))
@@ -1703,36 +1708,35 @@ object will be passed git rebase i.e. git rebase -i <hash>."
                             1)))
           ;; Deleted
           ((string-match "^ D " disp)
-           (append actions (list '("Git delete" . (lambda (_candidate)
-                                                    (let ((mkd (helm-marked-candidates)))
-                                                      (cl-loop for c in mkd
-                                                               do (helm-ls-git-rm c)))))
-                                 '("Git restore" . (lambda (_candidate)
-                                                    (let ((mkd (helm-marked-candidates)))
-                                                      (cl-loop for c in mkd
-                                                               do (helm-ls-git-restore c)))))
-                                 '("Stage file(s)"
-                                   . helm-ls-git-stage-files))))
+           (append actions (helm-make-actions
+                            "Git delete" (lambda (_candidate)
+                                           (let ((mkd (helm-marked-candidates)))
+                                             (cl-loop for c in mkd
+                                                      do (helm-ls-git-rm c))))
+                            "Git restore" (lambda (_candidate)
+                                            (let ((mkd (helm-marked-candidates)))
+                                              (cl-loop for c in mkd
+                                                       do (helm-ls-git-restore c))))
+                            "Stage file(s)" 'helm-ls-git-stage-files)))
           ;; Deleted and staged
           ((string-match "^A?D +" disp)
-           (append actions (list '("Commit staged file(s)"
-                                   . helm-ls-git-commit)
-                                 '("Unstage file(s)"
-                                   . helm-ls-git-unstage-files)
-                                 '("Update index"
-                                   . (lambda (_candidate)
-                                       (let ((default-directory (helm-default-directory)))
-                                         (process-file "git" nil nil nil
-                                                       "add" "-u"))))
-                                 '("Stage marked file(s) and commit"
-                                   . helm-ls-git-stage-marked-and-commit))))
+           (append actions (helm-make-actions
+                            "Commit staged file(s)" 'helm-ls-git-commit
+                            "Unstage file(s)" 'helm-ls-git-unstage-files
+                            "Update index" (lambda (_candidate)
+                                             (let ((default-directory (helm-default-directory)))
+                                               (process-file "git" nil nil nil
+                                                             "add" "-u")))
+                            "Stage marked file(s) and commit"
+                            'helm-ls-git-stage-marked-and-commit)))
           ;; Conflict
           ((string-match "^U+ +" disp)
-           (append actions (list '("Git cherry-pick abort" . helm-ls-git-cherry-pick-abort)
-                                 '("Git rebase abort" . helm-ls-git-rebase-abort)
-                                 '("Git AM abort" . helm-ls-git-am-abort)
-                                 '("Git merge abort" . helm-ls-git-merge-abort)
-                                 '("Git revert abort" . helm-ls-git-log-revert-abort))))
+           (append actions (helm-make-actions
+                            "Git cherry-pick abort" 'helm-ls-git-cherry-pick-abort
+                            "Git rebase abort" 'helm-ls-git-rebase-abort
+                            "Git AM abort" 'helm-ls-git-am-abort
+                            "Git merge abort" 'helm-ls-git-merge-abort
+                            "Git revert abort" 'helm-ls-git-log-revert-abort)))
           (t actions))))
 
 (defun helm-ls-git-am-files (_candidate)

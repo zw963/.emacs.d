@@ -56,6 +56,8 @@
 (declare-function helm-read-file-name "helm-mode.el")
 (declare-function find-function-library "find-func.el")
 (declare-function find-library-name "find-func.el")
+(declare-function cl--describe-class-slots "cl-extra.el")
+(declare-function cl--find-class "cl-macs.el")
 
 (defvar helm-sources)
 (defvar helm-initial-frame)
@@ -459,7 +461,7 @@ Like `this-command' but return the real command, and not
 ;;
 (defun helm-iter-list (seq &optional cycle)
   "Return an iterator object from SEQ.
-The iterator die and return nil when it reach end of SEQ.
+The iterator dies and returns nil when it reaches end of SEQ.
 When CYCLE is specified the iterator never ends."
   (let ((lis seq))
     (lambda ()
@@ -1481,6 +1483,23 @@ If object is a lambda, return \"Anonymous\"."
       (let ((helm-describe-function-function 'describe-function))
         (helm-describe-function (helm-symbolify class))))))
 
+(defun helm-elisp-collect-slots-in-class (class)
+  (with-temp-buffer
+    (cl-letf (((symbol-function 'cl--print-table)
+               #'helm-source--cl--print-table))
+      (cl--describe-class-slots (cl--find-class class))
+      (goto-char (point-min))
+      (cl-loop while (re-search-forward "^\\* \\(.*\\)" nil t)
+               for name = (match-string 1)
+               for doc = (save-excursion
+                           (forward-line 1)
+                           (let ((beg (point))
+                                 (end (when (re-search-forward "^\\*" nil t)
+                                        (1- (match-beginning 0)))))
+                             (when (and beg end)
+                               (buffer-substring beg end))))
+               collect (cons name (concat "* " name "\n" doc))))))
+
 (defun helm-describe-function (func)
   "Display documentation of FUNC, a symbol or string."
   (cl-letf (((symbol-function 'message) #'ignore))
@@ -2047,19 +2066,24 @@ Take same args as `directory-files'."
     ;; at least 27.1, see bug#2662.
     (apply #'directory-files directory args)))
 
-(defun helm-common-dir-1 (files)
-  "Find the common directories of FILES."
+(defun helm-common-str-1 (files &optional dirp)
+  "Find the common string or directory in FILES.
+When DIRP is non nil return the common part which is a directory."
   (if (cdr files)
       (cl-loop with base = (car files)
                with others = nil
                for file in files
-               for cpart = (fill-common-string-prefix base file)
+               for cpart = (if dirp
+                               (helm-acase (fill-common-string-prefix base file)
+                                 ((guard* (and it (file-directory-p it))) it)
+                                 (t (and it (file-name-directory it))))
+                             (fill-common-string-prefix base file))
                if cpart
                do (setq base cpart)
                else do (push file others)
                finally return (if (and others base)
                                   (nconc (list (directory-file-name base))
-                                         (helm-common-dir-1 others))
+                                         (helm-common-str-1 others))
                                 (list (and base (directory-file-name base)))))
     (and files (list (directory-file-name
                       (file-name-directory (car files)))))))
@@ -2068,7 +2092,7 @@ Take same args as `directory-files'."
   "Return the longest common directory path of FILES list.
 If FILES are not all common to the same drive (Windows) a list of
 common directory is returned."
-  (let ((result (helm-common-dir-1 files)))
+  (let ((result (helm-common-str-1 files t)))
     (if (cdr result) result (car result))))
 
 ;; Tests:
@@ -2091,8 +2115,12 @@ common directory is returned."
   "Set minibuffer contents to PATTERN.
 If optional NOUPDATE is non-nil, the Helm buffer is not changed."
   (with-selected-window (or (active-minibuffer-window) (minibuffer-window))
-    (delete-minibuffer-contents)
-    (insert pattern))
+    ;; Minibuffer may have a read-only string when using completion-in-region,
+    ;; which prevent inserting in minibuffer.  see
+    ;; `helm-mode--completion-in-region-initial-input'.
+    (let ((inhibit-read-only t))
+      (delete-minibuffer-contents)
+      (insert pattern)))
   (when noupdate
     (setq helm-pattern pattern)))
 
@@ -2331,28 +2359,6 @@ broken."
 (when (< emacs-major-version 26)
   (advice-add 'ansi-color-apply :override #'helm--ansi-color-apply))
 
-
-;;; Fontlock
-(dolist (mode '(emacs-lisp-mode lisp-interaction-mode))
-  (font-lock-add-keywords
-   mode
-   '(("(\\<\\(with-helm-after-update-hook\\)\\>" 1 font-lock-keyword-face)
-     ("(\\<\\(with-helm-temp-hook\\)\\>" 1 font-lock-keyword-face)
-     ("(\\<\\(with-helm-window\\)\\>" 1 font-lock-keyword-face)
-     ("(\\<\\(with-helm-current-buffer\\)\\>" 1 font-lock-keyword-face)
-     ("(\\<\\(with-helm-buffer\\)\\>" 1 font-lock-keyword-face)
-     ("(\\<\\(with-helm-show-completion\\)\\>" 1 font-lock-keyword-face)
-     ("(\\<\\(with-helm-default-directory\\)\\>" 1 font-lock-keyword-face)
-     ("(\\<\\(with-helm-restore-variables\\)\\>" 1 font-lock-keyword-face)
-     ("(\\<\\(helm-multi-key-defun\\)\\>" 1 font-lock-keyword-face)
-     ("(\\<\\(helm-while-no-input\\)\\>" 1 font-lock-keyword-face)
-     ("(\\<\\(helm-aif\\)\\>" 1 font-lock-keyword-face)
-     ("(\\<\\(helm-awhile\\)\\>" 1 font-lock-keyword-face)
-     ("(\\<\\(helm-acond\\)\\>" 1 font-lock-keyword-face)
-     ("(\\<\\(helm-aand\\)\\>" 1 font-lock-keyword-face)
-     ("(\\<\\(helm-with-gensyms\\)\\>" 1 font-lock-keyword-face)
-     ("(\\<\\(helm-read-answer-dolist-with-action\\)\\>" 1 font-lock-keyword-face)
-     ("(\\<\\(helm-read-answer\\)\\>" 1 font-lock-keyword-face))))
 
 (provide 'helm-lib)
 

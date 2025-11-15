@@ -388,10 +388,12 @@ buffers vertically according to `helm-window-show-buffers-function'."
 (defun helm-window-decide-split-fn (candidates &optional other-window-fn)
   "Try to find the best split window fn according to the number of CANDIDATES."
   (let ((fn (cond (;; 4 or more.
-                   (>= (length candidates) 4)
+                   (>= (length candidates)
+                       (if other-window-fn 3 4))
                    #'helm-window-mosaic-fn)
                   ;; 3 only.
-                  ((= (length candidates) 3)
+                  ((= (length candidates)
+                      (if other-window-fn 2 3))
                    #'helm-window-alternate-split-fn)
                   ;; 2 or less.
                   (t #'helm-window-default-split-fn))))
@@ -600,11 +602,10 @@ after running winner-undo/redo."
   (cl-pushnew helm-buffer winner-boring-buffers :test 'equal))
 (add-hook 'helm-cleanup-hook #'helm-handle-winner-boring-buffers)
 
-(defun helm-quit-and-find-file ()
+(defun helm-quit-and-find-file-1 ()
   "Drop into `helm-find-files' from `helm'.
 If current selection is a buffer or a file, `helm-find-files'
 from its directory."
-  (interactive)
   (with-helm-alive-p
     (require 'helm-grep)
     (require 'helm-elisp)
@@ -625,7 +626,6 @@ from its directory."
                                          (helm-basename f) f))))
              (helm-find-files-1 f))))
        (helm--quit-and-find-file-default-file src)))))
-(put 'helm-quit-and-find-file 'helm-only t)
 
 (defun helm--quit-and-find-file-default-file (source)
   (let ((target-fn (or (helm-get-attr 'find-file-target source)
