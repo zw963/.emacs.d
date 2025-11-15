@@ -175,7 +175,8 @@
                    (keymap-set lsp-mode-map "<mouse-3>" #'ignore)
                    )))
 
-(context-menu-mode t)
+;; 我发现这个和 treemacs 右键菜单冲突，所以先不开了
+;; (context-menu-mode t)
 
 (provide 'context-menu-mode_init)
 
