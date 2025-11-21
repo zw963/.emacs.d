@@ -5,10 +5,10 @@
                        :height 140
                        :italic t)))
 
-;; (setq blamer-max-lines 1)
+(setq blamer-max-lines 1)
 ;;(setq blamer-type 'echo-area)
 ;; (setq blamer-show-avatar-p nil)
-;;(setq blamer-idle-time 1)
+(setq blamer-idle-time 1.5)
 
 (if (and (fboundp 'daemonp) (daemonp))
     (add-hook 'server-after-make-frame-hook

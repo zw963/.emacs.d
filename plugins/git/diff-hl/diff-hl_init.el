@@ -2,6 +2,8 @@
 
 (require 'diff-hl)
 
+(setq diff-hl-show-hunk-function 'diff-hl-show-hunk-posframe)
+
 (setq vc-git-diff-switches '("--histogram"))
 
 ;; (add-hook 'prog-mode-hook 'turn-on-diff-hl-mode)
