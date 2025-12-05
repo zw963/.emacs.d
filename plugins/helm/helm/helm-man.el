@@ -61,6 +61,8 @@ source.")
 
 (defvar helm-source-man-pages nil)
 
+(defvar helm-man--tldr-cache nil)
+
 (defun helm-man-default-action (candidate)
   "Default action for jumping to a woman or man page from Helm."
   (let ((wfiles (mapcar #'car (woman-file-name-all-completions candidate))))
@@ -83,10 +85,13 @@ source.")
              (Man-getpage-in-background candidate)))))
 
 (defun helm-man--init ()
+  "Init caches for helm-man."
   (require 'warnings)
   (let ((warning-suppress-log-types '((defvaralias))))
     (require 'woman))
   (require 'helm-utils)
+  (unless helm-man--tldr-cache
+    (setq helm-man--tldr-cache (helm-man--tldr-cache)))
   (unless helm-man--pages
     (setq woman-expanded-directory-path
           (woman-expand-directory-path woman-manpath woman-path))
@@ -96,10 +101,49 @@ source.")
   (helm-init-candidates-in-buffer 'global helm-man--pages))
 
 (defun helm-man-popup-info (candidate)
+  "The popup-info function for `helm-man-pages-class'."
+  ;; On some systems mandb don't run automatically, in this case whatis or man
+  ;; -f may return nothing.
   (let ((output (shell-command-to-string (format "man -f '%s'" candidate))))
     (when (string-match (format "\\(%s ?([^(]+)\\) *- ?\\(.*\\)\n" candidate)
                         output)
       (match-string 2 output))))
+
+(defun helm-man-tldr-render (command)
+  "Display the output of `tldr' command."
+  (with-current-buffer-window "*tldr*" '(display-buffer-full-frame) nil
+    (let ((status (call-process "tldr" nil t nil "--color" "always" command))
+          map)
+      (when (zerop status)
+        (ansi-color-apply-on-region (point-min) (point-max))
+        (goto-char (point-min))
+        (setq map (let ((m (make-sparse-keymap)))
+                    (define-key m (kbd "<return>") #'browse-url-at-point)
+                    (define-key m [mouse-1] #'browse-url-at-point)
+                    m))
+        (save-excursion
+          (while (re-search-forward "http[s]://" nil t)
+            (let* ((pos (bounds-of-thing-at-point 'url))
+                   (ov (make-overlay (car pos) (cdr pos))))
+              (overlay-put ov 'face 'font-lock-keyword-face)
+              (overlay-put ov 'keymap map)
+              (overlay-put ov 'mouse-face 'highlight)
+              (overlay-put ov 'help-echo "mouse-1: Browse url"))))
+      (local-set-key "q" 'quit-window)))))
+
+(defun helm-man--tldr-cache ()
+  "Return the output of tldr -l as a list."
+  (when (executable-find "tldr")
+    (with-temp-buffer
+      (call-process "tldr" nil t nil "-l")
+      (split-string (buffer-string) "\n"))))
+
+(defun helm-man-action-transformer (actions _candidate)
+  "The action transformer fn for `helm-man-woman'."
+  (let ((disp (helm-get-selection nil t)))
+    (if (member disp helm-man--tldr-cache)
+        (append actions '(("Tldr" . helm-man-tldr-render)))
+      actions)))
 
 (defclass helm-man-pages-class (helm-source-in-buffer)
   ((popup-info :initform #'helm-man-popup-info)))
@@ -111,7 +155,8 @@ With a prefix ARG reinitialize the cache.  To have a popup
 showing a basic description of selected candidate, turn on
 `helm-popup-tip-mode'."
   (interactive "P")
-  (when arg (setq helm-man--pages nil))
+  (when arg (setq helm-man--pages nil
+                  helm-man--tldr-cache nil))
   (unless helm-source-man-pages
     (setq helm-source-man-pages
           (helm-make-source "Manual Pages" 'helm-man-pages-class
@@ -120,6 +165,7 @@ showing a basic description of selected candidate, turn on
             :filtered-candidate-transformer
             (lambda (candidates _source)
               (sort candidates #'helm-generic-sort-fn))
+            :action-transformer 'helm-man-action-transformer
             :action  '(("Display Man page" . helm-man-default-action))
             :group 'helm-man)))
   (helm :sources 'helm-source-man-pages

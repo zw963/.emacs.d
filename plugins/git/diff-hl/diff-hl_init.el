@@ -1,6 +1,7 @@
 ;; -*- lexical-binding: t; -*-
 
 (require 'diff-hl)
+(require 'diff-hl-show-hunk-posframe)
 
 (setq diff-hl-show-hunk-function 'diff-hl-show-hunk-posframe)
 

@@ -1435,7 +1435,24 @@ NOTE: Probably not supported on some systems (e.g., Windows).
 \(fn URL &optional IGNORE)" t)
 
 (autoload 'helm-browse-url-chromium "helm-net" "\
-Browse URL with Google Chrome browser.
+Same as `browse-url-chromium' but detach from emacs.
+
+So when you quit Emacs you can keep your Chromium session open and
+not be prompted to kill the Chromium process.
+
+NOTE: Probably not supported on some systems (e.g., Windows).
+
+\(fn URL &optional IGNORE)" t)
+
+(autoload 'helm-browse-url-brave "helm-net" "\
+Browse URL with Brave browser and detach from emacs.
+
+Brave browser executable is determined by `helm-browse-url-brave-program'.
+
+So when you quit Emacs you can keep your Opera session open and
+not be prompted to kill the Opera process.
+
+NOTE: Probably not supported on some systems (e.g., Windows).
 
 \(fn URL &optional IGNORE)" t)
 

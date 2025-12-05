@@ -220,6 +220,11 @@ Should not be used among other sources.")
     (define-key map (kbd "M-K")           'helm-ff-run-kill-buffer-persistent)
     (define-key map (kbd "M-T")           'helm-ff-run-touch-files)
     (define-key map (kbd "M-M")           'helm-ff-run-chmod)
+    ;; M-O in ttys is a prefix key.
+    (define-key map (if (display-graphic-p)
+                        (kbd "M-O") (kbd "M-O O"))
+      'helm-ff-run-chown)
+    (define-key map (kbd "M-G")           'helm-ff-run-chgrp)
     (define-key map (kbd "C-c z")         'helm-ff-persistent-compress)
     (define-key map (kbd "M-Z")           'helm-ff-run-compress-marked-files)
     (define-key map (kbd "M-c")           'helm-ff-run-compress-to)
@@ -857,6 +862,8 @@ want to use it, helm is still providing
    "Compress file(s) to archive `M-c'" 'helm-find-files-compress-to
    "Compress or uncompress file(s) `M-Z'" 'helm-ff-compress-marked-files
    "Change mode on file(s) `M-M'" 'helm-ff-chmod
+   "Change owner on file(s) `M-O' or `M-O O' in ttys" 'helm-ff-chown
+   "Change group on file(s) `M-G'" 'helm-ff-chgrp
    "Find file other window `C-c o'" 'helm-find-files-other-window
    "Find file other frame `C-c C-o'" 'find-file-other-frame
    (lambda () (and (fboundp 'tab-bar-mode)
@@ -1551,8 +1558,7 @@ DEST must be a directory.  SWITCHES when unspecified default to
             (setq helm-rsync-progress-str-alist
                   (delete (assoc process helm-rsync-progress-str-alist)
                           helm-rsync-progress-str-alist))
-            (helm-rsync-restore-mode-line process)
-            (force-mode-line-update)))
+            (helm-rsync-restore-mode-line process)))
     (set-process-filter proc #'helm-rsync-process-filter)))
 
 (defun helm-rsync-process-filter (proc output)
@@ -1715,6 +1721,50 @@ the car of marked files i.e. the first marked file."
             (set-file-modes f mode)))
         (message "Changed file mode to `%s' on %s file(s)"
                  smode (length candidates))))))
+
+(defun helm-ff--dired-marked-files (&rest _args)
+  ;; Internally dired-do-chxxx needs basenames.
+  (cl-loop for f in (helm-marked-candidates :with-wildcard t)
+           collect (helm-basename f)))
+
+(defun helm-ff--dired-get-filename (&rest _args)
+  ;; Internally dired-do-chxxx needs basenames.
+  (helm-aif (helm-get-selection) (helm-basename it)))
+
+(defun helm-ff-dired-do-chxxx (&rest args)
+  "Variation of `dired-do-chxxx' for helm."
+  (require 'dired-aux)
+  (cl-letf (((symbol-function 'dired-get-marked-files)
+             #'helm-ff--dired-marked-files)
+            ((symbol-function 'dired-do-redisplay)
+             #'ignore)
+            ((symbol-function 'dired-get-filename)
+             #'helm-ff--dired-get-filename))
+    ;; dired-aux is requiring dired so dired-click-to-select-mode should be
+    ;; also available.
+    (let (dired-click-to-select-mode)
+      (apply #'dired-do-chxxx args))))
+
+(defun helm-ff-chown (_candidate)
+  "Variation of `dired-do-chown' for helm."
+  (with-helm-default-directory helm-ff-default-directory
+    (when (and (memq system-type '(ms-dos windows-nt))
+               (not (file-remote-p default-directory)))
+      (error "chown not supported on this system"))
+    (helm-ff-dired-do-chxxx "Owner" dired-chown-program 'chown nil)))
+
+(defun helm-ff-chgrp (_candidate)
+  "Variation of `dired-do-chgrp' for helm."
+  (with-helm-default-directory helm-ff-default-directory
+    (when (and (memq system-type '(ms-dos windows-nt))
+               (not (file-remote-p default-directory)))
+      (error "chown not supported on this system"))
+    (helm-ff-dired-do-chxxx "Group" "chgrp" 'chgrp nil)))
+
+(helm-make-command-from-action helm-ff-run-chown "Change owner on file(s)." 'helm-ff-chown)
+(helm-make-command-from-action helm-ff-run-chgrp "Change group on file(s)." 'helm-ff-chgrp)
+(put 'helm-ff-run-chown 'helm-only t)
+(put 'helm-ff-run-chgrp 'helm-only t)
 
 (defun helm-find-files-other-window (_candidate)
   "Keep current-buffer and open files in separate windows.
@@ -3339,27 +3389,6 @@ editing absolute fnames in previous Emacs versions."
     "Execute `helm-ff-edit-marked-files' interactively."
   'helm-ff-edit-marked-files)
 
-(defun helm-ff--create-tramp-name (fname)
-  "Build filename from `helm-pattern' like /su:: or /sudo::."
-  ;; `tramp-make-tramp-file-name' takes 7 args on emacs-26 whereas it
-  ;; takes only 5 args in emacs-24/25.
-  (apply #'tramp-make-tramp-file-name
-         ;; `tramp-dissect-file-name' returns a list in emacs-26
-         ;; whereas in 24.5 it returns a vector, thus the car is a
-         ;; symbol (`tramp-file-name') which is not needed as argument
-         ;; for `tramp-make-tramp-file-name' so transform the cdr in
-         ;; vector, and for 24.5 use directly the returned value.
-         (cl-loop with v = (helm-ff--tramp-cons-or-vector
-                            (tramp-dissect-file-name fname))
-                  for i across v collect i)))
-
-(defun helm-ff--tramp-cons-or-vector (vector-or-cons)
-  "Return VECTOR-OR-CONS as a vector."
-  (helm-acase vector-or-cons
-    ((guard* (and (consp it) (cdr it))) (vconcat guard))
-    ((guard* (vectorp it)) it)
-    (t (error "Wrong type argument: %s" it))))
-
 (defun helm-ff--get-tramp-methods ()
   "Return a list of the car of `tramp-methods'."
   (or helm-ff--tramp-methods
@@ -3389,7 +3418,7 @@ Return nil on valid file name remote or not."
   ;; solution apart disabling tramp-mode when a file/dir located at /
   ;; is matching helm-tramp-file-name-regexp; This would prevent usage
   ;; of tramp if one have such a directory at / (who would want to
-  ;; have such a dir at / ???)  See emacs-bug#31489.
+  ;; have such a dir at / ???)  See https://debbugs.gnu.org/31489.
   (when (string-match-p helm-tramp-file-name-regexp fname)
     (let* ((bn    (helm-basename fname))
            (bd    (replace-regexp-in-string (regexp-quote bn) "" fname))
@@ -3509,7 +3538,7 @@ debugging purpose."
                 (setq cur-method (match-string 1 pattern))
                 (member cur-method methods))
            (setq tramp-name (expand-file-name
-                             (helm-ff--create-tramp-name
+                             (file-remote-p
                               (match-string 0 pattern))))
            (replace-match tramp-name nil t pattern))
           ;; Match "/method:maybe_hostname:"
@@ -3517,7 +3546,7 @@ debugging purpose."
                 postfixed
                 (setq cur-method (match-string 1 pattern))
                 (member cur-method methods))
-           (setq tramp-name (helm-ff--create-tramp-name
+           (setq tramp-name (file-remote-p
                              (match-string 0 pattern)))
            (replace-match tramp-name nil t pattern))
           ;; Match "/hostname:"
@@ -3525,7 +3554,7 @@ debugging purpose."
                 postfixed
                 (setq cur-method (match-string 1 pattern))
                 (and cur-method (not (member cur-method methods))))
-           (setq tramp-name (helm-ff--create-tramp-name
+           (setq tramp-name (file-remote-p
                              (match-string 0 pattern)))
            (replace-match tramp-name nil t pattern))
           ;; Match "/method:" in this case don't try to connect.
