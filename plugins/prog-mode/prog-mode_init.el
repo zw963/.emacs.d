@@ -3,6 +3,8 @@
 (require 'prog-mode)
 (require 'meta-return-hack_init)
 
+(require 'mojo-mode)
+
 (add-hook 'prog-mode-hook 'goto-address-mode)
 
 (setq diff-switches "-Naur")                     ;Default to unified diffs

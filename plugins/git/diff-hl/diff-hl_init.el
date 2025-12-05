@@ -1,9 +1,10 @@
 ;; -*- lexical-binding: t; -*-
 
 (require 'diff-hl)
-(require 'diff-hl-show-hunk-posframe)
+(require 'diff-hl-show-hunk-inline)
+;; (require 'diff-hl-show-hunk-posframe)
 
-(setq diff-hl-show-hunk-function 'diff-hl-show-hunk-posframe)
+;; (setq diff-hl-show-hunk-function 'diff-hl-show-hunk-posframe)
 
 (setq vc-git-diff-switches '("--histogram"))
 
