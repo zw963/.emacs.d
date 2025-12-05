@@ -2,6 +2,16 @@
 
 (require 'iedit)
 
+;; 如果退出 iedit 之后，执行 undo 时，一次性 undo 所有 iedit 里面的修改。
+;; 老的行为是，所有 iedit 的操作都作为历史， 退出后 undo，仍旧是一点一点 undo
+
+(setq my-buffer-undo-list nil)
+(advice-add 'iedit-mode :before '(lambda (&rest args) ;; save current
+                                   (setq my-buffer-undo-list buffer-undo-list)))
+
+(advice-add 'iedit-mode :after '(lambda (&rest args)  ;; restore previously saved
+                                  (setq buffer-undo-list my-buffer-undo-list)))
+
 (setq-default iedit-occurrence-context-lines 0)
 (setq iedit-auto-narrow t)
 ;; (setq iedit-auto-buffering t) ;; 不知道干嘛的，打开 iedit 编辑无效了
