@@ -9,7 +9,7 @@
                       "--"
                       (file-relative-name (buffer-file-name (other-buffer (current-buffer) t)))
                       ))
-        ((eq major-mode 'git-log-view-mode)
+        ((eq major-mode 'vc-git-log-view-mode)
          (run-process "gd1"
                       (log-view-current-tag)
                       "--"
@@ -30,7 +30,7 @@
                       (thing-at-point 'symbol)
                       "--"
                       (file-relative-name (buffer-file-name (other-buffer (current-buffer) t)))))
-        ((eq major-mode 'git-log-view-mode)
+        ((eq major-mode 'vc-git-log-view-mode)
          (run-process "git-bcompare"
                       (log-view-current-tag)
                       "--"
@@ -40,9 +40,12 @@
                (stat (git--fileinfo->stat (ewoc-data (ewoc-locate git--status-view)))))
            (if (equal stat 'staged)
                ;; INDEX 内将要提交的改变.
-               (run-process "git-bcompare" "--cached" "--" fn)
+               ;; (run-process "git-bcompare" "--cached" "--" fn)
+	       (print (concat "git-bcompare" "--cached" "--" fn))
              ;; 提交的改变.
-             (run-process "git-bcompare" "--" fn))))
+	     ;;             (run-process "git-bcompare" "--" fn)
+	     (print (concat "git-bcompare" "--" fn))
+	     )))
         ))
 
 (defun bc3-gitdiff ()

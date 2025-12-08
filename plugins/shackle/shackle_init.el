@@ -13,7 +13,7 @@
         ;; *Crystal-Context* 和 *Crystal-spec* 不工作
         (("*Crystal-Expand*" "*Crystal-Implementations") :size 0.3 :autoclose t)
         (("*prettier errors*") :select t :size 0.3 :align 'below :autoclose t)
-                ;; (("\\*RuboCop ") :regexp t :size 0.3 :align 'below :autoclose t)
+        ;; (("\\*RuboCop ") :regexp t :size 0.3 :align 'below :autoclose t)
         ((compilation-mode rustic-compilation-mode rustic-cargo-clippy-mode rustic-cargo-outdated-mode rustic-cargo-test-mode cargo-process-mode) :select t :size 0.3 :align 'below :autoclose t)
         ("*quickrun*" :select t :size 0.6 :align 'right :autoclose t)
         ("*Backtrace*" :select t :size 15 :align 'below :autoclose t)
@@ -36,7 +36,7 @@
         (vterm-mode :select t :size 0.7)
         (vc-annotate-mode :select t :size 0.8 :align 'below :autoclose t)
         (special-mode :select t :size 0.5 :align 'below :autoclose t)
-        (git-log-view-mode :select t :size 0.5 :align 'below :autoclose t)
+        (vc-git-log-view-mode :select t :size 0.5 :align 'below :autoclose t)
         ;; ("*tldr*" :size 0.4 :align 'below :autoclose t)
         ;; ("*Finder*" :select t :size 0.3 :align 'below :autoclose t)
         ;; ("^\\*macro expansion\\**" :regexp t :size 0.4 :align 'below)

@@ -36,6 +36,8 @@
 (add-hook 'vc-git-log-view-mode-hook
           (lambda ()
             (define-key vc-git-log-view-mode-map [(=)] 'bc3-gitdiff-file-at-point) ;; 当前文件与 commit 之间的修改.
+	    (define-key vc-git-log-view-mode-map [(d)] 'bc3-gd1-file-at-point) ;; 单个 commit 做了那些修改, 只看当前文件
+            (define-key vc-git-log-view-mode-map [(q)] 'kill-buffer-and-window)
             ))
 
 (with-eval-after-load 'git-emacs
@@ -48,12 +50,12 @@
             (define-key git--branch-mode-map [(=)] 'bc3-gitdiff-file-at-point) ;; 指定分支和 commit 之间的修改.
             ))
 
-(add-hook 'git-log-view-mode-hook
-          (lambda ()
-            (define-key git-log-view-mode-map [(=)] 'bc3-gitdiff-file-at-point) ;; 当前文件与 commit 之间的修改.
-            (define-key git-log-view-mode-map [(d)] 'bc3-gd1-file-at-point) ;; 单个 commit 做了那些修改, 只看当前文件
-            (define-key git-log-view-mode-map [(q)] 'kill-buffer-and-window)
-            ))
+;; (add-hook 'git-log-view-mode-hook
+;;           (lambda ()
+;;             (define-key git-log-view-mode-map [(=)] 'bc3-gitdiff-file-at-point) ;; 当前文件与 commit 之间的修改.
+;;             (define-key git-log-view-mode-map [(d)] 'bc3-gd1-file-at-point) ;; 单个 commit 做了那些修改, 只看当前文件
+;;             (define-key git-log-view-mode-map [(q)] 'kill-buffer-and-window)
+;;             ))
 
 (add-hook 'mo-git-blame-mode-hook
           (lambda ()
