@@ -1,10 +1,11 @@
 ;; -*- lexical-binding: t; -*-
 
 ;; C-x v b 查看分支
-;; C-x v l 查看 log
-;; C-x v g, vc-annoate, 类似于 mo-git-blame, 但是有 blamer 只有, 似乎都不在需要了
-;; C-x v a,  尝试交互的使用 ediff 工具来 git add 内容, 基本上不怎么用
-(require 'git-emacs_init)
+;; C-x v l vc-print-log, 查看日志。
+;; C-x v g, vc-annoate, 类似于 mo-git-blame。
+(require 'my-git-branch-view-mode)
+
+(add-to-list 'auto-mode-alist '("COMMIT_EDITMSG$" . diff-mode))
 
 (require 'git-timemachine_init)
 
@@ -20,5 +21,5 @@
 (require 'git-link_init)
 
 (provide 'git_init)
-
 ;;; git_init.el ends here
+
