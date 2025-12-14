@@ -1,10 +1,12 @@
 ;; -*- lexical-binding: t; -*-
 
-;; 使用 emacs 编辑 textarea 中的内容, 需要插件支持, 支持 Firefox 和 Chrome
 (require 'edit-server)
 ;; (setq edit-server-url-major-mode-alist '(("github\\.com" . markdown-mode)
 ;;                                          ("ruby-china" . markdown-mode)
 ;;                                          ("gitlab" . markdown-mode)))
+
+;; 使用 emacs 编辑 textarea 中的内容, 需要插件支持, 支持 Firefox 和 Chrome
+;; 下面的端口必须和插件中指定的端口一致。
 (setq edit-server-port 9289)
 (setq edit-server-default-major-mode 'markdown-mode)
 (when (and (require 'edit-server nil t) (daemonp))

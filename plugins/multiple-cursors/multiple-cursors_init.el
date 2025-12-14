@@ -37,14 +37,14 @@
 
 ;; -------------------------------------------------------
 
+;; 开启 rectangle-mark-mode, 快捷键: C-x SPC
+
 ;; C-x r y, yank-rectangle 粘帖选区内容
 ;; C-x r k, kill-rectangle 剪切选区内容
 ;; C-x r M-w, copy-rectangle-as-kill 复制选区内容
 ;; C-x r d, delete-rectangle 删除选区, 文字左移
 ;; C-x r N, rectangle-number-lines  选区前面插入数字
 ;; C-x r t, string-rectangle 在指定的选区之前添加内容.
-
-;; 开启 rectangle-mark-mode, 快捷键: C-x SPC
 
 ;; 下面两个库都针对 kill-ring-save, kill-region 等函数添加了 device.
 ;; 因为判断选区时, 总是首先判断 rect-mark, 因此要确保 rect-mark_init 在
