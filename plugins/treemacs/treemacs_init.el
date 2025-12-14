@@ -16,12 +16,15 @@
 
 (treemacs-fringe-indicator-mode 'always)
 (treemacs-indent-guide-mode t)
-(treemacs-follow-mode t)
-(require 'treemacs-project-follow-mode)
-(treemacs-project-follow-mode t)
-(setq treemacs-is-never-other-window t)
-(setq treemacs-silent-refresh    t)
-(setq treemacs-silent-filewatch    t)
+
+;; follow-mode 可能会影响性能，选择手动 F9 刷新 treemacs
+;; (treemacs-follow-mode t)
+;; (require 'treemacs-project-follow-mode)
+;; (treemacs-project-follow-mode t)
+;; (setq treemacs-is-never-other-window t)
+;; (setq treemacs-silent-refresh    t)
+;; (setq treemacs-silent-filewatch    t)
+
 ;; (setq treemacs-position 'right)
 
 (defun treemacs-ignore-example (filename absolute-path)
