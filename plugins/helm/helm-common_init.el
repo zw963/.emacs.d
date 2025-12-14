@@ -69,10 +69,6 @@
  '(helm-imenu-fuzzy-match t)
  )
 
-(require 'nerd-icons)
-(require 'helm-x-icons)
-(with-eval-after-load 'helm-x-icons
-  (customize-set-variable 'helm-x-icons-provider 'nerd-icons))
 (with-eval-after-load 'helm-files
   (helm-ff-icon-mode 1))
 
