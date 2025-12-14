@@ -7,9 +7,20 @@
       window-divider-default-places t)
 (window-divider-mode 1)
 
+;; 隐藏标题栏
+(when (display-graphic-p)
+  (modify-frame-parameters nil '((undecorated . t))))
+
 (require 'awesome-tray)
 
+(setq awesome-tray-position 'left)
+(setq awesome-tray-file-path-show-filename t)
+;; 设定一个很大值，显示完整目录名
+(setq awesome-tray-file-path-truncated-name-length 30)
+
 ;; (setq awesome-tray-active-modules '("location" "belong" "file-path" "mode-name" "battery" "date"))
+
+;; (add-to-list 'awesome-tray-active-modules "anzu")
 
 (awesome-tray-mode 1)
 
