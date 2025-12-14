@@ -1,6 +1,6 @@
 ;; -*- lexical-binding: t; -*-
 
-(require 'cfrs)
+;; (require 'cfrs)
 (require 'treemacs)
 (require 'treemacs-file-management)
 (require 'treemacs-extensions)

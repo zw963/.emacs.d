@@ -6,7 +6,7 @@
 
 (dimmer-configure-which-key)
 (dimmer-configure-helm)
-(dimmer-configure-posframe)
+;; (dimmer-configure-posframe)
 (dimmer-configure-org)
 (dimmer-mode t)
 
