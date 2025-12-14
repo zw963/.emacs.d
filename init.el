@@ -25,8 +25,9 @@
 ;; (require 'visual-regexp_init)
 
 (require 'edit-server_init)
-(require 'doom-modeline_init)
-
+(require 'all-the-icons_init) ;; 放到 helm 前面
+;; (require 'doom-modeline_init)
+(require 'awesome-tray_init)
 
 ;; hotfuzz 或 fussy 二选一
 (require 'flx_init)
@@ -50,7 +51,7 @@
 
 (require 'indentation_init)
 (require 'tree-sitter_init)
-(require 'apheleia_init) ;; 怀疑这个跟 lsp-mode formatter 冲突?
+;; (require 'apheleia_init) ;; 怀疑这个跟 lsp-mode formatter 冲突?
 (require 'dumb-jump_init)
 (require 'smartparens_init)
 (require 'highlight-escape-sequences_init)
@@ -58,9 +59,7 @@
 (require 'colorful-mode_init)
 (require 'scss-css-mode_init)
 (require 'ws-butler_init)
-(require 'posframe_init)
 (require 'ligature_init)
-(require 'nerd-icons_init)
 (require 'shackle_init)
 (require 'tailwindcss_init)
 
@@ -191,7 +190,7 @@
 ;; C-c / 收起所有代码块
 ;; C-c \ 展开所有代码块
 (require 'context-menu-mode_init)
-(require 'treesit-fold_init)
+;; (require 'treesit-fold_init)
 
 ;; 快捷键见 git_init.el
 (require 'git_init) ;; ????
@@ -211,7 +210,7 @@
 
 ;; C-c C-l 运行 robe repl
 ;; C-x C-e 运行 seeing-is-believing
-(require 'ruby_init)
+;; (require 'ruby_init)
 
 (require 'crystal-mode_init)
 ;; (require 'wakatime-mode_init)
@@ -226,7 +225,7 @@
 ;; (require 'dart-mode_init)
 ;; (require 'go-mode_init)
 (require 'rust_init)
-(require 'go-ts-mode_init)
+;; (require 'go-ts-mode_init)
 ;; (require 'rust-ts-mode_init)
 
 ;; (require 'lsp-bridge_init)
