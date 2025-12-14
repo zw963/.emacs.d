@@ -99,13 +99,13 @@
 (defun bc3-gitdiff ()
   "Git diff current file content with INDEX, Use Beyond Compare 3."
   (interactive)
-  (git--require-buffer-in-git)
+  (my/git-branches--ensure-root)
   (run-process "git-bcompare" "--" (file-relative-name buffer-file-name)))
 
 (defun bc3-gitdiff-head ()
   "Git diff current buffer with HEAD, Use Beyond Compare 3."
   (interactive)
-  (git--require-buffer-in-git)
+  (my/git-branches--ensure-root)
   (run-process "git-bcompare" "HEAD" "--" buffer-file-name))
 
 (defun bc1-current-file ()
