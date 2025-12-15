@@ -5,10 +5,19 @@
 ;; (require 'company-capf)
 
 (require 'company-dabbrev-code)
-(setq company-dabbrev-other-buffers t) ;; 设为 true, 则仅在同一个 major-mode buffer 里面找
+
+;; 这几个都是默认值
+;; (setq company-dabbrev-other-buffers t) ;; 设为 true, 则仅在同一个 major-mode buffer 里面找
+;; (setq company-dabbrev-code-everywhere nil)
+;; (setq company-dabbrev-minimum-length 4)
+;; (setq company-text-icons-add-background nil) ; 生成 icon 的背景
+
+;; 设的稍微短一点，lsp 效果好一些。
+;; (setq company-minimum-prefix-length 2)
+
 (setq company-dabbrev-downcase nil) ;; make dabbrev case-sensitive
 ;; (setq company-dabbrev-code-ignore-case nil)
-;; (setq company-dabbrev-code-everywhere t)
+
 
 ;; Enable downcase only when completing the completion.
 (defun jcs--company-complete-selection--advice-around (fn)
@@ -20,7 +29,6 @@
 ;; FIXME: 测试一下啥效果
 ;; (setq company-tooltip-limit 5)                      ; bigger popup window
 (setq company-tooltip-width-grow-only t) ; 如果 candidates 变宽，tooltip 也跟着变宽，但是不会重新变窄。
-(setq company-text-icons-add-background t) ; 生成 icon 的背景
 
 ;; FIXME: 测试一下这个
 (setq company-begin-commands
@@ -59,15 +67,10 @@
 (global-set-key (kbd "C-c C-/") #'company-other-backend)
 
 ;; Use M-1,2 ... to select a candidation.
-(setq company-show-quick-access t)
 (setq company-show-quick-access 'left)
-
-;; 设的稍微短一点，lsp 效果好一些。
-(setq company-minimum-prefix-length 2)
 
 ;; (setq company-idle-delay
 ;;       (lambda () (if (company-in-string-or-comment) nil 0.4)))
-(setq company-dabbrev-code-everywhere t)
 
 ;; 这个其实是替换 company-preview-if-just-one-frontend 为 company-preview-frontend
 ;; 这样做，会让 preview 总是在光标处 inline 显示。
@@ -113,26 +116,23 @@
 
 (setq company-files-exclusions '(".git/" ".DS_Store"))
 
-
-;; (setq company-dabbrev-minimum-length 4)
-
 ;; C-n, C-s 如果可以自动打断 tooltip, 其实效果不错。
 ;; (define-key company-active-map (kbd "C-n") 'company-select-next)
 ;; (define-key company-active-map (kbd "C-p") 'company-select-previous)
 
 (with-eval-after-load 'yasnippet
-  (defun advice-only-show-tooltip-when-invoked (orig-fun command)
+  (defun advice-only-show-tooltip-when-invoked (orig-fun &rest commands)
     "原始的 company-pseudo-tooltip-unless-just-one-frontend-with-delay, 它一直会显示
 candidates tooltip, 除非只有一个候选结果时，此时，它会不显示, 这个 advice 则是让其
 完全不显示, 但是同时仍旧保持 inline 提示, 类似于 auto-complete 当中, 设定
 ac-auto-show-menu 为 nil 的情形, 这种模式比较适合在 yasnippet 正在 expanding 时使用。"
     (when (company-explicit-action-p)
-      (apply orig-fun command)))
+      (apply orig-fun commands)))
 
-  (defun advice-always-trigger-yas (orig-fun &rest command)
+  (defun advice-always-trigger-yas (orig-fun &rest commands)
     (interactive)
     (unless (ignore-errors (yas-expand))
-      (apply orig-fun command)))
+      (apply orig-fun commands)))
 
   (defun yas/disable-company-tooltip ()
     (interactive)

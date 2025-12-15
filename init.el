@@ -33,7 +33,6 @@
 (require 'fussy_init); 放到 flx_init 后面
 ;; (require 'hotfuzz_init)
 
-
 (require 'company_init)
 (require 'breadcrumb_init)
 (require 'async_init)
