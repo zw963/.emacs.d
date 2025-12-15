@@ -38,7 +38,7 @@
    (rx "#" line-end)
    (rx "~" line-end)
    ;; (rx "locate.db" line-end)
-   (rx line-start "/tmp/?")
+   (rx string-start "/tmp" (? "/"))
    (rx line-start "/ssh:")
    (rx "TAGS" line-end)
    )
@@ -47,15 +47,25 @@
   :group 'base_init
   )
 
-(defadvice save-buffer (before make-default-directory activate)
-  "Create missing directory when find file."
-  (unless (file-exists-p default-directory) (make-directory default-directory t)))
+;; (defadvice save-buffer (before make-default-directory activate)
+;;   "Create missing directory when find file."
+;;   (unless (file-exists-p default-directory) (make-directory default-directory t)))
+
+(advice-add
+ 'save-buffer :before
+ (lambda (&rest _)
+   "Create missing directory when find file."
+   (unless (or (file-remote-p default-directory)
+               (file-exists-p default-directory))
+     (make-directory default-directory t))))
+
 
 (require 'recentf)
 (setq recentf-max-saved-items 100)            ;增大 recentf 历史记录为 50
 ;; (setq recentf-max-menu-items 10)
 ;; (setq recentf-exclude '("/tmp/" "/ssh:"))
-(setq recentf-exclude '(boring-file-regexp-list))
+(setq recentf-exclude boring-file-regexp-list)
+
 (add-hook 'delete-frame-functions (lambda (frame) (recentf-save-list)))
 (recentf-mode t) ;显示最近打开的文件列表
 ;; FIXME: 是否要删除 recentf?
@@ -270,9 +280,10 @@
 
 (setq mouse-buffer-menu-mode-groups
       '(
-        (".*\\.rb" . "Ruby")
-        (".*\\.el". "Lisp")
+        (".*\\.rb\\'" . "Ruby")
+        (".*\\.el\\'" . "Lisp")
         ))
+
 (setq mouse-buffer-menu-mode-mult 1)
 
 ;; 设置同其他软件交换信息的编码系统,这个不建议手动设置，可能复制粘帖数据会引起乱码.
@@ -356,14 +367,17 @@
 ;; (file-name-shadow-mode 1)
 ;; (minibuffer-depth-indicate-mode 1)                   ;显示minibuffer深度
 
-(visual-line-mode 1)
+(global-visual-line-mode 1)
 (setq visual-line-fringe-indicators '(nil right-curly-arrow))
 (setq what-cursor-show-names t)
 (minibuffer-electric-default-mode t)
 (minibuffer-depth-indicate-mode t)
 ;; 我为什么要打开这个？
 ;; (setq enable-recursive-minibuffers t)
-(setq toggle-truncate-lines nil)
+
+;; gpt 说这个是一个函数，而不是变量？
+;; (setq toggle-truncate-lines nil)
+
 (setq comment-auto-fill-only-comments t)
 
 (require 'ansi-color)

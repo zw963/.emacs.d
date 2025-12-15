@@ -141,4 +141,5 @@ Use `font-lock-add-keywords' in case of `ruby-mode' or
     ;; (when (boundp 'auto-revert-mode) (auto-revert-mode -1))
     ;; (when (boundp 'page-break-lines-mode) (page-break-lines-mode -1))
     ))
+
 (add-hook 'find-file-hook 'my-find-file-check-make-large-file-read-only-hook)

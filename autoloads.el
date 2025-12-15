@@ -45,11 +45,11 @@
 (add-to-list 'auto-mode-alist '("Procfile.options\\|Procfile.dev.options\\'" . yaml-ts-mode))
 
 ;; 因为性能考虑，json-ts-mode 没有高亮，js-ts-mode 有高亮
-(add-to-list 'auto-mode-alist '("\\.js\\(on\\)\\'" . js-ts-mode))
+(add-to-list 'auto-mode-alist '("\\.js\\(on\\)?\\'" . js-ts-mode))
 (add-to-list 'auto-mode-alist '("\\.toml\\'" . toml-ts-mode))
 (add-to-list 'auto-mode-alist '("\\`\\(rust-toolchain\\)\\'" . toml-ts-mode))
 (add-to-list 'auto-mode-alist '("Dockerfile\\'" . dockerfile-ts-mode))
-(add-to-list 'auto-mode-alist '("\.dockerfile\\'" . dockerfile-ts-mode))
+(add-to-list 'auto-mode-alist '("\\.dockerfile\\'" . dockerfile-ts-mode))
 (add-to-list 'auto-mode-alist '("\\.tsx?\\'" . typescript-ts-mode))
 ;; bash-ts-mode
 (add-to-list 'auto-mode-alist '("\\.env\\'" . bash-ts-mode))
@@ -58,11 +58,13 @@
 ;; diff-mode
 (add-to-list 'auto-mode-alist '("COMMIT_EDITMSG\\'" . diff-mode))
 ;; conf-unix-mode
-(add-to-list 'auto-mode-alist '("sudoers\\.tmp\\|\\.cnf\\|hosts\\|keymap\\|exports\\|\\.*rc\\'" . conf-unix-mode))
+(add-to-list 'auto-mode-alist '("sudoers\\.tmp\\|\\.cnf\\|hosts\\|keymap\\|exports\\|\\.rc" . conf-unix-mode))
 ;; emacs-lisp-mode
 (add-to-list 'auto-mode-alist '("abbrev_defs" . emacs-lisp-mode))
 
-(autoload 'ssh-config-mode "ssh-config-mode" t)
+(autoload 'ssh-config-mode "ssh-config-mode" nil t)
+(autoload 'ssh-known-hosts-mode "ssh-config-mode" nil t)
+(autoload 'ssh-authorized-keys-mode "ssh-config-mode" nil t)
 (add-to-list 'auto-mode-alist '("/\\.ssh/config\\(\\.d/.*\\.conf\\)?\\'" . ssh-config-mode))
 (add-to-list 'auto-mode-alist '("/sshd?_config\\(\\.d/.*\\.conf\\)?\\'"  . ssh-config-mode))
 (add-to-list 'auto-mode-alist '("/known_hosts\\'"       . ssh-known-hosts-mode))
