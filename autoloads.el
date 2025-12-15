@@ -1,7 +1,7 @@
 ;; -*- lexical-binding: t; -*-
 
 ;; php-mode
-(add-to-list 'auto-mode-alist '("\\.php" . php-mode))
+(add-to-list 'auto-mode-alist '("\\.php\\'" . php-mode))
 
 ;; nginx-mode
 (autoload 'nginx-mode "nginx-mode" nil t)
@@ -34,8 +34,8 @@
 (add-to-list 'auto-mode-alist '("\\.ecr\\'" . web-mode))
 (add-to-list 'auto-mode-alist '("\\.mustache\\'" . web-mode))
 (add-to-list 'auto-mode-alist '("\\.djhtml\\'" . web-mode))
-(add-to-list 'auto-mode-alist '("\\.jsx$" . web-mode))
-(add-to-list 'auto-mode-alist '("\\.wxml$" . web-mode))
+(add-to-list 'auto-mode-alist '("\\.jsx\\'" . web-mode))
+(add-to-list 'auto-mode-alist '("\\.wxml\\'" . web-mode))
 
 ;; (autoload 'yaml-mode "yaml-mode" nil t)
 (add-hook 'yaml-ts-mode-hook 'display-line-numbers-mode)
@@ -45,7 +45,7 @@
 (add-to-list 'auto-mode-alist '("Procfile.options\\|Procfile.dev.options\\'" . yaml-ts-mode))
 
 ;; 因为性能考虑，json-ts-mode 没有高亮，js-ts-mode 有高亮
-(add-to-list 'auto-mode-alist '("\\.js\\(on\\)?" . js-ts-mode))
+(add-to-list 'auto-mode-alist '("\\.js\\(on\\)\\'" . js-ts-mode))
 (add-to-list 'auto-mode-alist '("\\.toml\\'" . toml-ts-mode))
 (add-to-list 'auto-mode-alist '("\\`\\(rust-toolchain\\)\\'" . toml-ts-mode))
 (add-to-list 'auto-mode-alist '("Dockerfile\\'" . dockerfile-ts-mode))
@@ -56,9 +56,9 @@
 (add-to-list 'auto-mode-alist '("\\.env\\.local\\'" . bash-ts-mode))
 
 ;; diff-mode
-(add-to-list 'auto-mode-alist '("COMMIT_EDITMSG$" . diff-mode))
+(add-to-list 'auto-mode-alist '("COMMIT_EDITMSG\\'" . diff-mode))
 ;; conf-unix-mode
-(add-to-list 'auto-mode-alist '("sudoers\\.tmp\\|\\.cnf\\|hosts\\|keymap\\|exports\\|\\.*rc$" . conf-unix-mode))
+(add-to-list 'auto-mode-alist '("sudoers\\.tmp\\|\\.cnf\\|hosts\\|keymap\\|exports\\|\\.*rc\\'" . conf-unix-mode))
 ;; emacs-lisp-mode
 (add-to-list 'auto-mode-alist '("abbrev_defs" . emacs-lisp-mode))
 
@@ -88,7 +88,7 @@
 
 (autoload 'lua-mode "lua-mode" nil t)
 (setq lua-indent-level 2)
-(add-to-list 'auto-mode-alist '("\\.lua$" . lua-mode))
+(add-to-list 'auto-mode-alist '("\\.lua\\'" . lua-mode))
 (add-to-list 'interpreter-mode-alist '("lua" . lua-mode))
 
 (autoload 'llvm-mode "llvm-mode" nil t)
