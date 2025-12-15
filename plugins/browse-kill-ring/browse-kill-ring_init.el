@@ -3,6 +3,7 @@
 (setq kill-do-not-save-duplicates t)
 
 (require 'browse-kill-ring)
+
 (setq browse-kill-ring-highlight-current-entry t)
 (setq browse-kill-ring-highlight-inserted-item 'cedet)
 (setq browse-kill-ring-separator "\f")
@@ -27,9 +28,22 @@
             ;; 为了让 M-y 和 global-hl-line-mode 一起工作,
             ;; 必须在 browse-king-ring-mode 中关闭 hl-line-mode
             ;; 否则 n, p 快捷键不工作.
-            (make-local-variable 'global-hl-line-mode)
-            (setq global-hl-line-mode nil)
+            ;; (make-local-variable 'global-hl-line-mode)
+            ;; (setq global-hl-line-mode nil)
+            (hl-line-mode -1)
             ))
+
+(require 'page-break-lines)
+(add-to-list 'page-break-lines-modes 'browse-kill-ring-mode)
+(add-hook 'browse-kill-ring-hook 'page-break-lines-mode-maybe)
+;; (global-page-break-lines-mode 1)
+
+;; (require 'popup-kill-ring)
+;; (global-set-key [(meta y)] 'popup-kill-ring)
+
+(provide 'browse-kill-ring_init)
+;;; browse-kill-ring_init.el ends here
+
 
 (defun copy-line (arg)
   "Copy lines (as many as prefix argument) in the kill ring.
@@ -51,9 +65,3 @@
   (kill-append "\n" nil)
   (beginning-of-line (or (and arg (1+ arg)) 2))
   (if (and arg (not (= 1 arg))) (message "%d lines copied" arg)))
-
-;; (require 'popup-kill-ring)
-;; (global-set-key [(meta y)] 'popup-kill-ring)
-
-(provide 'browse-kill-ring_init)
-;;; browse-kill-ring_init.el ends here

@@ -2,11 +2,11 @@
 
 (require 'hydra)
 
-(with-eval-after-load 'git-gutter
-  (defhydra hydra-git-gutter (global-map "C-x v")
-    "Git gutter"
-    ("n" git-gutter:next-hunk "next-hunk")
-    ("p" git-gutter:previous-hunk "previous-hunk")))
+;; (with-eval-after-load 'git-gutter
+;;   (defhydra hydra-git-gutter (global-map "C-x v")
+;;     "Git gutter"
+;;     ("n" git-gutter:next-hunk "next-hunk")
+;;     ("p" git-gutter:previous-hunk "previous-hunk")))
 
 ;; (with-eval-after-load 'zoom-frm
 ;;   (defhydra hydra-zoom-frm (global-map "C-x -")

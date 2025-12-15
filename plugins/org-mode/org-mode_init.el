@@ -47,14 +47,14 @@
                   ("#+end_quote"      . 171)          ; «
                   ("#+begin_results"  . 8943)         ; ⋯
                   ("#+end_results"    . 8943)         ; ⋯
-                  ))))
+                  )))
+  (prettify-symbols-mode 1))
 
 (add-hook 'org-mode-hook
           (
            lambda ()
            (local-set-key [(return)] 'org-return-indent)
            (local-set-key (kbd "RET") 'org-return-indent)
-           (outline-minor-mode 1)
            (my/org-prettify-symbols)
            ))
 

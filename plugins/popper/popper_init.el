@@ -22,7 +22,7 @@
         ))
 
 (defun popper-select-popup-at-top (buffer &optional _alist)
-  "Display popup-buffer BUFFER at the bottom of the screen."
+  "Display popup-buffer BUFFER at the top of the screen."
   (let ((win (display-buffer-in-side-window
               buffer
               `((window-height . ,popper-window-height)

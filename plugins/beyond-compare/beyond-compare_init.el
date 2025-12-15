@@ -1,5 +1,10 @@
 ;; -*- lexical-binding: t; -*-
 
+;; C-x v b 查看分支
+;; C-x v l vc-print-log, 查看日志。
+;; C-x v g, vc-annoate, 类似于 mo-git-blame。
+(require 'my-git-branch-view-mode)
+
 ;; ============================== Beyond Comapre 集成 ==============================
 
 (global-set-key [(control f11)] 'bc1-current-region)

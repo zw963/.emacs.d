@@ -80,6 +80,8 @@
 ;; C-d, treemacs-remove-project-from-workspace
 (require 'treemacs_init)
 
+;; Alt + y，具体怎么用，需要再看
+(require 'browse-kill-ring_init)
 
 ;; C-x n n (narrow), C-x n w (widen)
 (require 'fancy-narrow_init)

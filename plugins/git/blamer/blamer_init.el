@@ -12,7 +12,7 @@
 
 (if (and (fboundp 'daemonp) (daemonp))
     (add-hook 'server-after-make-frame-hook
-              (lambda ()
+              (lambda (&rest _)
                 (require 'blamer)
                 (global-blamer-mode 1)
                 )))

@@ -2,9 +2,7 @@
 
 (require 'diff-hl)
 (require 'diff-hl-show-hunk-inline)
-;; (require 'diff-hl-show-hunk-posframe)
-
-;; (setq diff-hl-show-hunk-function 'diff-hl-show-hunk-posframe)
+(setq diff-hl-show-hunk-function 'diff-hl-show-hunk-inline)
 
 (setq vc-git-diff-switches '("--histogram"))
 
@@ -30,12 +28,12 @@
 
 ;; (setq-default fringes-outside-margins t)
 
+(define-fringe-bitmap 'my-diff-hl-bmp
+  (vector #b00000000)
+  1 8 '(center t))
+
 (setq diff-hl-fringe-bmp-function
-      (lambda (&rest _)
-        (define-fringe-bitmap 'my-diff-hl-bmp
-          (vector #b00000000)
-          1 8
-          '(center t))))
+      (lambda (&rest _) 'my-diff-hl-bmp))
 
 (with-eval-after-load 'flymake
   (setq flymake-fringe-indicator-position 'right-fringe))

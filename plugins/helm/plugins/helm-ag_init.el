@@ -58,9 +58,6 @@ we have to run `helm-do-ag' on DEFAULT-DIRECTORY first, then up one level functi
 (global-set-key [(meta r)] 'helm-do-ag-project-root)
 ;; (global-set-key [(control meta r)] 'helm-do-ag-buffers)
 
-;; helm-grep-ag-command 设置成 rg 后，用 helm 自带的 helm-do-grep-ag 命令调用下面这个。
-'(helm-grep-ag-command "rg --no-config --no-heading --hidden --smart-case --color=always --line-number %s %s %s")
-
 (provide 'helm-ag_init)
 
 ;;; helm-ag_init.el ends here

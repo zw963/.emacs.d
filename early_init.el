@@ -14,7 +14,7 @@
 ;; igc 分支不使用 gcmh
 ;; (require 'gcmh_init)
 
-(require 'auto-compile_init)
+;; (require 'auto-compile_init)
 
 ;; ;; 添加几个需要的前缀。
 ;; 注意：不要在 global-set-key 定义 meta c 前缀的全局快捷键，
@@ -46,7 +46,7 @@
 (require 'themes_init)
 (require 'crux_init)
 (require 'whole-line-or-region_init)
-(require 'multiple-cursors_init)
+(require 'rect-mark_init)
 
 (require 'cnfonts_init)
 ;; (relative-load "fonts_init.el")

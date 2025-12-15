@@ -4,6 +4,10 @@
 ;; builtin functions ;;
 ;;;;;;;;;;;;;;;;;;;;;;;
 
+;;  在命令行下, 貌似 C-2 默认等价于: C-@，这里使用同样的绑定。
+;; (define-key key-translation-map [(control \2)] [(control \@)])
+(global-set-key [(control \2)] 'set-mark-command)
+
 (global-set-key [(f2)] 'kill-buffer-enhanced) ;关闭当前缓冲区 F2
 
 (global-set-key [(control c) (l)] 'imenu)

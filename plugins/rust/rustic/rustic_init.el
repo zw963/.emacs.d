@@ -14,7 +14,7 @@
 ;; (setq rustic-compile-command)
 (setq rustic-lsp-format t)
 (setq rustic-format-trigger 'on-compile)
-(setq compilation-read-command nil) ;; not prompt on minibuffer when do compile.
+(setq compilation-read-command nil) ;; not prompt on minibuffer when do compile., 直接使用 compile-command 变量运行
 (setq lsp-rust-analyzer-cargo-watch-command "clippy")
 
 (defun my-rustic-hook ()

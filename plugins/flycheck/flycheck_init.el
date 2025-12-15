@@ -25,7 +25,7 @@ See URL `https://rubocop.org/'."
   :standard-input t
   :working-directory #'flycheck-ruby--find-project-root
   :error-patterns flycheck-ruby-rubocop-error-patterns
-  :modes '(enh-ruby-mode ruby-mode)
+  :modes '(enh-ruby-mode ruby-mode ruby-ts-mode)
   :next-checkers '(
                    ;; (warning . ruby-rubocop)
                    (warning . ruby-reek)

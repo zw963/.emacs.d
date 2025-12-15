@@ -30,7 +30,7 @@
                  (vertical-scroll-bars . nil)
                  (left-fringe . 1)
                  (right-fringe . 1)
-                 (alpha 95 90) ;; 设置透明度, 默认设置微透明，使用 toggle-transparency 函数关闭
+                 (alpha 92 85) ;; 设置透明度, 默认设置微透明，使用 toggle-transparency 函数关闭
                  ;; 当以 daemon 启动时， 光标使用系统光标黑色， 这里改为浅白色。
                  ;; (cursor-color . "AntiqueWhite3")
                  ;; (cursor-color . ,zw/cursor-color-default)

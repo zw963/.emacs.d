@@ -12,7 +12,7 @@
                 python-mode-hook
                 dart-mode-hook
                 slim-mode-hook
-                web-mode
+                web-mode-hook
                 ))
   (add-hook hook 'highlight-indentation-mode))
 

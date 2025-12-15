@@ -9,6 +9,7 @@
 (setq helm-git-grep-pathspecs '("*" ":!:*.min.js*" ":!:*.less" ":!:*/vendor/assets*"))
 (setq helm-git-grep-ignore-case nil)
 
+;; 下面的代码干嘛用的？helm-git-grep 开启 follow-mode ?
 (setq helm-git-grep-source
       (helm-make-source "Git Grep" 'helm-git-grep-class
         :candidates-process 'helm-git-grep-process

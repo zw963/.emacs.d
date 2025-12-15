@@ -33,7 +33,7 @@
        ))
 
 (with-eval-after-load 'super-save
-  (defadvice ace-window (before super-save activate) (super-save-command) nil))
+  (advice-add 'ace-window :before (lambda (&rest _) (super-save-command))))
 
 (require 'avy-zap)
 (global-set-key [remap zap-to-char] 'avy-zap-to-char-dwim)

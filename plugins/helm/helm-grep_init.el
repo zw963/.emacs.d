@@ -4,6 +4,8 @@
 
 (setq helm-grep-file-path-style 'relative)
 
+(setq helm-grep-ag-command "rg --no-config --no-heading --hidden --smart-case --color=always --line-number %s -- %s %s")
+
 (defun helm-git-grep-get-input-symbol ()
   "Get input symbol."
   (if (not mark-active)

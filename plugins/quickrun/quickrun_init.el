@@ -10,12 +10,13 @@
 (require 'quickrun)
 
 ;; 临时文件名前缀改为 .qr_
-(defun quickrun--temp-name (src)
-  "Not documented."
-  (let* ((extension (file-name-extension src))
-         (suffix (or (and extension (concat "." extension)) ""))
-         (dir (quickrun--default-directory)))
-    (expand-file-name (concat dir (make-temp-name ".qr_") suffix))))
+(advice-add 'quickrun--temp-name :override
+            (lambda (src)
+              "Quickrun temp file name with .qr_ prefix."
+              (let* ((extension (file-name-extension src))
+                     (suffix (or (and extension (concat "." extension)) ""))
+                     (dir (quickrun--default-directory)))
+                (expand-file-name (concat dir (make-temp-name ".qr_") suffix)))))
 
 ;; 允许彩色输出
 (quickrun--defvar quickrun-option-outputter
@@ -46,7 +47,8 @@
                    (local-set-key [(control c) (tab)] 'quickrun-compile-only)
                    )))
 
-(add-hook 'quickrun-after-run-hook 'say)
+(when (fboundp 'say)
+  (add-hook 'quickrun-after-run-hook #'say))
 
 (provide 'quickrun_init)
 

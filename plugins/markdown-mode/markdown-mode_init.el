@@ -26,12 +26,14 @@
             (define-key markdown-mode-map [(meta c) (n)] 'markdown-narrow-to-subtree)
             (define-key markdown-mode-map [(meta n)] 'window-move-up)
             (define-key markdown-mode-map [(meta p)] 'window-move-down)
-            (define-key edit-indirect-mode-map (kbd "C-c C-c") #'format-buffer)
             (whitespace-mode -1)
             (display-line-numbers-mode)
             (display-fill-column-indicator-mode)
             (markdown-toggle-url-hiding)
             ))
+
+(with-eval-after-load 'edit-indirect
+  (define-key edit-indirect-mode-map (kbd "C-c C-c") #'format-buffer))
 
 (provide 'markdown-mode_init)
 ;;; markdown-mode_init.el ends here

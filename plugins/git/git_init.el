@@ -1,12 +1,5 @@
 ;; -*- lexical-binding: t; -*-
 
-;; C-x v b 查看分支
-;; C-x v l vc-print-log, 查看日志。
-;; C-x v g, vc-annoate, 类似于 mo-git-blame。
-(require 'my-git-branch-view-mode)
-
-(add-to-list 'auto-mode-alist '("COMMIT_EDITMSG$" . diff-mode))
-
 (require 'git-timemachine_init)
 
 ;; C-x v * 从第一个存在 diff 的 hunk 开始, 往下查看, 然后可以 n/p 来前进或后退 r 可以 revert, c 拷贝原始内容

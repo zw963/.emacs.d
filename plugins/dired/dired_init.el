@@ -3,7 +3,7 @@
 (require 'dired)
 ;; dired
 (setq dired-recursive-copies 'always)            ;dired递归拷贝
-(setq dired-recursiveq-deletes 'always)           ;dired递归删除
+(setq dired-recursive-deletes 'always)           ;dired递归删除
 (setq dired-auto-revert-buffer t) ; 重新进入已经打开的 dired buffer 时, 刷新.
 (setq dired-listing-switches "-aBhl  --group-directories-first")
 
@@ -43,6 +43,7 @@
 
 (define-key dired-mode-map [(control d)] 'dired-do-delete)
 (define-key dired-mode-map [(insert)] 'dired-cpa-current-file)
+(define-key dired-mode-map [down-mouse-1] 'dired-find-file)
 
 (setq global-auto-revert-non-file-buffers t) ;自动还原 ibuffer, dired.
 
@@ -67,7 +68,7 @@
 (require 'dired-efap)                   ; rename
 (define-key dired-mode-map [(shift f2)] 'dired-efap)
 ;;; Only if you want to control rename with the mouse...
-(define-key dired-mode-map [down-mouse-1] 'dired-efap-click)
+;; (define-key dired-mode-map [down-mouse-1] 'dired-efap-click)
 
 ;; (require 'ripgrep-dired)
 ;; (setq ripgrep-dired-rg-basic-args "-nH --no-heading --smart-case -g '!*~' -g '!#*#' -g '!.#*'")
@@ -106,7 +107,6 @@
 (require 'dired-narrow)
 (setq dired-narrow-exit-when-1-left t)
 (define-key dired-mode-map  "/" 'dired-narrow-fuzzy)
-(define-key dired-mode-map  (kbd "<down-mouse-1>") 'dired-find-file)
 
 ;; (require 'diredc)
 ;; (global-set-key [(meta D)] 'diredc) ; 打开 dired buffer.
