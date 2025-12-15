@@ -7,9 +7,8 @@
       window-divider-default-places t)
 (window-divider-mode 1)
 
-;; 隐藏标题栏
-(when (display-graphic-p)
-  (modify-frame-parameters nil '((undecorated . t))))
+(add-to-list 'default-frame-alist '(undecorated . t))
+(add-to-list 'initial-frame-alist '(undecorated . t)) ; 非 daemon 也顺便覆盖
 
 (require 'awesome-tray)
 
@@ -26,3 +25,20 @@
 
 (provide 'awesome-tray_init)
 ;;; awesome-tray_init.el ends here
+
+
+;; =============== 不用的代码 ===============
+
+;; 这段代码和下面的 add-to-list 功能均有效。
+
+;; (defun my/hide-titlebar (frame)
+;;   "Make FRAME undecorated (no titlebar)."
+;;   (when (display-graphic-p frame)
+;;     ;; 注意：一定要改传进来的 frame
+;;     (modify-frame-parameters frame '((undecorated . t)))
+;;     ))
+
+;; ;; 隐藏标题栏
+;; (when (and (fboundp 'daemonp) (daemonp))
+;;     (add-hook 'after-make-frame-functions 'my/hide-titlebar t)
+;;   )

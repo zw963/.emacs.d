@@ -25,8 +25,7 @@
 
 (require 'edit-server_init)
 (require 'all-the-icons_init) ;; 放到 helm 前面
-;; (require 'doom-modeline_init)
-(require 'awesome-tray_init)
+
 
 ;; hotfuzz 或 fussy 二选一
 (require 'flx_init)

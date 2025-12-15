@@ -42,6 +42,7 @@
 ;; 当加载 .dir-locals 时，永远不提示
 (defun hack-local-variables-confirm (all-vars unsafe-vars risky-vars dir-name) t)
 
+(require 'awesome-tray_init)
 (require 'themes_init)
 (require 'crux_init)
 (require 'whole-line-or-region_init)
