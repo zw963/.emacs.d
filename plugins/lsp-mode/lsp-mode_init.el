@@ -13,6 +13,10 @@
 
 (require 'project_init)
 
+(when (and (bound-and-true-p eglot--managed-mode)
+           (bound-and-true-p lsp-mode))
+  (error "eglot and lsp-mode are both active in this buffer"))
+
 (defun lsp--describe-thing-at-point! ()
   (interactive)
   (lsp-describe-thing-at-point)

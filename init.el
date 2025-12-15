@@ -38,7 +38,6 @@
 (require 'volatile-highlights_init)
 
 (require 'sis_init)
-(require 'page-break-lines_init)
 
 ;; 记得这个最大的问题是, 无法在 daemon 模式下恢复保存的 workspace?
 ;; Ctrl-x w s 可以执行一个 Emacs 默认提供的的函数 window-toggle-side-windows，非常好用。
@@ -79,9 +78,6 @@
 ;; (require 'hydra_init);; depend by treemacs
 ;; C-d, treemacs-remove-project-from-workspace
 (require 'treemacs_init)
-
-;; Alt + y，具体怎么用，需要再看
-(require 'browse-kill-ring_init)
 
 ;; C-x n n (narrow), C-x n w (widen)
 (require 'fancy-narrow_init)

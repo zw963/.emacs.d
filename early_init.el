@@ -47,14 +47,16 @@
 (require 'crux_init)
 (require 'whole-line-or-region_init)
 (require 'rect-mark_init)
-
+(require 'browse-kill-ring_init) ;; ;; Alt + y，具体怎么用，需要再看
 (require 'cnfonts_init)
+
 ;; (relative-load "fonts_init.el")
 (relative-load "windows_init.el")
 (relative-load "autoloads.el")
 (relative-load "functions.el")
 (relative-load "base_init.el")
 (relative-load "session.el")
+
 (relative-load "init.el")
 
 ;; 打开这两个变量, 查看那些包有错误.
