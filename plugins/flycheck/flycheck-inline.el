@@ -55,7 +55,7 @@ Return the displayed phantom."
                (`(,offset . ,pos-eol)
                 (save-excursion
                   (goto-char p)
-                  (cons (- p (point-at-bol)) (point-at-eol))))
+                  (cons (- p (line-beginning-position)) (line-end-position))))
                (ov (make-overlay pos-eol (1+ pos-eol)))
                ;; If the error is on the last line, and that line doesn't end
                ;; with a newline, the overlay will be displayed at the end of
@@ -165,13 +165,13 @@ IDs can also be seen in Flycheck's error list."
 
 ;;; Displaying inline errors with phantoms
 
+(defvar-local flycheck-inline--phantoms nil
+  "Remember which phantoms were added to the buffer.")
+
 (defun flycheck-inline--displayed-p (err)
   "Whether the given error is displayed with any inline overlays."
   (seq-find (lambda (p) (eq err (overlay-get p 'error)))
             flycheck-inline--phantoms))
-
-(defvar-local flycheck-inline--phantoms nil
-  "Remember which phantoms were added to the buffer.")
 
 (defun flycheck-inline-display-phantom (msg &optional pos err)
   "Display MSG at POS representing error ERR using phantoms.
@@ -229,9 +229,25 @@ POS defaults to point."
 
 ERRORS is a list of `flycheck-error' objects."
   (flycheck-inline-hide-errors)
-  (mapc #'flycheck-inline-display-error
-        (seq-uniq
-         (seq-mapcat #'flycheck-related-errors errors))))
+  (let* ((lines (mapcar 'flycheck-error-line errors))
+         (line-range (cons (apply 'min lines) (apply 'max lines)))
+         (columns (seq-filter 'identity (mapcar 'flycheck-error-column errors)))
+         (column-range (and columns
+                            (cons (apply 'min columns) (apply 'max columns)))))
+    (mapc #'flycheck-inline-display-error
+          (seq-filter
+           (lambda (error)
+             (let ((line (flycheck-error-line error))
+                   (column (flycheck-error-column error)))
+               (and
+                (>= line (car line-range))
+                (<= line (cdr line-range))
+                (or (and column-range column
+                         (>= column (car column-range))
+                         (<= column (cdr column-range)))
+                    t))))
+           (seq-uniq
+            (seq-mapcat #'flycheck-related-errors errors))))))
 
 
 ;;; Global and local minor modes
@@ -256,14 +272,16 @@ directly below the error reported location."
   (cond
    ;; Use our display function.
    (flycheck-inline-mode
+    (setq-local flycheck-help-echo-function nil)
     (setq-local flycheck-display-errors-function #'flycheck-inline-display-errors)
-    (add-hook 'post-command-hook #'flycheck-inline-hide-errors nil 'local))
+    (setq-local flycheck-clear-displayed-errors-function #'flycheck-inline-hide-errors))
    ;; Reset the display function and remove ourselves from all hooks but only
    ;; if the mode is still active.
    ((not flycheck-inline-mode)
+    (kill-local-variable 'flycheck-help-echo-function)
     (kill-local-variable 'flycheck-display-errors-function)
-    (flycheck-inline-hide-errors)
-    (remove-hook 'post-command-hook #'flycheck-inline-hide-errors 'local))))
+    (kill-local-variable 'flycheck-clear-displayed-errors-function)
+    (flycheck-inline-hide-errors))))
 
 (defun turn-on-flycheck-inline ()
   "Turn on `flycheck-inline-mode' in Flycheck buffers."
