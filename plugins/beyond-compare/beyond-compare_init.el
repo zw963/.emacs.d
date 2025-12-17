@@ -191,3 +191,43 @@
 (defun treemacs-bc2-file (&optional arg)
   (interactive "P")
   (run-process "bc2" (treemacs--select-file-from-btn (treemacs-current-button) "bc2: ")))
+
+(with-eval-after-load 'treemacs
+  (defun my/treemacs-node-at-point-p ()
+    (and (derived-mode-p 'treemacs-mode)
+         (ignore-errors (treemacs-node-at-point))))
+
+  (defun my/treemacs-append-bc-items (menu)
+    ;; 避免重复注入
+    (unless (lookup-key menu [my-treemacs-bc1])
+      ;; 直接追加到菜单末尾：用 “最后一个 key” 当 after
+      (let (last)
+        (map-keymap (lambda (k _v) (setq last k)) menu)
+        (define-key-after
+          menu [my-treemacs-bc1]
+          `(menu-item "bc1" treemacs-bc1-file
+                      :visible (my/treemacs-node-at-point-p))
+          (and last (vector last)))
+        (define-key-after
+          menu [my-treemacs-bc2]
+          `(menu-item "bc2" treemacs-bc2-file
+                      :visible (my/treemacs-node-at-point-p))
+          [my-treemacs-bc1]))))
+
+  ;; 只在 treemacs-rightclick-menu 这条路径里 patch x-popup-menu，避免污染全局
+  (defvar my/treemacs--patching-rightclick-menu nil)
+
+  (advice-add
+   'treemacs-rightclick-menu :around
+   (lambda (orig event)
+     (let ((my/treemacs--patching-rightclick-menu t))
+       (funcall orig event))))
+
+  (advice-add
+   'x-popup-menu :around
+   (lambda (orig position menu)
+     (when (and my/treemacs--patching-rightclick-menu
+                (keymapp menu)
+                (derived-mode-p 'treemacs-mode))
+       (my/treemacs-append-bc-items menu))
+     (funcall orig position menu))))

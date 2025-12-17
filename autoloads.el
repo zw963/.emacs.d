@@ -57,6 +57,7 @@
 
 ;; diff-mode
 (add-to-list 'auto-mode-alist '("COMMIT_EDITMSG\\'" . diff-mode))
+
 ;; conf-unix-mode
 (add-to-list 'auto-mode-alist '("sudoers\\.tmp\\|\\.cnf\\|hosts\\|keymap\\|exports\\|\\.rc" . conf-unix-mode))
 ;; emacs-lisp-mode
