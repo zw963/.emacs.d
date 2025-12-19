@@ -53,11 +53,11 @@
 (require 'highlight-escape-sequences_init)
 (require 'rainbow-delimiters_init)
 (require 'colorful-mode_init)
-(require 'scss-css-mode_init)
+;; (require 'scss-css-mode_init) ;; 使用默认的 css-ts-mode
 (require 'ws-butler_init)
 (require 'ligature_init)
-(require 'shackle_init)
 (require 'tailwindcss_init)
+(require 'electric-operator_init)
 
 ;; (require 'tabnine_init) ;; lsp-bridge 默认会开启 tabnine
 ;; (require 'codeium_init)
@@ -213,6 +213,7 @@
 ;; C-c p
 (require 'webpaste_init)
 
+(require 'shackle_init)
 ;; popper-cycle 绑定到 Ctrl + Shift + ~
 (require 'popper_init)
 
