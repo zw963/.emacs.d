@@ -1,0 +1,6 @@
+# -*- mode: snippet -*-
+# name: ppp debug
+# binding: M-c p
+# condition: (yas-use-region-p)
+# --
+(puts "\033[1;44m"; __x = (`(yas-selected-text)`); puts File.read_lines(__FILE__)[__LINE__-1][/; __x = \\\((.*?)\\\); .*/, 1]?; pp(__x, __x.class); print "\033[0m"; __x)
