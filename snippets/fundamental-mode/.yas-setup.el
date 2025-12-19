@@ -111,8 +111,8 @@ not-exist-after-field-delimiter：delimiter 有时候可能是只有前面有，
      after-field-delimiter
      field-seperator
      field-seperator-function
-     after-field-delimiter-function
      before-field-delimiter-function
+     after-field-delimiter-function
      )))
 
 (defun string-key-field (field-index
@@ -243,7 +243,7 @@ not-exist-after-field-delimiter：delimiter 有时候可能是只有前面有，
 
 ;; (defun stripped-field ()
 ;;   (if yas-selected-text
-;;       (_strip-string yas-selected-text)))
+;;       (prin1-to-string yas-selected-text)))
 
 ;; =========================== 不打算用的函数 ====================================
 

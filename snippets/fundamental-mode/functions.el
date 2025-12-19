@@ -20,8 +20,8 @@
    field-index
    ":$("
    (or func "if-any")
-   (when arg1 (concat " \"" (_strip-string arg1) "\""))
-   (when arg2 (concat " \"" (_strip-string arg2) "\""))
+   (when arg1 (concat " \"" (prin1-to-string arg1) "\""))
+   (when arg2 (concat " \"" (prin1-to-string arg2) "\""))
    ")}"
    ))
 
@@ -34,7 +34,7 @@ yas-field 的依赖函数"
        "${"
        field-index
        ":"
-       (_strip-string content)
+       (prin1-to-string content)
        "}"
        )
     (concat "$" field-index)))
