@@ -1,8 +1,8 @@
 ;;; web-mode.el --- major mode for editing web templates -*- coding: utf-8; lexical-binding: t; -*-
 
-;; Copyright 2011-2024 François-Xavier Bois
+;; Copyright 2011-2025 François-Xavier Bois
 
-;; Version: 17.3.21
+;; Version: 17.3.22
 ;; Author: François-Xavier Bois
 ;; Maintainer: François-Xavier Bois <fxbois@gmail.com>
 ;; Package-Requires: ((emacs "23.1"))
@@ -23,7 +23,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "17.3.21"
+(defconst web-mode-version "17.3.22"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -3830,7 +3830,7 @@ Also return non-nil if it is the command `self-insert-command' is remapped to."
 
           ((string= web-mode-engine "vue")
            (cond
-             ((string-match-p "[:@][-[:alpha:]]+=\"" tagopen)
+             ((string-match-p "[:@][-[:alpha:].]+=\"" tagopen)
               (setq closing-string "\""
                     delim-open tagopen
                     delim-close "\""))
@@ -5675,6 +5675,17 @@ Also return non-nil if it is the command `self-insert-command' is remapped to."
 ;; (6)value-uq (7)value-sq (8)value-dq (9)value-bq : jsx attr={}
 ;; (10)value-block
 
+(defun web-mode--indentless-attribute-p (attr)
+  "Return t if ATTR is in `web-mode-indentless-attributes'.
+  Handles wildcards where '*' matches any suffix."
+  (let ((found nil))
+    (dolist (pattern web-mode-indentless-attributes found)
+      (if (string-suffix-p "*" pattern)
+          (when (string-prefix-p (substring pattern 0 -1) attr)
+            (setq found t))
+        (when (string= pattern attr)
+          (setq found t))))))
+
 (defun web-mode-attr-skip (limit)
 
   (let ((tag-flags 0) (attr-flags 0) (continue t) (attrs 0) (brace-depth 0)
@@ -5766,7 +5777,7 @@ Also return non-nil if it is the command `self-insert-command' is remapped to."
                name-end (1- pos))
          (setq state 4)
          (setq attr (buffer-substring-no-properties name-beg (1+ name-end)))
-         (when (and web-mode-indentless-attributes (member (downcase attr) web-mode-indentless-attributes))
+         (when (and web-mode-indentless-attributes (web-mode--indentless-attribute-p (downcase attr)))
            (setq attr-flags (logior attr-flags 8)))
          )
 
@@ -6336,7 +6347,7 @@ Also return non-nil if it is the command `self-insert-command' is remapped to."
  (defun web-mode-jsx-skip (reg-end) ;; #1299
    (let ((continue t) (pos nil) (i 0) (tag nil) (regexp nil) (regexp0 nil)
          (regexp1 nil) (counter 0) (ret nil) (match nil) (inside t))
-     (looking-at "<\\([[:alpha:]][[:alnum:]:-]*\\)")
+     (looking-at "<\\([[:alpha:]][[:alnum:].:-]*\\)") ;; #1327
      (setq tag (match-string-no-properties 1))
      (if (null tag)
          (progn
@@ -9649,9 +9660,14 @@ Also return non-nil if it is the command `self-insert-command' is remapped to."
                                                               language
                                                               reg-beg))))
 
+          ((member language '("django"))
+           (when debug (message "I430(%S) django-indentation" pos))
+           (setq offset nil)
+           )
+
           (t
            (when debug
-             (message "I430(%S) bracket-indentation" pos)
+             (message "I440(%S) generic bracket-indentation" pos)
              ;;(message "reg-col=%S curr-ind=%S lang=%S reg-beg=%S" reg-col curr-indentation language reg-beg)
              )
            (setq offset (car (web-mode-bracket-indentation pos
