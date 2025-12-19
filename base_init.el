@@ -372,8 +372,8 @@
 (setq what-cursor-show-names t)
 (minibuffer-electric-default-mode t)
 (minibuffer-depth-indicate-mode t)
-;; 我为什么要打开这个？
-;; (setq enable-recursive-minibuffers t)
+;; 打开这个可以在类似于 helm 这样的模式开启时，仍旧有机会 eval 函数
+(setq enable-recursive-minibuffers t)
 
 ;; gpt 说这个是一个函数，而不是变量？
 ;; (setq toggle-truncate-lines nil)
