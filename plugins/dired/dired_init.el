@@ -74,21 +74,20 @@
 ;; (setq ripgrep-dired-rg-basic-args "-nH --no-heading --smart-case -g '!*~' -g '!#*#' -g '!.#*'")
 
 ;; 所有 diredp- 作为前缀的名字，都来自于 dired+
-;; dired+ 和 all-the-icons-dired 冲突。
-;; (require 'dired+)
-;; (add-hook 'dired-mode-hook
-;;           (lambda ()
-;;             (dired-omit-mode)
-;;             (diredp-toggle-find-file-reuse-dir t)
-;;             (dired-hide-details-mode -1)
-;;             ;; 这行代码在 hook 里面是必须的, 因为 dired-efap 改写了 meta b 参数.
-;;             (define-key dired-mode-map  [(meta b)] nil)
-;;             (define-key dired-mode-map [(control o)] 'dired-display-file) ;; 这是 dired 模式默认
-;;             (define-key dired-mode-map [(control c) (o)] 'diredp-find-file-other-frame) ;; 这是 dired+ 的 C-o, 改为 C-c o
-;;             (define-key dired-mode-map  [(control r)] 'rg-grep)
-;;             (define-key dired-mode-map  [(control c) (+)] 'dired-create-empty-file)
-;;             ;; (define-key dired-mode-map ")" 'dired-git-info-mode)
-;;             ))
+(require 'dired+)
+(add-hook 'dired-mode-hook
+          (lambda ()
+            ;; (dired-omit-mode 1) ;; 和 all-the-icons-dired 冲突。
+            (diredp-toggle-find-file-reuse-dir t)
+            (dired-hide-details-mode -1)
+            ;; 这行代码在 hook 里面是必须的, 因为 dired-efap 改写了 meta b 参数.
+            (define-key dired-mode-map  [(meta b)] nil)
+            (define-key dired-mode-map [(control o)] 'dired-display-file) ;; 这是 dired 模式默认
+            (define-key dired-mode-map [(control c) (o)] 'diredp-find-file-other-frame) ;; 这是 dired+ 的 C-o, 改为 C-c o
+            (define-key dired-mode-map  [(control r)] 'rg-grep)
+            (define-key dired-mode-map  [(control c) (+)] 'dired-create-empty-file)
+            ;; (define-key dired-mode-map ")" 'dired-git-info-mode)
+            ))
 
 ;; (require 'dired-k)
 ;; (setq dired-k-style 'git)

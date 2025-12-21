@@ -7,9 +7,10 @@
 (require 'all-the-icons-ibuffer)
 (add-hook 'ibuffer-mode-hook #'all-the-icons-ibuffer-mode)
 
-;; 这个有问题，会让 dired 无法打开，暂时关闭
- (require 'all-the-icons-dired)
- (add-hook 'dired-mode-hook 'all-the-icons-dired-mode)
+(with-eval-after-load 'dired
+  (require 'all-the-icons-dired)
+  (add-hook 'dired-mode-hook 'all-the-icons-dired-mode)
+  )
 
 (with-eval-after-load 'treemacs
   ;; includes with treemacs
