@@ -961,27 +961,33 @@ With prefix 2 show both."
        (ht-keys)
        (-keep
         (lambda (file)
-          (when (and (lsp-f-ancestor-of? folder file)
-                     (lsp-treemacs-errors--diags? (lsp-diagnostics-stats-for file)))
-            (list :id file
-                  :label (format "%s %s %s"
-                                 (f-filename file)
-                                 (->> (append (lsp-diagnostics-stats-for file) ())
-                                      (-map-indexed
-                                       (lambda (index count)
-                                         (unless (zerop count)
-                                           (propertize
-                                            (number-to-string count)
-                                            'face (alist-get index lsp-treemacs-file-face-map)))))
-                                      (-filter #'identity)
-                                      (s-join "/"))
-                                 (propertize (f-dirname (f-relative file folder))
-                                             'face 'lsp-details-face))
-                  :icon (if (f-directory? file) 'dir-closed (f-ext file))
-                  :children (-partial #'lsp-treemacs--error-list-diags folder file)
-                  :ret-action (lambda (&rest _)
-                                (interactive)
-                                (lsp-treemacs--open-file-in-mru file))))))))
+          (if (and (lsp-f-ancestor-of? folder file)
+                   (lsp-treemacs-errors--diags? (lsp-diagnostics-stats-for file)))
+            (list (list :id file
+                        :label (format "%s %s %s"
+                                       (f-filename file)
+                                       (->> (append (lsp-diagnostics-stats-for file) ())
+                                            (-map-indexed
+                                             (lambda (index count)
+                                               (unless (zerop count)
+                                                 (propertize
+                                                  (number-to-string count)
+                                                  'face (alist-get index lsp-treemacs-file-face-map)))))
+                                            (-filter #'identity)
+                                            (s-join "/"))
+                                       (propertize (f-dirname (f-relative file folder))
+                                                   'face 'lsp-details-face))
+                        :icon (if (f-directory? file) 'dir-closed (f-ext file))
+                        :children (-partial #'lsp-treemacs--error-list-diags folder file)
+                        :ret-action (lambda (&rest _)
+                                      (interactive)
+                                      (lsp-treemacs--open-file-in-mru file))))
+            (if (lsp-f-same? folder file)
+                (lsp-treemacs--error-list-diags folder file)))))
+       ;; for each file we have a list with a single plist that expands,
+       ;; and for the folder list with zero or more plists with folder-level
+       ;; errors. flatten the list of lists of plists into a list of plists
+       (-flatten-n 1)))
 
 (lsp-treemacs-define-action lsp-treemacs-quick-fix (:file :diag)
   "Select the element under cursor."
