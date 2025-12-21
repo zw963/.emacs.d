@@ -1,5 +1,3 @@
-;; -*- lexical-binding: t; -*-
-
 ;;; rustic-rustfix.el --- Support for rustfix         -*- lexical-binding:t -*-
 ;;; Commentary:
 
@@ -21,7 +19,7 @@
 
 ;;;###autoload
 (defun rustic-rustfix ()
-  "Run 'cargo fix'."
+  "Run `cargo fix'."
   (interactive)
   (let* ((command (list (rustic-cargo-bin) "fix" "--allow-dirty"))
          (err-buf rustic-rustfix-buffer-name)

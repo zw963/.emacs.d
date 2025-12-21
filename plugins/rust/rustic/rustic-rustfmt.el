@@ -1,5 +1,3 @@
-;; -*- lexical-binding: t; -*-
-
 ;;; rustic-rustfmt.el --- Support for rustfmt         -*- lexical-binding:t -*-
 ;;; Commentary:
 
@@ -46,17 +44,17 @@ VALUE is a string, an integer or a boolean."
 (defcustom rustic-format-trigger nil
   "This option allows you to automatically run rustfmt when saving
 or before using a compilation/cargo command.
-`on-compile' calls 'cargo fmt' in the directory that is returned by
+`on-compile' calls `cargo fmt' in the directory that is returned by
 the function used in `rustic-compile-directory-method'."
   :type '(choice (const :tag "Format buffer before saving." on-save)
-                 (const :tag "Run 'cargo fmt' before compilation." on-compile)
+                 (const :tag "Run `cargo fmt' before compilation." on-compile)
                  (const :tag "Don't format automatically." nil))
   :group 'rustic)
 
 (defcustom rustic-format-on-save-method 'rustic-format-file
   "Default function used for formatting before saving.
 This function will only be used when `rustic-format-trigger' is set
-to 'on-save."
+to \\='on-save."
   :type 'function
   :group 'rustic)
 
@@ -66,9 +64,9 @@ to 'on-save."
   :group 'rustic)
 
 (defcustom rustic-cargo-clippy-trigger-fix nil
-  "Whether to run 'clippy --fix' before build or run."
-  :type '(choice (const :tag "Run 'clippy --fix' before saving." on-save)
-                 (const :tag "Run 'clippy --fix' before compilation." on-compile)
+  "Whether to run `clippy --fix' before build or run."
+  :type '(choice (const :tag "Run `clippy --fix' before saving." on-save)
+                 (const :tag "Run `clippy --fix' before compilation." on-compile)
                  (const :tag "Don't fix automatically." nil))
   :group 'rustic)
 
@@ -118,22 +116,23 @@ and it's `cdr' is a list of arguments."
           (command (or (plist-get args :command)
                        (rustic-compute-rustfmt-args)))
           (command (if (listp command) command (list command)))
-          (cur-buf (current-buffer)))
+          (cur-buf (current-buffer))
+          (rustfmt (rustic-rustfmt-bin)))
      (setq rustic-save-pos (set-marker (make-marker) (point) (current-buffer)))
      (rustic-compilation-setup-buffer err-buf dir 'rustic-format-mode t)
      (--each files
        (unless (file-exists-p it)
          (error (format "File %s does not exist." it))))
-     (with-current-buffer err-buf
-       (let* ((c `(,(rustic-rustfmt-bin)
-                   ,@(split-string rustic-rustfmt-args)
-                   ,@command "--" ,@files))
-              (proc (rustic-make-process :name rustic-format-process-name
-                                         :buffer err-buf
-                                         :command (remove "" c)
-                                         :filter #'rustic-compilation-filter
-                                         :sentinel sentinel
-                                         :file-handler t)))
+     (let* ((c `(,rustfmt
+                 ,@(split-string rustic-rustfmt-args)
+                 ,@command "--" ,@files))
+            (proc (rustic-make-process :name rustic-format-process-name
+                                       :buffer err-buf
+                                       :command (remove "" c)
+                                       :filter #'rustic-compilation-filter
+                                       :sentinel sentinel
+                                       :file-handler t)))
+       (with-current-buffer err-buf
          (setq next-error-last-buffer buffer)
          (when string
            (process-put proc 'command-buf cur-buf)
@@ -207,10 +206,12 @@ and it's `cdr' is a list of arguments."
     (let ((proc-buffer (process-buffer proc)))
       (with-current-buffer proc-buffer
         (if (string-match-p "^finished" output)
-            (and
-             (with-current-buffer next-error-last-buffer
-               (revert-buffer t t t))
-             (kill-buffer proc-buffer))
+            (progn
+              (with-current-buffer next-error-last-buffer
+                (revert-buffer t t t))
+              (-if-let (win (get-buffer-window proc-buffer))
+                  (quit-window t win)
+                (kill-buffer proc-buffer)))
           (sit-for 0.1)
           (with-current-buffer next-error-last-buffer
             (goto-char rustic-save-pos))
@@ -337,7 +338,7 @@ This operation requires a nightly version of rustfmt.
 
 (defun rustic-format-dwim (beg end)
   "Format region if active, if not check if major mode is rustic
-and format file, or else run 'cargo fmt'."
+and format file, or else run `cargo fmt'."
   (interactive "r")
   (cond ((region-active-p)
          (rustic-format-region beg end))
@@ -397,7 +398,7 @@ This is basically a wrapper around `project--buffer-list'."
           #'rustic-maybe-format-before-compilation)
 
 (defun rustic-before-save-hook ()
-  "Automatically run 'clippy --fix' OR rustfmt before saving.
+  "Automatically run `clippy --fix' OR rustfmt before saving.
 
 Change `rustic-cargo-clippy-trigger-fix' and `rustic-format-trigger'
 to make use of these features.

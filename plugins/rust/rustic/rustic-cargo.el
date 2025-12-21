@@ -1,5 +1,3 @@
-;; -*- lexical-binding: t; -*-
-
 ;;; rustic-cargo.el --- Cargo based commands -*-lexical-binding: t-*-
 ;;; Commentary:
 
@@ -22,27 +20,33 @@
   :group 'rustic-cargo)
 
 (defcustom rustic-cargo-check-exec-command "check"
-  "Execute command to run cargo check."
+  "Execute command to run `cargo check'."
   :type 'string
   :group 'rustic-cargo)
 
 (defcustom rustic-cargo-test-exec-command "test"
-  "Execute command to run cargo test."
+  "Execute command to run `cargo test'."
   :type 'string
   :group 'rustic-cargo)
 
-(defcustom rustic-cargo-nextest-exec-command "nextest run"
+(defcustom rustic-cargo-test-runner 'cargo
+  "Test runner to use for running tests.  By default uses cargo."
+  :type '(choice (const cargo)
+                 (const nextest))
+  :group 'rustic-cargo)
+
+(defcustom rustic-cargo-nextest-exec-command (list "nextest" "run")
   "Execute command to run nextest."
-  :type 'string
+  :type '(repeat string)
   :group 'rustic-cargo)
 
 (defcustom rustic-cargo-run-exec-command "run"
-  "Execute command to run cargo run."
+  "Execute command to run `cargo run'."
   :type 'string
   :group 'rustic-cargo)
 
 (defcustom rustic-cargo-build-exec-command "build"
-  "Execute command to run cargo build."
+  "Execute command to run `cargo build'."
   :type 'string
   :group 'rustic-cargo)
 
@@ -50,6 +54,40 @@
   "Path to remote cargo executable."
   :type 'string
   :group 'rustic-cargo)
+
+(defcustom rustic-cargo-populate-package-name nil
+  "Populate package name automatically when used with universal argument."
+  :type 'boolean
+  :group 'rustic-cargo)
+
+(defvar rustic--package-names (make-hash-table :test #'equal))
+
+(defun rustic-cargo-cached-package-name ()
+  (let ((package-name (gethash default-directory rustic--package-names)))
+    (if package-name
+        package-name
+      (progn
+        (let ((pkg-name (rustic-cargo-package-name)))
+          (setf (gethash default-directory rustic--package-names) pkg-name))
+        (gethash default-directory rustic--package-names)))))
+
+(defun rustic-cargo-package-argument ()
+  (if rustic-cargo-populate-package-name
+      (let ((package-name (rustic-cargo-cached-package-name)))
+        (when package-name
+          (format "--package %s" package-name)))))
+
+(defun rustic-cargo-package-name ()
+  (let ((buffer (get-buffer "*cargo-manifest*")))
+    (if buffer
+        (kill-buffer buffer)))
+  (let* ((buffer (get-buffer-create "*cargo-manifest*"))
+         (exit-code (call-process (rustic-cargo-bin) nil buffer nil "read-manifest")))
+    (if (eq exit-code 0)
+        (with-current-buffer buffer
+          (let ((json-parsed-data (json-read-from-string (buffer-string))))
+            (cdr (assoc 'name json-parsed-data))))
+      nil)))
 
 (defun rustic-cargo-bin ()
   (if (file-remote-p (or (buffer-file-name) ""))
@@ -63,7 +101,7 @@ If nil then the project is simply created."
   :group 'rustic-cargo)
 
 (defcustom rustic-cargo-test-disable-warnings nil
-  "Don't show warnings when running 'cargo test'."
+  "Don't show warnings when running `cargo test'."
   :type 'boolean
   :group 'rustic-cargo)
 
@@ -79,30 +117,30 @@ instead of applying the default arguments from `rustic-default-test-arguments'."
   :type 'boolean
   :group 'rustic-cargo)
 
-(defcustom rustic-default-test-arguments "--benches --tests --all-features"
-  "Default arguments when running 'cargo test'."
+(defcustom rustic-default-test-arguments "--all-targets --all-features"
+  "Default arguments when running `cargo test'."
   :type 'string
   :group 'rustic-cargo)
 
 (defcustom rustic-cargo-default-install-arguments '("--path" "." "--locked")
-  "Default arguments when running 'cargo install'."
+  "Default arguments when running `cargo install'."
   :type '(list string)
   :group 'rustic-cargo)
 
-(defcustom rustic-cargo-check-arguments "--benches --tests --all-features"
-  "Default arguments when running 'cargo check'."
+(defcustom rustic-cargo-check-arguments "--all-targets --all-features"
+  "Default arguments when running `cargo check'."
   :type 'string
   :group 'rustic-cargo)
 
 (defcustom rustic-cargo-build-arguments ""
-  "Default arguments when running 'cargo build'."
+  "Default arguments when running `cargo build'."
   :type 'string
   :group 'rustic-cargo)
 
 (defcustom rustic-cargo-auto-add-missing-dependencies nil
   "Automatically adds dependencies to Cargo.toml.
-This way rustic checks new diagnostics for 'unresolved import'
-errors and passes the crates to 'cargo add'.
+This way rustic checks new diagnostics for `unresolved import'
+errors and passes the crates to `cargo add'.
 Currently only working with lsp-mode."
   :type 'boolean
   :group 'rustic-cargo)
@@ -134,14 +172,19 @@ Currently only working with lsp-mode."
   "Buffer name for test buffers.")
 
 (defvar rustic-test-arguments ""
-  "Holds arguments for 'cargo test', similar to `compilation-arguments`.
+  "Holds arguments for `cargo test', similar to `compilation-arguments`.
 Tests that are executed by `rustic-cargo-current-test' will also be
 stored in this variable.")
+
+(defvar rustic-test-history nil
+  "Holds previous arguments for `cargo test', similar to `compile-arguments`.")
 
 (defvar rustic-cargo-test-mode-map
   (let ((map (make-sparse-keymap)))
     (set-keymap-parent map rustic-compilation-mode-map)
     (define-key map [remap recompile] 'rustic-cargo-test-rerun)
+    (define-key map (kbd "C-c C-t") 'rustic-cargo-test-rerun-current)
+    (define-key map (kbd "t") 'rustic-cargo-test-rerun-current)
     map)
   "Local keymap for `rustic-cargo-test-mode' buffers.")
 
@@ -151,24 +194,18 @@ stored in this variable.")
   (when rustic-cargo-test-disable-warnings
     (setq-local rustic-compile-rustflags (concat rustic-compile-rustflags " -Awarnings"))))
 
-(defun rustic-cargo-run-nextest (&optional arg)
-  "Command for running nextest."
-  (interactive "P")
-  (let* ((nextest (if arg
-                      (read-from-minibuffer "nextest command: " rustic-cargo-nextest-exec-command)
-                    rustic-cargo-nextest-exec-command))
-         (c (-flatten (list (rustic-cargo-bin) (split-string nextest))))
-         (buf rustic-test-buffer-name)
-         (proc rustic-test-process-name)
-         (mode 'rustic-cargo-test-mode))
-    (rustic-compilation c (list :buffer buf :process proc :mode mode))))
+(defun rustic--cargo-test-runner ()
+  "Return the test runner command."
+  (cond ((eq rustic-cargo-test-runner 'cargo) rustic-cargo-test-exec-command)
+        ((eq rustic-cargo-test-runner 'nextest) rustic-cargo-nextest-exec-command)
+        (t (user-error "Invalid configured value for rustic-cargo-test-runner variable"))))
 
 ;;;###autoload
 (defun rustic-cargo-test-run (&optional test-args)
-  "Start compilation process for 'cargo test' with optional TEST-ARGS."
+  "Start compilation process for `cargo test' with optional TEST-ARGS."
   (interactive)
   (rustic-compilation-process-live)
-  (let* ((command (list (rustic-cargo-bin) rustic-cargo-test-exec-command))
+  (let* ((command (flatten-list (list (rustic-cargo-bin) (rustic--cargo-test-runner))))
          (c (append command (split-string (if test-args test-args ""))))
          (buf rustic-test-buffer-name)
          (proc rustic-test-process-name)
@@ -177,15 +214,23 @@ stored in this variable.")
 
 ;;;###autoload
 (defun rustic-cargo-test (&optional arg)
-  "Run 'cargo test'.
+  "Run `cargo test'.
 
-If ARG is not nil, use value as argument and store it in `rustic-test-arguments'.
-When calling this function from `rustic-popup-mode', always use the value of
+If ARG is not nil, use value as argument and store it in
+`rustic-test-arguments'.  When calling this function from
+`rustic-popup-mode', always use the value of
 `rustic-test-arguments'."
   (interactive "P")
   (rustic-cargo-test-run
    (cond (arg
-          (setq rustic-test-arguments (read-from-minibuffer "Cargo test arguments: " rustic-default-test-arguments)))
+          (setq rustic-test-arguments
+                (read-from-minibuffer "Cargo test arguments: "
+                                      (rustic--populate-minibuffer
+                                       (list (rustic-cargo-package-argument)
+                                             rustic-test-arguments
+                                             rustic-cargo-build-arguments
+                                             rustic-default-test-arguments))
+                                      nil nil 'rustic-test-history)))
          (rustic-cargo-use-last-stored-arguments
           (if (> (length rustic-test-arguments) 0)
               rustic-test-arguments
@@ -194,24 +239,52 @@ When calling this function from `rustic-popup-mode', always use the value of
           rustic-default-test-arguments))))
 
 ;;;###autoload
-(defun rustic-cargo-test-rerun ()
-  "Run 'cargo test' with `rustic-test-arguments'."
-  (interactive)
-  (rustic-cargo-test-run rustic-test-arguments))
+(defun rustic-cargo-test-rerun (arg)
+  "Run `cargo test' with `rustic-test-arguments'."
+  (interactive "P")
+  (let ((default-directory (or rustic-compilation-directory default-directory)))
+    (setq rustic-test-arguments
+          (if arg
+              (read-from-minibuffer "Cargo test arguments: " rustic-test-arguments nil nil 'rustic-test-history)
+            rustic-test-arguments))
+    (rustic-cargo-test-run rustic-test-arguments)))
+
+(defun rustic-cargo-test-rerun-current (arg)
+  "Rerun the test at point from `rustic-cargo-test-mode'."
+  (interactive "P")
+  (let* ((default-directory (or rustic-compilation-directory default-directory))
+        (test (rustic-cargo--get-test-at-point))
+        (command (if test
+                     (concat "-- --exact " test)
+                   (error "No test found at point"))))
+    (setq rustic-test-arguments
+          (if arg
+              (read-from-minibuffer "Cargo test arguments: " command nil nil 'rustic-test-history)
+            command))
+    (rustic-cargo-test-run rustic-test-arguments)))
+
+(defun rustic-cargo--get-test-at-point ()
+  (save-excursion
+      (beginning-of-line)
+      (when (re-search-forward "^test \\([^ ]+\\) ..." (line-end-position) t)
+        (buffer-substring-no-properties (match-beginning 1) (match-end 1)))))
 
 ;;;###autoload
 (defun rustic-cargo-current-test ()
-  "Run 'cargo test' for the test near point."
+  "Run `cargo test' for the test near point."
   (interactive)
   (rustic-compilation-process-live)
   (-if-let (test-to-run (setq rustic-test-arguments
                               (rustic-cargo--get-test-target)))
-      (rustic-cargo-run-test test-to-run)
+      (progn
+        (unless (equal (car rustic-test-history) test-to-run)
+          (push test-to-run rustic-test-history))
+        (rustic-cargo-run-test test-to-run))
     (message "Could not find test at point.")))
 
 (defun rustic-cargo-run-test (test)
   "Run TEST which can be a single test or mod name."
-  (let* ((c (list (rustic-cargo-bin) rustic-cargo-test-exec-command test))
+  (let* ((c (flatten-list (list (rustic-cargo-bin) (rustic--cargo-test-runner) test)))
          (buf rustic-test-buffer-name)
          (proc rustic-test-process-name)
          (mode 'rustic-cargo-test-mode))
@@ -228,7 +301,7 @@ When calling this function from `rustic-popup-mode', always use the value of
 (defconst rustic-cargo-mod-regexp
   "^\s*mod\s+\\([[:word:][:multibyte:]_][[:word:][:multibyte:]_[:digit:]]*\\)\s*{")
 (defconst rustic-cargo-fn-regexp
-  "^\s*\\(?:async\s+\\)?\s*fn\s+\\([^(]+\\)\s*(")
+  (concat rustic-func-item-beg-re "\\([^(<]+\\)\\s-*\\(?:<\\s-*.+\\s-*>\\s-*\\)?("))
 
 (defun rustic-cargo--get-test-target()
   "Return either a full fn name or a mod name, whatever is closer to the point."
@@ -304,7 +377,7 @@ When calling this function from `rustic-popup-mode', always use the value of
 
 ;;;###autoload
 (defun rustic-cargo-outdated (&optional path)
-  "Use 'cargo outdated' to list outdated packages in `tabulated-list-mode'.
+  "Use `cargo outdated' to list outdated packages in `tabulated-list-mode'.
 Execute process in PATH."
   (interactive)
   (rustic--inheritenv
@@ -314,7 +387,7 @@ Execute process in PATH."
           (inhibit-read-only t))
      (make-process :name rustic-cargo-outdated-process-name
                    :buffer buf
-                   :command `(,(rustic-cargo-bin) "outdated" "--depth" "1")
+                   :command `(,(rustic-cargo-bin) "outdated" "--quiet" "--depth" "1" "--format" "json")
                    :sentinel #'rustic-cargo-outdated-sentinel
                    :file-handler t)
      (with-current-buffer buf
@@ -334,6 +407,14 @@ Execute process in PATH."
   (interactive)
   (rustic-cargo-outdated default-directory))
 
+(defun rustic-cargo-outdated--skip-to-packages ()
+  "Move line forward till we reach the package name."
+  (goto-char (point-min))
+  (let ((line (buffer-substring-no-properties (line-beginning-position) (line-end-position))))
+    (while (not (or (eobp) (s-starts-with? "{" line)))
+      (forward-line 1)
+      (setf line (buffer-substring-no-properties (line-beginning-position) (line-end-position))))))
+
 (defun rustic-cargo-outdated-sentinel (proc _output)
   "Sentinel for rustic-cargo-outdated-process."
   (let ((buf (process-buffer proc))
@@ -341,14 +422,11 @@ Execute process in PATH."
         (exit-status (process-exit-status proc)))
     (if (zerop exit-status)
         (with-current-buffer buf
-          (let ((packages
-                 (mapcar
-                  (lambda (arg)
-                    (split-string arg "================" t "[\n\s]"))
-                  (split-string (buffer-string) "\n\n" t))))
-            (if (and (length packages) (= (length (car packages)) 1))
-                (setq packages (list (push "---" (car packages)))))
-            (rustic-cargo-outdated-generate-menu packages))
+          (rustic-cargo-outdated--skip-to-packages)
+          (let* ((packages (buffer-substring-no-properties (point) (point-max)))
+                (json-packages (json-read-from-string packages)))
+            (erase-buffer)
+            (rustic-cargo-outdated-generate-menu (alist-get 'dependencies json-packages)))
           (pop-to-buffer buf))
       (with-current-buffer buf
         (let ((out (buffer-string)))
@@ -359,38 +437,35 @@ Execute process in PATH."
 
 (defun rustic-cargo-install-crate-p (crate)
   "Ask whether to install crate CRATE."
-  (let ((cmd (format "cargo install cargo-%s" crate)))
+  (let ((cmd (format "%s install cargo-%s" (rustic-cargo-bin) crate)))
     (when (yes-or-no-p (format "Cargo-%s missing. Install ? " crate))
       (async-shell-command cmd (rustic-cargo-bin) "cargo-error"))))
 
 (defun rustic-cargo-outdated-generate-menu (packages)
   "Re-populate the `tabulated-list-entries' with PACKAGES."
-  (let* ((name-with-split-deps
-          (mapcan
-           (lambda (arg0)
-             (nthcdr 2 (mapcar (lambda (arg1) (push (nth 0 arg0) arg1))
-                                (split-string (nth 1 arg0) "\n" t))))
-           packages)))
-    (setq tabulated-list-entries
-           (mapcar #'rustic-cargo-outdated-menu-entry name-with-split-deps))
-     (tabulated-list-print t)))
+  (setq tabulated-list-entries
+           (mapcar #'rustic-cargo-outdated-menu-entry packages))
+  (tabulated-list-print t))
 
 (defun rustic-cargo-outdated-menu-entry (crate)
   "Return a package entry of CRATE suitable for `tabulated-list-entries'."
-  (let* ((fields (split-string (cdr crate) "\s+"))
-         (name (nth 0 fields))
-         (project (nth 1 fields))
-         (compat (nth 2 fields)))
+  (let* ((name (alist-get 'name crate))
+         (project (alist-get 'project crate))
+         (compat (alist-get 'compat crate)))
     (list name `[,name
                  ,project
                  ,(if (when (not (string-match "^-" compat))
                         (version< project compat))
                       (propertize compat 'font-lock-face 'rustic-cargo-outdated)
                     compat)
-                 ,(nth 3 fields)
-                 ,(nth 4 fields)
-                 ,(car crate)
-                 ,(nth 5 fields)])))
+                 ,(alist-get 'latest crate)
+                 ,(alist-get 'kind crate)
+                 ,(if (alist-get 'platform  crate)
+                      (alist-get 'platform  crate)
+                    "NA")
+                 ,"NA"
+                 ,"NA"
+                 ])))
 
 ;;;###autoload
 (defun rustic-cargo-mark-upgrade ()
@@ -521,15 +596,25 @@ The CRATE-LINE is a single line from the `rustic-cargo-oudated-buffer-name'"
   (let (upgrade)
     (dolist (crate crates)
       (setq upgrade (concat upgrade (format "-p %s@%s " (rustic-crate-name crate) (rustic-crate-version crate)))))
-    (let ((output (shell-command-to-string (format "cargo upgrade %s" upgrade))))
+    (let ((output (shell-command-to-string (format "%s upgrade --offline %s" (rustic-cargo-bin) upgrade))))
       (if (string-match "error: no such subcommand:" output)
           (rustic-cargo-install-crate-p "edit")
         (rustic-cargo-reload-outdated)))))
 
 ;;; New project
+(defun rustic--split-path (project-path)
+  "Split PROJECT-PATH into two parts: the longest prefix of directories that
+exist, and the rest. Return a cons cell of the two parts."
+  (let ((components (file-name-split project-path))
+        (existing-dir ""))
+    (while (and (not (null components))
+                (file-directory-p (file-name-concat existing-dir (car components))))
+      (setq existing-dir (file-name-concat existing-dir (car components)))
+      (setq components (cdr components)))
+    (cons existing-dir (apply 'file-name-concat (cons "" components)))))
 
 (defun rustic-create-project (project-path is-new &optional bin)
-  "Run either 'cargo new' if IS-NEW is non-nil, or 'cargo init' otherwise.
+  "Run either `cargo new' if IS-NEW is non-nil, or `cargo init' otherwise.
 Creates or initializes the directory at the path specified by PROJECT-PATH. If
 BIN is not nil, create a binary application, otherwise a library."
   (let* ((cmd (if is-new "new" "init"))
@@ -546,23 +631,25 @@ BIN is not nil, create a binary application, otherwise a library."
                                                     "/src/main.rs"
                                                   "/src/lib.rs")))))))
          (proc (format "rustic-cargo-%s-process" cmd))
-         (buf (format "*cargo-%s*" cmd)))
+         (buf (format "*cargo-%s*" cmd))
+         (dir-pair (rustic--split-path project-path))
+         (default-directory (car dir-pair)))
     (make-process :name proc
                   :buffer buf
-                  :command (list (rustic-cargo-bin) cmd bin project-path)
+                  :command (list (rustic-cargo-bin) cmd bin (cdr dir-pair))
                   :sentinel new-sentinel
                   :file-handler t)))
 
 ;;;###autoload
 (defun rustic-cargo-new (project-path &optional bin)
-  "Run 'cargo new' to start a new package in the path specified by PROJECT-PATH.
+  "Run `cargo new' to start a new package in the path specified by PROJECT-PATH.
 If BIN is not nil, create a binary application, otherwise a library."
-  (interactive "DProject path: ")
+  (interactive "GProject path: ")
   (rustic-create-project project-path t bin))
 
 ;;;###autoload
 (defun rustic-cargo-init (project-path &optional bin)
-  "Run 'cargo init' to initialize a directory in the path specified by PROJECT-PATH.
+  "Run `cargo init' to initialize a directory in the path specified by PROJECT-PATH.
 If BIN is not nil, create a binary application, otherwise a library."
   (interactive "DProject path: ")
   (rustic-create-project project-path nil bin))
@@ -576,7 +663,10 @@ If BIN is not nil, create a binary application, otherwise a library."
   "Buffer name for run buffers.")
 
 (defvar rustic-run-arguments ""
-  "Holds arguments for 'cargo run', similar to `compilation-arguments`.")
+  "Holds arguments for `cargo run', similar to `compilation-arguments`.")
+
+(defvar rustic-run-history nil
+  "Holds previous arguments for `cargo run', similar to `compile-history`.")
 
 (defvar rustic-cargo-run-mode-map
   (let ((map (make-sparse-keymap)))
@@ -589,7 +679,7 @@ If BIN is not nil, create a binary application, otherwise a library."
 
 ;;;###autoload
 (defun rustic-cargo-run-command (&optional run-args)
-  "Start compilation process for 'cargo run' with optional RUN-ARGS."
+  "Start compilation process for `cargo run' with optional RUN-ARGS."
   (interactive)
   (rustic-compilation-process-live)
   (let* ((command (list (rustic-cargo-bin) rustic-cargo-run-exec-command))
@@ -601,7 +691,7 @@ If BIN is not nil, create a binary application, otherwise a library."
 
 ;;;###autoload
 (defun rustic-cargo-run (&optional arg)
-  "Run 'cargo run'.
+  "Run `cargo run'.
 
 If ARG is not nil, use value as argument and store it in `rustic-run-arguments'.
 When calling this function from `rustic-popup-mode', always use the value of
@@ -609,26 +699,34 @@ When calling this function from `rustic-popup-mode', always use the value of
   (interactive "P")
   (rustic-cargo-run-command
    (cond (arg
-          (setq rustic-run-arguments (read-from-minibuffer "Cargo run arguments: " rustic-run-arguments)))
+          (setq rustic-run-arguments
+                (read-from-minibuffer "Cargo run arguments: "
+                                      rustic-run-arguments nil nil 'rustic-run-history)))
          (rustic-cargo-use-last-stored-arguments
           rustic-run-arguments)
          ((rustic--get-run-arguments))
          (t rustic-run-arguments))))
 
 ;;;###autoload
-(defun rustic-cargo-run-rerun ()
-  "Run 'cargo run' with `rustic-run-arguments'."
-  (interactive)
-  (rustic-cargo-run-command rustic-run-arguments))
+(defun rustic-cargo-run-rerun (arg)
+  "Run `cargo run' with `rustic-run-arguments'."
+  (interactive "P")
+  (let ((default-directory (or rustic-compilation-directory default-directory)))
+    (setq rustic-run-arguments
+          (if arg
+              (read-from-minibuffer "cargo run arguments: "
+                                    rustic-run-arguments nil nil 'rustic-run-history)
+            rustic-run-arguments))
+    (rustic-cargo-run-command rustic-run-arguments)))
 
 (defun rustic--get-run-arguments ()
-  "Helper utility for getting arguments related to 'examples' directory."
+  "Helper utility for getting arguments related to `examples' directory."
   (let ((example-name (rustic-cargo-run-get-relative-example-name)))
     (when example-name
       (concat "--example " example-name))))
 
 (defun rustic-cargo-run-get-relative-example-name ()
-  "Run 'cargo run --example' if current buffer within a 'examples' directory."
+  "Run `cargo run --example' if current buffer within a `examples' directory."
   (let* ((buffer-project-root (rustic-buffer-crate))
          (current-filename (if buffer-file-name
                                buffer-file-name
@@ -666,23 +764,23 @@ in your project like `pwd'"
 
 ;;;###autoload
 (defun rustic-cargo-build (&optional arg)
-  "Run 'cargo build' for the current project, allow configuring
+  "Run `cargo build' for the current project, allow configuring
 `rustic-cargo-build-arguments' when prefix argument (C-u) is enabled."
   (interactive "P")
   (when arg
     (setq rustic-cargo-build-arguments
-          (read-string "Cargo build arguments: " "")))
+          (read-string "Cargo build arguments: " (rustic--populate-minibuffer (list (rustic-cargo-package-argument) rustic-cargo-build-arguments)))))
   (rustic-run-cargo-command `(,(rustic-cargo-bin)
                               ,rustic-cargo-build-exec-command
                               ,@(split-string rustic-cargo-build-arguments))
                             (list :clippy-fix t)))
 
 (defvar rustic-clean-arguments nil
-  "Holds arguments for 'cargo clean', similar to `compilation-arguments`.")
+  "Holds arguments for `cargo clean', similar to `compilation-arguments`.")
 
 ;;;###autoload
 (defun rustic-cargo-clean (&optional arg)
-  "Run 'cargo clean' for the current project.
+  "Run `cargo clean' for the current project.
 
 If ARG is not nil, use value as argument and store it in `rustic-clean-arguments'.
 When calling this function from `rustic-popup-mode', always use the value of
@@ -701,7 +799,7 @@ When calling this function from `rustic-popup-mode', always use the value of
 
 ;;;###autoload
 (defun rustic-cargo-check (&optional arg)
-  "Run 'cargo check' for the current project, allow configuring
+  "Run `cargo check' for the current project, allow configuring
 `rustic-cargo-check-arguments' when prefix argument (C-u) is enabled."
   (interactive "P")
   (when arg
@@ -713,7 +811,7 @@ When calling this function from `rustic-popup-mode', always use the value of
 
 ;;;###autoload
 (defun rustic-cargo-bench ()
-  "Run 'cargo bench' for the current project."
+  "Run `cargo bench' for the current project."
   (interactive)
   (rustic-run-cargo-command (list (rustic-cargo-bin) "bench")))
 
@@ -739,18 +837,17 @@ The documentation is built if necessary."
 ;;; cargo edit
 
 (defvar rustic-cargo-dependencies "*cargo-add-dependencies*"
-  "Buffer that is used for adding missing dependencies with 'cargo add'.")
+  "Buffer that is used for adding missing dependencies with `cargo add'.")
 
 ;;;###autoload
 (defun rustic-cargo-add (&optional arg)
-  "Add crate to Cargo.toml using 'cargo add'.
+  "Add crate to Cargo.toml using `cargo add'.
 If running with prefix command `C-u', read whole command from minibuffer."
   (interactive "P")
-  (let* ((command (if arg
-                      (read-from-minibuffer "Cargo add command: "
-                                            (rustic-cargo-bin) " add ")
-                    (concat (rustic-cargo-bin) " add "
-                            (read-from-minibuffer "Crate: ")))))
+  (let* ((base (concat (rustic-cargo-bin) " add "))
+         (command (if arg
+                      (read-from-minibuffer "Cargo add command: " base)
+                    (concat base (read-from-minibuffer "Crate: ")))))
     (rustic-run-cargo-command command)))
 
 (defun rustic-cargo-add-missing-dependencies (&optional arg)
@@ -845,7 +942,7 @@ as string."
 
 ;;;###autoload
 (defun rustic-cargo-rm (&optional arg)
-  "Remove crate from Cargo.toml using 'cargo rm'.
+  "Remove crate from Cargo.toml using `cargo rm'.
 If running with prefix command `C-u', read whole command from minibuffer."
   (interactive "P")
   (let* ((command (if arg
@@ -857,12 +954,12 @@ If running with prefix command `C-u', read whole command from minibuffer."
 
 ;;;###autoload
 (defun rustic-cargo-upgrade (&optional arg)
-  "Upgrade dependencies as specified in the local manifest file using 'cargo upgrade'.
+  "Upgrade dependencies as specified in the local manifest file using `cargo upgrade'.
 If running with prefix command `C-u', read whole command from minibuffer."
   (interactive "P")
   (let* ((command (if arg
                       (read-from-minibuffer "Cargo upgrade command: "
-                                            (rustic-cargo-bin) " upgrade ")
+                                            (format "%s upgrade " (rustic-cargo-bin)))
                     (concat (rustic-cargo-bin) " upgrade"))))
     (rustic-run-cargo-command command)))
 
@@ -899,7 +996,7 @@ command from minibuffer."
   "Buffer name for install buffers.")
 
 (defvar rustic-install-arguments ""
-  "Holds arguments for 'cargo install', similar to `compilation-arguments`.
+  "Holds arguments for `cargo install', similar to `compilation-arguments`.
 Installs that are executed by `rustic-cargo-current-install' will also be
 stored in this variable.")
 
@@ -918,7 +1015,7 @@ stored in this variable.")
 
 ;;;###autoload
 (defun rustic-cargo-install-rerun ()
-  "Run 'cargo install' with `rustic-install-arguments'."
+  "Run `cargo install' with `rustic-install-arguments'."
   (interactive)
   (rustic-compilation-start rustic-install-arguments
                               (list :buffer rustic-install-buffer-name
@@ -927,7 +1024,7 @@ stored in this variable.")
                                     :directory rustic-install-project-dir)))
 ;;;###autoload
 (defun rustic-cargo-install (&optional arg)
-  "Install rust binary using 'cargo install'.
+  "Install rust binary using `cargo install'.
 If running with prefix command `C-u', read whole command from minibuffer."
   (interactive "P")
   (let* ((command (if arg
@@ -946,6 +1043,12 @@ If running with prefix command `C-u', read whole command from minibuffer."
     (setq rustic-install-project-dir default-directory)
     (rustic-compilation-start c (list :buffer buf :process proc :mode mode
                                       :directory default-directory))))
+
+(defun rustic--populate-minibuffer (list)
+  "Return first non nil element in LIST."
+  (cond ((null list) nil)
+        ((not (s-blank? (car list))) (car list))
+        (t (rustic--populate-minibuffer (cdr list)))))
 
 (provide 'rustic-cargo)
 ;;; rustic-cargo.el ends here

@@ -1,26 +1,24 @@
-;; -*- lexical-binding: t; -*-
-
 ;;; rustic-clippy.el --- clippy commands -*-lexical-binding: t-*-
 ;;; Commentary:
 
 ;; This library implements support for `clippy'.
 
 ;;; Code:
-
+(require 'rustic-cargo)
 (require 'rustic-compile)
 
 (defcustom rustic-cargo-clippy-fix-args "--allow-dirty"
-  "Default arguments when running 'clippy --fix'."
+  "Default arguments when running `clippy --fix'."
   :type 'string
   :group 'rustic-cargo)
 
-(defcustom rustic-default-clippy-arguments "--benches --tests --all-features"
-  "Default arguments when running clippy."
+(defcustom rustic-default-clippy-arguments "--all-targets --all-features"
+  "Default arguments when running `clippy'."
   :type 'string
   :group 'rustic-cargo)
 
 (defcustom rustic-lints-arguments "-f custom_lints.toml clippy"
-  "Default arguments when running cargo-lints."
+  "Default arguments when running `cargo-lints'."
   :type 'string
   :group 'rustic-cargo)
 
@@ -31,7 +29,7 @@
   "Buffer name for clippy buffers.")
 
 (defvar rustic-clippy-arguments ""
-  "Holds arguments for 'cargo clippy', similar to `compilation-arguments`.")
+  "Holds arguments for `cargo clippy', similar to `compilation-arguments`.")
 
 (defvar rustic-cargo-clippy-mode-map
   (let ((map (make-sparse-keymap)))
@@ -62,7 +60,7 @@
 
 ;;;###autoload
 (defun rustic-cargo-lints ()
-  "Run cargo-lints with optional ARGS."
+  "Run `cargo-lints' with optional ARGS."
   (interactive)
   (let* ((command `(,(rustic-cargo-bin)
                     "lints"
@@ -74,7 +72,7 @@
 
 ;;;###autoload
 (defun rustic-cargo-clippy (&optional arg)
-  "Run 'cargo clippy'.
+  "Run `cargo clippy'.
 
 If ARG is not nil, use value as argument and store it in `rustic-clippy-arguments'.
 When calling this function from `rustic-popup-mode', always use the value of
@@ -82,22 +80,29 @@ When calling this function from `rustic-popup-mode', always use the value of
   (interactive "P")
   (rustic-cargo-clippy-run
    :params (cond (arg
-          (setq rustic-clippy-arguments (read-from-minibuffer "Cargo clippy arguments: " rustic-default-clippy-arguments)))
-         ((eq major-mode 'rustic-popup-mode)
-          (if (> (length rustic-clippy-arguments) 0)
-              rustic-clippy-arguments
-            rustic-default-clippy-arguments))
-         (t
-          rustic-default-clippy-arguments))))
+                  (setq rustic-clippy-arguments
+                        (read-from-minibuffer "Cargo clippy arguments: "
+                                              (rustic--populate-minibuffer
+                                               (list
+                                                (rustic-cargo-package-argument)
+                                                rustic-clippy-arguments
+                                                rustic-cargo-build-arguments
+                                                rustic-default-clippy-arguments
+                                                )))))
+                 (t
+                  (if (> (length rustic-clippy-arguments) 0)
+                      rustic-clippy-arguments
+                    rustic-default-clippy-arguments)
+                  ))))
 
 ;;;###autoload
 (defun rustic-cargo-clippy-rerun ()
-  "Run 'cargo clippy' with `rustic-clippy-arguments'."
+  "Run `cargo clippy' with `rustic-clippy-arguments'."
   (interactive)
-  (rustic-cargo-clippy-run rustic-clippy-arguments))
+  (rustic-cargo-clippy-run :params rustic-clippy-arguments))
 
 (defun rustic-cargo-clippy-fix (&rest args)
-  "Run 'clippy fix'."
+  "Run `clippy fix'."
   (interactive)
   (rustic-cargo-clippy-run
    :params (concat "--fix "

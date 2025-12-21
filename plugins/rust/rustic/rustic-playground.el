@@ -1,5 +1,3 @@
-;; -*- lexical-binding: t; -*-
-
 ;;; rustic-playground.el --- Support for playground         -*- lexical-binding:t -*-
 ;;; Commentary:
 ;;; Code:

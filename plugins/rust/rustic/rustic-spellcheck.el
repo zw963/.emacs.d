@@ -1,5 +1,3 @@
-;; -*- lexical-binding: t; -*-
-
 ;;; rustic-spellcheck.el --- Spellcheck support -*-lexical-binding: t-*-
 ;;; Commentary:
 
@@ -18,7 +16,7 @@
   "Buffer name for spellcheck buffers.")
 
 (defvar rustic-spellcheck-arguments ""
-  "Holds arguments for 'cargo spellcheck', similar to `compilation-arguments`.")
+  "Holds arguments for `cargo spellcheck', similar to `compilation-arguments`.")
 
 (defvar rustic-cargo-spellcheck-mode-map
   (let ((map (make-sparse-keymap)))
@@ -80,9 +78,6 @@ Error matching regexes from compile.el are removed."
   (setq-local compilation-column-face  'rustic-compilation-column)
   (setq-local compilation-line-face    'rustic-compilation-line)
 
-  (setq-local xterm-color-names-bright rustic-ansi-faces)
-  (setq-local xterm-color-names rustic-ansi-faces)
-
   (setq-local compilation-error-regexp-alist-alist nil)
   (add-to-list 'compilation-error-regexp-alist-alist
                (cons 'rustic-spell-error rustic-spellcheck-error))
@@ -92,7 +87,7 @@ Error matching regexes from compile.el are removed."
 
 ;;;###autoload
 (defun rustic-cargo-spellcheck (&optional arg)
-  "Run 'cargo spellcheck'.
+  "Run `cargo spellcheck'.
 
 If ARG is not nil, use value as argument and store it in
 `rustic-spellcheck-arguments'.  When calling this function from
@@ -106,10 +101,9 @@ If ARG is not nil, use value as argument and store it in
          (t ""))))
 
 (defun rustic-cargo-spellcheck-command (&optional spellcheck-args)
-  "Start compilation process for 'cargo spellcheck' with optional SPELLCHECK-ARGS."
+  "Start compilation process for `cargo spellcheck' with optional SPELLCHECK-ARGS."
   (let* ((command (list (rustic-cargo-bin) "spellcheck"))
          (c (append command (split-string (if spellcheck-args spellcheck-args ""))))
-         (spellcheck-command (string-join c " "))
          (buf rustic-spellcheck-buffer-name)
          (proc rustic-spellcheck-process-name)
          (mode 'rustic-cargo-spellcheck-mode))
@@ -117,7 +111,7 @@ If ARG is not nil, use value as argument and store it in
 
 ;;;###autoload
 (defun rustic-cargo-spellcheck-rerun ()
-  "Run 'cargo spellcheck' with `rustic-spellcheck-arguments'."
+  "Run `cargo spellcheck' with `rustic-spellcheck-arguments'."
   (interactive)
   (rustic-cargo-spellcheck-command rustic-spellcheck-arguments))
 

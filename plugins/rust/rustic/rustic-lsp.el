@@ -1,5 +1,3 @@
-;; -*- lexical-binding: t; -*-
-
 ;;; rustic-lsp.el --- Support for lsp                -*- lexical-binding:t -*-
 ;;; Commentary:
 
@@ -108,8 +106,6 @@ with `lsp-rust-switch-server'."
 ;;; eglot support
 
 (defvar eglot-ignored-server-capabilites)
-(defvar eglot-ignored-server-capabilites)
-(defvar eglot-server-programs)
 (defvar eglot-server-programs)
 (declare-function eglot-ensure "eglot" ())
 
@@ -127,7 +123,7 @@ with `lsp-rust-switch-server'."
                                      (when (symbolp (car mode))
                                        (eq (car mode) 'rust-mode)))
                                    eglot-server-programs)))))
-    (add-to-list 'eglot-server-programs `(rustic-mode . (eglot-rust-analyzer . ,rustic-analyzer-command)))))
+    (add-to-list 'eglot-server-programs `((rustic-mode :language-id "rust") . (eglot-rust-analyzer . ,rustic-analyzer-command)))))
 
 (with-eval-after-load 'eglot
   (defclass eglot-rust-analyzer (eglot-lsp-server) ()

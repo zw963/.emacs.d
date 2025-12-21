@@ -1,12 +1,10 @@
-;; -*- lexical-binding: t; -*-
-
 ;;; rustic-compile.el --- Compile facilities -*-lexical-binding: t-*-
 
 ;;; Commentary:
 
 ;; Unlike compile.el, rustic makes use of a non dumb terminal in order to receive
 ;; all ANSI control sequences, which get translated by xterm-color.
-;; This file also adds a derived compilation mode. Error matching regexes from
+;; This file also adds a derived compilation mode.  Error matching regexes from
 ;; compile.el are removed.
 
 ;;; Code:
@@ -117,18 +115,6 @@
   "Override `compilation-column-face' for rust compilation."
   :group 'rustic-compilation)
 
-(defcustom rustic-ansi-faces ["black"
-                              "red3"
-                              "green3"
-                              "yellow3"
-                              "blue2"
-                              "magenta3"
-                              "cyan3"
-                              "white"]
-  "Term ansi faces."
-  :type '(vector string string string string string string string string)
-  :group 'rustic-compilation)
-
 ;;; Compilation-mode
 
 (defvar rustic-compilation-mode-map
@@ -167,11 +153,11 @@
   "Create hyperlink in compilation buffers for file paths preceded by ':::'.")
 
 (defvar rustic-compilation-panic
-  (let ((panic "thread '[^']+' panicked at '[^']+', ")
+  (let ((panic "thread '[^']+' panicked at ")
         (file "\\([^\n]+\\)")
         (start-line "\\([0-9]+\\)")
         (start-col  "\\([0-9]+\\)"))
-    (let ((re (concat panic file ":" start-line ":" start-col)))
+    (let ((re (concat panic file ":" start-line ":" start-col ":")))
       (cons re '(1 2 3))))
   "Match thread panics.")
 
@@ -185,9 +171,6 @@ Error matching regexes from compile.el are removed."
   (setq-local compilation-info-face    'rustic-compilation-info)
   (setq-local compilation-column-face  'rustic-compilation-column)
   (setq-local compilation-line-face    'rustic-compilation-line)
-
-  (setq-local xterm-color-names-bright rustic-ansi-faces)
-  (setq-local xterm-color-names rustic-ansi-faces)
 
   (setq-local compilation-error-regexp-alist-alist nil)
   (add-to-list 'compilation-error-regexp-alist-alist
@@ -210,6 +193,9 @@ Error matching regexes from compile.el are removed."
   (setq-local rustic-compilation-workspace (rustic-buffer-workspace)))
 
 ;;; Compilation Process
+
+(defvar-local rustic-compilation-directory nil
+  "original directory for rust compilation process.")
 
 (defvar rustic-compilation-process-name "rustic-compilation-process"
   "Process name for rust compilation processes.")
@@ -253,6 +239,7 @@ Set environment variables for rust process."
       (erase-buffer)
       (setq default-directory dir)
       (funcall mode)
+      (setq-local rustic-compilation-directory dir)
       (unless no-mode-line
         (setq mode-line-process
               '((:propertize ":%s" face compilation-mode-line-run)
@@ -299,6 +286,7 @@ ARGS is a plist that affects how the process is run.
      (unless (plist-get args :no-display)
        (funcall rustic-compile-display-method buf))
      (with-current-buffer buf
+       (setq compilation--start-time (float-time))
        (let ((inhibit-read-only t))
          (insert (format "%s \n" (s-join " "  command))))
        (rustic-make-process :name process
@@ -462,7 +450,7 @@ Buffers are formatted after saving if turned on by `rustic-format-trigger'."
   "Provide possibility use `compile-goto-error' on line numbers in compilation buffers.
 This hook checks if there's a line number at the beginning of the
 current line in an error section."
-  (-if-let* ((rustic-p (eq major-mode 'rustic-compilation-mode))
+  (-if-let* ((rustic-p (derived-mode-p 'rustic-compilation-mode))
              (default-directory rustic-compilation-workspace)
              (line-contents (buffer-substring-no-properties
                              (line-beginning-position)
@@ -549,20 +537,19 @@ buffer."
 ;;; Interactive
 
 ;;;###autoload
-(defun rustic-compile (&optional arg)
-  "Compile rust project.
+(defun rustic-compile (command)
+  "Run COMMAND in the current Rust workspace root.
 
-If `compilation-read-command' is non-nil or if called with prefix
-argument ARG then read the command in the minibuffer.  Otherwise
-use `rustic-compile-command'.
-
-In either store the used command in `compilation-arguments'."
-  (interactive "P")
-  (rustic-set-compilation-arguments
-        (if (or compilation-read-command arg)
-            (compilation-read-command (or (car compilation-arguments)
-                                          (rustic-compile-command)))
-          (rustic-compile-command)))
+Interactively, prompts for the command if the variable
+`compilation-read-command' is non-nil; otherwise uses
+`rustic-compile-command'."
+  (interactive
+   (list
+    (if compilation-read-command
+        (compilation-read-command (or (car compilation-arguments)
+                                      (rustic-compile-command)))
+      (rustic-compile-command))))
+  (rustic-set-compilation-arguments command)
   (setq compilation-directory (funcall rustic-compile-directory-method))
   (rustic-compilation-process-live)
   (rustic-compilation-start (split-string (car compilation-arguments))
@@ -578,10 +565,11 @@ It's a list that looks like (list command mode name-function highlight-regexp)."
   (setq compilation-arguments (list command nil nil nil)))
 
 ;;;###autoload
-(defun rustic-recompile ()
+(defun rustic-recompile (arg)
   "Re-compile the program using `compilation-arguments'."
-  (interactive)
-  (let* ((command (or (car compilation-arguments) (rustic-compile-command)))
+  (interactive "P")
+  (let* ((comp-arguments (or (car compilation-arguments) (format "%s %s" (rustic-compile-command) rustic-cargo-build-arguments)))
+         (command (if arg (read-from-minibuffer "recompile: " comp-arguments) comp-arguments))
          (dir compilation-directory))
     (rustic-compilation-process-live)
     (rustic-compilation-start (split-string command)

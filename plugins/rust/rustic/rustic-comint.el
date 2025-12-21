@@ -1,5 +1,3 @@
-;; -*- lexical-binding: t; -*-
-
 ;;; rustic-comint.el --- Cargo and comint facilities -*-lexical-binding: t-*-
 ;;; Commentary:
 
@@ -50,7 +48,7 @@ hit RET to send it to the program."
 
 ;;;###autoload
 (defun rustic-cargo-comint-run (&optional arg)
-  "Run 'cargo run' but for interactive programs.
+  "Run `cargo run' but for interactive programs.
 
 If ARG is not nil, use value as argument and store it in `rustic-run-arguments'.
 When calling this function from `rustic-popup-mode', always use the value of
@@ -114,7 +112,8 @@ Read the full command from the minibuffer when ARG is non-nil or
 when called with a prefix command \\[universal-argument]."
   (interactive "P")
   (let* ((command (if arg
-                      (read-from-minibuffer "Cargo run command: " "cargo run -- ")
+                      (read-from-minibuffer "Cargo run command: "
+                                            (concat (rustic-cargo-bin) " run -- "))
                     (concat (rustic-cargo-bin) " run "
                             (setq rustic-run-arguments
                                   (read-from-minibuffer
