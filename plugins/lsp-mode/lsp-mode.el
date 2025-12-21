@@ -4,7 +4,7 @@
 
 ;; Author: Vibhav Pant, Fangrui Song, Ivan Yonchovski
 ;; Keywords: languages
-;; Package-Requires: ((emacs "28.1") (dash "2.18.0") (f "0.20.0") (ht "2.3") (spinner "1.7.3") (markdown-mode "2.3") (lv "0") (eldoc "1.11"))
+;; Package-Requires: ((emacs "28.1") (dash "2.18.0") (f "0.21.0") (ht "2.3") (spinner "1.7.3") (markdown-mode "2.3") (lv "0") (eldoc "1.11"))
 ;; Version: 9.0.1
 
 ;; URL: https://github.com/emacs-lsp/lsp-mode
@@ -187,12 +187,12 @@ As defined by the Language Server Protocol 3.16."
      lsp-nextflow lsp-nginx lsp-nim lsp-nix lsp-nushell lsp-ocaml lsp-odin lsp-openscad
      lsp-pascal lsp-perl lsp-perlnavigator lsp-php lsp-pls lsp-postgres
      lsp-purescript lsp-pwsh lsp-pyls lsp-pylsp lsp-pyright lsp-python-ms lsp-python-ty
-     lsp-qml lsp-r lsp-racket lsp-remark lsp-rf lsp-roc lsp-roslyn lsp-rubocop
+     lsp-qml lsp-r lsp-racket lsp-remark lsp-rf lsp-roc lsp-ron lsp-roslyn lsp-rubocop
      lsp-ruby-lsp lsp-ruby-syntax-tree lsp-ruff lsp-rust lsp-semgrep lsp-shader
      lsp-solargraph lsp-solidity lsp-sonarlint lsp-sorbet lsp-sourcekit
      lsp-sql lsp-sqls lsp-steep lsp-svelte lsp-tailwindcss lsp-terraform
      lsp-tex lsp-tilt lsp-toml lsp-toml-tombi lsp-trunk lsp-ts-query lsp-ttcn3 lsp-typeprof
-     lsp-typespec lsp-v lsp-vala lsp-verilog lsp-vetur lsp-vhdl lsp-vimscript
+     lsp-typespec lsp-typos lsp-v lsp-vala lsp-verilog lsp-vetur lsp-vhdl lsp-vimscript
      lsp-volar lsp-wgsl lsp-xml lsp-yaml lsp-yang lsp-zig)
   "List of the clients to be automatically required."
   :group 'lsp-mode
@@ -352,6 +352,7 @@ the server has requested that."
     "[/\\\\]_darcs\\'"
     "[/\\\\]\\.svn\\'"
     "[/\\\\]_FOSSIL_\\'"
+    "[/\\\\]\\.jj\\'"
     ;; IDE or build tools
     "[/\\\\]\\.idea\\'"
     "[/\\\\]\\.ensime_cache\\'"
@@ -423,7 +424,9 @@ the server has requested that."
     ;; nix-direnv
     "[/\\\\]\\result"
     "[/\\\\]\\result-bin"
-    "[/\\\\]\\.direnv\\'")
+    "[/\\\\]\\.direnv\\'"
+    ;; nix-devenv
+    "[/\\\\]\\.devenv\\'")
   "List of regexps matching directory paths which won't be monitored when
 creating file watches. Customization of this variable is only honored at
 the global level or at a root of an lsp workspace."
@@ -807,6 +810,7 @@ Changes take effect only when a new session is started."
     ("\\.nu$" . "nushell")
     ("\\.php$" . "php")
     ("\\.ps[dm]?1\\'" . "powershell")
+    ("\\.qml$" . "qml")
     ("\\.rs\\'" . "rust")
     ("\\.spec\\'" . "rpm-spec")
     ("\\.sql$" . "sql")
@@ -962,8 +966,10 @@ Changes take effect only when a new session is started."
     (gdscript-ts-mode . "gdscript")
     (perl-mode . "perl")
     (cperl-mode . "perl")
+    (perl-ts-mode . "perl")
     (robot-mode . "robot")
     (roc-ts-mode . "roc")
+    (ron-mode . "ron")
     (racket-mode . "racket")
     (nix-mode . "nix")
     (nix-ts-mode . "nix")
@@ -985,6 +991,9 @@ Changes take effect only when a new session is started."
     (nginx-mode . "nginx")
     (magik-mode . "magik")
     (magik-ts-mode . "magik")
+    (magik-product-mode . "sw-product-def")
+    (magik-module-mode . "sw-module-def")
+    (magik-loadlist-mode . "sw-load-list")
     (idris-mode . "idris")
     (idris2-mode . "idris2")
     (gleam-mode . "gleam")
@@ -1009,7 +1018,9 @@ Changes take effect only when a new session is started."
     (message-mode . "plaintext")
     (mu4e-compose-mode . "plaintext")
     (odin-mode . "odin")
-    (odin-ts-mode . "odin"))
+    (odin-ts-mode . "odin")
+    (qml-mode . "qml")
+    (qml-ts-mode . "qml"))
   "Language id configuration.")
 
 (defvar lsp--last-active-workspaces nil
@@ -2226,14 +2237,18 @@ PARAMS - the data sent from WORKSPACE."
         (completing-read (concat message " ") (seq-into choices 'list) nil t)
       (lsp-log message))))
 
-(lsp-defun lsp--window-show-document ((&ShowDocumentParams :uri :selection?))
-  "Show document URI in a buffer and go to SELECTION if any."
+(lsp-defun lsp--window-show-document ((&ShowDocumentParams :uri :selection? :external?))
+  "Show document URI in a buffer or in a external browser if EXTERNAL is t, and go to SELECTION if any."
   (let ((path (lsp--uri-to-path uri)))
-    (when (f-exists? path)
-      (with-current-buffer (find-file path)
-        (when selection?
-          (goto-char (lsp--position-to-point (lsp:range-start selection?))))
-        t))))
+    (if external?
+        (progn
+          (browse-url uri)
+          t)
+      (when (f-exists? path)
+        (with-current-buffer (find-file path)
+          (when selection?
+            (goto-char (lsp--position-to-point (lsp:range-start selection?))))
+          t)))))
 
 (defcustom lsp-progress-prefix "⌛ "
   "Progress prefix."
@@ -3881,41 +3896,31 @@ disappearing, unset all the variables related to it."
          (rel-changed-file (f-relative changed-file root-folder))
          (event-numeric-kind (alist-get (cl-second event) lsp--file-change-type))
          (bit-position (1- event-numeric-kind))
-         (watch-bit (ash 1 bit-position)))
-    (->>
-     session
-     lsp-session-folder->servers
-     (gethash root-folder)
-     (seq-do (lambda (workspace)
-               (when (->>
-                      workspace
-                      lsp--workspace-registered-server-capabilities
-                      (-any?
-                       (lambda (capability)
-                         (and
-                          (equal (lsp--registered-capability-method capability)
-                                 "workspace/didChangeWatchedFiles")
-                          (->>
-                           capability
-                           lsp--registered-capability-options
-                           (lsp:did-change-watched-files-registration-options-watchers)
-                           (seq-find
-                            (-lambda ((fs-watcher &as &FileSystemWatcher :glob-pattern :kind? :_cachedRegexp cached-regexp))
-                              (when (or (null kind?)
-                                        (> (logand kind? watch-bit) 0))
-                                (-let [regexes (or cached-regexp
-                                                   (let ((regexp (lsp-glob-to-regexps glob-pattern)))
-                                                     (lsp-put fs-watcher :_cachedRegexp regexp)
-                                                     regexp))]
-                                  (-any? (lambda (re)
-                                           (or (string-match re changed-file)
-                                               (string-match re rel-changed-file)))
-                                         regexes))))))))))
-                 (with-lsp-workspace workspace
-                   (lsp-notify
-                    "workspace/didChangeWatchedFiles"
-                    `((changes . [((type . ,event-numeric-kind)
-                                   (uri . ,(lsp--path-to-uri changed-file)))]))))))))))
+         (watch-bit (ash 1 bit-position))
+         (workspaces (gethash root-folder (lsp-session-folder->servers session))))
+    (dolist (workspace workspaces)
+      (when (cl-loop for capability in (lsp--workspace-registered-server-capabilities workspace)
+                     thereis (and (equal (lsp--registered-capability-method capability)
+                                         "workspace/didChangeWatchedFiles")
+                                  (cl-loop for fs-watcher in (lsp:did-change-watched-files-registration-options-watchers
+                                                              (lsp--registered-capability-options capability))
+                                           thereis (let ((glob-pattern (lsp:file-system-watcher-glob-pattern fs-watcher))
+                                                         (kind? (lsp:file-system-watcher-kind? fs-watcher))
+                                                         (cached-regexp (lsp-get fs-watcher :_cachedRegexp)))
+                                                     (when (or (null kind?)
+                                                               (> (logand kind? watch-bit) 0))
+                                                       (let ((regexes (or cached-regexp
+                                                                          (let ((regexp (lsp-glob-to-regexps glob-pattern)))
+                                                                            (lsp-put fs-watcher :_cachedRegexp regexp)
+                                                                            regexp))))
+                                                         (cl-loop for re in regexes
+                                                                  thereis (or (string-match re changed-file)
+                                                                              (string-match re rel-changed-file)))))))))
+        (with-lsp-workspace workspace
+          (lsp-notify
+           "workspace/didChangeWatchedFiles"
+           `((changes . [((type . ,event-numeric-kind)
+                          (uri . ,(lsp--path-to-uri changed-file)))]))))))))
 
 (lsp-defun lsp--server-register-capability ((&Registration :method :id :register-options?))
   "Register capability REG."
@@ -4034,14 +4039,15 @@ If any filters, checks if it applies for PATH."
          (filters (seq-into (lsp:file-operation-registration-options-filters will-rename) 'list)))
     (and will-rename
          (or (seq-empty-p filters)
-             (-any? (-lambda ((&FileOperationFilter :scheme? :pattern (&FileOperationPattern :glob)))
-                      (-let [regexes (lsp-glob-to-regexps glob)]
-                        (and (or (not scheme?)
-                                 (string-prefix-p scheme? (lsp--path-to-uri path)))
-                             (-any? (lambda (re)
-                                      (string-match re path))
-                                    regexes))))
-                    filters)))))
+             (let ((uri (lsp--path-to-uri path)))
+               (cl-loop for filter in filters
+                        for scheme? = (lsp:file-operation-filter-scheme? filter)
+                        for glob = (lsp:file-operation-pattern-glob (lsp:file-operation-filter-pattern filter))
+                        thereis (and (or (not scheme?)
+                                         (string-prefix-p scheme? uri))
+                                     (let ((regexes (lsp-glob-to-regexps glob)))
+                                       (cl-loop for re in regexes
+                                                thereis (string-match re path))))))))))
 
 (defun lsp--send-did-rename-files-p ()
   "Return whether didRenameFiles notification should be sent to the server."
@@ -5109,7 +5115,7 @@ Applies on type formatting."
       ("file"
        (xref-push-marker-stack)
        (find-file (lsp--uri-to-path url))
-       (-when-let ((_ line column) (s-match (rx "#" (group (1+ num)) (or "," "#") (group (1+ num))) url))
+       (-when-let ((_ line column) (s-match (rx "#" (optional "L") (group (1+ num)) (or "," "#") (group (1+ num))) url))
          (goto-char (lsp--position-to-point
                      (lsp-make-position :character (1- (string-to-number column))
                                         :line (1- (string-to-number line)))))))
@@ -6289,6 +6295,8 @@ one or more symbols, and STRUCTURE should be compatible with
     (toml-ts-mode               . toml-ts-mode-indent-offset)
     (typescript-mode            . typescript-indent-level)          ; Typescript
     (typescript-ts-mode         . typescript-ts-mode-indent-offset) ; Typescript (tree-sitter, Emacs29)
+    (tsx-mode                   . typescript-indent-level)          ; TSX
+    (tsx-ts-mode                . typescript-ts-mode-indent-offset) ; TSX (tree-sitter, Emacs29)
     (yaml-mode                  . yaml-indent-offset)               ; YAML
     (yang-mode                  . c-basic-offset)                   ; YANG (yang-mode)
 
@@ -7628,6 +7636,8 @@ Return a nested alist keyed by symbol names. e.g.
 (defun lsp-resolve-final-command (command &optional test?)
   "Resolve final function COMMAND."
   (let* ((command (lsp-resolve-value command))
+         ;; Filter out nil values before validation (issue #4099)
+         (command (if (listp command) (delq nil command) command))
          (command (cl-etypecase command
                     (list
                      (cl-assert (seq-every-p (apply-partially #'stringp) command) nil
@@ -9376,10 +9386,13 @@ The library folders are defined by each client for each of the active workspace.
 
 (defun lsp--persist-session (session)
   "Persist SESSION to `lsp-session-file'."
-  (lsp--persist lsp-session-file (make-lsp-session
-                                  :folders (lsp-session-folders session)
-                                  :folders-blocklist (lsp-session-folders-blocklist session)
-                                  :server-id->folders (lsp-session-server-id->folders session))))
+  (if lsp-session-file
+      (lsp--persist lsp-session-file (make-lsp-session
+                                      :folders (lsp-session-folders session)
+                                      :folders-blocklist (lsp-session-folders-blocklist session)
+                                      :server-id->folders
+                                      (lsp-session-server-id->folders session)))
+    (message "lsp-session-file is nil, not persisting session.")))
 
 (defun lsp--try-project-root-workspaces (ask-for-client ignore-multi-folder)
   "Try create opening file as a project file.
@@ -9709,6 +9722,24 @@ This avoids overloading the server with many files when starting Emacs."
 (declare-function org-src-get-lang-mode "ext:org-src")
 (declare-function org-element-context "ext:org-element")
 
+(defvar lsp--org-element-use-new-api nil
+  "Whether org-element supports the new property-based API.
+This is t for org-mode 9.7 and later, nil for earlier versions.
+Determined at load time to avoid runtime performance impact.")
+
+(defun lsp--detect-org-element-api ()
+  "Detect which org-element API version is available.
+Returns t if org 9.7+ API is available (property-based), nil otherwise."
+  (with-temp-buffer
+    (insert "#+BEGIN_SRC emacs-lisp\n(+ 1 1)\n#+END_SRC")
+    (org-mode)
+    (goto-char (point-min))
+    (let ((elem (org-element-context)))
+      (not (plist-member (cl-second elem) :begin)))))
+
+(with-eval-after-load 'org-element
+  (setq lsp--org-element-use-new-api (lsp--detect-org-element-api)))
+
 (defun lsp--virtual-buffer-update-position ()
   (-if-let (virtual-buffer (-first (-lambda ((&plist :in-range))
                                      (funcall in-range))
@@ -9807,7 +9838,14 @@ defaults to `progress-bar."
                          (save-excursion
                            (funcall goto-buffer)
                            (funcall f))))))
-              ((&plist :begin :end :post-blank :language) (cl-second (org-element-context)))
+              ((begin end post-blank language)
+               (if lsp--org-element-use-new-api
+                   ;; org 9.7+ - use property-based API
+                   (with-no-warnings
+                     (--map (org-element-property it (org-element-context) nil t)
+                            '(:begin :end :post-blank :language)))
+                 ;; org < 9.7 - use plist destructuring
+                 (cl-second (org-element-context))))
               ((&alist :tangle file-name) (cl-third (org-babel-get-src-block-info 'light)))
 
               (file-name (if file-name

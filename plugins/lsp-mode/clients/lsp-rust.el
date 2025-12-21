@@ -566,6 +566,20 @@ belongs to."
   :group 'lsp-rust-analyzer
   :package-version '(lsp-mode . "8.0.0"))
 
+(defcustom lsp-rust-analyzer-cargo-target-dir nil
+  "Optional path to a rust-analyzer specific target directory.
+This prevents rust-analyzer's `cargo check` and initial build-script and
+proc-macro building from locking the `Cargo.lock` at the expense of
+duplicating build artifacts.
+
+Set to `true` to use a subdirectory of the existing target directory or
+set to a path relative to the workspace to use that path."
+  :type '(choice
+          (string :tag "Directory")
+          boolean)
+  :group 'lsp-rust-analyzer
+  :package-version '(lsp-mode . "8.0.0"))
+
 (defcustom lsp-rust-analyzer-cargo-watch-enable t
   "Enable Cargo watch."
   :type 'boolean
@@ -710,6 +724,13 @@ available on a nightly build."
   :group 'lsp-rust-analyzer
   :package-version '(lsp-mode . "9.0.0"))
 
+(defcustom lsp-rust-analyzer-assist-prefer-self nil
+  "Prefer to use `Self` over the type name when inserting a type (e.g. in “fill
+match arms” assist)."
+  :type 'boolean
+  :group 'lsp-rust-analyzer
+  :package-version '(lsp-mode . "9.0.1"))
+
 (defcustom lsp-rust-analyzer-completion-add-call-parenthesis t
   "Whether to add parenthesis when completing functions."
   :type 'boolean
@@ -795,6 +816,12 @@ and field accesses with self prefixed to them when inside a method."
   :group 'lsp-rust-analyzer
   :package-version '(lsp-mode . "8.0.0"))
 
+(defcustom lsp-rust-analyzer-completion-term-search-enable nil
+  "Enable term search based snippets like `Some(foo.bar().baz())`."
+  :type 'boolean
+  :group 'lsp-rust-analyzer
+  :package-version '(lsp-mode . "9.0.1"))
+
 (defcustom lsp-rust-analyzer-import-enforce-granularity nil
   "Whether to enforce the import granularity setting for all files.
  If set to nil rust-analyzer will try to keep import styles consistent per file."
@@ -844,6 +871,13 @@ or JSON objects in `rust-project.json` format."
   :type 'boolean
   :group 'lsp-rust-analyzer
   :package-version '(lsp-mode . "8.0.0"))
+
+;; https://rust-analyzer.github.io/book/configuration#cargo.cfgs
+(defcustom lsp-rust-analyzer-cargo-cfgs ["debug_assertions" "miri"]
+  "Extra configurations that are passed to every cargo invocation."
+  :type 'lsp-string-vector
+  :group 'lsp-rust-analyzer
+  :package-version '(lsp-mode . "9.0.0"))
 
 (defcustom lsp-rust-analyzer-cargo-extra-args []
   "Extra arguments that are passed to every cargo invocation."
@@ -1540,7 +1574,7 @@ and run a compilation"
            :label) runnable))
     (pcase (aref cargo-args 0)
       ("run" (aset cargo-args 0 "build"))
-      ("test" (when (-contains? (append cargo-args ()) "--no-run")
+      ("test" (unless (-contains? (append cargo-args ()) "--no-run")
                 (cl-callf append cargo-args (list "--no-run")))))
     (->> (append (list (executable-find "cargo"))
                  cargo-args
@@ -1714,9 +1748,11 @@ https://github.com/rust-lang/rust-analyzer/blob/master/docs/dev/lsp-extensions.m
     :cargo ( :allFeatures ,(lsp-json-bool lsp-rust-all-features)
              :noDefaultFeatures ,(lsp-json-bool lsp-rust-no-default-features)
              :features ,lsp-rust-features
+             :cfgs ,lsp-rust-analyzer-cargo-cfgs
              :extraArgs ,lsp-rust-analyzer-cargo-extra-args
              :extraEnv ,lsp-rust-analyzer-cargo-extra-env
              :target ,lsp-rust-analyzer-cargo-target
+             :targetDir ,lsp-rust-analyzer-cargo-target-dir
              :runBuildScripts ,(lsp-json-bool lsp-rust-analyzer-cargo-run-build-scripts)
              ;; Obsolete, but used by old Rust-Analyzer versions
              :loadOutDirsFromCheck ,(lsp-json-bool lsp-rust-analyzer-cargo-run-build-scripts)
@@ -1760,11 +1796,13 @@ https://github.com/rust-lang/rust-analyzer/blob/master/docs/dev/lsp-extensions.m
                   :typeHints ( :enable ,(lsp-json-bool lsp-inlay-hint-enable)
                                :hideClosureInitialization ,(lsp-json-bool lsp-rust-analyzer-hide-closure-initialization)
                                :hideNamedConstructor ,(lsp-json-bool lsp-rust-analyzer-hide-named-constructor)))
+    :assist ( :preferSelf ,(lsp-json-bool lsp-rust-analyzer-assist-prefer-self))
     :completion ( :addCallParenthesis ,(lsp-json-bool lsp-rust-analyzer-completion-add-call-parenthesis)
                   :addCallArgumentSnippets ,(lsp-json-bool lsp-rust-analyzer-completion-add-call-argument-snippets)
                   :postfix (:enable ,(lsp-json-bool lsp-rust-analyzer-completion-postfix-enable))
                   :autoimport (:enable ,(lsp-json-bool lsp-rust-analyzer-completion-auto-import-enable))
-                  :autoself (:enable ,(lsp-json-bool lsp-rust-analyzer-completion-auto-self-enable)))
+                  :autoself (:enable ,(lsp-json-bool lsp-rust-analyzer-completion-auto-self-enable))
+                  :termSearch (:enable ,(lsp-json-bool lsp-rust-analyzer-completion-term-search-enable)))
     :callInfo (:full ,(lsp-json-bool lsp-rust-analyzer-call-info-full))
     :procMacro (:enable ,(lsp-json-bool lsp-rust-analyzer-proc-macro-enable))
     :rustcSource ,lsp-rust-analyzer-rustc-source

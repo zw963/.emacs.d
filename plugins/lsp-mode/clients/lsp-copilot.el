@@ -25,8 +25,6 @@
 ;; LSP client for the Copilot Language Server:
 ;; https://www.npmjs.com/package/@github/copilot-language-server
 
-;; Package-Requires: (lsp-mode secrets s compile dash cl-lib request company)
-
 ;; Code:
 
 (require 'dash)
@@ -190,6 +188,13 @@ automatically, browse to %s." user-code verification-uri))
         :name "emacs"
         :version "0.1.0"))
 
+(defun lsp-copilot--mcp-tools-notification (_ params)
+   "Reacts to the copilot/mcpTools notification"
+  (-let* (((&copilot-ls:McpToolsNotification :servers) params)
+          (tools-str (s-join ", " servers)))
+    (when (s-present? tools-str)
+        (lsp--info "Copilot: Available MCP Tools: %s" tools-str))))
+
 (defun lsp-copilot--server-initialized-fn (workspace)
   ;; Patch capabilities -- server may respond with an empty dict. In plist,
   ;; this would become nil
@@ -228,6 +233,7 @@ automatically, browse to %s." user-code verification-uri))
                           ("featureFlagsNotification" #'ignore)
                           ("statusNotification" #'ignore)
                           ("didChangeStatus" #'ignore)
+                          ("copilot/mcpTools" #'lsp-copilot--mcp-tools-notification)
                           ("window/logMessage" #'lsp--window-log-message)
                           ("conversation/preconditionsNotification" #'ignore))))
 

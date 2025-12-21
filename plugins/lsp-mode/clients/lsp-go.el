@@ -449,7 +449,13 @@ Will update if UPDATE? is t"
                   :after-open-fn (lambda ()
                                    ;; https://github.com/golang/tools/commit/b2d8b0336
                                    (setq-local lsp-completion-filter-on-incomplete nil))
-                  :download-server-fn #'lsp-go--cls-download-server))
+                  :download-server-fn #'lsp-go--cls-download-server
+                  :initialized-fn (lambda (workspace)
+                                    (let ((caps (lsp--workspace-server-capabilities workspace)))
+                                      (unless (lsp-get caps :inlayHintProvider)
+                                        (lsp:set-server-capabilities-inlay-hint-provider? caps t))
+                                      (unless (lsp-get caps :codeLensProvider)
+                                        (lsp:set-server-capabilities-code-lens-provider? caps t))))))
 
 (lsp-consistency-check lsp-go)
 
