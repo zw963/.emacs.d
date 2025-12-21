@@ -13,6 +13,8 @@
 (global-set-key [(control f12)] 'bc1-current-file)
 (global-set-key [(meta f12)] 'bc2-current-file)
 
+(global-set-key [(f5)] 'bc3-file-with-buffer)
+
 (require 'dired)
 (add-hook 'dired-mode-hook
           (lambda ()
@@ -128,8 +130,8 @@
   (interactive)
   (run-process "bcompare" (make-auto-save-file-name) buffer-file-name))
 
-(defun bc3-buffer-with-file ()
-  "Use Beyond Compare 3 compare buffer with file, right is newer"
+(defun bc3-file-with-buffer ()
+  "Use Beyond Compare 3 compare file with buffer, right is newer"
   (interactive)
   (let ((tempfile (make-temp-file "buffer-content-")))
     (write-region nil nil tempfile nil 'nomessage)
