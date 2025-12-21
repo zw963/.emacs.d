@@ -18,7 +18,6 @@
 (add-to-list 'global-colorful-modes 'js-mode)
 (add-to-list 'global-colorful-modes 'js2-mode)
 (add-to-list 'global-colorful-modes 'js3-mode)
-(add-to-list 'global-colorful-modes 'js3-mode)
 (add-to-list 'global-colorful-modes 'crystal-mode)
 
 (global-colorful-mode t)
