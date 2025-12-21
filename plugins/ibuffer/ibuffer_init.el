@@ -24,8 +24,10 @@
 ;; 用来清除桌面上所有的 buffer.
 (define-key ibuffer-mode-map [(f2)] 'desktop-clear)
 
-(add-hook 'ibuffer-mode-hook (lambda () (setq-local display-buffer-base-action '(display-buffer-use-some-window))))
-
+(add-hook 'ibuffer-mode-hook
+          (lambda ()
+            (setq-local display-buffer-base-action '(display-buffer-use-some-window))
+            ))
 
 (provide 'ibuffer_init)
 ;;; ibuffer_init.el ends here

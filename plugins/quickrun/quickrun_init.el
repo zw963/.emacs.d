@@ -41,11 +41,12 @@
                 elixir-ts-mode-hook
                 crystal-mode-hook
                 ))
-  (add-hook hook (lambda ()
-                   (local-set-key [(control x) (control e)] 'quickrun-region)
-                   (local-set-key [(control c) (return)] 'quickrun)
-                   (local-set-key [(control c) (tab)] 'quickrun-compile-only)
-                   )))
+  (add-hook hook
+            (lambda ()
+              (local-set-key [(control x) (control e)] 'quickrun-region)
+              (local-set-key [(control c) (return)] 'quickrun)
+              (local-set-key [(control c) (tab)] 'quickrun-compile-only)
+              )))
 
 (when (fboundp 'say)
   (add-hook 'quickrun-after-run-hook #'say))

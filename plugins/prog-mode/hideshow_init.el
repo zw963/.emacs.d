@@ -78,12 +78,13 @@ Meant to be used as `hs-set-up-overlay'."
 (setq hs-set-up-overlay #'elpy-folding--display-code-line-counts)
 (add-hook 'prog-mode-hook 'hs-minor-mode)
 
-(add-hook 'hs-minor-mode-hook (lambda ()
-                                (local-set-key [(control c) (/)] 'hs-hide-all)
-                                (local-set-key [(control c) (\\)] 'hs-show-all)
-                                (local-set-key [(control tab)] 'treesit-fold-toggle)
-                                (local-set-key [(mouse-2)] 'hs-toggle-hiding)
-                                ))
+(add-hook 'hs-minor-mode-hook
+          (lambda ()
+            (local-set-key [(control c) (/)] 'hs-hide-all)
+            (local-set-key [(control c) (\\)] 'hs-show-all)
+            (local-set-key [(control tab)] 'treesit-fold-toggle)
+            (local-set-key [(mouse-2)] 'hs-toggle-hiding)
+            ))
 
 ;; 这里额外启用了 :box t 属性使得提示更加明显, 不知道啥效果，打开试一下
 (defconst hideshow-folded-face '((t (:inherit 'font-lock-comment-face :box t))))

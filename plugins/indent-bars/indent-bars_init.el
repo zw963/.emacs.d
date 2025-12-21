@@ -15,14 +15,7 @@
                 crystal-mode-hook
                 bash-ts-mode-hook
                 ))
-  (add-hook hook 'indent-bars-mode))
-
-
-;; (dolist (hook '(
-;;                 yaml-ts-mode-hook
-;;                 bash-ts-mode-hook
-;;                 ))
-;;   (add-hook hook 'indent-bars-mode))
+  (add-hook hook #'indent-bars-mode))
 
 (provide 'indent-bars_init)
 
