@@ -11,12 +11,15 @@
 ;;                 (rvm-activate-corresponding-ruby))
 ;;               ))
 
-(add-hook 'after-save-hook
-          (lambda ()
-            (if (member major-mode '(ruby-mode enh-rub-mode))
-                (call-interactively 'rbtagger-generate-tags))))
+(defun ruby--rbtagger-after-save ()
+  (when (derived-mode-p 'ruby-mode 'enh-ruby-mode 'ruby-ts-mode)
+    (rbtagger-generate-tags)))
 
-;; (run-ruby-mode-hook '(rbtagger-mode))
+(defun ruby--enable-rbtagger-on-save ()
+  ;; 修改本地 after-save-hook
+  (add-hook 'after-save-hook #'ruby--rbtagger-after-save nil t))
+
+(run-ruby-mode-hook '(ruby--enable-rbtagger-on-save))
 
 ;; (defun turn-on-helm-etags-for-ruby ()
 ;;   (local-set-key "\M-." 'helm-etags-select)
@@ -26,7 +29,6 @@
 ;;   ;; ;; go forward directly
 ;;   ;; (global-set-key "\M-/" 'helm-etags-plus-history-go-forward)
 ;;   )
-;; (run-ruby-mode-hook '(turn-on-helm-etags-for-ruby))
 
 (provide 'rbtagger_init)
 
