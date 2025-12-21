@@ -7,13 +7,15 @@
 (require 'company-dabbrev-code)
 
 ;; 这几个都是默认值
-;; (setq company-dabbrev-other-buffers t) ;; 设为 true, 则仅在同一个 major-mode buffer 里面找
 ;; (setq company-dabbrev-code-everywhere nil)
 ;; (setq company-dabbrev-minimum-length 4)
 ;; (setq company-text-icons-add-background nil) ; 生成 icon 的背景
 
 ;; 设的稍微短一点，lsp 效果好一些。
 ;; (setq company-minimum-prefix-length 2)
+
+;; 设为 true, 则仅在同一个 major-mode buffer 里面找
+;; (setq company-dabbrev-other-buffers t)
 
 (setq company-dabbrev-downcase nil) ;; make dabbrev case-sensitive
 ;; (setq company-dabbrev-code-ignore-case nil)

@@ -12,14 +12,11 @@
 
 (require 'awesome-tray)
 
-(setq awesome-tray-position 'left)
+;; (setq awesome-tray-position 'left)
 (setq awesome-tray-file-path-show-filename t)
 ;; 设定一个很大值，显示完整目录名
 (setq awesome-tray-file-path-truncated-name-length 30)
-
-;; (setq awesome-tray-active-modules '("location" "belong" "file-path" "mode-name" "battery" "date"))
-
-;; (add-to-list 'awesome-tray-active-modules "anzu")
+(setq awesome-tray-active-modules '("buffer-read-only" "iedit" "location" "buffer-name" "file-path" "flycheck" "git" "belong" "mode-name" "date"))
 
 (awesome-tray-mode 1)
 
@@ -29,7 +26,7 @@
 
 ;; =============== 不用的代码 ===============
 
-;; 这段代码和下面的 add-to-list 功能均有效。
+;; 这段代码和上面的 add-to-list 功能等价
 
 ;; (defun my/hide-titlebar (frame)
 ;;   "Make FRAME undecorated (no titlebar)."
