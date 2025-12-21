@@ -10,10 +10,11 @@
 
 (defun mint-format-file ()
   "Formats current file using `mint format`."
-
   (let* ((file buffer-file-name)
          (error-file (make-temp-file "mint-format-errors-file"))
-         (command (concat "mint format " file " > " error-file))
+         (command (format "mint format %s > %s"
+                          (shell-quote-argument file)
+                          (shell-quote-argument error-file)))
          (default-directory (file-name-directory (format-all--locate-file "mint.json")))
 
          ;; Error container
@@ -50,12 +51,13 @@
     (delete-file error-file) ))
 
 
-(add-hook 'mint-mode-hook (lambda ()
-                            (remove-hook 'after-save-hook #'mint-format-file t)
-                            (setq-local js-indent-level 2)
-                            (setq-local comment-start "/*")
-                            (setq-local comment-end "*/")
-                            ))
+(add-hook 'mint-mode-hook
+          (lambda ()
+            (remove-hook 'after-save-hook #'mint-format-file t)
+            (setq-local js-indent-level 2)
+            (setq-local comment-start "/*")
+            (setq-local comment-end "*/")
+            ))
 
 (require 'lsp-mint_init)
 
