@@ -20,8 +20,11 @@
 
 (add-hook 'color-rg-mode-hook
           (lambda ()
-            (define-key color-rg-mode-map (kbd "n") 'color-rg-jump-next-file)
-            (define-key color-rg-mode-map (kbd "p") 'color-rg-jump-prev-file)
+            (define-key color-rg-mode-map (kbd "n") 'color-rg-jump-next-keyword)
+            (define-key color-rg-mode-map (kbd "p") 'color-rg-jump-prev-keyword)
+            (define-key color-rg-mode-map (kbd "M-n") 'color-rg-jump-next-file)
+            (define-key color-rg-mode-map (kbd "M-p") 'color-rg-jump-prev-file)
+            (define-key color-rg-mode-map (kbd "^") 'color-rg-rerun-in-parent-dir)
             (define-key color-rg-mode-map [(f3)] 'color-rg-switch-to-edit-mode)
             ))
 
