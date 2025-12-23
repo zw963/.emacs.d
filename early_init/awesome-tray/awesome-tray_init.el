@@ -1,4 +1,4 @@
-;; 然后你可以真的把 mode-line 关掉2（每个窗口少一行）
+;; 关掉 mode-line
 (setq-default mode-line-format nil)
 
 ;; 画窗口分割线（横竖都有）
@@ -16,6 +16,8 @@
 (setq awesome-tray-file-path-show-filename t)
 ;; 设定一个很大值，显示完整目录名
 (setq awesome-tray-file-path-truncated-name-length 30)
+
+(setq awesome-tray-info-padding-right 5) ;; 设定宽一点，避免换行。
 (setq awesome-tray-active-modules '("buffer-read-only" "iedit" "location" "buffer-name" "file-path" "flycheck" "git" "belong" "mode-name" "date"))
 
 (awesome-tray-mode 1)
