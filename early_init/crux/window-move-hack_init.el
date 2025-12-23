@@ -10,10 +10,11 @@
 (global-set-key [(super p)] 'window-move-down) ;光标位置不变，窗口向下移动两行
 
 (with-eval-after-load 'iedit
-  (add-hook 'iedit-mode-hook (lambda ()
-                               (define-key iedit-lib-keymap [(super p)] 'iedit-prev-occurrence)
-                               (define-key iedit-lib-keymap [(super n)] 'iedit-next-occurrence)
-                               )))
+  (add-hook 'iedit-mode-hook
+            (lambda ()
+              (define-key iedit-lib-keymap [(super p)] 'iedit-prev-occurrence)
+              (define-key iedit-lib-keymap [(super n)] 'iedit-next-occurrence)
+              )))
 
 (add-hook 'isearch-mode-hook
           (lambda ()
