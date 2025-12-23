@@ -26,7 +26,6 @@
   (local-set-key [(control c) (tab)] 'rustic-recompile)
   (local-set-key [(control c) (t)] 'rustic-cargo-test)
   (local-set-key [(control c) (b)] 'rustic-cargo-build)
-  ;; (local-set-key [(control c) (r)] 'rustic-cargo-run)
   )
 
 (add-hook 'rustic-mode-hook 'my-rustic-hook)
