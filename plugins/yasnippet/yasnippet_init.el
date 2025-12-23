@@ -51,12 +51,12 @@
 (setq yas-key-syntaxes '(yas-longest-nonwordkey yas-try-key-from-whitespace "w_.()" "w_." "w_"))
 
 (defun current-buffer-directory-name ()
-  (file-name-nondirectory (string-remove-prefix "/$" default-directory)))
+  (file-name-nondirectory (replace-regexp-in-string "/$" "" default-directory)))
 
 (defun rails-refactoring:camelize (name)
   "Translate file name into corresponding Ruby class name."
-  (string-remove-prefix
-   "_"
+  (replace-regexp-in-string
+   "_" ""
    (replace-regexp-in-string
     "/" "::"
     (replace-regexp-in-string
@@ -66,8 +66,8 @@
 
 (defun elixir-refactoring:camelize (name)
   "Translate file name into corresponding Ruby class name."
-  (string-remove-prefix
-   "_"
+  (replace-regexp-in-string
+   "_" ""
    (replace-regexp-in-string
     "/" "."
     (replace-regexp-in-string
@@ -80,10 +80,11 @@
   (let ((git-folder (locate-dominating-file
                      default-directory ".git")))
     (when git-folder
-      (string-remove-prefix
+      (replace-regexp-in-string
        (concat "^" (regexp-quote
                     (expand-file-name
                      git-folder)))
+       ""
        (buffer-file-name)))))
 
 (defun insert-comment (arg)
@@ -106,7 +107,7 @@
 
 (defun yas-camelize (&optional string)
   "merge underscore-split word into a capitalize form."
-  (string-remove-prefix "_\\|@\\|\\$" (capitalize (or string yas-text))))
+  (replace-regexp-in-string "_\\|@\\|\\$" "" (capitalize (or string yas-text))))
 
 (defun class-from-file ()
   "Return corresponding class/module name for given FILE."
@@ -117,25 +118,28 @@
                                   "test/controllers/" "test/models/" "test/helpers/" "test/jobs" "test/integration"
                                   "spec/models/" "spec/controllers/" "spec/helpers/ spec/lib/" "test/graphql"))))
           (if path
-              (string-remove-prefix
+              (replace-regexp-in-string
                "^::"
+               ""
                (cond
                 ((member major-mode '(ruby-mode enh-ruby-mode ruby-ts-mode crystal-mode))
                  (rails-refactoring:camelize
-                  (string-remove-prefix path (string-remove-prefix "\\(_spec\\)?\\.rb$" file))))
+                  (replace-regexp-in-string path "" (replace-regexp-in-string "\\(_spec\\)?\\.rb$" "" file))))
 
                 ((member major-mode '(elixir-mode elixir-ts-mode))
                  (elixir-refactoring:camelize
-                  (string-remove-prefix path (string-remove-prefix "\\(\\.ex\\|\\.exs\\)$" file))))
+                  (replace-regexp-in-string path "" (replace-regexp-in-string "\\(\\.ex\\|\\.exs\\)$" "" file))))
                 )
                )
-            (string-remove-prefix
+            (replace-regexp-in-string
              "^::"
+             ""
              (rails-refactoring:camelize
               (file-name-sans-extension (file-name-nondirectory buffer-file-name)))
              )))
-      (string-remove-prefix
+      (replace-regexp-in-string
        "^::"
+       ""
        (rails-refactoring:camelize
         (file-name-sans-extension (file-name-nondirectory buffer-file-name)))
        ))))
