@@ -6,19 +6,20 @@
 ;; (add-hook 'web-mode-hook 'auto-rename-tag-mode)
 
 (require 'instant-rename-tag)
-(add-hook 'web-mode-hook '(lambda ()
-                            (local-set-key [(f7)] 'instant-rename-tag)
-                            ))
+(add-hook 'web-mode-hook
+          (lambda ()
+            (define-key web-mode-map [(f7)] 'instant-rename-tag)
+            ))
 
 (defun zw/web-mode-common-hooks ()
-  (local-set-key [(control c) (return)] 'save-buffer-and-browse-url)
-  (local-set-key [(control c) (?\r)] 'save-buffer-and-browse-url)
-  (local-set-key [(control c)(control c)] 'web-mode-buffer-indent)
-  (local-set-key [(control meta f)] 'rhtml-mode-forward-sexp)
-  (local-set-key [(control meta b)] 'rhtml-mode-backward-sexp)
-  (local-set-key [(control meta ?\s)] 'rhtml-mark-sexp-tag)
-  (local-set-key [(control tab)] 'web-mode-element-children-fold-or-unfold)
-  (local-set-key [(meta return)] 'html-mode-newline-and-indent)
+  (define-key web-mode-map [(control c) (return)] 'save-buffer-and-browse-url)
+  (define-key web-mode-map [(control c) (?\r)] 'save-buffer-and-browse-url)
+  (define-key web-mode-map [(control c)(control c)] 'web-mode-buffer-indent)
+  (define-key web-mode-map [(control meta f)] 'rhtml-mode-forward-sexp)
+  (define-key web-mode-map [(control meta b)] 'rhtml-mode-backward-sexp)
+  (define-key web-mode-map [(control meta ?\s)] 'rhtml-mark-sexp-tag)
+  (define-key web-mode-map [(control tab)] 'web-mode-element-children-fold-or-unfold)
+  (define-key web-mode-map [(meta return)] 'html-mode-newline-and-indent)
   (setq-local fill-column 120)
   (setq-local company-minimum-prefix-length 1)
   )
@@ -39,19 +40,17 @@
                              ("html" . (ac-source-words-in-buffer ac-source-abbrev)))
  )
 
-(setq web-mode-syntax-table
-      (let ((table (make-syntax-table)))
-        (modify-syntax-entry ?_ "_" table)
-        (modify-syntax-entry ?= "." table)
-        (modify-syntax-entry ?< "." table)
-        (modify-syntax-entry ?> "." table)
-        (modify-syntax-entry ?& "." table)
-        (modify-syntax-entry ?/ "." table)
-        (modify-syntax-entry ?% "." table)
-        (modify-syntax-entry ?' "\"" table)
-        table)
-      )
-(set-syntax-table web-mode-syntax-table)
+(with-eval-after-load 'web-mode
+  (let ((st (copy-syntax-table web-mode-syntax-table)))
+    (modify-syntax-entry ?_ "_" st)
+    (modify-syntax-entry ?= "." st)
+    (modify-syntax-entry ?< "." st)
+    (modify-syntax-entry ?> "." st)
+    (modify-syntax-entry ?& "." st)
+    (modify-syntax-entry ?/ "." st)
+    (modify-syntax-entry ?% "." st)
+    (modify-syntax-entry ?' "\"" st)
+    (setq web-mode-syntax-table st)))
 
 (add-hook 'web-mode-hook 'zw/web-mode-common-hooks)
 
@@ -87,6 +86,10 @@
     (search-backward-regexp (concat "^" (make-string count ? ) "<%") nil t 1))
   )
 
+(defun zw--looking-back-near (regexp &optional limit)
+  (let ((bound (max (point-min) (- (point) (or limit 200)))))
+    (looking-back regexp bound)))
+
 (defun rhtml-mode-forward-sexp ()
   (interactive)
   (cond
@@ -115,11 +118,12 @@
 
 (defun html-mode-newline-and-indent ()
   (interactive)
-  (if (or
-       (and (looking-back "<[^/]*.*[^%]*>" (point-min)) (looking-at " *</"))
-       (and (looking-back "<.*" (point-min)) (looking-at ">")))
+  (let ((bol (line-beginning-position)))
+    (when (or
+           (and (looking-back "<[^/]*.*[^%]*>" bol) (looking-at " *</"))
+           (and (looking-back "<.*" bol) (looking-at ">")))
       (save-excursion (newline-and-indent)))
-  (newline-and-indent))
+    (newline-and-indent)))
 
 (add-to-list 'web-mode-commands-like-expand-region 'rhtml-mark-sexp-tag)
 

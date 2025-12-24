@@ -9,10 +9,11 @@
                     (vector (list 'control
                                   mouse-wheel-down-event))
                   [C-mouse-wheel])    ; Emacs 20, 21
-                'zoom-in)
+                'zoom-frm-in)
+
 (when (boundp 'mouse-wheel-up-event) ; Emacs 22+
   (global-set-key (vector (list 'control mouse-wheel-up-event))
-                  'zoom-out))
+                  'zoom-frm-out))
 
 (provide 'zoom-frm_init)
 ;;; zoom-frm_init.el ends here
