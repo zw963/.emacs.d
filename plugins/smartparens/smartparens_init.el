@@ -13,9 +13,9 @@
 
 (sp-local-pair 'org-mode "`" "'" :when nil :unless nil)
 
-;; ;; 关闭 = * 自动匹配的行为
-(sp-local-pair 'org-mode "=" nil :actions nil)
-(sp-local-pair 'org-mode "*" nil :actions nil)
+;; ;; 关闭 =..= *..* 自动匹配的行为
+(sp-local-pair 'org-mode "=" "=" :actions nil)
+(sp-local-pair 'org-mode "*" "*" :actions nil)
 
 ;; (sp-local-pair 'org-mode "`" "'" :actions '(insert wrap))
 
