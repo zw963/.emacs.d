@@ -28,17 +28,14 @@ Use `font-lock-add-keywords' in case of `ruby-mode' or
 `ruby-extra-keywords' in case of Enhanced Ruby Mode."
   (if (boundp 'enh-ruby-extra-keywords)
       (progn
-        (setq enh-ruby-extra-keywords (append enh-ruby-extra-keywords keywords))
+        (setq-local enh-ruby-extra-keywords (append enh-ruby-extra-keywords keywords))
         (enh-ruby-local-enable-extra-keywords))
     (font-lock-add-keywords
      nil
      (list (list
-            (concat "\\(^\\|[^_:.@$]\\|\\.\\.\\)\\b"
-                    (regexp-opt keywords t)
-                    (eval-when-compile (if (string-match "\\_>" "ruby")
-                                           "\\_>"
-                                         "\\>")))
-            (list 2 (or face 'font-lock-builtin-face)))))))
+            (concat "\\(^\\|[^_:.@$]\\|\\.\\.\\)\\b" (regexp-opt keywords t) "\\_>")
+            (list 2 (or face 'font-lock-builtin-face)))))
+    ))
 
 (defcustom rinari-controller-keywords
   '("logger" "polymorphic_path" "polymorphic_url" "mail" "render" "attachments"
@@ -164,24 +161,28 @@ Use `font-lock-add-keywords' in case of `ruby-mode' or
   "Apply extra font lock keywords specific to models, controllers etc."
   (when (buffer-file-name)
     (cl-loop for (re keywords) in
-          `(("_controller\\.rb$"   ,rinari-controller-keywords)
-            ("app/models/.+\\.rb$" ,rinari-model-keywords)
-            ("db/migrate/.+\\.rb$" ,rinari-migration-keywords)
-            (".+\\.rake$\\|Rakefile$" ,ruby-rake-keywords)
-            ("Gemfile" ,ruby-gemfile-keywords)
-            (".+_spec\\.rb$\\|.+_test\.rb$" ,ruby-spec-keywords)
-            ("config/routes.*\\.rb$" ,rails-route-keywords)
-            ("factories.*\\.rb$" ,ruby-factory-girl-keywords)
-            )
-          do (when (string-match-p re (buffer-file-name))
-               (ruby-highlight-keywords keywords 'font-lock-builtin-face)
-               ))))
+             `(("_controller\\.rb$"   ,rinari-controller-keywords)
+               ("app/models/.+\\.rb$" ,rinari-model-keywords)
+               ("db/migrate/.+\\.rb$" ,rinari-migration-keywords)
+               (".+\\.rake$\\|Rakefile$" ,ruby-rake-keywords)
+               ("Gemfile" ,ruby-gemfile-keywords)
+               (".+_spec\\.rb$\\|.+_test\\.rb$" ,ruby-spec-keywords)
+               ("config/routes.*\\.rb$" ,rails-route-keywords)
+               ("factories.*\\.rb$" ,ruby-factory-girl-keywords)
+               )
+             do (when (string-match-p re (buffer-file-name))
+                  (ruby-highlight-keywords keywords 'font-lock-builtin-face)
+                  ))))
+
+(defvar-local ruby--extra-keywords-added nil)
 
 (defun ruby-apply-keywords-locally ()
-  (ruby-highlight-keywords ruby-general-keywords 'font-lock-builtin-face) ; 白色
-  (ruby-highlight-keywords ruby-additional-keywords 'font-lock-keyword-face) ; 暗金色
-  (ruby-apply-keywords-for-file-type)
-  )
+  (unless ruby--extra-keywords-added
+    (setq ruby--extra-keywords-added t)
+    (ruby-highlight-keywords ruby-general-keywords 'font-lock-builtin-face) ; 白色
+    (ruby-highlight-keywords ruby-additional-keywords 'font-lock-keyword-face) ; 暗金色
+    (ruby-apply-keywords-for-file-type)
+    ))
 
 (run-ruby-mode-hook '(ruby-apply-keywords-locally))
 
