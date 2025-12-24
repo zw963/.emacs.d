@@ -75,7 +75,6 @@ Return non-nil if a window is closed."
         '(
           (("*Warnings*" "*Messages*" "*Completions*" "*Alerts*" "*Compile-Log*") :align t :size 0.33 :autoclose t)
           ;; ("^\\*.*Shell Command.*\\*$" :regexp t :align t :size 0.33 :autoclose t)
-          ;; (("*lsp session*" "*LSP Error List*") :align t :size 0.33 :autoclose t)
           ;; (("*DAP Templates*" dap-server-log-mode hover-mode) :align t :size 0.33 :autoclose t)
           ;; *Crystal-Context* 和 *Crystal-spec* 不工作
           ;; (("*Crystal-Expand*" "*Crystal-Implementations") :align right :autoclose t)
@@ -87,7 +86,8 @@ Return non-nil if a window is closed."
           (vc-annotate-mode :select t :align right :size 0.33 :autoclose t)
           ("*vc-change-log*" :select t :align right :size 0.33 :autoclose t)
           (special-mode :select t :align t)
-          ;; "*Apropos*" "*Occur*" "*lsp-help*"
+          (("*lsp-help*" "*lsp session*" "*LSP Error List*") :select t :align right :size 0.5 :autoclose t)
+          ;; "*Apropos*" "*Occur*"
           ;; ((compilation-mode rustic-compilation-mode
           ;;                    rustic-cargo-clippy-mode rustic-cargo-test-mode
           ;;                    cargo-process-mode)
