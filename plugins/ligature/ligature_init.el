@@ -8,7 +8,6 @@
 (ligature-set-ligatures 't '("www"))
 
 (ligature-set-ligatures '(html-mode nxml-mode web-mode) '("<!--" "-->" "</>" "</" "/>" "://"))
-
 (ligature-set-ligatures 'markdown-mode '(("=" (rx (+ "=") (? (| ">" "<"))))
                                          ("-" (rx (+ "-")))))
 
@@ -26,8 +25,6 @@
 ;; Enable ligatures in programming modes
 (ligature-set-ligatures 'prog-mode common-ligature-list)
 (ligature-set-ligatures 'org-mode common-ligature-list)
-
-
 
 ;; (ligature-set-ligatures 'prog-mode '("==" "===" "!=" "=~" "|=" "<=>" "=>" "!!" "||" "&&" "~>"))
 
