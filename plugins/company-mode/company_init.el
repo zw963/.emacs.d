@@ -15,7 +15,7 @@
 ;; (setq company-minimum-prefix-length 2)
 
 ;; 设为 true, 则仅在同一个 major-mode buffer 里面找
-(setq company-dabbrev-other-buffers t)
+;; (setq company-dabbrev-other-buffers t)
 
 (setq company-dabbrev-downcase nil) ;; make dabbrev case-sensitive
 ;; (setq company-dabbrev-code-ignore-case nil)

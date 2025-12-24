@@ -8,7 +8,9 @@
                          #'lsp-completion-at-point
                          #'codeium-completion-at-point)
                         ;; 你想要的其它 fallback（可选）
-                        #'cape-file #'cape-dabbrev))))
+                        #'cape-file
+                        #'cape-dabbrev
+                        t))))
 
   (add-hook 'lsp-mode-hook #'zw/setup-capf-lsp+codeium))
 
