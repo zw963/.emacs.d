@@ -9,59 +9,60 @@
 
 (defun transform-parens-fixed (begin end)
   (interactive)
-  (search-backward-regexp begin (line-beginning-position) t)
-  (forward-char)
-  (newline-and-indent)
-  (search-forward-regexp end (line-end-position) t)
-  (backward-char)
-  (no-moving-newline-and-indent)
-  (newline-and-indent)
-  )
+  (let ((bol (line-beginning-position))
+        (eol (line-end-position)))
+    (when (search-backward-regexp begin bol t)
+      (forward-char 1)
+      (newline-and-indent)
+      (when (search-forward-regexp end eol t)
+        (backward-char 1)
+        (no-moving-newline-and-indent)
+        (newline-and-indent)))))
 
 (defun meta-return-hacked ()
   "toggle block, if can not do it, run newline-and-indent."
   (interactive)
-  (cond
-   (;; inside a string
-    (cl-fourth (syntax-ppss))
-    (call-interactively 'newline-and-indent))
+  (let* ((ppss (syntax-ppss)))
+    (cond
+     (;; inside a string
+      (cl-fourth ppss)
+      (call-interactively 'newline-and-indent))
 
-   (;; inside a comment.
-    (and (cl-fifth (syntax-ppss)) (eq (point) (line-end-position)))
-    (call-interactively 'indent-new-comment-line))
+     (;; inside a comment.
+      (and (cl-fifth ppss) (eq (point) (line-end-position)))
+      (call-interactively 'indent-new-comment-line))
 
-   ;; 在 {|} [|] (|)
-   ((and (member (char-before) '(123 91 40)) ; { [ (
-         (member (char-after) '(125 93 41))) ; } ] )
-    (progn
-      (no-moving-newline-and-indent)
-      (newline-and-indent))
-    )
+     ((and (memq (char-before) '(?\{ ?\[ ?\())
+                 (memq (char-after) '(?\} ?\] ?\))))
+      (progn
+        (no-moving-newline-and-indent)
+        (newline-and-indent))
+      )
 
-   ;; 在哈希定义的第一行, 输入逗号之后
-   ;; 例如：x = {x: 100, |}
-   ;; 将变成：
-   ;; x = {
-   ;;   x: 100,
-   ;;   |
-   ;; }
-   ((and
-     (looking-back "{.*=>.*,\\s-*\\|{.*:.*,\\s-*" (line-beginning-position))
-     (looking-at "\\s-*}"))
-    (transform-parens-fixed "{" "}")
-    )
+     ;; 在哈希定义的第一行, 输入逗号之后
+     ;; 例如：x = {x: 100, |}
+     ;; 将变成：
+     ;; x = {
+     ;;   x: 100,
+     ;;   |
+     ;; }
+     ((and
+       (looking-back "{.*=>.*,\\s-*\\|{.*:.*,\\s-*" (line-beginning-position))
+       (looking-at "\\s-*}"))
+      (transform-parens-fixed "{" "}")
+      )
 
-   ;; 在 [| 或 |] 或 (| 或 |), 做类似于上面的变换 {
-   ((and (looking-back "[[(].*,\\s-*" (line-beginning-position))
-         (looking-at "\\s-*[])]"))
-    (transform-parens-fixed "[[(]" "[])]"))
+     ;; 在 [| 或 |] 或 (| 或 |), 做类似于上面的变换 {
+     ((and (looking-back "[[(].*,\\s-*" (line-beginning-position))
+           (looking-at "\\s-*[])]"))
+      (transform-parens-fixed "[[(]" "[])]"))
 
-   ((member major-mode '(ruby-mode enh-ruby-mode crystal-mode))
-    (ruby-toggle-block-fixed))
+     ((member major-mode '(ruby-mode enh-ruby-mode crystal-mode))
+      (ruby-toggle-block-fixed))
 
-   ((member major-mode '(dart-mode))
-    (flutter-unwrap-function-body))
-   ))
+     ((member major-mode '(dart-mode))
+      (flutter-unwrap-function-body))
+     )))
 
 (defun meta-return-hacked-init()
   (interactive)
