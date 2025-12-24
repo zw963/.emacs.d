@@ -37,6 +37,8 @@
             (define-key vterm-mode-map [(meta w)] 'kill-ring-save)
             (define-key vterm-mode-map [(control v)] 'scroll-up-command)
             (define-key vterm-mode-map [(meta v)] 'scroll-down-command)
+            (define-key vterm-mode-map [(meta n)] 'window-move-up)
+            (define-key vterm-mode-map [(meta p)] 'window-move-down)
             (define-key vterm-mode-map (kbd "M-0") 'multi-vterm-prev)
             (define-key vterm-mode-map (kbd "M-9") 'multi-vterm-next)
             (define-key vterm-mode-map [(control x) (\2)] 'split-window-below-then-switch-to-new-vterm)

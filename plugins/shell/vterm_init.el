@@ -6,8 +6,11 @@
 
 ;; 按下 C-c C-t, 切换到 copy 模式，此时，直接按回车的话（没有添加选区），会拷贝整行。
 ;; 下面的参数，会跳过提示符。
-(setq vterm-copy-exclude-prompt t)
-(setq vterm-max-scrollback 50000)
+(setq
+ vterm-copy-exclude-prompt t
+ vterm-max-scrollback 50000
+ vterm-enable-manipulate-selection-data-by-osc52 t
+ )
 (defun switch-vterm-and-back ()
   (interactive)
   (if (string= (buffer-name) "*vterm*")
@@ -15,11 +18,8 @@
     (vterm)))
 
 ;; (setq vterm-clear-scrollback-when-clearing t)
-
 ;; (setq vterm-use-vterm-prompt-detection-method nil)
 ;; (setq term-prompt-regexp "╰─ $ ")
-
-;; (setq vterm-enable-manipulate-selection-data-by-osc52 t)
 
 ;; (add-hook 'shell-mode-hook
 ;;           #'(lambda ()
@@ -50,12 +50,16 @@
 (add-hook 'vterm-mode-hook
           (lambda ()
             (set (make-local-variable 'buffer-face-mode-face) '(:family "yaheiInconsolata"))
-            (buffer-face-mode t)))
+            (buffer-face-mode t)
+            ;; 换绑快捷键的例子。
+            ;; (define-key vterm-mode-map (kbd "<C-backspace>")
+            ;;             (lambda () (interactive) (vterm-send-key (kbd "C-w"))))
+            ))
 
-(require 'eterm-256color)
-(setq vterm-term-environment-variable "eterm-color")
+;; 测试默认 xterm-256color 有没有性能问题。
+;; (require 'eterm-256color)
+;; (setq vterm-term-environment-variable "eterm-color")
 
-;; 这个不用了，使用 popper.el 管理。
 (require 'multi-vterm_init)
 
 (provide 'vterm_init)
