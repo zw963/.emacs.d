@@ -23,8 +23,7 @@
               (symbol-overlay-mode 1)
               )))
 
-(global-set-key (kbd "<f5>") 'symbol-overlay-put)
-(global-set-key (kbd "C-;") 'symbol-overlay-put)
+(global-set-key [(control meta \;)] 'symbol-overlay-put)
 (define-key symbol-overlay-map (kbd "C-g") 'symbol-overlay-remove-all)
 (define-key symbol-overlay-map (kbd "M-n") 'symbol-overlay-switch-forward)
 (define-key symbol-overlay-map (kbd "M-p") 'symbol-overlay-switch-backward)
