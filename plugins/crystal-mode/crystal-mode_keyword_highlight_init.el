@@ -1,42 +1,24 @@
 ;; -*- lexical-binding: t; -*-
 
-(defcustom crystal-spec-keywords
-  '(
-    "pending"
-    "context"
-    )
-  "List of keywords to highlight for crystal spec."
-  :group 'rinari
-  :type '(repeat string)
-  )
+(defcustom crystal-spec-keywords '("describe" "pending" "context")
+  "Keywords to highlight in Crystal spec/test files."
+  :type '(repeat string))
 
-(defun crystal-highlight-keywords (keywords &optional face)
-  "Highlight the passed KEYWORDS FACE in current buffer.
-Use `font-lock-add-keywords' in case of `ruby-mode' or
-`ruby-extra-keywords' in case of Enhanced Ruby Mode."
-  (font-lock-add-keywords
-   nil
-   (list (list
-          (concat "\\(^\\|[^_:.@$]\\|\\.\\.\\)\\b"
-                  (regexp-opt keywords t)
-                  (eval-when-compile (if (string-match "\\_>" "crystal")
-                                         "\\_>"
-                                       "\\>")))
-          (list 2 (or face 'font-lock-keyword-face))))))
+(defvar-local crystal--spec-font-lock-added nil)
 
-(defun crystal-apply-keywords-for-file-type ()
-  "Apply extra font lock keywords specific to models, controllers etc."
-  (when (buffer-file-name)
-    (cl-loop for (re keywords) in
-             `(
-               (".+_spec\\.cr$\\|.+_test\.cr$" ,crystal-spec-keywords)
-               )
-             do (when (string-match-p re (buffer-file-name))
-                  (crystal-highlight-keywords keywords 'font-lock-keyword-face)
-                  ))))
+(defun crystal--maybe-add-spec-keywords ()
+  (when (and (buffer-file-name)
+             (string-match-p "\\(?:_spec\\|_test\\)\\.cr\\'" (buffer-file-name))
+             (not crystal--spec-font-lock-added))
+    (setq crystal--spec-font-lock-added t)
+    (font-lock-add-keywords
+     nil
+     `((,(concat "\\_<" (regexp-opt crystal-spec-keywords t) "\\_>")
+        0 font-lock-keyword-face)))
+    (font-lock-flush)
+    (font-lock-ensure)))
 
-(add-hook 'crystal-mode-hook 'crystal-apply-keywords-for-file-type)
-
+(add-hook 'crystal-mode-hook #'crystal--maybe-add-spec-keywords)
 
 (provide 'crystal-mode_keyword_highlight_init)
 
