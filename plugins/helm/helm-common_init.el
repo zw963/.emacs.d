@@ -12,7 +12,6 @@
     (add-list-to-list 'helm-boring-file-regexp-list boring-file-regexp-list))
 
 (setq
- helm-candidate-number-limit 25
  helm-buffer-max-length 50 ;; buffer 的名称长一点，否则看不到完整名字。
  ;; 似乎我的 (window-width) 值是 93, 这里设定小于 93, C-c o 将会在右侧 split.
  ;; (setq-default split-width-threshold 30)
@@ -27,7 +26,15 @@
  helm-follow-mode-persistent t
  helm-grep-save-buffer-name-no-confirm t
  helm-move-to-line-cycle-in-source nil ;; 允许在多个 source 里面移动
+ helm-apropos-fuzzy-match nil ;; C-h v C-h f 速度太慢了。
+ ;; helm-completions-detailed nil ;; 如果觉得慢，把这个打开。
+ helm-candidate-number-limit 25
  )
+
+;; (with-eval-after-load 'helm-mode
+;;   ;; 对 describe-variable/describe-function 关闭 helmized completing-read
+;;   (add-to-list 'helm-completing-read-handlers-alist '(describe-variable . nil))
+;;   (add-to-list 'helm-completing-read-handlers-alist '(describe-function . nil)))
 
 ;; 让 helm 弹出的窗口, 总在最下面, 当开启 follow-mode 时, 这个和 neotree 不工作.
 (setq helm-always-two-windows nil) ;; this is default
