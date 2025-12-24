@@ -1,12 +1,6 @@
 ;; -*- lexical-binding: t; -*-
 
 ;; -------------------------- 中英文字体对齐 -----------------------------
-(global-set-key [(f5)] (lambda ()
-                         (interactive)
-                         (toggle-frame-maximized)
-                         (set-frame-position (selected-frame) 0 0)
-                         (set-frame-size (selected-frame) 120 63)))
-
 (defun toggle-transparency ()
   (interactive)
   (let ((alpha (frame-parameter nil 'alpha)))
@@ -17,7 +11,7 @@
                     ;; Also handle undocumented (<active> <inactive>) form.
                     ((numberp (cadr alpha)) (cadr alpha)))
               100)
-         '(95 . 80) '(100 . 100)))))
+         '(92 . 85) '(100 . 100)))))
 
 (setq frame-title-format
       '((:eval (if (buffer-file-name) (abbreviate-file-name (buffer-file-name))
