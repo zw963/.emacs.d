@@ -7,12 +7,10 @@
 (setenv "INSIDE_EMACS" "true")
 ;; (setenv "RUBYLIB" "") ;; 如果设置 RUBYLIB 为空，可能造成一些 ruby 工具无法使用
 (setenv "RUBYOPT" "")
+(setenv "LSP_USE_PLISTS" "true")
 ;; (setenv "http_proxy" "")
 ;; (setenv "https_proxy" "")
 ;; (setenv "ftp_proxy" "")
-
-;; igc 分支不使用 gcmh
-;; (require 'gcmh_init)
 
 ;; (require 'auto-compile_init)
 
@@ -21,6 +19,10 @@
 ;; 可能造成某些 package 在 --daemon 启动时，卡住启动失败？
 ;; (define-prefix-command 'meta-c-map)
 ;; (global-set-key [(meta c)] 'meta-c-map)
+
+;; 根据 lsp-dart 的建议，这个应该设定大一点，性能会好很多。
+(setq read-process-output-max (* 1024 1024)) ;; 1M
+(setq inhibit-compacting-font-caches t)  ; Don’t compact font caches during GC.
 
 (setq zw/cursor-color-default "#00FF00")
 (setq create-lockfiles nil)
@@ -42,6 +44,7 @@
 ;; 当加载 .dir-locals 时，永远不提示
 (defun hack-local-variables-confirm (all-vars unsafe-vars risky-vars dir-name) t)
 
+(require 'repeat_init)
 (require 'awesome-tray_init)
 (require 'themes_init)
 (require 'crux_init)
