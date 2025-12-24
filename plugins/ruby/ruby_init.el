@@ -37,7 +37,7 @@
     ;; (looking-at (concat (regexp-opt ruby-block-start-keywords) "\\s-+\\(.+\\s-+\\)*do[\s\t\n]+"))
     ;; Emacs 的正则很奇怪,
     ;; 例如: 要匹配 ], 它必须是在第一个的位置, 要匹配 -, 它必须在最后的位置.
-    (looking-at (concat "[]a-zA-Z_.@[0-9(){}:/ \t\n\|\"'=>,-=]*" "\\s-+do[\s\t\n]+"))
+    (looking-at (concat "[]a-zA-Z_.@[0-9(){}:/ \t\n\|\"'=>,-=]*" "\\s-+do\\_>\\s-+"))
     (cond
      ((equal major-mode 'enh-ruby-mode) (enh-ruby-end-of-block))
      ((equal major-mode 'crystal-mode) (progn
