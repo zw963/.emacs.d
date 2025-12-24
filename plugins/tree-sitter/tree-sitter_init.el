@@ -1,7 +1,5 @@
 ;; -*- lexical-binding: t; -*-
 
-;; (require 'tree-sitter)
-
 ;; 默认不设置 treesit-extra-load-path, 使用 ~/.emacs.d/tree-sitter 文件夹
 ;; (setq treesit-extra-load-path `(,(concat default-directory "tree-sitter")))
 
@@ -16,6 +14,18 @@
         (python-mode     . python-ts-mode)
         (sh-mode         . bash-ts-mode)
         ))
+
+;; (dolist (pair '((c-mode . c-ts-mode)
+;;                 (c++-mode . c++-ts-mode)
+;;                 (css-mode . css-ts-mode)
+;;                 (python-mode . python-ts-mode)
+;;                 (sh-mode . bash-ts-mode)
+;;                 (java-mode . java-ts-mode)
+;;                 (cmake-mode . cmake-ts-mode)
+;;                 (csharp-mode . csharp-ts-mode)
+;;                 (tsx-mode . tsx-ts-mode)))
+;;   (add-to-list 'major-mode-remap-alist pair))
+
 
 (provide 'tree-sitter_init)
 

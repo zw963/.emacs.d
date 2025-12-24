@@ -5,7 +5,11 @@
 
 (require 'mojo-mode)
 
-(add-hook 'prog-mode-hook 'goto-address-mode)
+(add-hook 'prog-mode-hook #'goto-address-mode)
+
+;; (setq whitespace-global-modes '(not makefile-mode))
+;; (global-whitespace-mode 1)
+(add-hook 'prog-mode-hook #'whitespace-mode)
 
 (setq diff-switches "-Naur")                     ;Default to unified diffs
 (setq vc-rcs-diff-switches "-u")
@@ -37,9 +41,10 @@
                 elixir-mode-hook
                 web-mode-hook
                 ))
-  (add-hook hook (lambda ()
-                   (local-set-key [(control c) (control c)] 'format-buffer)
-                   )))
+  (add-hook hook
+            (lambda ()
+              (local-set-key [(control c) (control c)] 'format-buffer)
+              )))
 
 (dolist (hook '(prog-mode-hook
                 yaml-mode-hook
@@ -50,35 +55,37 @@
                 conf-mode-hook
                 markdown-mode
                 ))
-  (add-hook hook (lambda ()
-                   (local-set-key [(?\,)] 'input-comma-with-space)
-                   (local-set-key [(?\;)] 'input-semicolon-with-space)
-                   (local-set-key [(meta c) (?.)] 'input-rocket-with-space)
-                   ;; (local-set-key [(meta c) (=)] 'input-add-equal)
-                   )))
+  (add-hook hook
+            (lambda ()
+              (local-set-key [(?\,)] 'input-comma-with-space)
+              (local-set-key [(?\;)] 'input-semicolon-with-space)
+              (local-set-key [(meta c) (?.)] 'input-rocket-with-space)
+              ;; (local-set-key [(meta c) (=)] 'input-add-equal)
+              )))
 
-(add-hook 'prog-mode-hook (lambda ()
-                            (font-lock-add-keywords
-                             nil '(("\\<\\(FIX\\|TODO\\|FIXME\\|HACK\\|REFACTOR\\|NOTICE\\|WARN\\):"
-                                    1 font-lock-warning-face t)))
-                            (subword-mode)           ; 不要全局开启 subword-mode，对 ido 有影响。
-                            (goto-address-prog-mode)
-                            (display-fill-column-indicator-mode) ;; 全局开启会造成 helm 也显示.
-                            (setq show-trailing-whitespace t)
+(add-hook 'prog-mode-hook
+          (lambda ()
+            (font-lock-add-keywords
+             nil '(("\\<\\(FIX\\|TODO\\|FIXME\\|HACK\\|REFACTOR\\|NOTICE\\|WARN\\):"
+                    1 font-lock-warning-face t)))
+            (subword-mode)           ; 不要全局开启 subword-mode，对 ido 有影响。
+            (goto-address-prog-mode)
+            (display-fill-column-indicator-mode) ;; 全局开启会造成 helm 也显示.
+            (setq show-trailing-whitespace t)
 
-                            (unless (member major-mode '(makefile-gmake-mode))
-                              (setq-local indent-tabs-mode nil)      ;禁止 insert \t 字符.
-                              )
-                            ;; (context-menu-mode t)
+            (unless (member major-mode '(makefile-gmake-mode))
+              (setq-local indent-tabs-mode nil)      ;禁止 insert \t 字符.
+              )
+            ;; (context-menu-mode t)
 
-                            ;; 注意最后一个参数 t, 这确保了当前 before-save-hook 是 local 的。
-                            ;; (add-hook 'before-save-hook
-                            ;;           (lambda()
-                            ;;             (save-excursion
-                            ;;               ;; (whitespace-cleanup)
-                            ;;               (delete-trailing-whitespace)))
-                            ;;           nil t)
-                            ))
+            ;; 注意最后一个参数 t, 这确保了当前 before-save-hook 是 local 的。
+            ;; (add-hook 'before-save-hook
+            ;;           (lambda()
+            ;;             (save-excursion
+            ;;               ;; (whitespace-cleanup)
+            ;;               (delete-trailing-whitespace)))
+            ;;           nil t)
+            ))
 
 (defun format-buffer ()
   "Perform a bunch of operations of a buffer."
