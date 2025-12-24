@@ -51,14 +51,14 @@
 ;;   "Create missing directory when find file."
 ;;   (unless (file-exists-p default-directory) (make-directory default-directory t)))
 
-(advice-add
- 'save-buffer :before
- (lambda (&rest _)
-   "Create missing directory when find file."
-   (unless (or (file-remote-p default-directory)
-               (file-exists-p default-directory))
-     (make-directory default-directory t))))
+(defun zw/ensure-parent-dir ()
+  "Ensure parent directory exists before saving."
+  (when-let ((f buffer-file-name)
+             (dir (file-name-directory f)))
+    (unless (or (file-remote-p dir) (file-exists-p dir))
+      (make-directory dir t))))
 
+(add-hook 'before-save-hook #'zw/ensure-parent-dir)
 
 (require 'recentf)
 (setq recentf-max-saved-items 100)            ;增大 recentf 历史记录为 50
@@ -162,8 +162,7 @@
 (add-to-list 'package-archives '("melpa" . "https://melpa.org/packages/"))
 (add-to-list 'package-archives '("elpy" . "http://jorgenschaefer.github.io/packages/"))
 (add-to-list 'package-archives '("gnu" . "http://elpa.emacs-china.org/gnu/"))
-
-;; 注意，flycheck 依赖这个包，对 emacs-lisp 做语法检查。
+(setq package-enable-at-startup nil)  ;; 你若用 straight，就保留；若用 package.el，则需要手动 package-initialize
 ;; (package-initialize)
 
 ;; (unless (require 'el-get nil 'noerror)
@@ -197,7 +196,6 @@
  ;; initial-major-mode 'org-mode                ;初始的 scratch 使用 org-mode.
  ;; truncate-lines t
  load-prefer-newer t                            ;总首选较新的那个。(即使 el 比elc 新)
- package-enable-at-startup nil                  ; 性能好一点？
  native-comp-async-report-warnings-errors nil   ; 抑制 native-comp 的警告
  warning-minimum-level :error                   ; 只显示错误级别的警告
  )
@@ -211,10 +209,6 @@
         indentation
         trailing       ; trailing blanks
         ))
-
-
-;; (setq whitespace-global-modes '(not makefile-mode))
-(global-whitespace-mode 1)
 
 (setq lpr-command "new_lpr")
 
@@ -274,7 +268,6 @@
  indicate-empty-lines t    ;在左侧边缘显示行尾空行标志.
  imenu-auto-rescan t
  fill-column 82             ;设置默认 82 个字符为换行标记.
- left-fringe-width 10
  cursor-in-non-selected-windows 'hollow ; 在没有激活的 window 上显示一个空心正方形
  )
 
@@ -289,7 +282,7 @@
 ;; 设置同其他软件交换信息的编码系统,这个不建议手动设置，可能复制粘帖数据会引起乱码.
 ;; (set-selection-coding-system (if (eq system-type 'windows-nt) 'utf-16-le 'utf-8))
 
-(set-language-environment 'utf-8) ;使用UTF-8字符集
+(set-language-environment "UTF-8") ;使用UTF-8字符集
 (prefer-coding-system 'utf-8) ;总是优先使用 UTF-8 检测文件内容
 (set-default-coding-systems 'utf-8)
 
@@ -362,12 +355,13 @@
 (when (fboundp 'set-charset-priority)
   (set-charset-priority 'unicode))
 
-(repeat-mode 1)
-
 ;; (file-name-shadow-mode 1)
 ;; (minibuffer-depth-indicate-mode 1)                   ;显示minibuffer深度
 
-(global-visual-line-mode 1)
+;; (global-visual-line-mode 1)
+(add-hook 'text-mode-hook #'visual-line-mode)
+(add-hook 'org-mode-hook  #'visual-line-mode)
+
 (setq visual-line-fringe-indicators '(nil right-curly-arrow))
 (setq what-cursor-show-names t)
 (minibuffer-electric-default-mode t)
