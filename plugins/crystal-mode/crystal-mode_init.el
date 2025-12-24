@@ -48,9 +48,6 @@
   ;; (define-key crystal-mode-map [(control meta ?\s)] 'mark-sexp)
   ;; (define-key crystal-mode-map [(control c) (tab)] 'crystal-project-compile)
   ;; (define-key crystal-mode-map [(control c) (return)] 'crystal-project-run)
-
-  ;; (define-key crystal-mode-map [(kbd "RET")] 'reindent-then-newline-and-indent)
-  ;; (define-key crystal-mode-map [(return)] 'reindent-then-newline-and-indent)
   )
 
 (add-hook 'crystal-mode-hook
