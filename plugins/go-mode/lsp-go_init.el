@@ -5,7 +5,10 @@
 
 (add-hook 'go-mode-hook
           (lambda ()
-            (add-hook 'before-save-hook #'lsp-organize-imports t t)
+            (add-hook 'lsp-mode-hook
+                      (lambda ()
+                        (add-hook 'before-save-hook #'lsp-organize-imports nil t))
+                      nil t)
             (lsp-mode-common-hooks)
             ))
 

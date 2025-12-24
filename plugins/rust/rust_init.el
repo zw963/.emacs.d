@@ -1,7 +1,7 @@
 ;; -*- lexical-binding: t; -*-
 
-;; (require 'rust-mode_init)
-(require 'rustic_init)
+(require 'rust-mode_init)
+;; (require 'rustic_init)
 ;; (require 'lsp-rust-mode_init)
 ;; (require 'rust-mode-eglot_init)
 
