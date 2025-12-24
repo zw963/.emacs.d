@@ -1,10 +1,10 @@
 ;; -*- lexical-binding: t; -*-
 ;; -*-Emacs-Lisp-*-
 
+;; 大量的库依赖下面的三个
+(require 's)
 (require 'dash)
 (require 'f)
-(require 'ht)
-(require 's)
 
 ;; ==============================没有专门绑定快捷键的 mode==============================
 (require 'org-mode_init)
@@ -33,7 +33,7 @@
 ;; (require 'hotfuzz_init)
 
 (require 'company_init)
-(require 'breadcrumb_init)
+;; (require 'breadcrumb_init)
 (require 'async_init)
 (require 'volatile-highlights_init)
 
@@ -51,19 +51,17 @@
 (require 'dumb-jump_init)
 (require 'smartparens_init)
 (require 'highlight-escape-sequences_init)
-(require 'rainbow-delimiters_init)
+;; (require 'rainbow-delimiters_init) ;; 这是一个很老的包，尝试关掉看看
 (require 'colorful-mode_init)
 ;; (require 'scss-css-mode_init) ;; 使用默认的 css-ts-mode
 (require 'ws-butler_init)
 (require 'ligature_init)
 (require 'tailwindcss_init)
-(require 'electric-operator_init)
 
-;; (require 'tabnine_init) ;; lsp-bridge 默认会开启 tabnine
-;; (require 'codeium_init)
+(require 'project_init)
+(require 'bash-ts-mode_init)
 
 ;; =============== 下面是绑定快捷键的模式 ===============
-
 
 ;; / 然后键入关键字，可以快速过滤。
 ;; S, 可以调出 hydra 菜单，快速排序。
@@ -144,7 +142,10 @@
 (require 'spatial-navigate_init)
 
 ;; 主要是 vterm，有个 Ctrl + ~ 快捷键
-;; 但是一个报错：awk: cmd. line:1: warning: escape sequence `\[' treated as plain `['，很恼火。
+;; vterm 下常用的几个快捷键：
+;; C-c C-t 进入拷贝模式，此时终端作为一个 buffer，回车可以退出
+;; C-c C-n/p 可以在各个终端跳转。
+;; Shift+Ctrl+t 新开一个 tab，M-0, M-9 切换。
 (require 'shell_init)
 
 ;; 快捷键很多，见相关笔记
@@ -157,21 +158,23 @@
 ;; 注意, Ctrl + . 在中文状态下, 和 fcitx 冲突, 需要关闭相应快捷键
 (require 'goto-chg_init)
 
-;; 目前是 F7, 实在找不到好的快捷键
-;; TODO: 找找有没有什么适合前缀的快捷键, 占用了更加适合连续键入的非前缀快捷键
-(require 'symbol-overlay_init)
-
 ;; Ctrl + ;
-(require 'iedit_init) ;; 确保放到 symbol-overlay 后面
+(require 'iedit_init) ;;
+;; Ctrl + Alt + ;
+(require 'symbol-overlay_init)
 
 ;; 二选一
 ;; Ctrl + Alt + r, F3 使用 wgrep 编辑
 (require 'color-rg_init)
+(require 'deadgrep_init) ;; 这个没有绑定快捷键。
 ;; (require 'eee_init) ;; 这个打开，覆盖 color-rg 的 Ctrl + Alt + R
-;; (require 'deadgrep_init)
 
 ;; 记住 C-c ' 编辑代码块中的代码.
 (require 'markdown-mode_init)
+
+;; (require 'tabnine_init) ;; lsp-bridge 默认会开启 tabnine
+;; C-c i 手动触发，也会自动触发。
+(require 'codeium_init)
 
 ;; ---------------- 编程相关 ----------------
 
@@ -228,8 +231,6 @@
 ;; (require 'haskell-mode_init)
 ;; (require 'js2-mode_init)
 ;; (require 'lua-mode_init)
-
-(require 'elixir_init)
 
 (add-hook 'prog-mode-hook 'display-line-numbers-mode)
 (add-hook 'sgml-mode-hook 'display-line-numbers-mode)
