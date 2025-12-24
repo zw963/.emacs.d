@@ -7,7 +7,8 @@
 
 (require 'ameba)
 (require 'flycheck-ameba)
-(flycheck-ameba-setup)
+(with-eval-after-load 'flycheck (flycheck-ameba-setup))
+
 
 ;; (defun crystal-project-compile ()
 ;;   (interactive)
@@ -33,26 +34,30 @@
 ;;                         (:default-directory . ,topdir)
 ;;                         (:exec . ("%c run --no-color"))))))
 
+(with-eval-after-load 'crystal-mode
+  (define-key crystal-mode-map [(control meta f) ] #'crystal-forward-sexp)
+  (define-key crystal-mode-map [(control meta b) ] #'crystal-backward-sexp)
+  (define-key crystal-mode-map [(control t) ] #'crystal-spec-switch)
+  ;; (define-key crystal-mode-map [(meta \.) ] #'crystal-tool-imp)
+  ;; (define-key crystal-mode-map [(control meta \.) ] #'crystal-tool-expand)
+  ;; (define-key crystal-mode-map [(control meta \,) ] #'crystal-tool-context)
+
+  ;; (define-key crystal-mode-map [(control meta f) ] #'ruby-end-of-block)
+  ;; (define-key crystal-mode-map [(control meta b) ] #'ruby-beginning-of-block)
+
+  ;; (define-key crystal-mode-map [(control meta ?\s)] 'mark-sexp)
+  ;; (define-key crystal-mode-map [(control c) (tab)] 'crystal-project-compile)
+  ;; (define-key crystal-mode-map [(control c) (return)] 'crystal-project-run)
+
+  ;; (define-key crystal-mode-map [(kbd "RET")] 'reindent-then-newline-and-indent)
+  ;; (define-key crystal-mode-map [(return)] 'reindent-then-newline-and-indent)
+  )
+
 (add-hook 'crystal-mode-hook
           (lambda ()
             ;; 如果开启了 lsp 里面的 lsp-format-buffer, 则关闭这个。
             ;; (add-hook 'before-save-hook #'crystal-tool-format nil 'local)
 
-            ;; (define-key crystal-mode-map [(meta \.) ] #'crystal-tool-imp)
-            ;; (define-key crystal-mode-map [(control meta \.) ] #'crystal-tool-expand)
-            ;; (define-key crystal-mode-map [(control meta \,) ] #'crystal-tool-context)
-
-            (define-key crystal-mode-map [(control t) ] #'crystal-spec-switch)
-            ;; (define-key crystal-mode-map [(control meta f) ] #'ruby-end-of-block)
-            ;; (define-key crystal-mode-map [(control meta b) ] #'ruby-beginning-of-block)
-
-            (define-key crystal-mode-map [(control meta f) ] #'crystal-forward-sexp)
-            (define-key crystal-mode-map [(control meta b) ] #'crystal-backward-sexp)
-            ;; (define-key crystal-mode-map [(control meta ?\s)] 'mark-sexp)
-            ;; (define-key crystal-mode-map [(control c) (tab)] 'crystal-project-compile)
-            ;; (define-key crystal-mode-map [(control c) (return)] 'crystal-project-run)
-            ;; (local-set-key [(kbd "RET")] 'reindent-then-newline-and-indent)
-            ;; (local-set-key [(return)] 'reindent-then-newline-and-indent)
             ))
 
 (provide 'crystal-mode_init)
