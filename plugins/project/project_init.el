@@ -29,6 +29,11 @@
           (throw 'found (cons 'transient (file-name-as-directory path)))
           )))))
 
+(defun zw/project-root ()
+  "Return project root dir or nil."
+  (when-let ((proj (project-current nil)))
+    (project-root proj)))
+
 ;; 加入后默认应该有两个： (project-try-vc project-find-root)
 (add-to-list 'project-find-functions #'project-find-root t)
 
