@@ -59,7 +59,7 @@
 (require 'tailwindcss_init)
 
 (require 'project_init)
-(require 'bash-ts-mode_init)
+;; (require 'bash-ts-mode_init) ;; CPU usage 一直很高
 
 ;; =============== 下面是绑定快捷键的模式 ===============
 
