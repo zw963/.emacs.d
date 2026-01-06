@@ -1,31 +1,34 @@
 ;; -*- lexical-binding: t; -*-
-
-(require 's)
-
 (defun run-ruby-mode-hook (func)
   (dolist (hook '(ruby-mode-hook enh-ruby-mode-hook ruby-ts-mode-hook))
     (add-hook hook `(lambda ()
                       ,func
                       ))))
 
-(defun get-local-window-for-buffer-name (buffer-name-string)
-  "Return the window displaying the specified buffer in the current frame.
-Returns nil otherwise."
-  (declare (side-effect-free error-free))
-  (->> (window-list (selected-frame))
-       (--first (->> it
-                     (window-buffer)
-                     (buffer-name)
-                     (s-starts-with? buffer-name-string)))))
+(defun ruby-testfile-p ()
+  (let ((name (or (buffer-file-name) (buffer-name))))
+    (string-match "_test\\.\\(rb\\|cr\\)$" name)))
 
-(defun get-local-buffer-for-buffer-name (buffer-name-string)
-  "Return the specified buffer if exists.
-Returns nil otherwise."
+(defun ruby-specfile-p ()
+  (let ((name (or (buffer-file-name) (buffer-name))))
+    (string-match "_spec\\.\\(rb\\|cr\\)$" name)))
+
+(defun get-local-window-for-buffer-name (prefix &optional frame)
+  "Return a window in FRAME whose buffer name starts with PREFIX."
   (declare (side-effect-free error-free))
-  (->> (buffer-list)
-       (--first (->> it
-                     (buffer-name)
-                     (s-starts-with? buffer-name-string)))))
+  (let ((frame (or frame (selected-frame))))
+    (cl-find-if
+     (lambda (w)
+       (string-prefix-p prefix (buffer-name (window-buffer w))))
+     (window-list frame 'no-minibuf))))
+
+(defun get-local-buffer-for-buffer-name (prefix)
+  "Return a buffer whose name starts with PREFIX."
+  (declare (side-effect-free error-free))
+  (cl-find-if
+   (lambda (b)
+     (string-prefix-p prefix (buffer-name b)))
+   (buffer-list)))
 
 (defun count-visible-buffers (&optional frame)
   "Count how many buffers are currently being shown.  Defaults to
@@ -46,9 +49,7 @@ Use `font-lock-add-keywords' in case of `ruby-mode' or
    (list (list
           (concat "\\(^\\|[^_:.@$]\\|\\.\\.\\)\\b"
                   (regexp-opt keywords t)
-                  (eval-when-compile (if (string-match "\\_>" "ruby")
-                                         "\\_>"
-                                       "\\>"))
+                  "\\_>"
                   )
           (list 2 (or face 'font-lock-builtin-face))))))
 
@@ -71,9 +72,14 @@ Use `font-lock-add-keywords' in case of `ruby-mode' or
   (message (concat "set http_proxy https_proxy to http://127.0.0.1:" port))
   )
 
-(defun add-list-to-list(target list)
-  "Add LIST to TARGET."
-  (set target (append list (eval target))))
+;; (defun add-list-to-list(target list)
+;;   "Add LIST to TARGET."
+;;   (set target (append list (eval target))))
+
+(defun add-list-to-list (target xs)
+  "Prepend XS into list variable TARGET."
+  (set target (append xs (and (boundp target) (symbol-value target)))))
+
 
 ;; 自动安装 package, e.g: (install 'imenu-anywhere)
 (defun install (package)
@@ -113,10 +119,14 @@ Use `font-lock-add-keywords' in case of `ruby-mode' or
 ;;       (shell-command-to-string (concat "add_webpack_watch_dog " watch-dog-file)))))
 ;; (add-hook 'before-save-hook 'set-webpack-watch-dog nil t)
 
+(add-hook 'find-file-hook #'my-find-file-check-make-large-file-read-only-hook)
+
 (defun my-find-file-check-make-large-file-read-only-hook ()
   "If a file is over a given size (about 1M), make the buffer read only."
-  (when (> (buffer-size) (* 1024 1024 10))
-    (setq buffer-read-only t)
+  (when (and (buffer-file-name)
+             (not (file-remote-p default-directory))
+             (> (buffer-size) (* 1024 1024 10)))
+    (setq-local buffer-read-only t)
     (buffer-disable-undo)
     ;; (ad-deactivate 'kill-ring-save)
     (fundamental-mode)
