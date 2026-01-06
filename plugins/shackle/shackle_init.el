@@ -83,7 +83,7 @@ Return non-nil if a window is closed."
           (("*Help*" "*Backtrace*" "*Ibuffer*" "*Buffer List*" "*color-rg*" "*quickrun*") :select t :align right :size 0.5 :autoclose t)
           (" *undo-tree*" :select t :align right :size 0.33)
           ("\\*mu4e-" :regexp t :select t :align right :size 0.5)
-          (vc-annotate-mode :select t :align right :size 0.33 :autoclose t)
+          (vc-annotate-mode :select t :align right :size 0.618 :autoclose t)
           ("*vc-change-log*" :select t :align right :size 0.33 :autoclose t)
           (special-mode :select t :align t)
           (("*lsp-help*" "*lsp session*" "*LSP Error List*") :select t :align right :size 0.5 :autoclose t)
