@@ -1,10 +1,11 @@
 ;; -*- lexical-binding: t; -*-
 
 (require 'diff-hl)
+
 (require 'diff-hl-show-hunk-inline)
 (setq diff-hl-show-hunk-function 'diff-hl-show-hunk-inline)
 
-(setq vc-git-diff-switches '("--histogram"))
+(setq vc-git-diff-switches '("--histogram" "--ext-diff"))
 
 ;; (add-hook 'prog-mode-hook 'turn-on-diff-hl-mode)
 (global-diff-hl-mode 1)
@@ -12,8 +13,9 @@
 (require 'diff-hl-margin)
 (diff-hl-margin-mode)
 
-(require 'diff-hl-flydiff)
-(diff-hl-flydiff-mode 1)
+;; 可能影响性能？
+;; (require 'diff-hl-flydiff)
+;; (diff-hl-flydiff-mode 1)
 
 (require 'diff-hl-dired)
 (add-hook 'dired-mode-hook 'diff-hl-dired-mode)
@@ -35,8 +37,8 @@
 (setq diff-hl-fringe-bmp-function
       (lambda (&rest _) 'my-diff-hl-bmp))
 
-(with-eval-after-load 'flymake
-  (setq flymake-fringe-indicator-position 'right-fringe))
+;; (with-eval-after-load 'flymake
+;;   (setq flymake-fringe-indicator-position 'right-fringe))
 
 (defun diff-hl-revert-narrow-to-hunk-hacked (end)
   (if (fboundp 'fancy-narrow-to-region)
