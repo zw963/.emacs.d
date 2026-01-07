@@ -1,6 +1,6 @@
 ;;; treesit-fold.el --- Code folding using treesit  -*- lexical-binding: t; -*-
 
-;; Copyright (C) 2021-2025  emacs-tree-sitter maintainers
+;; Copyright (C) 2021-2026  emacs-tree-sitter maintainers
 
 ;; Created date 2021-08-11 14:12:37
 
@@ -95,14 +95,20 @@
     (erlang-mode            . ,(treesit-fold-parsers-erlang))
     (erlang-ts-mode         . ,(treesit-fold-parsers-erlang))
     (ess-r-mode             . ,(treesit-fold-parsers-r))
+    (fennel-mode            . ,(treesit-fold-parsers-fennel))
+    (fennel-ts-mode         . ,(treesit-fold-parsers-fennel))
     (fish-mode              . ,(treesit-fold-parsers-fish))
+    (fsharp-mode            . ,(treesit-fold-parsers-fsharp))
+    (fsharp-ts-mode         . ,(treesit-fold-parsers-fsharp))
     (gdscript-mode          . ,(treesit-fold-parsers-gdscript))
     (gdscript-ts-mode       . ,(treesit-fold-parsers-gdscript))
+    (gitconfig-mode         . ,(treesit-fold-parsers-git-config))
     (gleam-ts-mode          . ,(treesit-fold-parsers-gleam))
     (glsl-mode              . ,(treesit-fold-parsers-glsl))
     (go-mode                . ,(treesit-fold-parsers-go))
     (go-ts-mode             . ,(treesit-fold-parsers-go))
     (go-mod-ts-mode         . ,(treesit-fold-parsers-go))
+    (graphql-mode           . ,(treesit-fold-parsers-graphql))
     (groovy-mode            . ,(treesit-fold-parsers-groovy))
     (jenkinsfile-mode       . ,(treesit-fold-parsers-groovy))
     (haskell-mode           . ,(treesit-fold-parsers-haskell))
@@ -157,6 +163,8 @@
     (ninja-mode             . ,(treesit-fold-parsers-ninja))
     (noir-mode              . ,(treesit-fold-parsers-noir))
     (noir-ts-mode           . ,(treesit-fold-parsers-noir))
+    (nim-mode               . ,(treesit-fold-parsers-nim))
+    (nim-ts-mode            . ,(treesit-fold-parsers-nim))
     (nix-mode               . ,(treesit-fold-parsers-nix))
     (nix-ts-mode            . ,(treesit-fold-parsers-nix))
     (ocaml-mode             . ,(treesit-fold-parsers-ocaml))
@@ -170,6 +178,7 @@
     (python-ts-mode         . ,(treesit-fold-parsers-python))
     (qss-mode               . ,(treesit-fold-parsers-qss))
     (rjsx-mode              . ,(treesit-fold-parsers-javascript))
+    (ron-mode               . ,(treesit-fold-parsers-ron))
     (rst-mode               . ,(treesit-fold-parsers-rst))
     (ruby-mode              . ,(treesit-fold-parsers-ruby))
     (ruby-ts-mode           . ,(treesit-fold-parsers-ruby))
@@ -190,12 +199,13 @@
     (tuareg-mode            . ,(treesit-fold-parsers-ocaml))
     (typescript-mode        . ,(treesit-fold-parsers-typescript))
     (typescript-ts-mode     . ,(treesit-fold-parsers-typescript))
-    (tsx-ts-mode            . ,(treesit-fold-parsers-typescript))
+    (tsx-ts-mode            . ,(treesit-fold-parsers-tsx))
     (verilog-mode           . ,(treesit-fold-parsers-verilog))
     (verilog-ts-mode        . ,(treesit-fold-parsers-verilog))
     (vhdl-mode              . ,(treesit-fold-parsers-vhdl))
     (vhdl-ts-mode           . ,(treesit-fold-parsers-vhdl))
-    (vimscript-ts-mode      . ,(treesit-fold-parsers-vimscript))
+    (vimrc-mode             . ,(treesit-fold-parsers-vim))
+    (vimscript-ts-mode      . ,(treesit-fold-parsers-vim))
     (nxml-mode              . ,(treesit-fold-parsers-xml))
     (xml-ts-mode            . ,(treesit-fold-parsers-xml))
     (yaml-mode              . ,(treesit-fold-parsers-yaml))
@@ -509,14 +519,14 @@ current `major-mode'.
 If no NODE is found in point, do nothing."
   (interactive)
   (treesit-fold--ensure-ts
-    (when-let* ((node (or node (treesit-fold--foldable-node-at-pos))))
-      ;; make sure I do not create multiple overlays for the same fold
-      (when-let* ((ov (treesit-fold-overlay-at node)))
-        (delete-overlay ov))
-      (when-let* ((range (treesit-fold--get-fold-range node))
-                  (ov (treesit-fold--create-overlay range)))
-        (run-hooks 'treesit-fold-on-fold-hook)
-        ov))))
+   (when-let* ((node (or node (treesit-fold--foldable-node-at-pos))))
+     ;; make sure I do not create multiple overlays for the same fold
+     (when-let* ((ov (treesit-fold-overlay-at node)))
+       (delete-overlay ov))
+     (when-let* ((range (treesit-fold--get-fold-range node))
+                 (ov (treesit-fold--create-overlay range)))
+       (run-hooks 'treesit-fold-on-fold-hook)
+       ov))))
 
 ;;;###autoload
 (defun treesit-fold-open ()
@@ -524,58 +534,58 @@ If no NODE is found in point, do nothing."
 If the current node is not folded or not foldable, do nothing."
   (interactive)
   (treesit-fold--ensure-ts
-    (when-let* ((node (treesit-fold--foldable-node-at-pos))
-                (ov (treesit-fold-overlay-at node)))
-      (delete-overlay ov)
-      (run-hooks 'treesit-fold-on-fold-hook)
-      t)))
+   (when-let* ((node (treesit-fold--foldable-node-at-pos))
+               (ov (treesit-fold-overlay-at node)))
+     (delete-overlay ov)
+     (run-hooks 'treesit-fold-on-fold-hook)
+     t)))
 
 ;;;###autoload
 (defun treesit-fold-open-recursively ()
   "Open recursively folded syntax NODE that are contained in the node at point."
   (interactive)
   (treesit-fold--ensure-ts
-    (when-let* ((node (treesit-fold--foldable-node-at-pos))
-                (beg (treesit-node-start node))
-                (end (treesit-node-end node))
-                (nodes (treesit-fold--overlays-in 'invisible 'treesit-fold beg end)))
-      (mapc #'delete-overlay nodes)
-      (run-hooks 'treesit-fold-on-fold-hook)
-      t)))
+   (when-let* ((node (treesit-fold--foldable-node-at-pos))
+               (beg (treesit-node-start node))
+               (end (treesit-node-end node))
+               (nodes (treesit-fold--overlays-in 'invisible 'treesit-fold beg end)))
+     (mapc #'delete-overlay nodes)
+     (run-hooks 'treesit-fold-on-fold-hook)
+     t)))
 
 ;;;###autoload
 (defun treesit-fold-close-all ()
   "Fold all foldable syntax nodes in the buffer."
   (interactive)
   (treesit-fold--ensure-ts
-    (let (nodes)
-      (let* ((treesit-fold-indicators-mode)
-             (treesit-fold-on-fold-hook)
-             (node (treesit-buffer-root-node))
-             (patterns (seq-mapcat (lambda (fold-range) `((,(car fold-range)) @name))
-                                   (alist-get major-mode treesit-fold-range-alist)))
-             (query (treesit-query-compile (treesit-node-language node) patterns)))
-        (setq nodes (treesit-query-capture node query)
-              nodes (cl-remove-if (lambda (node)
-                                    ;; Removed if on same line
-                                    (treesit-fold--node-range-on-same-line (cdr node)))
-                                  nodes))
-        (thread-last nodes
-                     (mapcar #'cdr)
-                     (mapc #'treesit-fold-close)))
-      (when nodes
-        (run-hooks 'treesit-fold-on-fold-hook)
-        t))))
+   (let (nodes)
+     (let* ((treesit-fold-indicators-mode)
+            (treesit-fold-on-fold-hook)
+            (node (treesit-buffer-root-node))
+            (patterns (seq-mapcat (lambda (fold-range) `((,(car fold-range)) @name))
+                                  (alist-get major-mode treesit-fold-range-alist)))
+            (query (treesit-query-compile (treesit-node-language node) patterns)))
+       (setq nodes (treesit-query-capture node query)
+             nodes (cl-remove-if (lambda (node)
+                                   ;; Removed if on same line
+                                   (treesit-fold--node-range-on-same-line (cdr node)))
+                                 nodes))
+       (thread-last nodes
+                    (mapcar #'cdr)
+                    (mapc #'treesit-fold-close)))
+     (when nodes
+       (run-hooks 'treesit-fold-on-fold-hook)
+       t))))
 
 ;;;###autoload
 (defun treesit-fold-open-all ()
   "Unfold all syntax nodes in the buffer."
   (interactive)
   (treesit-fold--ensure-ts
-    (when-let* ((nodes (treesit-fold--overlays-in 'invisible 'treesit-fold)))
-      (mapc #'delete-overlay nodes)
-      (run-hooks 'treesit-fold-on-fold-hook)
-      t)))
+   (when-let* ((nodes (treesit-fold--overlays-in 'invisible 'treesit-fold)))
+     (mapc #'delete-overlay nodes)
+     (run-hooks 'treesit-fold-on-fold-hook)
+     t)))
 
 ;;;###autoload
 (defun treesit-fold-toggle ()
@@ -583,13 +593,13 @@ If the current node is not folded or not foldable, do nothing."
 If the current syntax node is not foldable, do nothing."
   (interactive)
   (treesit-fold--ensure-ts
-    (if-let* ((node (treesit-fold--foldable-node-at-pos (point)))
-              (ov (treesit-fold-overlay-at node)))
-        (progn
-          (delete-overlay ov)
-          (run-hooks 'treesit-fold-on-fold-hook)
-          t)
-      (treesit-fold-close))))
+   (if-let* ((node (treesit-fold--foldable-node-at-pos (point)))
+             (ov (treesit-fold-overlay-at node)))
+       (progn
+         (delete-overlay ov)
+         (run-hooks 'treesit-fold-on-fold-hook)
+         t)
+     (treesit-fold-close))))
 
 (defun treesit-fold--after-command (&rest _)
   "Function call after interactive commands."
@@ -935,6 +945,38 @@ more information."
               (beg (treesit-fold--eol beg))
               (end (treesit-node-end node))
               (end (1- end)))
+    (treesit-fold--cons-add (cons beg end) offset)))
+
+(defun treesit-fold-range-fsharp-module-defn (node offset)
+  "Define fold range for `module_defn' in FSharp.
+
+For arguments NODE and OFFSET, see function `treesit-fold-range-seq' for
+more information."
+  (when-let* ((beg (car (treesit-fold-find-children node "=")))
+              (beg (treesit-node-end beg))
+              (end (treesit-node-end node)))
+    (treesit-fold--cons-add (cons beg end) offset)))
+
+(defun treesit-fold-range-fsharp-record-type-defn (node offset)
+  "Define fold range for `record_type_defn' in FSharp.
+
+For arguments NODE and OFFSET, see function `treesit-fold-range-seq' for
+more information."
+  (when-let* ((beg (car (treesit-fold-find-children node "{")))
+              (beg (treesit-node-end beg))
+              (end (1- (treesit-node-end node))))
+    (treesit-fold--cons-add (cons beg end) offset)))
+
+(defun treesit-fold-range-git-config-section (node offset)
+  "Return the fold range for `section' in YAML.
+
+For arguments NODE and OFFSET, see function `treesit-fold-range-seq' for
+more information."
+  (when-let* ((first (car (treesit-fold-find-children node "section_header")))
+              (beg (treesit-node-end first))
+              (end (treesit-node-end node)))
+    (when treesit-fold-on-next-line
+      (setq end (treesit-fold--last-eol end)))
     (treesit-fold--cons-add (cons beg end) offset)))
 
 (defun treesit-fold-range-gleam (node offset)
@@ -1454,6 +1496,16 @@ more information."
               (end (treesit-node-end node)))
     (treesit-fold--cons-add (cons (+ beg 3) (- end 3)) offset)))
 
+(defun treesit-fold-range-ron-struct (node offset)
+  "Define fold range for `struct' in RON.
+
+For arguments NODE and OFFSET, see function `treesit-fold-range-seq' for
+more information."
+  (when-let* ((node-bracket (car (treesit-fold-find-children node "(")))
+              (beg (treesit-node-end node-bracket))
+              (end (1- (treesit-node-end node))))
+    (treesit-fold--cons-add (cons beg end) offset)))
+
 (defun treesit-fold-range-rst-body (node offset)
   "Define fold range for `body' in reStructuredText.
 
@@ -1595,17 +1647,16 @@ more information."
       (setq end (treesit-fold--last-eol end)))
     (treesit-fold--cons-add (cons beg end) offset)))
 
-(defun treesit-fold-range-vimscript-function (node offset)
-  "Return the fold range for `function!' and `func' NODE
-in Vimscript.
-
+(defun treesit-fold-range-vim-for-loop (node offset)
+  "Return the fold range for `for_loop' in Vim.
 For arguments NODE and OFFSET, see function `treesit-fold-range-seq' for
 more information."
-  (when-let* ((param-node (treesit-node-child node 1))
-              (beg (treesit-node-start param-node))
+  (when-let* ((body (car (treesit-fold-find-children node "body")))
+              (prev (treesit-node-prev-sibling body))
+              (beg (treesit-node-end prev))
               (end (treesit-node-end node)))
-    (unless treesit-fold-on-next-line  ; display nicely
-      (setq beg (treesit-fold--last-eol beg)))
+    (when treesit-fold-on-next-line
+      (setq end (treesit-fold--last-eol end)))
     (treesit-fold--cons-add (cons beg end) offset)))
 
 (provide 'treesit-fold)
