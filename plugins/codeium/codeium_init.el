@@ -40,7 +40,6 @@
   ;; 例如：给一个你顺手的键
   (global-set-key (kbd "C-c i") #'zw/codeium-complete))
 
-(
 (provide 'codeium_init)
 
 ;;; codeium_init.el ends here
