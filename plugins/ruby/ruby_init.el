@@ -104,14 +104,6 @@ Optional argument HOME is ignored."
         (unless (string-match "\\(^[[:alpha:]]:/$\\|^/[^\/]+:/?$\\|^/$\\)" default-directory)
           (rinari-root (expand-file-name (file-name-as-directory ".."))))))))
 
-(defun ruby-testfile-p ()
-  (let ((name (or (buffer-file-name) (buffer-name))))
-    (string-match "_test\\.\\(rb\\|cr\\)$" name)))
-
-(defun ruby-specfile-p ()
-  (let ((name (or (buffer-file-name) (buffer-name))))
-    (string-match "_spec\\.\\(rb\\|cr\\)$" name)))
-
 (provide 'ruby_init)
 
 ;;; ruby_init.el ends here
