@@ -3,6 +3,14 @@
 ;; 默认不设置 treesit-extra-load-path, 使用 ~/.emacs.d/tree-sitter 文件夹
 ;; (setq treesit-extra-load-path `(,(concat default-directory "tree-sitter")))
 
+
+;; Emacs 29+ built-in tree-sitter
+(require 'treesit)
+
+;; 可选：显式指定 grammar 动态库放哪/从哪找（不设也行，Emacs 默认会用 ~/.emacs.d/tree-sitter）
+;; (add-to-list 'treesit-extra-load-path
+;;              (expand-file-name "tree-sitter" user-emacs-directory))
+
 (setq major-mode-remap-alist
       '((c-mode          . c-ts-mode)
         (tsx-mode        . tsx-ts-mode)
