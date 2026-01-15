@@ -1,4 +1,4 @@
-;;; rectangular-region-mode.el
+;;; rectangular-region-mode.el  -*- lexical-binding: t; -*-
 
 ;; Copyright (C) 2012-2016 Magnar Sveen
 

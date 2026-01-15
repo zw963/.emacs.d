@@ -1,4 +1,4 @@
-;;; mc-mark-pop.el --- Pop cursors off of the mark stack
+;;; mc-mark-pop.el --- Pop cursors off of the mark stack  -*- lexical-binding: t; -*-
 
 (require 'multiple-cursors-core)
 

@@ -1,4 +1,4 @@
-;;; mc-separate-operations.el - functions that work differently on each cursor
+;;; mc-separate-operations.el - functions that work differently on each cursor  -*- lexical-binding: t; -*-
 
 ;; Copyright (C) 2012-2016 Magnar Sveen
 

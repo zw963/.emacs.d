@@ -1,4 +1,4 @@
-;;; mc-edit-lines.el
+;;; mc-edit-lines.el  -*- lexical-binding: t; -*-
 
 ;; Copyright (C) 2012-2016 Magnar Sveen
 

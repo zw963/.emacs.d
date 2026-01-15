@@ -1,4 +1,4 @@
-;;; mc-cycle-cursors.el
+;;; mc-cycle-cursors.el  -*- lexical-binding: t; -*-
 
 ;; Copyright (C) 2012-2016 Magnar Sveen
 

@@ -1,4 +1,4 @@
-;;; mc-hide-unmatched-lines-mode.el
+;;; mc-hide-unmatched-lines-mode.el  -*- lexical-binding: t; -*-
 
 ;; Copyright (C) 2014 Aleksey Fedotov
 

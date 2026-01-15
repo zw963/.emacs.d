@@ -1,4 +1,4 @@
-;;; multiple-cursors.el --- Multiple cursors for emacs.
+;;; multiple-cursors.el --- Multiple cursors for emacs.  -*- lexical-binding: t; -*-
 
 ;; Copyright (C) 2012-2016 Magnar Sveen
 
