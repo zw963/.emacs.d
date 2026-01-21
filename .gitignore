@@ -5,3 +5,4 @@ org
 *.bak
 *.elc
 /rime/
+plugins.disabled
