@@ -80,7 +80,8 @@ Return non-nil if a window is closed."
           ;; (("*Crystal-Expand*" "*Crystal-Implementations") :align right :autoclose t)
           ;; (("\\*RuboCop ") :regexp t :size 0.3 :autoclose t)
 
-          (("*Help*" "*Backtrace*" "*Ibuffer*" "*Buffer List*" "*color-rg*" "*quickrun*") :select t :align right :size 0.5 :autoclose t)
+          (("*Help*" "*Backtrace*" "*Ibuffer*" "*Buffer List*" "*quickrun*") :select t :align right :size 0.5 :autoclose t)
+          (("*color-rg*") :select t :align right :size 0.5)
           (" *undo-tree*" :select t :align right :size 0.33)
           ("\\*mu4e-" :regexp t :select t :align right :size 0.5)
           (vc-annotate-mode :select t :align right :size 0.618 :autoclose t)
