@@ -26,7 +26,7 @@
 
   (setq popper-window-height 50)
 
-  (popper-mode t)
+  ;; (popper-mode t)
   (popper-echo-mode t)
   )
 
