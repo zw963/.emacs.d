@@ -45,6 +45,7 @@
 
 ;; ---------------- 编程相关 ----------------
 
+(require 'tramp-rpc_init)
 (require 'indentation_init)
 (require 'tree-sitter_init)
 ;; (require 'apheleia_init) ;; 怀疑这个跟 lsp-mode formatter 冲突?
