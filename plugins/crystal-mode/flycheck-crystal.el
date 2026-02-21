@@ -1,5 +1,3 @@
-;; -*- lexical-binding: t; -*-
-
 ;;; flycheck-crystal.el --- Add support for Crystal to Flycheck
 
 ;; Copyright (C) 2015-2018 crystal-lang-tools

@@ -1,555 +1,397 @@
-;;; crystal-ts-mode.el --- Major mode for editing Crystal files using tree-sitter -*- lexical-binding: t; -*-
+;;; crystal-ts-mode.el --- Crystal major mode using built-in tree-sitter  -*- lexical-binding: t; -*-
 
-;; Copyright (C) 2026
-;;
-;; Author: You + ChatGPT (ported from ruby-ts-mode style)
-;; Keywords: crystal languages tree-sitter
-;; Version: 0.1
-;;
-;; This file is NOT part of GNU Emacs.
-;;
-;; GNU Emacs is free software: you can redistribute it and/or modify
-;; it under the terms of the GNU General Public License as published by
-;; the Free Software Foundation, either version 3 of the License, or
-;; (at your option) any later version.
-
-;;; Tree-sitter language versions
-;;
-;; crystal-ts-mode has been tested conceptually against:
-;; - tree-sitter-crystal: commit 50ca9e6fcfb16a2cbcad59203cfd8ad650e25c49
-;;
-;; We try our best to make this mode work with recent grammar versions.
-;; If the grammar updates and breaks the mode, please update the queries
-;; and/or submit a bug report.
-
-;;; Commentary:
-;;
-;; This file defines `crystal-ts-mode`, a major mode for editing Crystal
-;; source files that uses Tree-sitter to parse and fontify the language.
-;;
-;; Requirements:
-;; 1) Emacs must be compiled with tree-sitter support (Emacs 29+; you use Emacs 31 master).
-;; 2) You must have the Crystal tree-sitter grammar installed (libtree-sitter-crystal).
-;;
-;; Installing the grammar (recommended):
-;; - Ensure this file is loaded (so it registers `treesit-language-source-alist` entry)
-;; - Then run:
-;;     M-x treesit-install-language-grammar RET crystal RET
-;;
-;; Enabling the mode by default:
-;; - Remap crystal-mode to crystal-ts-mode:
-;;     (add-to-list 'major-mode-remap-alist '(crystal-mode . crystal-ts-mode))
-;;
-;; Note:
-;; - This mode intentionally *depends on* crystal-mode:
-;;   it inherits crystal-mode keybindings, syntax-propertize logic, and indentation.
-;;   Tree-sitter is used primarily for parsing, navigation, imenu/outline, and font-lock.
-;;
-;; Feature overview (similar organization to ruby-ts-mode):
-;; * Font Lock (tree-sitter driven, feature/level based)
-;; * Navigation (beginning/end of defun)
-;; * IMenu
-;; * Outline (outline-minor-mode uses `treesit-outline-predicate`)
-;;
-;; Indentation:
-;; - For phase 1, indentation is kept from crystal-mode (SMIE / classic).
-;;   Tree-sitter indentation can be added later once you decide the exact rules you want.
+;; Version: 0.4
+;; SPDX-License-Identifier: MIT
 
 ;;; Code:
 
 (require 'treesit)
-(require 'crystal-mode)
+(require 'prog-mode)
 (require 'cl-lib)
 
 (treesit-declare-unavailable-functions)
 
-;; Register the grammar source so `treesit-install-language-grammar` can install it.
-;; Pinned to a known good commit from upstream.
-(add-to-list
- 'treesit-language-source-alist
- '(crystal "https://github.com/crystal-lang-tools/tree-sitter-crystal"
-           :commit "50ca9e6fcfb16a2cbcad59203cfd8ad650e25c49")
- t)
+;;;; Customization
+
+(defun crystal-ts-mode--face (preferred fallback)
+  "Return PREFERRED if it's a defined face, otherwise FALLBACK."
+  (if (facep preferred) preferred fallback))
 
 (defgroup crystal-ts nil
-  "Major mode for editing Crystal code."
-  :prefix "crystal-ts-"
+  "Crystal major mode using Emacs built-in tree-sitter."
   :group 'languages
-  :link '(url-link :tag "tree-sitter-crystal"
-                   "https://github.com/crystal-lang-tools/tree-sitter-crystal"))
+  :prefix "crystal-ts-")
 
-;;;; -------------------------------------------------------------------
-;;;; Constants / regexps (mirror ruby-ts-mode structure)
-;;;; -------------------------------------------------------------------
+(defcustom crystal-ts-mode-query-dir nil
+  "Directory containing Crystal tree-sitter query files.
 
-(defvar crystal-ts--operators
-  '("+" "-" "*" "/" "//" "%" "&" "|" "^" "**"
-    ">>" "<<" "==" "!=" "<" "<=" ">" ">=" "<=>" "==="
-    "!" "~" "!~" "=~"
-    "[]" "[]?" "[]="
+If non-nil, this directory may contain:
+  - highlights.scm (recommended)
+  - folds.scm (optional)
 
-    ;; wrapping operators (Crystal supports &+ etc)
-    "&+" "&-" "&*" "&**"
+If nil, `crystal-ts-mode' tries standard locations under
+`user-emacs-directory'."
+  :type '(choice (const :tag "Auto" nil)
+                 (directory :tag "Query directory"))
+  :group 'crystal-ts)
 
-    ;; range operators are punctuation-ish, but often treated as operators
-    ".." "...")
-  "Crystal operators for tree-sitter font-locking.")
+(defcustom crystal-ts-indent-offset 2
+  "Indentation offset (number of spaces) for `crystal-ts-mode'."
+  :type 'integer
+  :group 'crystal-ts)
 
-(defvar crystal-ts--delimiter-tokens
-  '("." "::" ";" "," ":" "=>" "->" "&." "&" "@" "@@" "$" "?")
-  "Crystal delimiter/punctuation tokens for tree-sitter font-locking.")
+(defcustom crystal-ts-use-ruby-indent t
+  "If non-nil, reuse `ruby-indent-line' for indentation."
+  :type 'boolean
+  :group 'crystal-ts)
 
-;; Keep the keyword list conservative: these are syntactic keywords in Crystal.
-;; (Methods like `puts` are not keywords and are parsed as calls; we do not list them here.)
-(defvar crystal-ts--keywords
-  '("abstract" "alias" "annotation" "as" "as?" "asm"
-    "begin" "break"
-    "case" "class"
-    "def" "do"
-    "else" "elsif" "end" "ensure" "enum" "extend"
-    "for" "fun"
-    "if" "in" "include"
-    "lib"
-    "macro" "module"
-    "next"
-    "of" "out"
-    "private" "protected"
-    "require" "rescue" "return"
-    "select" "struct" "super"
-    "then"
-    "type" "typeof"
-    "union" "uninitialized" "unless" "until"
-    "verbatim"
-    "when" "while" "with"
-    "yield")
-  "Crystal keywords for tree-sitter font-locking.")
+(defcustom crystal-ts-enable-fold t
+  "If non-nil and `treesit-fold' is available, enable `treesit-fold-mode'."
+  :type 'boolean
+  :group 'crystal-ts)
 
-(defconst crystal-ts--type-def-regexp
-  (rx string-start
-      (or "module_def" "class_def" "struct_def" "enum_def"
-          "lib_def" "union_def" "annotation_def")
-      string-end)
-  "Regular expression matching Crystal type/namespace definitions.")
+(defcustom crystal-ts-prefer-user-grammar t
+  "If non-nil, prefer grammar in `~/.emacs.d/tree-sitter/'."
+  :type 'boolean
+  :group 'crystal-ts)
 
-(defconst crystal-ts--defun-regexp
-  (rx string-start
-      (or
-       ;; “Defun-ish” constructs.
-       "method_def" "abstract_method_def" "macro_def" "fun_def"
-       ;; Also treat type definitions as defuns for navigation/outline.
-       "module_def" "class_def" "struct_def" "enum_def"
-       "lib_def" "union_def" "annotation_def")
-      string-end)
-  "Regular expression matching Crystal definitions for navigation.")
+;;;; Query loading / sanitizing
 
-(defun crystal-ts--lineno (node)
-  "Return line number of NODE's start."
-  (line-number-at-pos (treesit-node-start node)))
+(defvar crystal-ts-mode--font-lock-settings-cache nil)
+(defvar crystal-ts-mode--query-cache (make-hash-table :test 'equal))
 
-;;;; -------------------------------------------------------------------
-;;;; Font-lock helpers (mirror ruby-ts-mode pattern)
-;;;; -------------------------------------------------------------------
+(defun crystal-ts-mode--default-query-dirs ()
+  "Standard query directories to try."
+  (let ((base (expand-file-name "tree-sitter/" user-emacs-directory)))
+    (list (expand-file-name "queries/crystal/" base)
+          (expand-file-name "crystal/" base)
+          (expand-file-name "tree-sitter/queries/crystal/" user-emacs-directory))))
 
-(defun crystal-ts--comment-font-lock (node override start end &rest _)
-  "Apply font lock to comment NODE within START and END.
-Applies `font-lock-comment-delimiter-face' and
-`font-lock-comment-face'.  See `treesit-fontify-with-override' for
-values of OVERRIDE."
-  ;; In tree-sitter-crystal, `comment` is /#.*/ and includes the leading '#'.
-  (let* ((node-start (treesit-node-start node))
-         (plus-1 (1+ node-start))
-         (node-end (treesit-node-end node))
-         (text (treesit-node-text node t)))
-    (when (and (>= node-start start)
-               (<= plus-1 end)
-               (string-match-p "\\`#" text))
-      (treesit-fontify-with-override
-       node-start plus-1 'font-lock-comment-delimiter-face override))
-    (treesit-fontify-with-override
-     (max plus-1 start) (min node-end end)
-     'font-lock-comment-face override)))
+(defun crystal-ts-mode--query-dir ()
+  "Return the query directory to use, or nil."
+  (cond
+   ((and crystal-ts-mode-query-dir
+         (file-directory-p crystal-ts-mode-query-dir))
+    (file-name-as-directory (expand-file-name crystal-ts-mode-query-dir)))
+   (t
+    (cl-loop for d in (crystal-ts-mode--default-query-dirs)
+             when (file-directory-p d)
+             return (file-name-as-directory d)))))
 
-(defun crystal-ts--font-lock-settings (language)
-  "Tree-sitter font-lock settings for Crystal."
-  (treesit-font-lock-rules
-   :default-language language
+(defun crystal-ts-mode--read-file (path)
+  "Read PATH and return its content, or nil."
+  (when (and path (file-readable-p path))
+    (with-temp-buffer
+      (insert-file-contents path)
+      (buffer-string))))
 
-   ;; -----------------------
-   ;; Comments
-   ;; -----------------------
-   :feature 'comment
-   '((comment) @crystal-ts--comment-font-lock)
+(defun crystal-ts-mode--load-query (filename &optional fallback)
+  "Load query file FILENAME from query dir, else FALLBACK."
+  (let* ((dir (crystal-ts-mode--query-dir))
+         (path (and dir (expand-file-name filename dir)))
+         (cache-key (or path (concat "embedded:" filename)))
+         (cached (gethash cache-key crystal-ts-mode--query-cache)))
+    (or cached
+        (let ((txt (or (crystal-ts-mode--read-file path) fallback)))
+          (puthash cache-key txt crystal-ts-mode--query-cache)
+          txt))))
 
-   ;; -----------------------
-   ;; Keywords
-   ;; -----------------------
-   :feature 'keyword
-   `([,@crystal-ts--keywords] @font-lock-keyword-face)
+(defun crystal-ts-mode--sanitize-query (query)
+  "Sanitize QUERY for Emacs treesit.
 
-   ;; self/nil/true/false are nodes (named terminals); highlight as builtin/constant.
-   :feature 'builtin-variable
-   '((self) @font-lock-builtin-face
-     (underscore) @font-lock-builtin-face
-     (special_variable) @font-lock-builtin-face)
+Remove unsupported (#set! ...) directives."
+  (setq query (replace-regexp-in-string "(#set![^)]*)" "" query))
+  (setq query (replace-regexp-in-string "^[ \t]+$" "" query))
+  query)
 
-   :feature 'constant
-   '((true) @font-lock-constant-face
-     (false) @font-lock-constant-face
-     (nil) @font-lock-constant-face
-     (pseudo_constant) @font-lock-builtin-face
-     ;; Symbols are “constant-ish”.
-     (symbol) @font-lock-constant-face)
+;;;; Capture -> face mapping (keep your working logic)
 
-   ;; -----------------------
-   ;; Literals (numbers, chars, regex)
-   ;; -----------------------
-   :feature 'literal
-   '((integer) @font-lock-number-face
-     (float) @font-lock-number-face
-     (char) @font-lock-string-face)
+(defun crystal-ts-mode--capture-face-alist ()
+  "Return mapping from nvim capture names (without @) to Emacs faces."
+  (let* ((call-face (crystal-ts-mode--face 'font-lock-function-call-face
+                                          'font-lock-function-name-face))
+         (var-use   (crystal-ts-mode--face 'font-lock-variable-use-face
+                                          'font-lock-variable-name-face))
+         (prop-face (crystal-ts-mode--face 'font-lock-property-name-face
+                                          'font-lock-variable-name-face))
+         (num-face  (crystal-ts-mode--face 'font-lock-number-face
+                                          'font-lock-constant-face))
+         (op-face   (crystal-ts-mode--face 'font-lock-operator-face
+                                          'font-lock-keyword-face))
+         (br-face   (crystal-ts-mode--face 'font-lock-bracket-face
+                                          'font-lock-punctuation-face))
+         (delim-face (crystal-ts-mode--face 'font-lock-delimiter-face
+                                           (crystal-ts-mode--face 'font-lock-punctuation-face
+                                                                 'font-lock-keyword-face)))
+         (misc-punct (crystal-ts-mode--face 'font-lock-misc-punctuation-face
+                                           (crystal-ts-mode--face 'font-lock-punctuation-face
+                                                                 'font-lock-keyword-face)))
+         (escape-face (crystal-ts-mode--face 'font-lock-escape-face
+                                            'font-lock-string-face))
+         (builtin-face (crystal-ts-mode--face 'font-lock-builtin-face
+                                             'font-lock-constant-face)))
+    `(
+      ("keyword" . font-lock-keyword-face)
+      ("keyword.function" . font-lock-keyword-face)
+      ("keyword.type" . font-lock-keyword-face)
+      ("keyword.import" . font-lock-preprocessor-face)
+      ("keyword.return" . font-lock-keyword-face)
+      ("keyword.conditional" . font-lock-keyword-face)
+      ("keyword.conditional.ternary" . font-lock-keyword-face)
+      ("keyword.repeat" . font-lock-keyword-face)
+      ("keyword.exception" . font-lock-keyword-face)
+      ("keyword.modifier" . font-lock-keyword-face)
 
-   :feature 'regexp
-   '((regex) @font-lock-regexp-face
-     (regex_modifier) @font-lock-preprocessor-face)
+      ("comment" . font-lock-comment-face)
+      ("string" . font-lock-string-face)
+      ("string.escape" . ,escape-face)
+      ("string.special" . font-lock-string-face)
+      ("string.special.symbol" . font-lock-constant-face)
+      ("string.regexp" . font-lock-regexp-face)
+      ("character" . font-lock-constant-face)
+      ("character.special" . font-lock-constant-face)
 
-   ;; -----------------------
-   ;; Strings / heredocs / commands
-   ;; -----------------------
-   :feature 'string
-   '((string) @font-lock-string-face
-     (chained_string) @font-lock-string-face
-     (command) @font-lock-string-face
-     (heredoc_body) @font-lock-string-face
-     (heredoc_start) @font-lock-string-face
-     (heredoc_end) @font-lock-string-face
-     ;; literal_content is used inside many string-ish constructs
-     (literal_content) @font-lock-string-face)
+      ("number" . ,num-face)
+      ("number.float" . ,num-face)
+      ("boolean" . font-lock-constant-face)
+      ("constant.builtin" . ,builtin-face)
+      ("label" . font-lock-constant-face)
 
-   :feature 'interpolation
-   '((interpolation "#{" @font-lock-misc-punctuation-face)
-     (interpolation "}" @font-lock-misc-punctuation-face))
+      ("operator" . ,op-face)
+      ("punctuation.delimiter" . ,delim-face)
+      ("punctuation.bracket" . ,br-face)
+      ("punctuation.special" . ,misc-punct)
+      ("tag.delimiter" . font-lock-preprocessor-face)
 
-   :feature 'escape-sequence
-   :override t
-   '((escape_sequence) @font-lock-escape-face)
+      ("type" . font-lock-type-face)
+      ("type.builtin" . ,builtin-face)
+      ("attribute" . font-lock-preprocessor-face)
 
-   ;; -----------------------
-   ;; Types and type-ish nodes
-   ;; -----------------------
-   :feature 'type
-   '((constant) @font-lock-type-face
-     (generic_type) @font-lock-type-face
-     (generic_instance_type) @font-lock-type-face
-     (nilable_constant) @font-lock-type-face
-     (nilable_type) @font-lock-type-face
-     (union_type) @font-lock-type-face
-     (named_type) @font-lock-type-face)
+      ("function" . font-lock-function-name-face)
+      ("function.method" . font-lock-function-name-face)
+      ("function.call" . ,call-face)
 
-   ;; -----------------------
-   ;; Variables
-   ;; -----------------------
-   :feature 'variable
-   '((instance_var) @font-lock-variable-use-face
-     (class_var) @font-lock-variable-use-face
-     (macro_var) @font-lock-variable-use-face
-     (global_var) @font-lock-variable-use-face)
+      ("variable.parameter" . font-lock-variable-name-face)
+      ("variable.parameter.builtin" . ,builtin-face)
+      ("variable.member" . ,var-use)
+      ("variable.builtin" . ,builtin-face)
+      ("variable" . ,var-use)
 
-   :feature 'parameter
-   '((param (identifier) @font-lock-variable-name-face)
-     (splat_param (identifier) @font-lock-variable-name-face)
-     (double_splat_param (identifier) @font-lock-variable-name-face)
-     (block_param (identifier) @font-lock-variable-name-face)
-     (fun_param (identifier) @font-lock-variable-name-face))
+      ("property" . ,prop-face))))
 
-   ;; -----------------------
-   ;; Definitions
-   ;; -----------------------
-   :feature 'definition
-   '((module_def name: [(constant) (generic_type)] @font-lock-type-face)
-     (class_def  name: [(constant) (generic_type)] @font-lock-type-face)
-     (struct_def name: [(constant) (generic_type)] @font-lock-type-face)
-     (enum_def   name: (constant) @font-lock-type-face)
-     (lib_def    name: [(constant) (generic_type)] @font-lock-type-face)
-     (union_def  name: (constant) @font-lock-type-face)
-     (annotation_def name: (constant) @font-lock-type-face)
+(defun crystal-ts-mode--capture->face (cap)
+  "Map capture name string CAP (without @) to an Emacs face symbol."
+  (let* ((alist (crystal-ts-mode--capture-face-alist))
+         (probe cap)
+         face)
+    (while (and probe (not face))
+      (setq face (cdr (assoc probe alist)))
+      (unless face
+        (if (string-match "\\`\\(.*\\)\\.[^.]+\\'" probe)
+            (setq probe (match-string 1 probe))
+          (setq probe nil))))
+    face))
 
-     (method_def
-      name: [(identifier) (operator) (setter)] @font-lock-function-name-face)
-     (abstract_method_def
-      name: [(identifier) (operator) (setter)] @font-lock-function-name-face)
-     (macro_def
-      name: [(identifier) (operator)] @font-lock-function-name-face)
-     (fun_def
-      name: [(identifier) (constant) (operator)] @font-lock-function-name-face))
+(defun crystal-ts-mode--rewrite-captures (query)
+  "Rewrite nvim-style captures in QUERY to Emacs face captures."
+  (let ((q (crystal-ts-mode--sanitize-query query)))
+    (replace-regexp-in-string
+     "@\\([A-Za-z0-9_.-]+\\)"
+     (lambda (m)
+       (let* ((cap (match-string 1 m))
+              (face (crystal-ts-mode--capture->face cap)))
+         (if face (concat "@" (symbol-name face)) m)))
+     q t t)))
 
-   ;; Attributes (annotations) usage
-   :feature 'attribute
-   '((annotation) @font-lock-preprocessor-face)
+;;;; Font-lock
 
-   ;; -----------------------
-   ;; Function calls
-   ;; -----------------------
-   :feature 'function
-   '((call
-      name: [(identifier) (operator) (setter)] @font-lock-function-call-face))
+(defconst crystal-ts-mode--mini-highlights-query
+  "[(comment)] @font-lock-comment-face
+   [(string)] @font-lock-string-face
+   [(regex)] @font-lock-regexp-face
+   [\"if\" \"else\" \"elsif\" \"unless\" \"case\" \"when\" \"begin\" \"rescue\" \"ensure\" \"end\"
+    \"def\" \"class\" \"module\" \"struct\" \"enum\" \"lib\" \"fun\" \"macro\"
+    \"return\" \"yield\" \"while\" \"until\" \"for\" \"select\"]
+   @font-lock-keyword-face"
+  "Tiny emergency fallback query (kept intentionally small).")
 
-   ;; -----------------------
-   ;; Operators / punctuation / brackets
-   ;; -----------------------
-   :feature 'operator
-   `((operator) @font-lock-operator-face
-     ;; Index operator “[]” is represented in index_call; highlight the token.
-     (index_call "[]") @font-lock-operator-face
-     ;; Blocks use pipes.
-     (block "|") @font-lock-operator-face
-     ;; Some operator tokens may appear as plain strings in the tree.
-     [,@crystal-ts--operators] @font-lock-operator-face)
+(defun crystal-ts-mode--font-lock-settings ()
+  "Return treesit font-lock settings for Crystal (cached)."
+  (or crystal-ts-mode--font-lock-settings-cache
+      (let* ((raw (crystal-ts-mode--load-query "highlights.scm" nil))
+             (query (if raw (crystal-ts-mode--rewrite-captures raw)
+                      crystal-ts-mode--mini-highlights-query)))
+        (condition-case err
+            (progn
+              (treesit-query-compile 'crystal query)
+              (setq crystal-ts-mode--font-lock-settings-cache
+                    (treesit-font-lock-rules
+                     :language 'crystal
+                     :feature 'crystal
+                     query)))
+          (treesit-query-error
+           (message "crystal-ts-mode: highlights query failed: %s"
+                    (error-message-string err))
+           (setq crystal-ts-mode--font-lock-settings-cache
+                 (treesit-font-lock-rules
+                  :language 'crystal
+                  :feature 'crystal
+                  crystal-ts-mode--mini-highlights-query)))))))
 
-   :feature 'punctuation
-   `([,@crystal-ts--delimiter-tokens] @font-lock-delimiter-face)
+;;;###autoload
+(defun crystal-ts-mode-reload-queries ()
+  "Reload Crystal tree-sitter query files and refontify current buffer."
+  (interactive)
+  (clrhash crystal-ts-mode--query-cache)
+  (setq crystal-ts-mode--font-lock-settings-cache nil)
+  (when (derived-mode-p 'crystal-ts-mode)
+    (setq-local treesit-font-lock-settings (crystal-ts-mode--font-lock-settings))
+    (treesit-font-lock-recompute-features)
+    (font-lock-flush)))
 
-   :feature 'bracket
-   '((["(" ")" "[" "]" "{" "}"]) @font-lock-bracket-face)
+;;;; Folding (treesit-fold) — keep your working behavior
 
-   ;; -----------------------
-   ;; Errors
-   ;; -----------------------
-   :feature 'error
-   '((ERROR) @font-lock-warning-face)))
+(defconst crystal-ts-mode--mini-folds-query
+  "[(annotation_def) (begin) (block) (c_struct_def) (case) (class_def) (else)
+    (enum_def) (fun_def) (if) (lib_def) (method_def) (module_def) (rescue)
+    (select) (struct_def) (union_def) (when) (while)
+    (array) (array_like) (hash) (hash_like) (named_tuple) (tuple)] @fold"
+  "Tiny fallback folds query.")
 
-;;;; -------------------------------------------------------------------
-;;;; Naming helpers (imenu + add-log) — mirror ruby-ts-mode style
-;;;; -------------------------------------------------------------------
+(defun crystal-ts-mode--fold-node-types ()
+  "Return list of node type strings from folds.scm (or fallback)."
+  (let* ((raw (crystal-ts-mode--load-query "folds.scm" crystal-ts-mode--mini-folds-query))
+         (txt (crystal-ts-mode--sanitize-query raw))
+         (pos 0)
+         (out nil))
+    (while (string-match "(\\([A-Za-z0-9_]+\\))" txt pos)
+      (push (match-string 1 txt) out)
+      (setq pos (match-end 0)))
+    (delete-dups (nreverse out))))
 
-(defun crystal-ts--type-node-p (node)
-  "Return non-nil if NODE is a Crystal type/namespace definition."
-  (and node (string-match-p crystal-ts--type-def-regexp (treesit-node-type node))))
+(defun crystal-ts-mode--fold-range-bodyish (node &rest _)
+  "Fold a body-like region inside NODE."
+  (let ((body (or (treesit-node-child-by-field-name node "body")
+                  (treesit-node-child-by-field-name node "then")
+                  (treesit-node-child-by-field-name node "else")
+                  (treesit-node-child-by-field-name node "rescue")
+                  (treesit-node-child-by-field-name node "ensure"))))
+    (cond
+     (body
+      (cons (treesit-node-start body) (treesit-node-end body)))
+     (t
+      (let* ((n (treesit-node-child-count node nil))
+             (first (and (> n 0) (treesit-node-child node 0 nil)))
+             (last  (and (> n 1) (treesit-node-child node (1- n) nil))))
+        (when (and first last)
+          (let ((s (treesit-node-end first))
+                (e (treesit-node-start last)))
+            (when (< s e) (cons s e)))))))))
 
-(defun crystal-ts--defun-node-p (node)
-  "Return non-nil if NODE is a Crystal definition node."
-  (and node (string-match-p crystal-ts--defun-regexp (treesit-node-type node))))
+(defun crystal-ts-mode--fold-range-bracketed (node &rest _)
+  "Fold inside a bracketed NODE (array/hash/tuple/etc.)."
+  (let* ((n (treesit-node-child-count node nil))
+         (first (and (> n 0) (treesit-node-child node 0 nil)))
+         (last  (and (> n 1) (treesit-node-child node (1- n) nil))))
+    (when (and first last)
+      (let ((s (treesit-node-end first))
+            (e (treesit-node-start last)))
+        (when (< s e) (cons s e))))))
 
-(defun crystal-ts--get-name (node)
-  "Return the text of NODE's `name' field (if present)."
-  (when-let ((name (treesit-node-child-by-field-name node "name")))
-    (treesit-node-text name t)))
+(defun crystal-ts-mode--register-fold-definitions ()
+  "Register fold definitions for `crystal-ts-mode'."
+  (when (and crystal-ts-enable-fold
+             (require 'treesit-fold nil t)
+             (boundp 'treesit-fold-range-alist))
+    (let* ((types (crystal-ts-mode--fold-node-types))
+           (bracketed (mapcar #'intern '("array" "array_like" "hash" "hash_like" "named_tuple" "tuple")))
+           (ranges (mapcar (lambda (ty)
+                             (let ((sym (intern ty)))
+                               (cons sym (if (memq sym bracketed)
+                                             #'crystal-ts-mode--fold-range-bracketed
+                                           #'crystal-ts-mode--fold-range-bodyish))))
+                           types)))
+      (setf (alist-get 'crystal-ts-mode treesit-fold-range-alist) ranges)
+      t)))
 
-(defun crystal-ts--method-receiver (method-node)
-  "Return receiver text for METHOD-NODE if it is a class method, else nil.
-In tree-sitter-crystal, method_def may have field `class` like `Foo.` or `self.`."
-  (when-let ((klass (treesit-node-child-by-field-name method-node "class")))
-    (let ((txt (string-trim (treesit-node-text klass t))))
-      (when (and txt (not (string-empty-p txt)))
-        (if (string-suffix-p "." txt) (substring txt 0 -1) txt)))))
+;;;; Movement / forward-sexp (treesit-thing-settings)
 
-(defun crystal-ts--enclosing-types (node)
-  "Return list of enclosing type names from outermost to innermost for NODE.
-Includes NODE itself if it is a type definition node."
-  (let ((types nil)
-        (n node))
-    (while (setq n (treesit-parent-until n #'crystal-ts--type-node-p t))
-      (push (crystal-ts--get-name n) types)
-      (setq n (treesit-node-parent n)))
-    (nreverse (delq nil types))))
+(defconst crystal-ts-mode--list-node-regexp
+  (rx bos
+      (or "class_def" "module_def" "struct_def" "enum_def" "lib_def" "union_def"
+          "method_def" "macro_def" "fun_def" "abstract_method_def"
+          "if" "unless" "case" "select" "begin" "rescue" "ensure" "while" "until" "for"
+          "block"
+          "parenthesized_statements" "argument_list"
+          "array" "hash" "tuple" "named_tuple"
+          "interpolation" "string" "regex" "heredoc_body")
+      eos)
+  "Node types treated as lists for `forward-sexp' in Crystal.")
 
-(defun crystal-ts--full-name (node)
-  "Return fully qualified name of NODE for imenu/add-log."
-  (let* ((type-stack (crystal-ts--enclosing-types node))
-         (context (and type-stack (string-join type-stack "::")))
-         (type (treesit-node-type node)))
-    (pcase type
-      ;; Type/namespace-like
-      ((or "module_def" "class_def" "struct_def" "enum_def" "lib_def" "union_def" "annotation_def")
-       context)
-
-      ;; Methods
-      ((or "method_def" "abstract_method_def")
-       (let* ((name (or (crystal-ts--get-name node) ""))
-              (receiver (crystal-ts--method-receiver node))
-              (current-type (car (last type-stack)))
-              (delim (if receiver "." "#"))
-              (prefix
-               (cond
-                ;; class method on self: use enclosing type context
-                ((and receiver (string= receiver "self"))
-                 context)
-                ;; explicit receiver matches innermost type name: treat as class method on context
-                ((and receiver current-type (string= receiver current-type))
-                 context)
-                ;; explicit receiver given, but doesn't match context: use it as prefix
-                (receiver receiver)
-                ;; no receiver: instance method under context
-                (t context))))
-         (cond
-          ((and prefix (not (string-empty-p prefix)))
-           (concat prefix delim name))
-          (t name))))
-
-      ;; Macros: treat like instance-ish in naming (#)
-      ("macro_def"
-       (let* ((name (or (crystal-ts--get-name node) ""))
-              (prefix context))
-         (if (and prefix (not (string-empty-p prefix)))
-             (concat prefix "#" name)
-           name)))
-
-      ;; C fun: treat as namespace member (Lib::fun)
-      ("fun_def"
-       (let* ((name (or (crystal-ts--get-name node) ""))
-              (prefix context))
-         (if (and prefix (not (string-empty-p prefix)))
-             (concat prefix "::" name)
-           name)))
-
-      (_
-       ;; Fallback: use `name` if present, else nil
-       (or (crystal-ts--get-name node) nil)))))
-
-(defun crystal-ts--imenu-helper (tree)
-  "Convert a treesit sparse tree TREE into a flat imenu list."
-  (if (cdr tree)
-      (cl-mapcan #'crystal-ts--imenu-helper (cdr tree))
-    (let* ((node (car tree))
-           (name (crystal-ts--full-name node)))
-      (when (and name (not (string-empty-p name)))
-        (list (cons name (treesit-node-start node)))))))
-
-(defun crystal-ts--imenu ()
-  "Return Imenu alist for the current buffer."
-  (let* ((root (treesit-buffer-root-node))
-         ;; Include type defs + methods + macros + fun defs.
-         (tree (treesit-induce-sparse-tree
-                root
-                (rx bol
-                    (or "module_def" "class_def" "struct_def" "enum_def"
-                        "lib_def" "union_def" "annotation_def"
-                        "method_def" "abstract_method_def" "macro_def" "fun_def")
-                    eol))))
-    (delq nil (crystal-ts--imenu-helper tree))))
-
-(defun crystal-ts-add-log-current-function ()
-  "Return the current Crystal definition name as a string.
-
-This is used by `add-log-current-defun-function`."
-  (let* ((node (treesit-node-at (point)))
-         (pred (lambda (n)
-                 (and (<= (treesit-node-start n) (point))
-                      (>= (treesit-node-end n) (point))
-                      (crystal-ts--defun-node-p n))))
-         (defun (and node (treesit-parent-until node pred t))))
-    (when defun
-      (crystal-ts--full-name defun))))
-
-;;;; -------------------------------------------------------------------
-;;;; treesit-thing-settings (optional but keeps parity with ruby-ts-mode)
-;;;; -------------------------------------------------------------------
-
-(defun crystal-ts--list-p (node)
-  "Predicate used by `treesit-thing-settings` for list nodes."
-  (treesit-node-check node 'named))
-
-(defun crystal-ts--sexp-p (node)
-  "Predicate for sexp nodes.
-
-For phase 1 we keep it permissive: any named node is considered a sexp,
-except a few container nodes."
+(defun crystal-ts-mode--list-p (node)
+  "Return non-nil if NODE should be treated as a list."
   (and (treesit-node-check node 'named)
-       (not (member (treesit-node-type node)
-                    '("expressions" "_statements" "comment")))))
+       (string-match-p crystal-ts-mode--list-node-regexp (treesit-node-type node))))
 
-;;;; -------------------------------------------------------------------
-;;;; Keymap (inherits crystal-mode-map)
-;;;; -------------------------------------------------------------------
+;;;; Mode definition
+
+(defvar crystal-ts-mode--defun-type-regexp
+  (rx string-start
+      (or "annotation_def" "c_struct_def" "class_def" "enum_def" "fun_def"
+          "lib_def" "macro_def" "method_def" "module_def" "struct_def" "union_def")
+      string-end)
+  "Regexp matching Crystal defun-like node types.")
 
 (defvar-keymap crystal-ts-mode-map
-  :doc "Keymap used in crystal-ts-mode."
-  :parent crystal-mode-map)
+  :doc "Keymap for `crystal-ts-mode'."
+  :parent prog-mode-map)
 
 ;;;###autoload
-(define-derived-mode crystal-ts-mode crystal-mode "Crystal"
+(define-derived-mode crystal-ts-mode prog-mode "Crystal[ts]"
   "Major mode for editing Crystal, powered by tree-sitter."
-  :group 'crystal
-  :syntax-table crystal-mode-syntax-table
+  :group 'crystal-ts
 
-  (unless (treesit-ensure-installed 'crystal)
-    (error "Tree-sitter for Crystal isn't available"))
+  (when crystal-ts-prefer-user-grammar
+    (let ((dir (expand-file-name "tree-sitter/" user-emacs-directory)))
+      (when (file-directory-p dir)
+        (add-to-list 'treesit-extra-load-path dir))))
 
-  ;; Keep crystal-mode’s indentation/syntax propertize:
-  ;; crystal-mode already set these up in its body (we are derived from it).
-  (let ((orig-indent-line-function indent-line-function)
-        (orig-syntax-propertize-function syntax-propertize-function))
+  (unless (treesit-available-p)
+    (error "Emacs built without tree-sitter support"))
+  (unless (treesit-language-available-p 'crystal)
+    (error "Tree-sitter grammar for Crystal not found (language `crystal`)"))
 
-    (setq treesit-primary-parser (treesit-parser-create 'crystal))
+  ;; Parser (important for treesit-fold and others).
+  (setq treesit-primary-parser (treesit-parser-create 'crystal))
 
-    ;; add-log
-    (setq-local add-log-current-defun-function #'crystal-ts-add-log-current-function)
+  ;; Comments.
+  (setq-local comment-start "# ")
+  (setq-local comment-start-skip "#+\\s-*")
+  (setq-local comment-end "")
 
-    ;; Navigation / defun movement.
-    (setq-local treesit-defun-type-regexp crystal-ts--defun-regexp)
+  ;; Navigation.
+  (setq-local treesit-defun-type-regexp crystal-ts-mode--defun-type-regexp)
 
-    ;; “Things” (sexp/list/etc) used by treesit navigation commands.
-    (setq-local treesit-thing-settings
-                `((crystal
-                   (sexp ,(cons (rx bos (or "expressions" "comment") eos)
-                                #'crystal-ts--sexp-p))
-                   (list ,(cons (rx bos
-                                    (or "array" "hash" "tuple" "named_tuple"
-                                        "argument_list" "param_list" "block"
-                                        "parenthesized_expressions"
-                                        "string" "regex" "heredoc_body")
-                                    eos)
-                                #'crystal-ts--list-p))
-                   (sentence ,(rx bos (or "return" "assign" "call") eos))
-                   (text ,(lambda (n)
-                            (member (treesit-node-type n)
-                                    '("comment" "literal_content" "heredoc_content")))))))
+  ;; Sexp movement.
+  (setq-local treesit-thing-settings
+              `((crystal
+                 (list ,(cons crystal-ts-mode--list-node-regexp
+                             #'crystal-ts-mode--list-p)))))
 
-    ;; Imenu.
-    (setq-local imenu-create-index-function #'crystal-ts--imenu)
+  ;; Indent: keep your working behavior.
+  (when crystal-ts-use-ruby-indent
+    (require 'ruby-mode)
+    (setq-local ruby-indent-level crystal-ts-indent-offset)
+    (setq-local indent-line-function #'ruby-indent-line))
 
-    ;; Outline minor mode: headings are definitions.
-    (setq-local treesit-outline-predicate
-                `(and ,(rx bos
-                           (or "module_def" "class_def" "struct_def" "enum_def"
-                               "lib_def" "union_def" "annotation_def"
-                               "method_def" "abstract_method_def" "macro_def" "fun_def")
-                           eos)
-                      named))
-    ;; Restore default outline variables to use `treesit-outline-predicate`.
-    (kill-local-variable 'outline-regexp)
-    (kill-local-variable 'outline-level)
+  ;; Font-lock: keep your working behavior.
+  (setq-local treesit-font-lock-settings (crystal-ts-mode--font-lock-settings))
+  (setq-local treesit-font-lock-feature-list '((crystal)))
+  (treesit-major-mode-setup)
 
-    ;; Font-lock (tree-sitter).
-    (setq-local treesit-font-lock-settings (crystal-ts--font-lock-settings 'crystal))
-
-    ;; Feature levels (mirrors ruby-ts-mode style).
-    (setq-local treesit-font-lock-feature-list
-                '((comment)
-                  (keyword string type)
-                  (builtin-variable constant literal regexp
-                                    variable parameter attribute
-                                    interpolation escape-sequence
-                                    definition function operator punctuation)
-                  (bracket error)))
-
-    ;; Apply treesit setup.
-    (treesit-major-mode-setup)
-
-    ;; Restore indentation + syntax propertize from crystal-mode.
-    ;; (treesit-major-mode-setup may set indent-line-function if indent rules exist;
-    ;; we keep crystal-mode indentation for phase 1.)
-    (setq-local indent-line-function orig-indent-line-function)
-    (setq-local syntax-propertize-function orig-syntax-propertize-function)))
-
-;;;###autoload
-(when (boundp 'treesit-major-mode-remap-alist)
-  (add-to-list 'treesit-major-mode-remap-alist
-               '(crystal-mode . crystal-ts-mode)))
-
-;;;###autoload
-(when (boundp 'major-mode-remap-alist)
-  (add-to-list 'major-mode-remap-alist
-               '(crystal-mode . crystal-ts-mode)))
+  ;; Folding: keep your working behavior.
+  (when (crystal-ts-mode--register-fold-definitions)
+    (treesit-fold-mode 1)))
 
 (provide 'crystal-ts-mode)
 

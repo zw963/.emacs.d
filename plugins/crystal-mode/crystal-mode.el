@@ -1,5 +1,3 @@
-;; -*- lexical-binding: t; -*-
-
 ;;; crystal-mode.el --- Major mode for editing Crystal files
 
 ;; Copyright (C) 2015-2016 Jason Pellerin
@@ -630,8 +628,12 @@ It is used when `crystal-encoding-magic-comment-style' is set to `custom'."
       (forward-char 2)
       (skip-chars-forward " \t")
       (let ((tok (smie-default-forward-token)))
-        (if (member tok '("end" "else" "elsif"))
+        (if (member tok '("end" "else" "elsif" "if" "unless" "for" "while" "begin"))
             (concat "{%" tok "%}")
+          ;; For other macro content (assignments, expressions, etc.),
+          ;; skip to the closing %} and treat as statement separator
+          (when (re-search-forward "%}" (line-end-position) t)
+            (skip-chars-forward " \t"))
           ";")))
 
      ((and (looking-at "\n") (looking-at "\\s\""))  ;A heredoc.
@@ -2157,6 +2159,12 @@ It will be properly highlighted even when the call omits parens.")
        (0 (ignore (crystal-syntax-propertize-expansion))))
       ("^=en\\(d\\)\\_>" (1 "!"))
       ("^\\(=\\)begin\\_>" (1 "!"))
+      ;; Handle macro delimiters {%, %} - mark braces as punctuation
+      ;; so they don't interfere with block matching
+      ("\\({\\)%"
+       (1 (string-to-syntax ".")))
+      ("%\\(}\\)"
+       (1 (string-to-syntax ".")))
       ;; Handle here documents.
       ((concat crystal-here-doc-beg-re ".*\\(\n\\)")
        (7 (unless (or (nth 8 (save-excursion
