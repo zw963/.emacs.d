@@ -189,7 +189,7 @@
 ;; C-c / 收起所有代码块
 ;; C-c \ 展开所有代码块
 (require 'context-menu-mode_init)
-;; (require 'treesit-fold_init)
+(require 'treesit-fold_init)
 
 ;; 快捷键见 git_init.el
 (require 'git_init) ;; ????
@@ -212,6 +212,11 @@
 ;; (require 'ruby_init)
 
 (require 'crystal-mode_init)
+
+;; (require 'ruby-mode)
+;; (require 'crystal-ts-mode)
+;; (add-to-list 'auto-mode-alist '("\\.cr\\'" . crystal-ts-mode))
+
 ;; (require 'wakatime-mode_init)
 
 ;; C-c p
