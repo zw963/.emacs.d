@@ -136,7 +136,7 @@
 ;; 通常会和 iedit-mode 的 Ctrl + ; 一起使用。
 (require 'wgrep_init)
 
-;; C-c 回车，或者 C-x C-e 执行 region 
+;; C-c 回车，或者 C-x C-e 执行 region
 (require 'quickrun_init)
 
 ;; 基于空格的智能跳转，Alt + 上下左右

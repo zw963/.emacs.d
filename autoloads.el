@@ -54,6 +54,7 @@
 ;; bash-ts-mode
 (add-to-list 'auto-mode-alist '("\\.env\\'" . bash-ts-mode))
 (add-to-list 'auto-mode-alist '("\\.env\\.local\\'" . bash-ts-mode))
+(add-to-list 'auto-mode-alist '("\\.rvmrc\\'" . bash-ts-mode))
 
 ;; diff-mode
 (add-to-list 'auto-mode-alist '("COMMIT_EDITMSG\\'" . diff-mode))
