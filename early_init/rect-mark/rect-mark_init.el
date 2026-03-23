@@ -10,6 +10,7 @@
 
 (require 'rect)
 (require 'second-sel)
+(require 'multiple-cursors_init)
 
 (defun convert-to-secondary-region ()
   (interactive)
