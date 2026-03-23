@@ -7,7 +7,7 @@
 ;; M-: (car (project-current)) RET, 如果是 vc，说明是 Git/VC backend 命中；如果是 transient，说明是你这个函数命中。
 
 ;; .git 不需要，因为首先会尝试 project-try-vc
-(defcustom project-root-markers '("Cargo.toml" "shard.yml" "Gemfile")
+(defcustom project-root-markers '("tags" "Cargo.toml" "shard.yml" "Gemfile")
   "Files or directories that indicate the root of a project."
   :type '(repeat string)
   :group 'project)
@@ -34,8 +34,9 @@
   (when-let ((proj (project-current nil)))
     (project-root proj)))
 
-;; 加入后默认应该有两个： (project-try-vc project-find-root)
-(add-to-list 'project-find-functions #'project-find-root t)
+;; 加入后默认应该有两个： (project-find-root project-try-vc)
+;; 这里特意将 project-find-root 放在 vc 前面，允许根据 tags 来确定 root
+(add-to-list 'project-find-functions #'project-find-root)
 
 (with-eval-after-load 'lsp-mode
   (setq lsp-auto-guess-root t))

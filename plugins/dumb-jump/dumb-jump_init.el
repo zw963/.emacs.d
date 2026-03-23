@@ -22,7 +22,7 @@
 (defun zw/project-ctags-file ()
   "Return absolute path to <project-root>/CTAGS if it exists, else nil."
   (when-let ((root (zw/project-root)))
-    (let ((p (expand-file-name "CTAGS" root)))
+    (let ((p (expand-file-name "tags" root)))
       (when (file-readable-p p) p))))
 
 (defun zw/citre-xref-backend-maybe ()
