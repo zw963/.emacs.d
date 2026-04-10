@@ -2,4 +2,4 @@
 # name: root1
 # key: root1
 # --
-ROOT="$(builtin cd -- "$(dirname -- "\${BASH_SOURCE[0]}")" && builtin pwd -P)"
+ROOT="$(builtin cd -- "$(dirname -- "\${BASH_SOURCE[0]}")" >/dev/null && builtin pwd -P)"
