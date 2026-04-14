@@ -1,6 +1,6 @@
 ;;; helm-files.el --- helm file browser and related. -*- lexical-binding: t -*-
 
-;; Copyright (C) 2012 ~ 2025 Thierry Volpiatto
+;; Copyright (C) 2012 ~ 2026 Thierry Volpiatto
 
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -170,9 +170,6 @@ than `helm-candidate-number-limit'.")
 (defvar helm-ff--trash-directory-regexp "\\.?Trash[/0-9]+files/?\\'")
 (defvar helm-ff--show-directories-only nil)
 (defvar helm-ff--show-files-only nil)
-(defvar helm-ff--trashed-files nil
-  "[INTERNAL] Files already trashed are stored here during file deletion.
-This is used only as a let binding.")
 (defvar helm-ff--show-thumbnails nil)
 (defvar helm-ff--thumbnailed-directories nil)
 (defvar helm-source-find-files nil
@@ -877,6 +874,7 @@ want to use it, helm is still providing
 (defcustom helm-dwim-target nil
   "Default target directory for file actions.
 
+Currently only Ediff action in helm-find-files is affected by this.
 Define the directory where you want to start navigating for the
 target directory when copying, renaming, etc..  You can use the
 `default-directory' of `next-window', the visited directory, the
@@ -1244,6 +1242,20 @@ Used when showing tramp host completions."
     (message "Helm find files session bookmarked! ")))
 (put 'helm-ff-bookmark-set 'helm-only t)
 
+(defun helm-dwim-target-directories ()
+  "Provide a list of default targets for `helm-find-files' actions."
+  (cl-loop for w in helm-initial-windows
+           for dir = (with-selected-window w default-directory)
+           unless (member dir dirs)
+           collect dir into dirs
+           ;; Prevent having helm-ff-default-directory in defaults while we are
+           ;; already in it, if it is the only member of list return this list
+           ;; to prevent helm using the thing-at-point in *helm marked* buffer
+           ;; which is irrelevant.
+           finally return (if (cdr dirs)
+                              (delete helm-ff-default-directory dirs)
+                            dirs)))
+
 (defun helm-dwim-target-directory ()
   "Try to return a suitable directory according to `helm-dwim-target'."
   (with-selected-window (or
@@ -1254,21 +1266,25 @@ Used when showing tramp host completions."
     (let ((wins (remove (get-buffer-window helm-marked-buffer-name)
                         (window-list))))
       (expand-file-name
-       (cond (;; Provide completion on all the directory belonging to
+       (cond (;; Provide completion on all the directories belonging to
               ;; visible windows if some.
               (and (cdr wins)
                    (eq helm-dwim-target 'completion))
               (helm-comp-read "Browse target starting from: "
-                              (append (list (or (car-safe helm-ff-history)
-                                                default-directory)
-                                            default-directory)
-                                      (cl-loop for w in wins collect
-                                               (with-selected-window w
-                                                 default-directory)))))
-             ;; Use default-directory of next-window.
-             ((and (cdr wins)
-                   (eq helm-dwim-target 'next-window))
-              (with-selected-window (next-window)
+                              (helm-fast-remove-dups
+                               (append (list (or (car-safe helm-ff-history)
+                                                 default-directory)
+                                             default-directory)
+                                       (cl-loop for w in wins collect
+                                                (with-selected-window w
+                                                  default-directory)))
+                               :test 'equal)))
+             ;; Use default-directory of next-window if more than 1 window
+             ;; otherwise fall-back to default-directory.
+             ((eq helm-dwim-target 'next-window)
+              (if (cdr wins)
+                  (with-selected-window (next-window)
+                    default-directory)
                 default-directory))
              ;; Always use default-directory when only one window.
              ((and (null (cdr wins))
@@ -1369,14 +1385,23 @@ ACTION can be `rsync' or any action supported by `helm-dired-action'."
                                   (regexp-quote
                                    (if helm-ff-transformer-show-only-basename
                                        (helm-basename cand) cand))))
-                        :default (and cdir
-                                      (expand-file-name
-                                       (format "%s.tar.gz" (if cand
-                                                               (helm-basename cand)
-                                                             "new_archive"))
-                                       cdir))
+                        :default (if cdir
+                                     (mapcar (lambda (x)
+                                               (let ((ext (replace-regexp-in-string
+                                                           "[\\']" "" (car x))))
+                                                 (expand-file-name
+                                                  (format "%s%s"
+                                                          (if cand
+                                                              (helm-basename cand)
+                                                            "new_archive")
+                                                          ext)
+                                                  cdir)))
+                                             dired-compress-files-alist)
+                                   ;; List of all `default-directory' belonging
+                                   ;; to each visible windows before starting helm.
+                                   (helm-dwim-target-directories))
                         :must-match (and cdir (lambda (f) (not (file-directory-p f))))
-                        :initial-input (or cdir (helm-dwim-target-directory))
+                        :initial-input (or cdir helm-ff-default-directory)
                         :history (helm-find-files-history nil :comp-read nil))))))
          (dest-dir-p (file-directory-p dest))
          (dest-dir   (if dest-dir-p dest (helm-basedir dest))))
@@ -1812,6 +1837,7 @@ windows layout."
       (funcall fun candidate (helm-read-file-name
                               (format prompt bname)
                               :initial-input input
+                              :default (helm-dwim-target-directories)
                               :preselect presel)))))
 
 (defun helm-find-files-ediff-files (candidate)
@@ -4623,10 +4649,7 @@ Arg FILE is the real part of candidate, a filename with no props."
                           (helm-basedir candidate)))
       (setq actions (helm-append-at-nth
                      actions '(("Recover file" . recover-file)) 4)))
-    (cond ((and (file-exists-p candidate)
-                (string-match helm-ff--trash-directory-regexp
-                              (helm-basedir (expand-file-name candidate)))
-                (not (member (helm-basename candidate) '("." ".."))))
+    (cond ((helm-ff-trash-file-p candidate)
            (helm-append-at-nth
             actions
             '(("Restore file(s) from trash" . helm-restore-file-from-trash)
@@ -4648,7 +4671,7 @@ Arg FILE is the real part of candidate, a filename with no props."
               (lambda ()
                 (and (fboundp 'image-dired-wallpaper-set)
                      (display-graphic-p)
-                     "Change wall paper"))
+                     "Change wallpaper"))
               'image-dired-wallpaper-set)
             3))
           ((string-match "\\.el\\'" candidate)
@@ -4966,16 +4989,15 @@ This affects directly file CANDIDATE."
                   (helm-ff-display-image-native-p))
              nil "Resizing image not available")
   (if (> arg 0)
-      (run-with-idle-timer
-       0.3 nil
-       (lambda ()
-         (with-selected-window (helm-persistent-action-display-window)
-           (image--change-size 1.2))))
-    (run-with-idle-timer
-     0.3 nil
-     (lambda ()
-       (with-selected-window (helm-persistent-action-display-window)
-         (image--change-size 0.8))))))
+      (helm-ff--image-change-size 1.2)
+    (helm-ff--image-change-size 0.8)))
+
+(defun helm-ff--image-change-size (factor)
+  (run-with-idle-timer
+   0.3 nil
+   (lambda ()
+     (with-selected-window (helm-persistent-action-display-window)
+       (image--change-size factor)))))
 
 (defun helm-ff-increase-image-size (_candidate)
   (helm-ff-resize-image-1 1))
@@ -6333,17 +6355,16 @@ When a prefix arg is given, meaning of
   (with-helm-window
     (let* ((marked (helm-marked-candidates))
            (trash (helm-ff--delete-by-moving-to-trash (car marked)))
-           (helm-ff--trashed-files
-            (and trash (helm-ff-trash-list (helm-trash-directory))))
            (old--allow-recursive-deletes helm-ff-allow-recursive-deletes)
-           (buffers (cl-loop for f in marked
-                             append (helm-file-buffers f))))
+           (buffers '()))
       (unwind-protect
            (progn
              (helm-read-answer-dolist-with-action
               "Really %s file `%s'"
               marked
-              (lambda (file) (helm-ff--quick-delete-action file trash))
+              (lambda (file)
+                (helm-ff--quick-delete-action file trash)
+                (setq buffers (append (helm-file-buffers file))))
               (list (if trash "Trash" "Delete") #'abbreviate-file-name))
              (when buffers
                (helm-read-answer-dolist-with-action
@@ -6437,8 +6458,6 @@ When a prefix arg is given, meaning of
   (let* ((files (helm-marked-candidates :with-wildcard t))
          (len 0)
          (trash (helm-ff--delete-by-moving-to-trash (car files)))
-         (helm-ff--trashed-files
-          (and trash (helm-ff-trash-list (helm-trash-directory))))
          (prmt (if trash "Trash" "Delete"))
          (old--allow-recursive-deletes helm-ff-allow-recursive-deletes)
          (buffers (cl-loop for f in files
@@ -6834,8 +6853,11 @@ be existing directories."
     :candidates 'file-name-history
     :persistent-action #'ignore
     ;; See comments in `helm-recentf-source' about bug#2709.
+    ;; This is probably not needed as long as we use
+    ;; `helm-file-name-history-transformer' which uses only propertize.
     :coerce 'substring-no-properties
-    :filtered-candidate-transformer #'helm-file-name-history-transformer
+    :match-on-real t
+    :candidate-transformer #'helm-file-name-history-transformer
     :action 'helm-type-file-actions))
 
 (defvar helm-file-name-history-map
@@ -6844,7 +6866,9 @@ be existing directories."
     (define-key map (kbd "C-x C-f") 'helm-ff-file-name-history-run-ff)
     map))
 
-(defun helm-file-name-history-transformer (candidates _source)
+(defun helm-file-name-history-transformer (candidates)
+  ;; As this transformer uses propertize and not add-text-properties or similar
+  ;; it doesn't suffer of nasty side effect like in bug#2709.
   (cl-loop with lgst = helm-file-name-history-max-length
            for elm in candidates
            for c = (truncate-string-to-width
@@ -6856,11 +6880,9 @@ be existing directories."
                             ((file-exists-p elm)
                              (let ((last-access (format-time-string "%d/%m/%Y  %X"
                                                  (nth 4 (file-attributes elm)))))
-                               (propertize
-                                elm 'display
-                                (concat (propertize c 'face 'helm-ff-file)
-                                        (make-string (1+ (- lgst (length c))) ? )
-                                        last-access))))
+                               (concat (propertize c 'face 'helm-ff-file)
+                                       (make-string (1+ (- lgst (length c))) ? )
+                                       last-access)))
                             ;; Should not happen as long as we use recentf.
                             (t (propertize c 'face 'helm-history-deleted)))
            when disp
@@ -6895,9 +6917,10 @@ be existing directories."
                :candidates (lambda () recentf-list)
                :help-message 'helm-file-name-history-help-message
                :fuzzy-match t
+               :match-on-real t
                :persistent-action 'ignore
                :migemo t
-               :filtered-candidate-transformer 'helm-file-name-history-transformer
+               :candidate-transformer 'helm-file-name-history-transformer
                :action (helm-make-actions
                         "Find file" (lambda (candidate)
                                       (helm-set-pattern

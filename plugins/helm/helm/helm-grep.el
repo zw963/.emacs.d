@@ -1,6 +1,6 @@
 ;;; helm-grep.el --- Helm Incremental Grep. -*- lexical-binding: t -*-
 
-;; Copyright (C) 2012 ~ 2025 Thierry Volpiatto
+;; Copyright (C) 2012 ~ 2026 Thierry Volpiatto
 
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -1593,6 +1593,7 @@ non-file buffers."
 (defun helm-grep--ag-command ()
   (and helm-grep-ag-command
        (car (helm-remove-if-match
+             ;; Probably an env var added at beginning of command line.
              "\\`[A-Z]*=" (split-string helm-grep-ag-command)))))
 
 (defun helm-grep-ag-get-types ()
@@ -1604,10 +1605,10 @@ Ripgrep (rg) types are also supported if this backend is used."
            (ripgrep (string= com "rg"))
            (regex (if ripgrep "^\\(.*\\):" "^ *\\(--[a-z]*\\)"))
            (prefix (if ripgrep "-t " "")))
-      (when (equal (call-process com
-                                 nil t nil
+      (when (zerop (call-process com nil t nil
                                  (if ripgrep
-                                     "--type-list" "--list-file-types")) 0)
+                                     "--type-list"
+                                   "--list-file-types")))
         (goto-char (point-min))
         (cl-loop while (re-search-forward regex nil t)
                  for type = (match-string 1)

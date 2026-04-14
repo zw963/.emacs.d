@@ -1,6 +1,6 @@
 ;;; helm-packages.el --- helm interface to manage packages  -*- lexical-binding: t; -*-
 
-;; Copyright (C) 2012 ~ 2025 Thierry Volpiatto
+;; Copyright (C) 2012 ~ 2026 Thierry Volpiatto
 
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -82,6 +82,13 @@
   "Hook that run after cloning a package.
 It is called with two args respectively PACKAGE as a string and DIRECTORY."
   :type 'hook)
+
+(defcustom helm-packages-default-urls-for-cloning
+  '(("gnu" .    "https://git.sv.gnu.org/git/elpa/gnu.git")
+    ("nongnu" . "https://git.sv.gnu.org/git/elpa/nongnu.git"))
+  "Urls used for packages not specifying :url in their recipes.
+This is generally the packages maintained directly in Elpa or NonGnu."
+  :type '(alist :key-type string :value-type string))
 
 ;;; Actions
 ;;
@@ -273,11 +280,9 @@ PROVIDER can be one of \"melpa\", \"gnu\" or \"nongnu\"."
          (url (or (plist-get (cdr package-recipe) :url)
                   ;; Assume that when :url = nil the package is maintained in
                   ;; elpa or nongnu. When recipe is fetched from package-archives
-                  ;; addresses the url is always specified or the package if not
-                  ;; clonable not present at all e.g. cond-star.
-                  (helm-acase provider
-                    ("gnu"    "https://git.sv.gnu.org/git/emacs/elpa.git")
-                    ("nongnu" "https://git.sv.gnu.org/git/emacs/nongnu.git"))))
+                  ;; addresses, the url is always specified or the package if not
+                  ;; clonable, not present at all e.g. cond-star.
+                  (assoc-default provider helm-packages-default-urls-for-cloning)))
          (branch (plist-get (cdr package-recipe) :branch)))
     (cl-assert package-recipe nil (format "Couldn't find package '%s'" package))
     (cl-assert (null core) nil
@@ -325,7 +330,7 @@ PROVIDER can be one of \"melpa\", \"gnu\" or \"nongnu\"."
          ;; (ws-butler :url "https://git.savannah.gnu.org/git/emacs/nongnu.git"
          ;;            :branch "elpa/ws-butler")
          (switches (append
-                    (if (string-match "\\(elpa\\|nongnu\\)\\.git\\'" url)
+                    (if (string-match "\\(elpa\\|nongnu\\|gnu\\)\\.git\\'" url)
                         `("clone" "--single-branch"
                                   "-b" ,(or branch (format "externals/%s" package)))
                       (delq nil `("clone" ,(and branch "-b") ,branch)))

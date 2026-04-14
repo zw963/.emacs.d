@@ -1,6 +1,6 @@
 ;;; helm-mode.el --- Enable helm completion everywhere. -*- lexical-binding: t -*-
 
-;; Copyright (C) 2012 ~ 2025 Thierry Volpiatto
+;; Copyright (C) 2012 ~ 2026 Thierry Volpiatto
 
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -516,10 +516,16 @@ data would not be fully collected at init time.
 
 If COLLECTION is an `obarray', a TEST should be needed. See `obarray'."
   (unless input (setq input helm-pattern))
-  ;; Ensure COLLECTION is computed from `helm-current-buffer'
-  ;; because some functions used as COLLECTION work
-  ;; only in the context of current-buffer (Bug#1030) .
-  (with-helm-current-buffer
+  ;; Ensure COLLECTION is computed from `helm-current-buffer' because some
+  ;; functions used as COLLECTION work only in the context of current-buffer,
+  ;; presumably when completing-region (Bug#1030) OTOH completion functions used
+  ;; from completing-read generally expect to be called from the minibuffer
+  ;; (Bug#2744).
+  (with-current-buffer (if helm--completing-region
+                           helm-current-buffer
+                         (window-buffer
+                          (or (active-minibuffer-window)
+                              (minibuffer-window))))
     (let ((cands
            (cond ((and alistp (hash-table-p collection))
                   (cl-loop for k being the hash-keys of collection
@@ -1142,6 +1148,10 @@ FLAGS is a list of variables to renitialize to nil when exiting or quitting.")
     ("locate-library" . library)
     ("kill-buffer" . buffer)
     ("package-install" . package)
+    ("package-upgrade" . package)
+    ("package-recompile" . package)
+    ("package-reinstall" . package)
+    ("package-delete" . package)
     ("package-vc-install" . package)
     ("package-vc-checkout" . package)
     ("package-vc-log-incoming" . package)
@@ -1322,11 +1332,18 @@ is used."
       (when binding
         (propertize (format " (%s)" binding) 'face 'helm-completions-key-binding)))))
 
+(defun helm-mode--package-name-from-full-name (comp)
+  "Extract the package name from a package full-name.
+e.g. w3m-20251201.129 => w3m."
+  (if (string-match "\\(.*\\)-[[:digit:]]+" comp)
+      (match-string 1 comp)
+    comp))
+
 (defun helm-completion-package-affixation (_completions)
   "Affixation function for `package' category.
 See `helm-completing-read-extra-metadata'."
   (lambda (comp)
-    (let* ((sym (intern-soft comp))
+    (let* ((sym (intern-soft (helm-mode--package-name-from-full-name comp)))
            (id (package-get-descriptor sym))
            (built-in (package-built-in-p sym))
            (status (and id (package-desc-status id)))

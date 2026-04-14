@@ -1,6 +1,6 @@
 ;;; helm-types.el --- Helm types classes and methods. -*- lexical-binding: t -*-
 
-;; Copyright (C) 2015 ~ 2025  Thierry Volpiatto
+;; Copyright (C) 2015 ~ 2026  Thierry Volpiatto
 
 ;; Author: Thierry Volpiatto
 ;; URL: http://github.com/emacs-helm/helm
@@ -72,7 +72,7 @@
     (define-key map (kbd "C-c C-x") 'helm-ff-run-open-file-externally)
     (define-key map (kbd "C-c X")   'helm-ff-run-open-file-with-default-tool)
     (define-key map (kbd "C-c @")   'helm-ff-run-insert-org-link)
-    (define-key map (kbd "C-x C-q") 'helm-ff-run-marked-files-in-dired)
+    (define-key map (kbd "C-x C-q") 'helm-ff-run-edit-marked-files)
     (define-key map (kbd "C-c C-a") 'helm-ff-run-mail-attach-files)
     map)
   "Generic Keymap for files.")
@@ -85,7 +85,7 @@
     "Find file other frame"                   'find-file-other-frame
     "Open dired in file's directory"          'helm-open-dired
     "Attach file(s) to mail buffer `C-c C-a'" 'helm-ff-mail-attach-files
-    "Marked files in dired"                   'helm-marked-files-in-dired
+    "Edit marked files `C-x C-q'"             'helm-ff-edit-marked-files
     "Grep File(s) `C-u recurse'"              'helm-find-files-grep
     "Zgrep File(s) `C-u Recurse'"             'helm-ff-zgrep
     "Pdfgrep File(s)"                         'helm-ff-pdfgrep

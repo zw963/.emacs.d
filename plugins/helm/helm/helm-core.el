@@ -1,6 +1,6 @@
 ;;; helm-core.el --- Development files for Helm  -*- lexical-binding: t -*-
 
-;; Copyright (C) 2022 ~ 2025  Thierry Volpiatto
+;; Copyright (C) 2022 ~ 2026  Thierry Volpiatto
 
 ;; Author: Thierry Volpiatto <thievol@posteo.net>
 ;; URL: https://emacs-helm.github.io/helm/
@@ -205,6 +205,8 @@ It is let-bounded in `helm-read-file-name'. Same as
 `minibuffer-completing-file-name' but doesn't affect `file-directory-p' when
 called on remote files.
 WARN: Use this only in `helm-read-file-name'.")
+(defvar helm-initial-windows nil
+  "Store the `window-list' before starting helm.")
 
 ;;; Multi keys
 ;;
@@ -1151,11 +1153,13 @@ will take precedence over this."
   :type 'float)
 
 (defvar helm-update-edebug nil
-  "Development feature.
+  "Development feature, make easier Edebug usage while in Helm.
 If set to true then all functions invoked after `helm-update' can be
 instrumented by `edebug' for stepping. `helm--maybe-use-while-no-input'
 then doesn't use `while-no-input', because `while-no-input' throws on
-`edebug' command key input.")
+`edebug' command key input.  NOTE: This may hang helm a few seconds
+while you are typing so use it only for debugging purpose, not
+permanently.")
 
 (defvar helm-default-output-filter #'helm-output-filter
   "The `process-filter' function for Helm async sources.")
@@ -2505,6 +2509,9 @@ If FORCE-DISPLAY-PART is non-nil, return the display part of candidate.
 If FORCE-DISPLAY-PART value is `withprop' the display part of
 candidate is returned with its properties.
 
+If FORCE-DISPLAY-PART value is `noicon' return the display part with its
+properties but without its leading icon if some.
+
 When FORCE-DISPLAY-PART is nil the real part of candidate is returned.
 
 SOURCE default to current-source when unspecified but it is better to
@@ -2519,7 +2526,7 @@ when you want the `display-to-real' function(s) to be applied."
                 (helm-pos-header-line-p))
       (let* ((beg     (overlay-start helm-selection-overlay))
              (end     (overlay-end helm-selection-overlay))
-             (disp-fn (if (eq force-display-part 'withprop)
+             (disp-fn (if (memq force-display-part '(withprop noicon))
                           'buffer-substring
                         'buffer-substring-no-properties))
              ;; If there is no selection at point, the
@@ -2528,7 +2535,13 @@ when you want the `display-to-real' function(s) to be applied."
              ;; is not empty but have no selection yet,
              ;; this happen with grep sentinel sending an
              ;; error message in helm-buffer when no matches.
-             (disp (unless (= beg end) (funcall disp-fn beg (1- end))))
+             (disp (unless (= beg end)
+                     (helm-acase (funcall disp-fn beg (1- end))
+                       ((guard* (and (eq force-display-part 'noicon)
+                                     (get-text-property 0 'icon it)))
+                        ;; Remove icon if some from display see issue#2743.
+                        (substring it (1+ guard))) ; icon length + one space.
+                       (t it))))
              (src  (or source (helm-get-current-source)))
              (selection (helm-acond (force-display-part disp)
                                     ;; helm-realvalue always takes precedence
@@ -2629,10 +2642,14 @@ i.e. functions called with RET."
   (setq helm-saved-action action)
   (setq helm-saved-selection (or (helm-get-selection) ""))
   (setq helm--executing-helm-action t)
-  ;; When toggling minibuffer and header-line, we want next action
-  ;; inherit this setting.
-  (helm-set-local-variable 'helm-echo-input-in-header-line
-                           (with-helm-buffer helm-echo-input-in-header-line))
+  (helm-set-local-variable
+   ;; When toggling minibuffer and header-line, we want next action
+   ;; inherit this setting.
+   'helm-echo-input-in-header-line
+   (with-helm-buffer helm-echo-input-in-header-line)
+   ;; Keep the same buffer for subsequent helm sessions started as actions.
+   'helm-current-buffer
+   (with-helm-buffer helm-current-buffer))
   ;; Ensure next action use same display function as initial helm-buffer when
   ;; helm-actions-inherit-frame-settings is non nil.
   (when (and helm-actions-inherit-frame-settings
@@ -3791,6 +3808,7 @@ For RESUME INPUT DEFAULT and SOURCES see `helm'."
   (helm-log "helm-initialize" "start initialization: resume=%S input=%S"
             resume input)
   (helm-frame-or-window-configuration 'save)
+  (setq helm-initial-windows (window-list nil 1))
   (let ((sources-list (helm-get-sources sources)))
     (setq helm--in-fuzzy
           (cl-loop for s in sources-list
@@ -5006,6 +5024,14 @@ emacs-27 to provide such scoring in emacs<27."
         searchfns (list searchfns))))
 
 (defun helm-match-from-candidates (cands matchfns match-part-fn limit source)
+  "Filter CANDS list in SOURCE with functions in MATCHFNS.
+If MATCH-PART-FN is a valid function, use it to determine in each
+candidate of CANDS the part of candidate we want to match on (see the
+:match-part documentation in `helm-source').  When LIMIT in CANDS is
+reached, stop and return the filtered list.  This function is used only
+by sync sources, i.e. sources built with `helm-source-sync', see
+`helm-search-from-candidate-buffer' for `helm-source-in-buffer' sources
+and `helm-output-filter' for async sources."
   (when cands ; nil in async sources.
     (condition-case-unless-debug err
         (cl-loop with hash = (make-hash-table :test 'equal)
@@ -6689,7 +6715,7 @@ If action buffer is displayed, kill it."
 (put 'helm-debug-output 'helm-only t)
 
 (defun helm-default-debug-function ()
-  "Collect sources of helm current session without their keymap.
+  "Collect sources of helm current session.
 This is the default function for `helm-debug-function'."
   (with-helm-buffer helm-sources))
 
@@ -6697,12 +6723,16 @@ This is the default function for `helm-debug-function'."
   (let ((local-vars (buffer-local-variables (get-buffer helm-buffer)))
         (count 1))
     (insert (format "* Helm debug from `%s' buffer\n\n" helm-buffer))
-    (insert "** Local variables\n\n#+begin_src elisp\n"
+    (insert "** Helm local variables\n\n#+begin_src elisp\n"
             (pp-to-string (remove (assq 'helm-sources local-vars) local-vars))
+            "\n#+end_src\n")
+    (insert "** Minibuffer local variables\n\n#+begin_src elisp\n"
+            (pp-to-string (with-selected-window (minibuffer-window)
+                            (buffer-local-variables)))
             "\n#+end_src\n")
     (dolist-with-progress-reporter (v (helm-interpret-value helm-debug-function))
         "Calculating all helm-related values..."
-      (insert (format "** Value%s\n" count)
+      (insert (format "** Source%s value\n" count)
               "#+begin_src elisp\n" (pp-to-string v) "\n#+end_src\n")
       (cl-incf count))))
 
@@ -7776,10 +7806,11 @@ If ARG is negative toggle backward."
   (interactive "p")
   (with-helm-alive-p
     (with-helm-window
-      (let ((nomark (assq 'nomark (helm-get-current-source)))
-            (next-fns (if (< arg 0)
-                          '(helm-beginning-of-source-p . helm-previous-line)
-                        '(helm-end-of-source-p . helm-next-line))))
+      (let* ((src      (helm-get-current-source))
+             (nomark   (assq 'nomark src))
+             (next-fns (if (< arg 0)
+                           '(helm-beginning-of-source-p . helm-previous-line)
+                         '(helm-end-of-source-p . helm-next-line))))
         (if nomark
             (message "Marking not allowed in this source")
           (cl-loop with n = (if (< arg 0) (* arg -1) arg)
@@ -7790,7 +7821,7 @@ If ARG is negative toggle backward."
                        (helm-make-visible-mark))
                      (if (funcall (car next-fns))
                          (progn
-                           (helm-display-mode-line (helm-get-current-source))
+                           (helm-display-mode-line src)
                            (cl-return nil))
                        (funcall (cdr next-fns)))))
           (set-window-margins (selected-window)
@@ -8110,13 +8141,13 @@ this variable."
      (lambda (sel)
        (kill-new sel)
        ;; Return nil to force `helm-mode--keyboard-quit'
-       ;; in `helm-comp-read' otherwise the value "Saved to kill-ring: foo"
+       ;; in `helm-comp-read' otherwise the message itself
        ;; is used as exit value for `helm-comp-read'.
        (prog1 nil (message "Saved to kill-ring: %s" sel) (sit-for 1)))
      (format "%s" (helm-get-selection
                    nil (helm-acase helm-kill-real-or-display-selection
                          (real arg)
-                         (display (not arg))))))))
+                         (display (and (not arg) 'noicon))))))))
 (put 'helm-kill-selection-and-quit 'helm-only t)
 
 (defun helm-insert-or-copy (&optional arg)

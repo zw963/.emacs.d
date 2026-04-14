@@ -1,6 +1,6 @@
 ;;; helm-source.el --- Helm source creation. -*- lexical-binding: t -*-
 
-;; Copyright (C) 2015 ~ 2025  Thierry Volpiatto
+;; Copyright (C) 2015 ~ 2026  Thierry Volpiatto
 
 ;; Author: Thierry Volpiatto
 ;; URL: http://github.com/emacs-helm/helm
@@ -492,7 +492,13 @@
     :initform nil
     :custom boolean
     :documentation
-    "  Match the real value of candidates when non nil.")
+    "Match the real value of candidates when non nil.
+Note that this assume you are using (DISPLAY . REAL) candidates and
+these candidates are computed as cons cell _before_
+`helm-match-from-candidates' run.  This mean you have to compute your
+candidates as cons cell either in the :candidates or :init function or
+in a :candidate-transformer.  Expect an error if you compute your
+candidates as cons cell in a :filtered-candidate-transformer.")
 
    (fuzzy-match
     :initarg :fuzzy-match

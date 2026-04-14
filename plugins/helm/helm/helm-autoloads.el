@@ -364,8 +364,6 @@ See `helm-define-multi-key'.
 
 \(fn NAME DOCSTRING FUNS &optional DELAY)" nil t)
 
-(function-put 'helm-multi-key-defun 'lisp-indent-function 2)
-
 (function-put 'helm-multi-key-defun 'doc-string-elt 2)
 
 (autoload 'helm-define-key-with-subkeys "helm-core" "\
