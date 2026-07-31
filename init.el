@@ -175,7 +175,7 @@
 
 ;; (require 'tabnine_init) ;; lsp-bridge 默认会开启 tabnine
 ;; C-c i 手动触发，也会自动触发。
-(require 'codeium_init)
+;; (require 'codeium_init)
 
 ;; ---------------- 编程相关 ----------------
 
