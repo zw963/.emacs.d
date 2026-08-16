@@ -13,6 +13,7 @@
 
 (setq diff-switches "-Naur")                     ;Default to unified diffs
 (setq vc-rcs-diff-switches "-u")
+(setq css-indent-offset 2)
 
 (defun update-diff-colors ()
   "Update the colors for diff faces."

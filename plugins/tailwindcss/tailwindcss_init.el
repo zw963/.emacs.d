@@ -18,7 +18,7 @@
 
 (add-to-list 'lsp-tailwindcss-major-modes 'crystal-mode)
 
-(dolist (hook '(crystal-mode-hook web-mode-hook))
+(dolist (hook '(crystal-mode-hook web-mode-hook css-ts-mode-hook))
   (add-hook hook
             (lambda ()
               (add-hook 'before-save-hook #'lsp-tailwindcss-rustywind nil t)
