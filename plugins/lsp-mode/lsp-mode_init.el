@@ -159,12 +159,12 @@ If BODY is empty, do nothing and return nil."
     ))
 
 
-(with-eval-after-load 'treemacs
-  (require 'lsp-treemacs)
-  (lsp-treemacs-sync-mode 1)
-  (setq lsp-treemacs-error-list-current-project-only t)
-  (add-hook 'treemacs-switch-workspace-hook 'lsp-treemacs-symbols)
-  )
+;; (with-eval-after-load 'treemacs
+;;   (require 'lsp-treemacs)
+;;   (lsp-treemacs-sync-mode 1)
+;;   (setq lsp-treemacs-error-list-current-project-only t)
+;;   (add-hook 'treemacs-switch-workspace-hook 'lsp-treemacs-symbols)
+;;   )
 
 ;; (lsp-installation-buffer-mode)
 ;; (lsp-inlay-hints-mode)
