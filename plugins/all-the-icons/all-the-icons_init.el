@@ -12,12 +12,6 @@
   (add-hook 'dired-mode-hook 'all-the-icons-dired-mode)
   )
 
-(with-eval-after-load 'treemacs
-  ;; includes with treemacs
-  (require 'treemacs-all-the-icons)
-  (treemacs-load-theme "all-the-icons")
-  )
-
 (with-eval-after-load 'helm
   (require 'helm-x-icons)
   (customize-set-variable 'helm-x-icons-provider 'all-the-icons)

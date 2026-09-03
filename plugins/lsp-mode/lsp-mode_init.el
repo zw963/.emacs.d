@@ -74,7 +74,7 @@ If BODY is empty, do nothing and return nil."
   ;; 这个 打开时，lsp-dart 非常卡，这里尝试 Crystal 模式打开。
   ;; (setq lsp-signature-auto-activate t)
   ;; 开启 lsp 的时候，同时打开 treemacs 窗口
-  (when (featurep 'treemacs) (save-selected-window (treemacs-select-window)))
+  ;; (when (featurep 'treemacs) (save-selected-window (treemacs-select-window)))
   )
 
 
@@ -127,7 +127,7 @@ If BODY is empty, do nothing and return nil."
 
 ;; (require 'helm-lsp)
 ;; (with-eval-after-load 'helm-lsp
-;;   (define-key lsp-mode-map [(control c) (S)] #'helm-lsp-global-workspace-symbol)
+;; (define-key lsp-mode-map [(control c) (S)] #'helm-lsp-global-workspace-symbol)
 ;;   ;; Ctrl+Alt+.
 ;;   (define-key lsp-mode-map [remap xref-find-apropos] #'helm-lsp-workspace-symbol)
 ;;   )
@@ -158,14 +158,6 @@ If BODY is empty, do nothing and return nil."
     (lsp-ui-doc-mode t)
     ))
 
-
-;; (with-eval-after-load 'treemacs
-;;   (require 'lsp-treemacs)
-;;   (lsp-treemacs-sync-mode 1)
-;;   (setq lsp-treemacs-error-list-current-project-only t)
-;;   (add-hook 'treemacs-switch-workspace-hook 'lsp-treemacs-symbols)
-;;   )
-
 ;; (lsp-installation-buffer-mode)
 ;; (lsp-inlay-hints-mode)
 
@@ -186,10 +178,6 @@ If BODY is empty, do nothing and return nil."
 ;; 这个不是每个 backend 都支持
 ;; (require 'lsp-iedit)
 ;; (define-key lsp-mode-map [(control \;)] #'lsp-iedit-highlights)
-
-;; lsp-ui-imenu 可能执行失败
-;; (add-hook 'treemacs-switch-workspace-hook 'lsp-ui-imenu)
-;; (add-hook 'treemacs-select-functions 'lsp-ui-imenu)
 
 ;; 想完成本 buffer 内的内容，需要加入 company-dabbrev-code
 ;; 但是，如果开启这个，会让 lsp 出现很多和上下文无关的结果。

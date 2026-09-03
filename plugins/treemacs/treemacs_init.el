@@ -63,5 +63,30 @@
             (context-menu-mode -1)
             ))
 
+(with-eval-after-load 'lsp-mode
+  (require 'lsp-treemacs)
+  (lsp-treemacs-sync-mode 1)
+  (setq lsp-treemacs-error-list-current-project-only t)
+  (add-hook 'treemacs-switch-workspace-hook 'lsp-treemacs-symbols)
+  )
+
+(with-eval-after-load 'all-the-icons
+  ;; includes with treemacs
+  (require 'treemacs-all-the-icons)
+  (treemacs-load-theme "all-the-icons")
+  )
+
+(with-eval-after-load 'avy
+  (add-hook 'treemacs-mode-hook
+            (lambda ()
+              (define-key treemacs-mode-map [(control j)] 'avy-goto-char-timer)
+              )))
+
+(with-eval-after-load 'lsp-ui
+  ;; lsp-ui-imenu 可能执行失败
+  ;; (add-hook 'treemacs-switch-workspace-hook 'lsp-ui-imenu)
+  ;; (add-hook 'treemacs-select-functions 'lsp-ui-imenu)
+  )
+
 (provide 'treemacs_init)
 ;;; treemacs_init.el ends here

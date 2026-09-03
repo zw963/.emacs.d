@@ -10,12 +10,6 @@
             (define-key org-mode-map [(control j)] 'avy-goto-char-timer)
             ))
 
-(with-eval-after-load 'treemacs
-  (add-hook 'treemacs-mode-hook
-            (lambda ()
-              (define-key treemacs-mode-map [(control j)] 'avy-goto-char-timer)
-              ))
-  )
 ;; (global-set-key [(control c) (r)] 'avy-resume)
 (define-key isearch-mode-map [(control j)] 'avy-isearch)
 
