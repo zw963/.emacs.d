@@ -1,6 +1,6 @@
 ;;; diff-hl-dired.el --- Highlight changed files in Dired -*- lexical-binding: t -*-
 
-;; Copyright (C) 2012-2017, 2023  Free Software Foundation, Inc.
+;; Copyright (C) 2012-2017, 2023-2026  Free Software Foundation, Inc.
 
 ;; This file is part of GNU Emacs.
 
@@ -36,6 +36,7 @@
 (require 'vc-hooks)
 
 (defvar diff-hl-dired-process-buffer nil)
+(defvar vc-dir-process-output-limit)
 
 (defgroup diff-hl-dired nil
   "VC diff highlighting on the side of a Dired window."
@@ -86,7 +87,7 @@ status indicators."
       (progn
         (diff-hl-maybe-define-bitmaps)
         (set (make-local-variable 'diff-hl-dired-process-buffer) nil)
-        (add-hook 'dired-after-readin-hook 'diff-hl-dired-update nil t))
+        (add-hook 'dired-after-readin-hook 'diff-hl-dired-update 10 t))
     (remove-hook 'dired-after-readin-hook 'diff-hl-dired-update t)
     (diff-hl-dired-clear)))
 
@@ -97,7 +98,6 @@ status indicators."
         (buffer (current-buffer))
         dirs-alist files-alist)
     (when (and backend (not (memq backend diff-hl-dired-ignored-backends)))
-      (diff-hl-dired-clear)
       (if (buffer-live-p diff-hl-dired-process-buffer)
           (let ((proc (get-buffer-process diff-hl-dired-process-buffer)))
             (when proc (kill-process proc)))
@@ -105,34 +105,36 @@ status indicators."
               (generate-new-buffer " *diff-hl-dired* tmp status")))
       (with-current-buffer diff-hl-dired-process-buffer
         (setq default-directory (expand-file-name def-dir))
+        ;; This isn't a VC-Dir buffer, so VC-Dir's truncation UI
+        ;; cannot be used here.
+        (setq-local vc-dir-process-output-limit nil)
         (erase-buffer)
         (diff-hl-dired-status-files
          backend def-dir
          (when diff-hl-dired-extra-indicators
-           (cl-loop for file in (directory-files def-dir)
-                    unless (member file '("." ".." ".hg"))
-                    collect file))
+           (with-current-buffer buffer
+             (diff-hl-dired-nondirectory-files)))
          (lambda (entries &optional more-to-come)
            (when (buffer-live-p buffer)
              (with-current-buffer buffer
                (dolist (entry entries)
                  (cl-destructuring-bind (file state &rest r) entry
-                   ;; Work around http://debbugs.gnu.org/18605
-                   (setq file (replace-regexp-in-string "\\` " "" file))
-                   (let ((type (plist-get
-                                '( edited change added insert removed delete
-                                   unregistered unknown ignored ignored)
-                                state)))
-                     (if (string-match "\\`\\([^/]+\\)/" file)
-                         (let* ((dir (match-string 1 file))
-                                (value (cdr (assoc dir dirs-alist))))
+                   (unless (eq state 'up-to-date)
+                     (let ((type (plist-get '( edited change added insert removed delete
+                                               unregistered unknown ignored ignored)
+                                            state))
+                           (dirs (cl-loop with pos = 0
+                                          while (string-match "/" file pos)
+                                          do (setq pos (match-end 0))
+                                          collect (substring file 0 (1- pos)))))
+                       (dolist (dir dirs)
+                         (let ((value (cdr (assoc dir dirs-alist))))
                            (unless (eq value type)
                              (cond
-                              ((eq state 'up-to-date))
                               ((null value)
                                (push (cons dir type) dirs-alist))
                               ((not (eq type 'ignored))
-                               (setcdr (assoc dir dirs-alist) 'change)))))
+                               (setcdr (assoc dir dirs-alist) 'change))))))
                        (push (cons file type) files-alist)))))
                (unless more-to-come
                  (diff-hl-dired-highlight-items
@@ -142,19 +144,84 @@ status indicators."
          )))))
 
 (defun diff-hl-dired-status-files (backend dir files update-function)
-  "Using version control BACKEND, return list of (FILE STATE EXTRA) entries
-for DIR containing FILES. Call UPDATE-FUNCTION as entries are added."
-  (vc-call-backend backend 'dir-status-files dir files update-function))
+  "Using VC BACKEND, fetch list of (FILE STATE EXTRA) entries for DIR.
+Call UPDATE-FUNCTION as entries are added."
+  (vc-call-backend
+   backend 'dir-status-files
+   dir nil
+   (lambda (entries &optional more-to-come)
+     (if (or more-to-come
+             (not diff-hl-dired-extra-indicators))
+         (funcall update-function entries more-to-come)
+       (diff-hl-dir-status-ignored-files
+        backend
+        dir
+        files
+        (lambda (ignored-entries &optional more-to-come)
+          (funcall update-function ignored-entries t)
+          (unless more-to-come
+            (funcall update-function entries nil))))
+       ))))
+
+(defun diff-hl-dired-nondirectory-files ()
+  (cl-mapcan
+   (lambda (entry)
+     (let* ((dir (file-relative-name (car entry)))
+            (all (file-name-all-completions "" dir))
+            res)
+       (dolist (file all)
+         (unless (directory-name-p file)
+           (push
+            (if (equal dir "./")
+                file
+              (concat dir file))
+            res)))
+       res))
+   dired-subdir-alist))
+
+(declare-function vc-git-dir-status-goto-stage "vc-git")
+(declare-function make-vc-git-dir-status-state "vc-git")
+(declare-function vc-hg-command "vc-hg")
+(declare-function vc-hg--program-version "vc-hg")
+(declare-function vc-hg-after-dir-status "vc-hg")
+
+(defun diff-hl-dir-status-ignored-files (backend dir files update-function)
+  (cond
+   ((eq backend 'Git)
+    (vc-git-dir-status-goto-stage
+     (make-vc-git-dir-status-state :stage 'ls-files-ignored
+                                   :files files
+                                   :update-function update-function)))
+   ((eq backend 'Hg)
+    (let ((default-directory dir))
+      (erase-buffer)
+      (apply #'vc-hg-command (current-buffer) 'async files
+             "status" "-i"
+             (if (version<= "4.2" (vc-hg--program-version))
+                 '("--config" "commands.status.relative=1")
+               '("re:" "-I" "."))))
+    (static-if (fboundp 'vc-run-delayed-success)
+        (vc-run-delayed-success 0
+          (vc-hg-after-dir-status update-function))
+      (vc-run-delayed
+        (vc-hg-after-dir-status update-function))))
+   ;; No specialized solution for "list only ignored state", list all.
+   ;; If the backend doesn't use several process calls (like Git), the
+   ;; difference should be trivial.
+   (t
+    (vc-call-backend backend 'dir-status-files dir files
+                     update-function))))
 
 (defun diff-hl-dired-highlight-items (alist)
   "Highlight ALIST containing (FILE . TYPE) elements."
+  (diff-hl-dired-clear) ;; clear overlays right before drawing to avoid flicker
   (dolist (pair alist)
     (let ((file (car pair))
           (type (cdr pair)))
       (save-excursion
         (goto-char (point-min))
         (when (and type (dired-goto-file-1
-                         file (expand-file-name file) nil))
+                         (file-name-nondirectory file) (expand-file-name file) nil))
           (let* ((diff-hl-fringe-bmp-function diff-hl-dired-fringe-bmp-function)
                  (diff-hl-fringe-face-function 'diff-hl-dired-face-from-type)
                  (o (diff-hl-add-highlighting type 'single)))

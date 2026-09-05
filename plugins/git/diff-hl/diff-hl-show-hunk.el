@@ -129,15 +129,16 @@ Then put the differences inside a special buffer and set the
 point in that buffer to the corresponding line of the original
 buffer."
   (defvar vc-sentinel-movepoint)
-  (let* ((buffer (or (buffer-base-buffer) (current-buffer)))
+  (let* ((buffer (current-buffer))
          (diff-hl-update-async nil)
          (line (line-number-at-pos))
          (dest-buffer diff-hl-show-hunk-diff-buffer-name))
     (with-current-buffer buffer
-      (if (buffer-modified-p)
-          (diff-hl-diff-buffer-with-reference buffer-file-name dest-buffer)
-        (diff-hl-changes-buffer buffer-file-name (vc-backend buffer-file-name)
-                                nil dest-buffer))
+      (let ((file (diff-hl--buffer-file-name)))
+        (if (buffer-modified-p)
+            (diff-hl-diff-buffer-with-reference file dest-buffer)
+          (diff-hl-changes-buffer file (vc-backend file)
+                                  nil dest-buffer)))
       (switch-to-buffer dest-buffer)
       (diff-hl-diff-skip-to line)
       (setq vc-sentinel-movepoint (point)))
@@ -219,6 +220,7 @@ Returns a list with the buffer and the line number of the clicked line."
     (define-key map (kbd "p") #'diff-hl-show-hunk-previous)
     (define-key map (kbd "n") #'diff-hl-show-hunk-next)
     (define-key map (kbd "c") #'diff-hl-show-hunk-copy-original-text)
+    (define-key map (kbd "e") #'diff-hl-show-hunk-ediff)
     (define-key map (kbd "r") #'diff-hl-show-hunk-revert-hunk)
     (define-key map (kbd "[") #'diff-hl-show-hunk-previous)
     (define-key map (kbd "]") #'diff-hl-show-hunk-next)
@@ -245,6 +247,12 @@ Returns a list with the buffer and the line number of the clicked line."
   (interactive)
   (diff-hl-show-hunk-hide)
   (diff-hl-stage-current-hunk))
+
+(defun diff-hl-show-hunk-ediff ()
+  "Dismiss the popup and run Ediff for the current hunk."
+  (interactive)
+  (diff-hl-show-hunk-hide)
+  (diff-hl-ediff-current-hunk))
 
 ;;;###autoload
 (defun diff-hl-show-hunk-previous ()
@@ -303,7 +311,7 @@ end of the OVERLAY, so posframe/inline is placed below the hunk."
 The backend is determined by `diff-hl-show-hunk-function'."
   (interactive)
 
-  (unless (vc-backend buffer-file-name)
+  (unless (vc-backend (diff-hl--buffer-file-name))
     (user-error "The buffer is not under version control"))
 
   (diff-hl-find-current-hunk)
