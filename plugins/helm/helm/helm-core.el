@@ -4,7 +4,7 @@
 
 ;; Author: Thierry Volpiatto <thievol@posteo.net>
 ;; URL: https://emacs-helm.github.io/helm/
-;; Version: 4.0.6
+;; Version: 4.0.7
 ;; Package-Requires: ((emacs "25.1") (async "1.9.9"))
 
 ;; This program is free software; you can redistribute it and/or modify
@@ -1415,6 +1415,7 @@ size of `helm-debug-buffer' grows quickly.")
 \\<helm-map>\
 \\[helm-help]:Help \
 \\[helm-select-action]:Act \
+\\[helm-next-source]:NextSrc \
 \\[helm-maybe-exit-minibuffer]/\
 f1..f12:NthAct \
 \\[helm-toggle-suspend-update]:Tog.suspend \
@@ -1450,13 +1451,24 @@ diverse [[Helm sources][sources]], see [[https://github.com/emacs-helm/helm/wiki
 Helm generally uses familiar Emacs keys to navigate the list.
 Here follow some of the less obvious bindings:
 
-- `\\<helm-map>\\[helm-maybe-exit-minibuffer]' selects the
-candidate from the list, executes the default action upon exiting
-the Helm session.
+- `\\<helm-map>\\[helm-maybe-exit-minibuffer]' selects the candidate
+from the list, executes the default action upon exiting the Helm
+session.  The first 12 actions are bound by default to F1..12.  Note
+that according to filtered actions (see below) the action order may
+differ, this mean that the F3 key for example may be bound to an action
+for one type of candidate and to another action for another candidate.
+In addition to these F1..12 bindings each action may have specific
+keybinding according to its own keymap.  You can of course configure
+your keybindings in each helm keymap as needed just like in any Emacs
+keymap.  See [[Modify keybindings in Helm][Modify keybindings in Helm]].
 
 - `\\<helm-map>\\[helm-execute-persistent-action]' executes the
 default action but without exiting the Helm session.  Not all
 sources support this.
+
+- `\\<helm-map>\\[helm-next-source]' Jump to next source.
+
+- `\\<helm-map>\\[helm-previous-source]' Jump to previous source.
 
 - `\\<helm-map>\\[helm-select-action]' displays a list of actions
 available on current candidate or all marked candidates.  The
@@ -1471,8 +1483,9 @@ are called filtered actions.
 ** Helm sources
 
 Helm uses what's called sources to provide different kinds of
-completions.  Each Helm session can handle one or more source.  A
-source is an alist object which is build from various classes,
+completions.  Each Helm session can handle one or more source.
+Each source has its own keymap.
+A source is an alist object which is build from various classes,
 see [[Writing your own Helm sources][here]] and [[https://github.com/emacs-helm/helm/wiki/Developing#creating-a-source][Helm wiki]] for more infos.
 
 *** Configure sources
@@ -2196,7 +2209,8 @@ E.g. (helm-log-error \"Error %s: %s\" (car err) (cdr err))."
 (defmacro helm-make-command-from-action (symbol doc action &rest body)
   "Make a command SYMBOL from ACTION with docstring DOC.
 The command SYMBOL will quit helm before execute.
-Argument ACTION should be an existing helm action.
+Argument ACTION should be an existing helm action in the source from where this
+command will be called.
 BODY form will run before calling action.
 
 Example:
@@ -3170,6 +3184,7 @@ HISTORY args see `helm'."
               ;; Add also to update hook otherwise keymap is not updated
               ;; until a key is hit (Bug#1670).
               (add-hook 'helm-after-update-hook 'helm--maybe-update-keymap)
+              (add-hook 'helm-after-update-hook 'read-only-mode)
               (add-hook 'post-command-hook 'helm--update-header-line)
               (helm-log "helm-internal" "show prompt")
               (unwind-protect
@@ -5260,7 +5275,8 @@ without recomputing them, it should be a list of lists."
     (with-helm-window (delete-other-windows)))
   (with-current-buffer (helm-buffer-get)
     (set (make-local-variable 'helm-input-local) helm-pattern)
-    (let ((ov '(nil)))
+    (let ((ov '(nil))
+          (inhibit-read-only t))
       (unwind-protect
            (let (sources matches)
              ;; Collect sources ready to be updated.
@@ -5646,7 +5662,8 @@ See `helm-default-output-filter'."
            (insertion-marker     (cdr (assq 'insertion-marker source)))
            (incomplete-line-info (assq 'incomplete-line source))
            (item-count-info      (assq 'item-count source))
-           (multiline            (assq 'multiline source)))
+           (multiline            (assq 'multiline source))
+           (inhibit-read-only t))
       (with-helm-buffer
         (save-excursion
           (if insertion-marker
@@ -6797,26 +6814,27 @@ CANDIDATE-OR-REGEXP from there."
 (defun helm-delete-current-selection ()
   "Delete the currently selected item."
   (with-helm-window
-    (cond ((helm-pos-multiline-p)
-           (helm-aif (helm-get-next-candidate-separator-pos)
-               (delete-region (pos-bol)
-                              (1+ (progn (goto-char it) (pos-eol))))
-             ;; last candidate
-             (goto-char (helm-get-previous-candidate-separator-pos))
-             (delete-region (pos-bol) (point-max)))
-           (when (helm-end-of-source-p)
-             (goto-char (or (helm-get-previous-candidate-separator-pos)
-                            (point-min)))
-             (forward-line 1)))
-          (t
-           (delete-region (pos-bol) (1+ (pos-eol)))
-           (when (helm-end-of-source-p t)
-             (let ((headp (save-excursion
-                            (forward-line -1)
-                            (not (helm-pos-header-line-p)))))
-               (and headp (forward-line -1))))))
-    (unless (helm-end-of-source-p t)
-      (helm-mark-current-line))))
+    (let ((inhibit-read-only t))
+      (cond ((helm-pos-multiline-p)
+             (helm-aif (helm-get-next-candidate-separator-pos)
+                 (delete-region (pos-bol)
+                                (1+ (progn (goto-char it) (pos-eol))))
+               ;; last candidate
+               (goto-char (helm-get-previous-candidate-separator-pos))
+               (delete-region (pos-bol) (point-max)))
+             (when (helm-end-of-source-p)
+               (goto-char (or (helm-get-previous-candidate-separator-pos)
+                              (point-min)))
+               (forward-line 1)))
+            (t
+             (delete-region (pos-bol) (1+ (pos-eol)))
+             (when (helm-end-of-source-p t)
+               (let ((headp (save-excursion
+                              (forward-line -1)
+                              (not (helm-pos-header-line-p)))))
+                 (and headp (forward-line -1))))))
+      (unless (helm-end-of-source-p t)
+        (helm-mark-current-line)))))
 
 (defun helm-end-of-source-1 (n at-point)
   (save-excursion

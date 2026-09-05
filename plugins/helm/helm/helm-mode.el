@@ -1131,6 +1131,7 @@ FLAGS is a list of variables to renitialize to nil when exiting or quitting.")
     ("describe-symbol" . symbol-help)  ; For Emacs-27.
     ("describe-command" . symbol-help) ; For Emacs-27.
     ("set-variable" . symbol-help)
+    ("remove-hook" . symbol-help)
     ("customize-group" . symbol-help)
     ("find-function" . symbol-help)
     ("find-variable" . symbol-help)
@@ -1405,7 +1406,7 @@ See `helm-completing-read-extra-metadata'."
               (cl-return (setq doc (car (split-string docstring "\n")))))))
         (unless doc
           (setq doc (helm--get-theme-doc-from-header)))))
-    doc))
+    (or doc "")))
 
 (defun helm--get-theme-doc-from-header ()
   "Extract doc in first line of theme file."
@@ -2306,12 +2307,11 @@ Keys description:
              :persistent-action-if persistent-action-if
              :persistent-help persistent-help
              :volatile t
-             ;; Because we don't use :must-match in this source,
-             ;; helm-read-file-map is NOT merged with must-match map, this to
-             ;; not override helm-ff-RET, so MUST-MATCH == t is handled by
-             ;; helm-ff-RET, otherwise the dummy source enter in action and
-             ;; handle the other possible values of MUST-MATCH.
              :keymap helm-read-file-map
+             ;; Use MUST-MATCH here only when it is a function, otherwise let
+             ;; the dummy source handling the other possible values of
+             ;; MUST-MATCH.  See how keymaps are merged in helm-source.
+             :must-match (and (functionp must-match) must-match)
              :cleanup 'helm-find-files-cleanup
              :nomark nomark
              :action action-fn)))
@@ -3134,7 +3134,9 @@ Be sure to know what you are doing when modifying this.")
                          crm-separator)
                         (and (stringp crm-separator)
                              (or (get-text-property 0 'separator crm-separator)
-                                 (string-replace "[ \t]*" "" crm-separator)))
+                                 (helm-aand (string-replace
+                                             "[ \t]*" "" crm-separator)
+                                            (and (eq (length it) 1) it))))
                         helm-crm-default-separator)))
            ;; Try to find a default separator. If `crm-separator' is a
            ;; regexp use the string the regexp is matching.

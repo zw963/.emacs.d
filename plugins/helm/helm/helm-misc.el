@@ -380,14 +380,18 @@ Default action change TZ environment variable locally to emacs."
   "Basic helm navigation tool for outline buffers."
   (interactive "P")
   (require 'outline)
-  (let ((outline-regexp (if arg (read-regexp "Outline regexp") outline-regexp)))
+  (let ((outline-regexp (replace-regexp-in-string
+                          "\\`\\^" ""
+                          (if arg
+                              (read-regexp "Outline regexp")
+                            outline-regexp))))
     (helm :sources (helm-build-sync-source "helm outline"
                      :candidates
                      (lambda ()
                        (with-helm-current-buffer
                          (save-excursion
                            (goto-char (point-min))
-                           (cl-loop while (re-search-forward outline-regexp nil t)
+                           (cl-loop while (re-search-forward (concat "^" outline-regexp) nil t)
                                     for beg = (match-beginning 0)
                                     for end = (progn
                                                 (outline-end-of-heading) (point))

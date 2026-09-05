@@ -74,6 +74,7 @@
 (defvar ffap-machine-p-local)
 (defvar ffap-machine-p-known)
 (defvar helm-debug-output-buffer)
+(defvar org-fold-show-context-detail)
 
 ;;; User vars.
 ;;
@@ -311,50 +312,48 @@ the leading `-' char."
 ;;  waiting package.el moves on Elpa.  Slightly modified to fit with
 ;;  Emacs-27/28.
 (when (eval-when-compile (< emacs-major-version 29)) ; Avoid warnings.
-  (progn
-    (require 'package)
-    (eval-and-compile
-      (defun package--archives-initialize ()
-        "Make sure the list of installed and remote packages are initialized."
-        (unless package--initialized
-          (package-initialize t))
-        (unless package-archive-contents
-          (package-refresh-contents)))
+  (require 'package)
+  (defun package--archives-initialize ()
+    "Make sure the list of installed and remote packages are initialized."
+    (unless package--initialized
+      (package-initialize t))
+    (unless package-archive-contents
+      (package-refresh-contents)))
 
-      (defun package-get-descriptor (pkg-name)
-        "Return the `package-desc' of PKG-NAME."
-        (unless package--initialized (package-initialize 'no-activate))
-        (or (cadr (assq pkg-name package-alist))
-            (cadr (assq pkg-name package-archive-contents))))
+  (defun package-get-descriptor (pkg-name)
+    "Return the `package-desc' of PKG-NAME."
+    (unless package--initialized (package-initialize 'no-activate))
+    (or (cadr (assq pkg-name package-alist))
+        (cadr (assq pkg-name package-archive-contents))))
 
-      (defun package-upgrade (name)
-        "Upgrade package NAME if a newer version exists."
-        (let* ((package (if (symbolp name)
-                            name
-                          (intern name)))
-               (pkg-desc (cadr (assq package package-alist))))
-          ;; `pkg-desc' will be nil when the package is an "active built-in".
-          (when pkg-desc
-            (package-delete pkg-desc 'force 'dont-unselect))
-          (package-install package
-                           ;; An active built-in has never been "selected"
-                           ;; before.  Mark it as installed explicitly.
-                           (and pkg-desc 'dont-select))))
+  (defun package-upgrade (name)
+    "Upgrade package NAME if a newer version exists."
+    (let* ((package (if (symbolp name)
+                        name
+                      (intern name)))
+           (pkg-desc (cadr (assq package package-alist))))
+      ;; `pkg-desc' will be nil when the package is an "active built-in".
+      (when pkg-desc
+        (package-delete pkg-desc 'force 'dont-unselect))
+      (package-install package
+                       ;; An active built-in has never been "selected"
+                       ;; before.  Mark it as installed explicitly.
+                       (and pkg-desc 'dont-select))))
 
-      (defun package-recompile (pkg)
-        "Byte-compile package PKG again.
+  (defun package-recompile (pkg)
+    "Byte-compile package PKG again.
 PKG should be either a symbol, the package name, or a `package-desc'
 object."
-        (let ((pkg-desc (if (package-desc-p pkg)
-                            pkg
-                          (cadr (assq pkg package-alist)))))
-          ;; Delete the old .elc files to ensure that we don't inadvertently
-          ;; load them (in case they contain byte code/macros that are now
-          ;; invalid).
-          (dolist (elc (directory-files-recursively
-                        (package-desc-dir pkg-desc) "\\.elc\\'"))
-            (delete-file elc))
-          (package--compile pkg-desc))))))
+    (let ((pkg-desc (if (package-desc-p pkg)
+                        pkg
+                      (cadr (assq pkg package-alist)))))
+      ;; Delete the old .elc files to ensure that we don't inadvertently
+      ;; load them (in case they contain byte code/macros that are now
+      ;; invalid).
+      (dolist (elc (directory-files-recursively
+                    (package-desc-dir pkg-desc) "\\.elc\\'"))
+        (delete-file elc))
+      (package--compile pkg-desc))))
 
 ;;; Provide `help--symbol-class' not available in emacs-27
 ;;
@@ -812,8 +811,10 @@ displayed in BUFNAME."
 
 (defun helm-help-org-mark-ring-goto ()
   "Calls `org-mark-ring-goto' ignoring errors."
-  (ignore-errors
-    (org-mark-ring-goto)))
+  ;; Don't reveal links when going back to them.
+  (let ((org-fold-show-context-detail 'org-goto))
+    (ignore-errors
+      (org-mark-ring-goto))))
 
 (defvar helm--help-org-prefargs
   (if (> emacs-major-version 28)
@@ -2133,7 +2134,8 @@ That is what completion commands operate on."
   "Eval BODY inside `helm-buffer'."
   (declare (indent 0) (debug t))
   `(with-current-buffer (helm-buffer-get)
-     ,@body))
+     (let ((inhibit-read-only t))
+       ,@body)))
 
 (defmacro with-helm-current-buffer (&rest body)
   "Eval BODY inside `helm-current-buffer'."
@@ -2162,7 +2164,8 @@ That is what completion commands operate on."
   "Be sure BODY is excuted in the helm window."
   (declare (indent 0) (debug t))
   `(with-selected-window (helm-window)
-     ,@body))
+     (let ((inhibit-read-only t))
+       ,@body)))
 
 (defmacro helm-without-follow (&rest body)
   "Ensure BODY runs without following.

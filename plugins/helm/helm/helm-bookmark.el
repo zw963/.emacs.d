@@ -33,7 +33,7 @@
 (declare-function eww-read-bookmarks "eww")
 
 (defvar eww-bookmarks)
-
+(defvar w3m-initial-frames)
 
 (defgroup helm-bookmark nil
   "Predefined configurations for `helm.el'."
@@ -203,11 +203,20 @@ will be honored."
   "Toggle bookmark location visibility."
   'toggle-filename 'helm-bookmark-toggle-filename-1)
 
-(defun helm-bookmark-jump-1 (candidate &optional fn)
+(defun helm-bookmark-jump-1 (bmk &optional display-function)
+  "Prepare window or frame according to DISPLAY-FUNCTION and display BMK in it."
   (let (;; FIXME Why is prefarg necessary here?
         (current-prefix-arg helm-current-prefix-arg)
-        non-essential)
-    (bookmark-jump candidate fn)))
+        non-essential qr)
+    (when display-function
+      (funcall display-function helm-current-buffer)
+      (setq qr (window-parameter (selected-window) 'quit-restore)))
+    (bookmark--jump-via bmk #'pop-to-buffer-same-window)
+    (set-window-prev-buffers (selected-window) nil)
+    (when qr
+      (set-window-parameter (selected-window) 'quit-restore
+                            (append (delete (car (last qr)) qr)
+                                    (list (current-buffer)))))))
 
 (defun helm-bookmark-jump (candidate)
   "Jump to bookmark action."
@@ -215,7 +224,13 @@ will be honored."
 
 (defun helm-bookmark-jump-other-frame (candidate)
   "Jump to bookmark in other frame action."
-  (helm-bookmark-jump-1 candidate #'switch-to-buffer-other-frame))
+  (let ((handler (bookmark-get-handler candidate)))
+    (helm-bookmark-jump-1 candidate #'switch-to-buffer-other-frame)
+    ;; Specific to w3m. W3m set this variable when a frame is created
+    ;; specifically for its buffer, it is not the case here as we use an
+    ;; existing frame created previously with DISPLAY-FUNCTION.
+    (when (eq handler 'bookmark-w3m-bookmark-jump)
+      (setq-local w3m-initial-frames (cons (selected-frame) w3m-initial-frames)))))
 
 (defun helm-bookmark-jump-other-window (candidate)
   "Jump to bookmark in other window action."

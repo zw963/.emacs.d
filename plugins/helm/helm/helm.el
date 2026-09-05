@@ -11,10 +11,10 @@
 ;;                         Thierry Volpiatto
 
 ;; Author: Thierry Volpiatto <thievol@posteo.net>
-;; Version: 4.0.6
+;; Version: 4.0.7
 ;; URL: https://emacs-helm.github.io/helm/
-;; Package-Requires: ((helm-core "4.0.6") (wfnames "1.2"))
-;; Keywords: helm, convenience, files, buffers, grep, completion, lisp, matching, tools, help
+;; Package-Requires: ((helm-core "4.0.7") (wfnames "1.2"))
+;; Keywords: helm, convenience, files, buffers, grep, completion, lisp, matching, tools, help, package
 
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by

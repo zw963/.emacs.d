@@ -106,6 +106,7 @@
 (defvar recentf-list)
 (defvar helm-mm-matching-method)
 (defvar dired-async-mode)
+(defvar dired-async-file-directory-p-fn)
 (defvar org-directory)
 (defvar eshell-current-command)
 (defvar eshell-debug-command)
@@ -589,35 +590,6 @@ If you want to enable this you will have to install the \\='trash'
 command on remote (and/or locally if you want to trash as root).
 On Ubuntu-based distributions it is \\='trash-cli'."
   :type 'boolean)
-
-(defvaralias 'helm-list-directory-function 'helm-list-remote-directory-fn)
-(make-obsolete-variable 'helm-list-directory-function 'helm-list-remote-directory-fn "4.0")
-
-(defcustom helm-list-remote-directory-fn
-  (cl-case system-type
-    (gnu/linux #'helm-list-dir-external)
-    (berkeley-unix #'helm-list-dir-lisp)
-    (windows-nt #'helm-list-dir-lisp)
-    (t #'helm-list-dir-lisp))
-  "The function used in `helm-find-files' to list remote directories.
-
-Currently Helm provides two functions to do this:
-`helm-list-dir-lisp' and `helm-list-dir-external'.
-
-Using `helm-list-dir-external' will provide a similar display to
-what is provided with local files i.e. colorized symlinks,
-executables files etc., whereas using `helm-list-dir-lisp' will
-allow colorizing only directories but it is more portable.
-
-NOTE: `helm-list-dir-external' needs ls and awk as dependencies.
-Also the ls version installed on the remote side should support
-the same arguments as the GNU/ls version, which are -A -1 -F -b
-and -Q.  So even if you are using a GNU/ls version locally and you
-want to connect e.g. on a Freebsd server, you may have failures
-due to the incompatible ls version installed on remote server.  In
-such case use `helm-list-dir-lisp' which works everywhere but is
-slower and less featured (only directories colorized)."
-  :type 'function)
 
 (defcustom helm-ff-initial-sort-method nil
   "Sort method to use when initially listing a directory.
@@ -1404,7 +1376,10 @@ ACTION can be `rsync' or any action supported by `helm-dired-action'."
                         :initial-input (or cdir helm-ff-default-directory)
                         :history (helm-find-files-history nil :comp-read nil))))))
          (dest-dir-p (file-directory-p dest))
-         (dest-dir   (if dest-dir-p dest (helm-basedir dest))))
+         (dest-dir   (if dest-dir-p dest (helm-basedir dest)))
+         ;; Using this speedup dramatically preprocessing of remote candidates
+         ;; e.g. with `adb'.
+         (dired-async-file-directory-p-fn #'helm-ff--file-directory-p))
     ;; Ignore `dired-create-destination-dirs' and handle directory creation from
     ;; here like we were doing before. Dired is failing to create directories
     ;; when e.g. symlinking some files to a not yet existing directory.
@@ -2690,6 +2665,8 @@ See `helm-ff-RET' for details."
       ;; `helm--minibuffer-completing-file-name' is non nil that's mean we are
       ;; in `helm-read-file-name'.
       (if (and helm--minibuffer-completing-file-name (null sel))
+          ;; FIXME: This should never be called as we use now a dummy source
+          ;; either in HFF and in helm-read-file-name.
           (throw 'must-match (minibuffer-message "[No match]"))
         (cl-assert sel nil "Trying to exit with no candidates"))
       (if (and (or (file-directory-p sel)
@@ -3694,44 +3671,57 @@ debugging purpose."
 (defun helm-list-directory (directory &optional sel)
   "List directory DIRECTORY.
 
-If DIRECTORY is remote use `helm-list-remote-directory-fn',
-otherwise use `directory-files'.
+If DIRECTORY is remote use external ls with automatic fallback to
+lisp implementation, otherwise use `directory-files'.
 SEL argument is only here for debugging purpose, it default to
 `helm-get-selection'."
-  (let* ((remote (file-remote-p directory 'method))
-         (helm-list-remote-directory-fn
-          (helm-acase remote
-            ("ftp" #'helm-list-dir-lisp)
-            ("adb" #'helm-list-dir-adb)
-            (t helm-list-remote-directory-fn)))
-         (use-ext-remote-fn
-          (and remote
-               (eq helm-list-remote-directory-fn 'helm-list-dir-external)))
-         (sort-method (helm-acase helm-ff-initial-sort-method
-                        (newest (if use-ext-remote-fn
-                                    "-t" #'file-newer-than-file-p))
-                        (size (if use-ext-remote-fn
-                                  "-S" #'helm-ff-file-larger-that-file-p))
-                        (ext (if use-ext-remote-fn
-                                 #'identity
-                               #'helm-group-candidates-by)))))
+  (let* ((remote       (file-remote-p directory 'method))
+         (remote-fn    (helm-acase remote
+                         ("ftp" #'helm-list-dir-lisp)
+                         ("adb" #'helm-list-dir-adb)
+                         (t     #'helm-list-dir-external)))
+         (use-ext-fn   (and remote (eq remote-fn #'helm-list-dir-external)))
+         (sort-methods (helm-acase helm-ff-initial-sort-method
+                         (newest '("-t" . file-newer-than-file-p))
+                         (size   '("-S" . helm-ff-file-larger-than-file-p))
+                         (ext    '(identity . helm-group-candidates-by))))
+         ;; Note that `helm-group-candidates-by' is NOT a sort fn, it has to be
+         ;; called on a whole list of candidates.
+         (sort-method  (if use-ext-fn (car sort-methods) (cdr sort-methods)))
+         (sort-by-ext  (eq helm-ff-initial-sort-method 'ext))
+         ;; If we are on remote try first `helm-list-dir-external', if it fails
+         ;; for some reasons (presumably because the GNU ls is not installed on
+         ;; remote) fall back to `helm-list-dir-lisp'.
+         (rem-lst      (and remote
+                            (condition-case _err
+                                (funcall remote-fn directory
+                                         (and (not sort-by-ext)
+                                              sort-method))
+                              (error
+                               (and use-ext-fn
+                                    (funcall #'helm-list-dir-lisp directory
+                                             (unless sort-by-ext
+                                               (cdr sort-methods)))))))))
     (if remote
-        (ignore-errors
-          (funcall helm-list-remote-directory-fn directory sort-method))
+        (if (and rem-lst sort-by-ext)
+            (helm-group-candidates-by
+             rem-lst #'file-name-extension
+             (or sel (helm-get-selection) ""))
+          rem-lst)
       (helm-acase helm-ff-initial-sort-method
         ((newest size)
          (sort (helm-local-directory-files
                 directory t directory-files-no-dot-files-regexp)
                sort-method))
-        (ext (funcall sort-method
-                      (helm-local-directory-files
-                       directory t directory-files-no-dot-files-regexp)
-                      #'file-name-extension
-                      (or sel (helm-get-selection) "")))
+        (ext (helm-group-candidates-by
+              (helm-local-directory-files
+               directory t directory-files-no-dot-files-regexp)
+              #'file-name-extension
+              (or sel (helm-get-selection) "")))
         (t (helm-local-directory-files
             directory t directory-files-no-dot-files-regexp))))))
 
-(defsubst helm-ff-file-larger-that-file-p (f1 f2)
+(defsubst helm-ff-file-larger-than-file-p (f1 f2)
   (let ((attr1 (file-attributes f1))
         (attr2 (file-attributes f2)))
     (> (nth 7 attr1) (nth 7 attr2))))
@@ -3795,7 +3785,15 @@ Add a `helm-ff-dir' property on each fname ending with \"/\"."
 
 This function is fast enough to be used for remote files and save
 the type of files at the same time in a property for using it
-later in the transformer."
+later in the transformer.
+
+Provides a similar display to local files i.e. colorized symlinks,
+executable files etc.
+
+Requires ls and awk on the remote side. The ls version should
+support the same arguments as GNU/ls, which are -A -1 -F -b and -Q.
+On systems with incompatible ls versions (e.g., FreeBSD, BusyBox),
+this function returns nil."
   (let ((default-directory (file-name-as-directory
                             (expand-file-name dir))))
     (with-temp-buffer
@@ -3809,7 +3807,7 @@ later in the transformer."
                   ;; "foo*" for the real file foo. The downside is
                   ;; that we need an extra step to remove the quotes
                   ;; at the end which impact performances.
-                  "ls -A -1 -F -b -Q %s | awk -v dir=%s '{print dir $0}'"
+                  "ls -A -1 -F -b -Q %s 2>/dev/null | awk -v dir=%s '{print dir $0}'"
                   (or sort-method "")
                   (shell-quote-argument default-directory))
                  nil t nil)
@@ -3844,6 +3842,9 @@ later in the transformer."
 ;; watcher ring on the truename remove the symlinked directory from cache.
 (defvar helm-ff--list-directory-links nil)
 
+(defvar helm-ff--inotify-unsupported-hosts nil
+  "Known hosts to not have file-notify support.")
+
 (defun helm-ff-directory-files (directory &optional force-update)
   "List contents of DIRECTORY.
 Argument FULL mean absolute path.
@@ -3852,9 +3853,12 @@ filename \\='.' and \\='..' even on root directories in Windows
 systems.
 When FORCE-UPDATE is non nil recompute candidates even if DIRECTORY is
 in cache."
-  (let* ((method (file-remote-p directory 'method))
-         (dfn (directory-file-name directory))
-         (truename (and (file-symlink-p dfn) (file-truename dfn))))
+  (let* ((method   (file-remote-p directory 'method))
+         (host     (file-remote-p directory 'host))
+         (dfn      (directory-file-name directory))
+         (truename (and (file-symlink-p dfn) (file-truename dfn)))
+         (watcher  (gethash directory helm-ff--file-notify-watchers))
+         watcher-is-valid)
     (setq directory (file-name-as-directory
                      (expand-file-name directory)))
     (when truename
@@ -3862,6 +3866,10 @@ in cache."
                   helm-ff--list-directory-links :test 'equal))
     (or (and (not force-update)
              (not (member method helm-ff-inotify-unsupported-methods))
+             ;; Use the cache only when watcher is valid, otherwise we may endup
+             ;; with a cache not up to date if changes have been made to
+             ;; DIRECTORY and the watcher didn't notify those changes (bug#2758).
+             (setq watcher-is-valid (file-notify-valid-p watcher))
              (gethash directory helm-ff--list-directory-cache))
         (let* (file-error
                (ls   (condition-case err
@@ -3882,8 +3890,7 @@ in cache."
                           (setq file-error t)))))
                (dot  (concat directory "."))
                (dot2 (concat directory ".."))
-               (candidates (append (and (not file-error) (list dot dot2)) ls))
-               watcher)
+               (candidates (append (and (not file-error) (list dot dot2)) ls)))
           (puthash directory (+ (length ls) 2) helm-ff--directory-files-length)
           (prog1
               (puthash directory
@@ -3894,13 +3901,10 @@ in cache."
             ;; Put an inotify watcher to check directory modifications.
             (unless (or (null helm-ff-use-notify)
                         (member method helm-ff-inotify-unsupported-methods)
-                        (helm-aand (setq watcher (gethash
-                                                  directory
-                                                  helm-ff--file-notify-watchers))
-                                   ;; [1] If watcher is invalid enter
-                                   ;; next and delete it.
-                                   (file-notify-valid-p it)))
-              (condition-case-unless-debug err
+                        (member host helm-ff--inotify-unsupported-hosts)
+                        ;; [1] If watcher is invalid enter next and delete it.
+                        watcher-is-valid)
+              (condition-case err
                   (let ((to-watch (or truename directory)))
                     (when watcher
                       ;; If watcher is still in cache and we are here,
@@ -3917,7 +3921,15 @@ in cache."
                               '(change attribute-change)
                               (helm-ff--inotify-make-callback to-watch))
                              helm-ff--file-notify-watchers))
-                (file-notify-error (user-error "Error: %S %S" (car err) (cdr err))))))))))
+                (file-notify-error
+                 ;; We used user-error here during years, but is seems some
+                 ;; remotes don't have inotify support, so use here message to
+                 ;; ensure file listing is provided to user instead of failing
+                 ;; with error (bug#2758).
+                 (message "Error: %S %S" (car err) (cdr err))
+                 ;; Once host is pushed to helm-ff--inotify-unsupported-hosts
+                 ;; next call should not provide an error message.
+                 (and host (push host helm-ff--inotify-unsupported-hosts))))))))))
 
 (defun helm-ff--inotify-make-callback (directory)
   "Return a callback for `file-notify-add-watch'."
@@ -4569,7 +4581,7 @@ Arg FILE is the real part of candidate, a filename with no props."
 (defun helm-ff--in-backup-directory ()
   (when backup-directory-alist
     (cl-loop for (_p . f) in backup-directory-alist
-             thereis (file-equal-p f helm-ff-default-directory))))
+             thereis (and f (file-equal-p f helm-ff-default-directory)))))
 
 (defun helm-ff-restore-backups (_candidate)
   (let ((mkd (helm-marked-candidates))
@@ -5635,7 +5647,10 @@ Show the first `helm-ff-history-max-length' elements of
   (interactive "p")
   (let ((history (when helm-ff-history
                    (helm-fast-remove-dups helm-ff-history
-                                          :test 'equal))))
+                                          :test 'equal)))
+        ;; Force reusing the same frame when helm session is displayed in its
+        ;; own frame (issue #2750).
+        (helm-display-function 'helm-default-display-buffer))
     (when history
       (setq helm-ff-history
             (if (>= (length history) helm-ff-history-max-length)
@@ -6307,18 +6322,19 @@ and `dired-compress-files-alist'."
 (defun helm-ff--delete-by-moving-to-trash (file)
   "Decide to trash or delete FILE.
 Return non-nil when FILE needs to be trashed."
-  (let ((remote (file-remote-p file)))
-    (or
-     (and delete-by-moving-to-trash
-          (null helm-current-prefix-arg)
-          (null current-prefix-arg)
-          (or (and remote helm-trash-remote-files)
-              (null remote)))
-     (and (null delete-by-moving-to-trash)
-          (or helm-current-prefix-arg
-              current-prefix-arg)
-          (or (and remote helm-trash-remote-files)
-              (null remote))))))
+  (when file
+    (let ((remote (file-remote-p file)))
+      (or
+       (and delete-by-moving-to-trash
+            (null helm-current-prefix-arg)
+            (null current-prefix-arg)
+            (or (and remote helm-trash-remote-files)
+                (null remote)))
+       (and (null delete-by-moving-to-trash)
+            (or helm-current-prefix-arg
+                current-prefix-arg)
+            (or (and remote helm-trash-remote-files)
+                (null remote)))))))
 
 (defun helm-trash-directory ()
   "Try to find a trash directory.
@@ -6462,6 +6478,7 @@ When a prefix arg is given, meaning of
          (old--allow-recursive-deletes helm-ff-allow-recursive-deletes)
          (buffers (cl-loop for f in files
                            append (helm-file-buffers f))))
+    (cl-assert files nil "No files found for deletion")
     (with-helm-display-marked-candidates
       helm-marked-buffer-name
       (helm-ff--count-and-collect-dups files)
@@ -6537,6 +6554,7 @@ directories are always deleted with no warnings."
          ;; Workaround emacs-26 bug with tramp see
          ;; https://github.com/jwiegley/emacs-async/issues/80.
          (async-quiet-switch "-q"))
+    (cl-assert files nil "No files found for deletion")
     (cl-loop for f in files
              for buf = (helm-file-buffers f)
              for dot-file-p = (helm-ff-dot-file-p f)
@@ -6762,84 +6780,83 @@ list."
                                   (message "No files found in file(s)"))
           :buffer "*helm find files in files*")))
 
-(cl-defun helm-ff-mcp (_candidate)
-  "Copy the car of marked candidates to the remaining marked candidates.
+(defun helm-ff--mcp-make-alist (files targets)
+  (let ((skipped 0)
+        jobs yes-for-all)
+    (catch 'abort
+      (dolist (d targets)
+        (dolist (f files)
+          (let* ((dest-file (expand-file-name (helm-basename f) d))
+                 (dir-ok (file-accessible-directory-p d))
+                 (exists (and dir-ok (file-exists-p dest-file)))
+                 (overwrite (or (null exists)
+                                yes-for-all
+                                (helm-acase (helm-read-answer
+                                             (format
+                                              "File `%s' already-exists, overwrite (y,n,!,q) ? "
+                                              dest-file)
+                                             '("y" "n" "!" "q"))
+                                  ("y" t)
+                                  ("n" nil)
+                                  ("!" (prog1 t
+                                         (setq yes-for-all t)))
+                                  ("q" (throw 'abort (message "Operation aborted")))))))
+            (if dir-ok
+                (if overwrite
+                    (push (list f (file-name-as-directory d) overwrite) jobs)
+                  (cl-incf skipped))
+              (cl-incf skipped))))))
+    (nreverse jobs)))
 
-The car of marked should be a regular file and the rest of marked (cdr) should
-be existing directories."
-  (let* ((mkd     (helm-marked-candidates))
-         (file    (car mkd))
-         (targets (cdr mkd))
-         (skipped 0)
-         operations)
-    (cl-assert (file-regular-p file) nil (format "ERROR: Not a regular file `%s'" file))
-    (cl-assert targets nil (format "ERROR: No destination specified for file `%s'" file))
-    (cl-assert (cl-loop for f in targets always (file-directory-p f)) nil
-               "ERROR: Destinations must be existing directories")
-    (when targets
-      (cl-loop with yes-for-all
-               for dest in targets
-               for dest-file = (expand-file-name (helm-basename file) dest)
-               for dir-ok = (file-accessible-directory-p dest)
-               for exists = (and dir-ok
-                                 (file-exists-p
-                                  (expand-file-name
-                                   (helm-basename file) dest)))
-               for overwrite = (or (null exists)
-                                   yes-for-all
-                                   (helm-acase (helm-read-answer
-                                                (format
-                                                 "File `%s' already-exists, overwrite (y,n,!,q) ? "
-                                                 dest-file)
-                                                '("y" "n" "!" "q"))
-                                     ("y" t)
-                                     ("n" nil)
-                                     ("!" (prog1 t
-                                            (setq yes-for-all t)))
-                                     ("q" (cl-return-from helm-ff-mcp
-                                            (message "Operation aborted")))))
-               if dir-ok
-               do (if overwrite
-                      (push (list file (file-name-as-directory dest) overwrite) operations)
-                    (cl-incf skipped))
-               else do (cl-incf skipped))
-      (when operations
-        (with-helm-display-marked-candidates
-          helm-marked-buffer-name
-          (mapcar #'abbreviate-file-name targets)
-          (if (y-or-n-p (format "Copy `%s' to directories?" (helm-basename file)))
-              (progn
-                (process-put
-                 (async-start
-                  `(lambda ()
-                     (require 'cl-lib)
-                     (cl-loop with copies = 0
-                              with skipped = ,skipped
-                              for (file dest overwrite) in ',operations
-                              do (condition-case _err
-                                     (progn
-                                       (copy-file file dest overwrite)
-                                       (cl-incf copies))
-                                   (file-error (cl-incf skipped)))
-                              finally return (list file copies skipped)))
-                  (lambda (result)
-                    (let ((copied (nth 1 result)))
-                      (unless (dired-async-processes)
-                        (dired-async--modeline-mode -1))
-                      (run-with-idle-timer
-                       0.1 nil
-                       (lambda ()
-                         (dired-async-mode-line-message
-                          "Mcp done, %s %s of %s done, %s files skipped"
-                          'dired-async-message
-                          copied
-                          (if (> copied 1)
-                              "copies" "copy")
-                          (helm-basename (nth 0 result))
-                          (nth 2 result)))))))
-                 'dired-async-process t)
-                (dired-async--modeline-mode 1))
-            (message "Operation aborted")))))))
+(defun helm-ff-mcp (_candidate)
+  "Copy marked files to directories."
+  (let* ((files (helm-marked-candidates :with-wildcard t))
+         (targets (helm-read-file-name "Copy marked files to directories: "
+                                       :test 'file-directory-p
+                                       :marked-candidates t :noret t
+                                       :default (helm-dwim-target-directories)
+                                       :initial-input helm-ff-default-directory))
+         (operations (helm-ff--mcp-make-alist files targets))
+         (lgst (cl-loop for (file _dest _overwrite) in operations
+                        maximize (length file))))
+    (when operations
+      (with-helm-display-marked-candidates
+        helm-marked-buffer-name
+        (mapcar (lambda (op)
+                  (concat (abbreviate-file-name (car op))
+                          (format "%s-> "
+                                  (make-string (- lgst (length (car op))) ? ))
+                          (abbreviate-file-name (cadr op))))
+                operations)
+        (if (y-or-n-p "Files will be copied to directories?")
+            (progn
+              (process-put
+               (async-start
+                `(lambda ()
+                   (require 'cl-lib)
+                   (cl-loop with skipped = 0
+                            with copies = 0
+                            for (file dest overwrite) in ',operations
+                            do (condition-case _err
+                                   (progn
+                                     (copy-file
+                                      file (file-name-as-directory dest) overwrite)
+                                     (cl-incf copies))
+                                 (file-error (cl-incf skipped)))
+                            finally return (list copies skipped)))
+                (lambda (result)
+                  (unless (dired-async-processes)
+                    (dired-async--modeline-mode -1))
+                  (run-with-idle-timer
+                   0.1 nil
+                   (lambda ()
+                     (dired-async-mode-line-message
+                      "Mcp done, %s file(s) copied, %s file(s) skipped"
+                      'dired-async-message
+                      (nth 0 result) (nth 1 result))))))
+               'dired-async-process t)
+              (dired-async--modeline-mode 1))
+          (message "Operation aborted"))))))
 
 (helm-make-command-from-action helm-ff-run-mcp
     "Copy the car of marked candidates to the remaining marked candidates."
@@ -7137,13 +7154,13 @@ Needed dependencies for VCS (not mandatory, pickup what you need):
     (cl-flet ((push-to-hist (root)
                 (setq helm-browse-project-history
                       (cons root (delete root helm-browse-project-history)))))
-      (helm-acond ((and (equal project-type 'Git) git-project)
+      (helm-acond ((and (eq project-type 'Git) git-project)
                    (push-to-hist it)
                    (helm-ls-git))
-                  ((and (equal project-type 'Hg) hg-project)
+                  ((and (eq project-type 'Hg) hg-project)
                    (push-to-hist it)
                    (helm-hg-find-files-in-project))
-                  ((and (equal project-type 'Svn) svn-project)
+                  ((and (eq project-type 'Svn) svn-project)
                    (push-to-hist it)
                    (helm-ls-svn-ls))
                   ((helm-browse-project-get--root-dir (helm-current-directory))
