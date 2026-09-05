@@ -1,6 +1,7 @@
 ;;; lsp-pylsp.el --- python-lsp-server support       -*- lexical-binding: t; -*-
 
 ;; Copyright (C) 2021  Doug Davis
+;; Copyright (C) 2021-2026 emacs-lsp maintainers
 
 ;; Author: Doug Davis <ddavis@ddavis.io>
 ;; Keywords: language tools
@@ -236,14 +237,14 @@ Drastically increases startup time."
   :group 'lsp-pylsp)
 
 (defcustom lsp-pylsp-plugins-rope-autoimport-completions-enabled nil
-    "Enable or disable completions from rope-autoimport."
-    :type 'boolean
-    :group 'lsp-pylsp)
+  "Enable or disable completions from rope-autoimport."
+  :type 'boolean
+  :group 'lsp-pylsp)
 
 (defcustom lsp-pylsp-plugins-rope-autoimport-code-actions-enabled nil
-    "Enable or disable code actions from rope-autoimport."
-    :type 'boolean
-    :group 'lsp-pylsp)
+  "Enable or disable code actions from rope-autoimport."
+  :type 'boolean
+  :group 'lsp-pylsp)
 
 (defcustom lsp-pylsp-plugins-rope-completion-enabled nil
   "Enable or disable the plugin."
@@ -401,6 +402,11 @@ Note each rule must additionally be marked as fixable by ruff."
   :type 'lsp-string-vector
   :group 'lsp-pylsp)
 
+(defcustom lsp-pylsp-plugins-ruff-format-enabled t
+  "Enable formatting using ruff's formatter."
+  :type 'boolean
+  :group 'lsp-pylsp)
+
 (defcustom lsp-pylsp-plugins-ruff-severities nil
   "Optional table of rules where a custom severity is desired."
   :type '(alist :key-type (lsp-string-vector :tag "rules") :value-type (string :tag "severity"))
@@ -464,7 +470,7 @@ is present."
 
 (defcustom lsp-pylsp-plugins-ruff-target-version nil
   "The minimum python version to target (applies for both linting and formatting).
-    
+
 Note this variable will be ignored when a when a pyproject.toml or ruff.toml
 is present."
   :type 'string
@@ -541,7 +547,7 @@ be helpful to assure yourself whether mypy is still running."
 (defcustom lsp-pylsp-plugins-mypy-exclude nil
   "A list of regular expressions which should be ignored.
 
-The mypy runner wil not be invoked when a document path is matched by one of the
+The mypy runner will not be invoked when a document path is matched by one of the
 expressions.  Note that this differs from the exclude directive of a mypy config
 which is only used for recursively discovering files when mypy is invoked on a
 whole directory.  For both windows or unix platforms you should use forward
@@ -634,6 +640,7 @@ So it will rename only references it can find."
    ("pylsp.plugins.ruff.extendSelect" lsp-pylsp-plugins-ruff-extend-select)
    ("pylsp.plugins.ruff.extendIgnore" lsp-pylsp-plugins-ruff-extend-ignore)
    ("pylsp.plugins.ruff.format" lsp-pylsp-plugins-ruff-format)
+   ("pylsp.plugins.ruff.formatEnabled" lsp-pylsp-plugins-ruff-format-enabled t)
    ("pylsp.plugins.ruff.severities" lsp-pylsp-plugins-ruff-severities)
    ("pylsp.plugins.ruff.unsafeFixes" lsp-pylsp-plugins-ruff-unsafe-fixes t)
    ("pylsp.plugins.ruff.lineLength" lsp-pylsp-plugins-ruff-line-length)

@@ -1,6 +1,7 @@
 ;;; lsp-eslint.el --- lsp-mode eslint integration    -*- lexical-binding: t; -*-
 
 ;; Copyright (C) 2019  Ivan Yonchovski
+;; Copyright (C) 2019-2026 emacs-lsp maintainers
 
 ;; Author: Ivan Yonchovski <yyoncho@gmail.com>
 ;; Keywords: languages
@@ -249,7 +250,7 @@ stored."
   "If non nil, `eslint' will be started in multi-root mode."
   :type 'boolean
   :safe #'booleanp
-  :package-version '(lsp-mode . "9.0.1"))
+  :package-version '(lsp-mode . "10.0.0"))
 
 (defun lsp--find-eslint ()
   (or

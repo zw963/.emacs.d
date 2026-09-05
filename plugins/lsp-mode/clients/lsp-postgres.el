@@ -1,6 +1,7 @@
 ;;; lsp-postgres.el --- Postgres client settings.  -*- lexical-binding: t; -*-
 
 ;; Copyright (C) 2025  Shen, Jen-Chieh
+;; Copyright (C) 2025-2026 emacs-lsp maintainers
 
 ;; This file is not part of GNU Emacs.
 
@@ -30,7 +31,7 @@
   "LSP support for SQL, using Postgres language server."
   :group 'lsp-mode
   :link '(url-link "https://github.com/supabase-community/postgres-language-server")
-  :package-version `(lsp-mode . "9.0.1"))
+  :package-version `(lsp-mode . "10.0.0"))
 
 (defcustom lsp-postgres-server-path nil
   "Path points for Postgres language server.

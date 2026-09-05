@@ -1,6 +1,7 @@
 ;;; lsp-ruby-lsp.el --- lsp-mode for the Ruby ruby-lsp gem -*- lexical-binding: t; -*-
 
 ;; Copyright (C) 2023 Šimon Lukašík
+;; Copyright (C) 2023-2026 lsp-mode maintainers
 
 ;; Author: Šimon Lukašík
 ;; Keywords: languages
@@ -43,22 +44,22 @@
   "List of directories which will be considered to be libraries."
   :type '(repeat string)
   :group 'lsp-ruby-lsp
-  :package-version '(lsp-mode . "9.0.1"))
+  :package-version '(lsp-mode . "10.0.0"))
 
 (defcustom lsp-ruby-lsp-server-command '("ruby-lsp")
   "Command to start ruby-lsp language server."
   :type '(repeat string)
   :group 'lsp-ruby-lsp
-  :package-version '(lsp-mode . "9.0.1"))
+  :package-version '(lsp-mode . "10.0.0"))
 
 (defun lsp-ruby-lsp--build-command ()
   (append
    (if lsp-ruby-lsp-use-bundler '("bundle" "exec"))
    lsp-ruby-lsp-server-command))
 
-(defun lsp-ruby-lsp--open-file (arg_hash)
+(defun lsp-ruby-lsp--open-file (action)
   "Open a file. This function is for code-lens provided by ruby-lsp-rails."
-  (let* ((arguments (gethash "arguments" arg_hash))
+  (let* ((arguments (lsp-get action :arguments))
          (uri (aref (aref arguments 0) 0))
          (path-with-line-number (split-string (lsp--uri-to-path uri) "#L"))
          (path (car path-with-line-number))
@@ -66,9 +67,9 @@
     (find-file path)
     (when line-number (forward-line (1- (string-to-number line-number))))))
 
-(defun lsp-ruby-lsp--run-test (arg_hash)
+(defun lsp-ruby-lsp--run-test (action)
   "Run a test file. This function is for code-lens provided by ruby-lsp-rails."
-  (let* ((arguments (gethash "arguments" arg_hash))
+  (let* ((arguments (lsp-get action :arguments))
          (command (aref arguments 2))
          (default-directory (lsp-workspace-root))
          (buffer-name "*run test results*")

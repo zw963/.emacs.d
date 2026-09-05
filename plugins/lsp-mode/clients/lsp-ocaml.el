@@ -1,6 +1,6 @@
 ;;; lsp-ocaml.el --- description -*- lexical-binding: t; -*-
 
-;; Copyright (C) 2020 emacs-lsp maintainers
+;; Copyright (C) 2020-2026 emacs-lsp maintainers
 
 ;; Author: emacs-lsp maintainers
 ;; Keywords: lsp, ocaml
@@ -49,7 +49,7 @@
 (lsp-register-client
  (make-lsp-client :new-connection (lsp-stdio-connection
                                    (lambda () lsp-ocaml-lang-server-command))
-                  :major-modes '(reason-mode caml-mode tuareg-mode)
+                  :major-modes '(reason-mode caml-mode neocaml-mode neocaml-interface-mode tuareg-mode)
                   :priority -1
                   :server-id 'ocaml-ls))
 
@@ -66,7 +66,7 @@
 ;;; -------------------
 
 (defcustom lsp-ocaml-lsp-server-command
-  '("ocamllsp")
+  '("opam" "exec" "--" "ocamllsp")
   "Command to start ocaml-lsp-server."
   :group 'lsp-ocaml-lsp-server
   :type '(choice
@@ -78,7 +78,7 @@
  (make-lsp-client
   :new-connection
   (lsp-stdio-connection (lambda () lsp-ocaml-lsp-server-command))
-  :major-modes '(reason-mode caml-mode tuareg-mode)
+  :major-modes '(reason-mode caml-mode neocaml-mode neocaml-interface-mode tuareg-mode)
   :priority 0
   :server-id 'ocaml-lsp-server))
 
@@ -329,7 +329,7 @@ If TYPE is a single-line that represents a module type, reformat it."
           (index lsp-ocaml--type-enclosing-index)
           (type_result (lsp-ocaml--type-enclosing verbosity index))
           ((&ocaml-lsp:TypeEnclosingResult :index :type :enclosings) type_result)
-          ;; Get documentation informations
+          ;; Get documentation information
           (markupkind (symbol-name lsp-ocaml-markupkind))
           (doc_result (lsp-ocaml--get-documentation nil markupkind))
           (doc (cl-getf (cl-getf doc_result :doc) :value)))
