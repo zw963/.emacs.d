@@ -1,6 +1,7 @@
 ;; -*- lexical-binding: t; -*-
 
 (require 'company)
+(require 'posframe)
 ;; For better performance and results, use company-capf (default)
 ;; (require 'company-capf)
 
