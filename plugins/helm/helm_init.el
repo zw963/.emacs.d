@@ -12,7 +12,7 @@
 
 ;; (global-set-key (kbd "M-r") 'helm-grep-do-git-grep)
 
-(require 'helm-ls-git_init)
+;; (require 'helm-ls-git_init)
 ;; (require 'helm-fasd)
 ;; (require 'helm-rg)
 
