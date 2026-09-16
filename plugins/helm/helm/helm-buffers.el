@@ -178,6 +178,20 @@ Don't use `setq' to set this."
   :set (lambda (var val)
          (set var (and (require helm-x-icons-provider nil t) val))))
 
+(defcustom helm-buffers-details '(buffer size mode location)
+  "The elements displayed in helm-buffers-list.
+This is a list of 4 symbols maximum, which are in this order: \\='buffer,
+\\='size, \\='mode, \\='location.  The default is to show all, but you can
+remove some if you want.
+Note that this affect only helm native commands using
+`helm-source-buffers-list', not helm generic implementation of
+`switch-to-buffer' and friends."
+  :type '(set
+          (const :tag "Buffer name" buffer)
+          (const :tag "Buffer size" size)
+          (const :tag "Buffer mode" mode)
+          (const :tag "Buffer location" location)))
+
 
 ;;; Faces
 ;;
@@ -192,6 +206,12 @@ Don't use `setq' to set this."
   `((t ,@(and (>= emacs-major-version 27) '(:extend t))
        :foreground "red" :background "black"))
   "Face used for buffer files modified outside of emacs."
+  :group 'helm-buffers-faces)
+
+(defface helm-buffer-renamed-out
+  `((t ,@(and (>= emacs-major-version 27) '(:extend t))
+       :foreground "SpringGreen"))
+  "Face used for buffer files with directory not matching default-directory."
   :group 'helm-buffers-faces)
 
 (defface helm-buffer-not-saved
@@ -545,6 +565,16 @@ The list is reordered with `helm-buffer-list-reorder-fn'."
            (helm-buffer--show-details
             name name-prefix file-name size mode dir
             'helm-buffer-saved-out 'helm-buffer-process nil details 'modout))
+          ;; The buffer-file-name's directory and default-directory don't match.
+          ;; This happen generally when moving a file to another directory,
+          ;; `set-visited-file-name' modifies `buffer-file-name' but not
+          ;; `default-directory'.
+          ((and file-name
+                (file-exists-p file-name)
+                (not (file-equal-p (file-name-directory file-name) dir)))
+           (helm-buffer--show-details
+            name name-prefix file-name size mode dir
+            'helm-buffer-renamed-out 'helm-buffer-process nil details 'notsaved))
           ;; A new buffer file not already saved on disk (or a deleted file) .=>indianred2
           ((and file-name (not (file-exists-p file-name)))
            (helm-buffer--show-details
@@ -555,7 +585,7 @@ The list is reordered with `helm-buffer-list-reorder-fn'."
            (helm-buffer--show-details
             name name-prefix file-name size mode dir
             'helm-buffer-modified 'helm-buffer-process nil details 'mod))
-          ;; A buffer file not modified and saved on disk.=>green
+          ;; A buffer file not modified and saved on disk.=>blue
           (file-name
            (helm-buffer--show-details
             name name-prefix file-name size mode dir
@@ -591,9 +621,7 @@ Should be called after others transformers i.e. (boring
 buffers)."
   (cl-assert helm-fuzzy-matching-highlight-fn nil "Wrong type argument functionp: nil")
   (cl-loop for i in buffers
-           for (name size mode meta) = (if helm-buffer-details-flag
-                                           (helm-buffer--details i 'details)
-                                         (helm-buffer--details i))
+           for (name size mode meta) = (helm-buffer--details i 'details)
            for truncbuf = (if (> (string-width name) helm-buffer-max-length)
                               (helm-substring-by-width
                                name helm-buffer-max-length
@@ -617,17 +645,26 @@ buffers)."
            collect (let ((helm-pattern (helm-buffers--pattern-sans-filters
                                         (and helm-buffers-fuzzy-matching ""))))
                      (cons (if helm-buffer-details-flag
-                               (concat
-                                (funcall helm-fuzzy-matching-highlight-fn
-                                         truncbuf)
-                                helm-buffers-column-separator
-                                formatted-size
-                                helm-buffers-column-separator
-                                fmode
-                                helm-buffers-column-separator
-                                meta)
+                               (helm-buffers--concat-details
+                                (funcall helm-fuzzy-matching-highlight-fn truncbuf)
+                                formatted-size fmode meta
+                                helm-buffers-column-separator)
                              (funcall helm-fuzzy-matching-highlight-fn name))
                            (get-buffer i)))))
+
+(defun helm-buffers--concat-details (buffer size mode location column)
+  (let ((details ""))
+    (dolist (detail helm-buffers-details)
+      (setq details
+            (helm-acase detail
+              (buffer   (concat details buffer column))
+              (size     (concat details size column))
+              (mode     (concat details mode column))
+              (location (concat details location column)))))
+    ;; Ensure to remove separator at end as we add it at end of location even if
+    ;; the order in helm-buffers-details should be respected, also one could
+    ;; remove location and we would endup anyway with trailing whitespaces.
+    (replace-regexp-in-string " *\\'" "" details)))
 
 (defun helm-buffer--get-preselection (buffer)
   (let* ((bufname     (buffer-name buffer))

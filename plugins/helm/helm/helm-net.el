@@ -325,6 +325,8 @@ not be prompted to kill the Firefox process.
 NOTE: Probably not supported on some systems (e.g., Windows)."
   (interactive (list (read-string "URL: " (browse-url-url-at-point))
                      nil))
+  (cl-assert (executable-find browse-url-firefox-program)
+             nil "couldn't find firefox executable")
   (helm-browse-url-detached browse-url-firefox-program url
                             helm-browse-url-firefox-new-window))
 
@@ -350,6 +352,8 @@ not be prompted to kill the Chromium process.
 NOTE: Probably not supported on some systems (e.g., Windows)."
   (interactive (list (read-string "URL: " (browse-url-url-at-point))
                      nil))
+  (cl-assert (executable-find helm-browse-url-chromium-program)
+             nil "couldn't find chromium executable")
   (helm-browse-url-detached
    helm-browse-url-chromium-program url))
 
@@ -365,6 +369,8 @@ not be prompted to kill the Opera process.
 NOTE: Probably not supported on some systems (e.g., Windows)."
   (interactive (list (read-string "URL: " (browse-url-url-at-point))
                      nil))
+  (cl-assert (executable-find helm-browse-url-brave-program)
+             nil "couldn't find brave executable")
   (helm-browse-url-detached
    helm-browse-url-brave-program url "--new-tab"))
 

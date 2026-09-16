@@ -1,11 +1,11 @@
 ;;; flx-rs.el --- flx in Rust using dynamic module  -*- lexical-binding: t; -*-
 
-;; Copyright (C) 2021-2023  Shen, Jen-Chieh
+;; Copyright (C) 2021-2026  Shen, Jen-Chieh
 ;; Created date 2021-10-28 00:53:46
 
 ;; Author: Shen, Jen-Chieh <jcs090218@gmail.com>
 ;; URL: https://github.com/jcs-elpa/flx-rs
-;; Version: 0.1.1
+;; Version: 0.1.2
 ;; Package-Requires: ((emacs "25.1"))
 ;; Keywords: matching fuzzy
 
@@ -26,7 +26,7 @@
 
 ;;; Commentary:
 ;;
-;; flx in Rust using dynamic module
+;; flx in Rust using dynamic module.
 ;;
 
 ;;; Code:
@@ -64,7 +64,7 @@
   "Return best score matching QUERY against STR."
   (unless (or (zerop (length query))
               (zerop (length str)))
-    (when-let ((vec (ignore-errors (flx-rs-core-score str query))))
+    (when-let* ((vec (ignore-errors (flx-rs-core-score str query))))
       (append vec nil))))  ; Convert vector to list
 
 ;;

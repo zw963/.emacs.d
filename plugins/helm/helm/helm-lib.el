@@ -1890,12 +1890,16 @@ is same as with PARENT."
 
 (defun helm-current-directory ()
   "Return current-directory name at point.
-It is done according to `helm-current-directory-alist'."
+It is done according to `helm-current-directory-alist'.
+If nothing found try to use the directory handling `buffer-file-name' and
+finally fallback to `default-directory'."
   (expand-file-name
    (helm-acase major-mode
      ((guard* (assoc-default it helm-current-directory-alist))
       (helm-interpret-value guard))
-     (t default-directory))))
+     (t (helm-aif (buffer-file-name)
+            (file-name-directory it)
+          default-directory)))))
 
 (defun helm-shadow-boring-files (files)
   "Files matching `helm-boring-file-regexp' will be
